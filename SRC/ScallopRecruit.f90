@@ -1,5 +1,5 @@
 module Recruit_Mod
-    use Globals
+    use globals
     integer, parameter :: max_n_year = 50
     type Recruit_Struct
        real(dp) recruitment(max_n_year)
@@ -14,7 +14,11 @@ module Recruit_Mod
     !> Set_Recruitment
     !! @brief Sets recruitment parameters
     !! @param[in,out] recruit 
-    !! @param
+    !! @param[in,out] data_len
+    !! @param[in] domain_name can be either 
+    !!             MA MidAtlantic or 
+    !!             GB GeorgesBank
+    !! @param[in] is_random_rec
     !-----------------------------------------------------------------------
     subroutine Set_Recruitment(recruit, data_len, domain_name, is_random_rec)
         implicit none
@@ -26,8 +30,8 @@ module Recruit_Mod
         real(dp) tmp(data_len)
         character(72) buf
         write(*,*)'Is random Rec',is_random_rec
-        year_index=0
-        do yr=1979,2018
+        year_index = 0
+        do yr = 1979, 2018
             year_index=year_index+1
             write(buf,'(I6)')yr
             if (is_random_rec) then
