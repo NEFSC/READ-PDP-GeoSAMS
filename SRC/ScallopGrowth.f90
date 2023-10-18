@@ -1,6 +1,6 @@
 MODULE Growth_Mod
     use globals
-    integer, parameter :: max_size_class = 31 ! not 25, 30 to 180 in steps of 5
+    integer, parameter :: max_size_class = (165-30) / 5 + 1 ! not 25,
     integer, parameter :: growth_param_size = 4
     type Growth_Struct
         real(dp) L_inf_mu, K_mu
@@ -76,7 +76,7 @@ MODULE Growth_Mod
     subroutine Set_Growth(growth, grid, lengths, delta_time, data_len, num_size_classes, domain_name)
         use Data_Point_Mod
         implicit none
-        type(Growth_Struct), intent(inout):: growth(*)
+        type(Growth_Struct), intent(inout):: growth(*) 
         type(Data_Point):: grid
         real(dp), intent(in):: lengths(*),delta_time
         integer, intent(in)::data_len,num_size_classes

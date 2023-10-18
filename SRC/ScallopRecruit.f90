@@ -1,0 +1,112 @@
+module Recruit_Mod
+    use Globals
+    integer, parameter :: max_n_year = 50
+    type Recruit_Struct
+       real(dp) recruitment(max_n_year)
+       real(dp) rec_start,rec_stop
+       integer year(max_n_year)
+       integer n_year, max_rec_ind ! max_rec_ind is the largest size class treated as a recruit
+    end type Recruit_Struct
+
+    CONTAINS
+
+    !-----------------------------------------------------------------------
+    !> Set_Recruitment
+    !! @brief Sets recruitment parameters
+    !! @param[in,out] recruit 
+    !! @param
+    !-----------------------------------------------------------------------
+    subroutine Set_Recruitment(recruit, data_len, domain_name, is_random_rec)
+        implicit none
+        type(Recruit_Struct), intent(inout) :: recruit(*)
+        integer, intent(inout) :: data_len
+        character(2), intent(in) :: domain_name
+        logical, intent(in) :: is_random_rec
+        integer j, yr, year_index
+        real(dp) tmp(data_len)
+        character(72) buf
+        write(*,*)'Is random Rec',is_random_rec
+        year_index=0
+        do yr=1979,2018
+            year_index=year_index+1
+            write(buf,'(I6)')yr
+            if (is_random_rec) then
+                call Random_Recruits(tmp,yr,yr,data_len,100,domain_name)
+            else
+                call Read_Scalar_Field('Output/Sim'//domain_name//trim(adjustl(buf))//'/KrigingEstimate.txt',tmp, data_len)
+            endif
+            do j=1,data_len
+                recruit(j)%recruitment(year_index) = tmp(j)
+                recruit(j)%year(year_index) = yr
+                recruit(j)%rec_start = 1.D0/365.D0
+                recruit(j)%rec_stop = 100.D0/365.D0
+            enddo
+        enddo
+        
+        do yr=2019,2025
+            year_index=year_index+1
+            write(buf,'(I6)')yr
+            call Random_Recruits(tmp,1979,2018,data_len,100,domain_name)
+            do j=1,data_len
+                recruit(j)%recruitment(year_index)=tmp(j)
+                recruit(j)%year(year_index)=yr
+                recruit(j)%rec_start = 1.D0/365.D0
+                recruit(j)%rec_stop = 100.D0/365.D0
+            enddo
+        enddo
+        recruit(1:data_len)%n_year = year_index
+        write(*,*)year_index,recruit(1)%recruitment(year_index)
+        year_index=0
+        do yr=1979,2025
+                year_index=year_index+1
+                write(buf,'(I6)')yr
+                tmp(1:data_len)=recruit(1:data_len)%Recruitment(year_index)
+                call Write_Scalar_Field(data_len,tmp,'RecruitFieldIn'//trim(adjustl(buf))//'.txt')
+        enddo
+        return
+    endsubroutine Set_Recruitment
+        
+
+    !---------------------------------------------------------------------------------------------------
+    subroutine Random_Recruits(R, start_year, stop_year, data_len, num_sim, domain_name)
+        real(dp), intent(out) :: R(*)
+        integer, intent(in)::start_year, stop_year, num_sim
+        integer, intent(inout)::data_len
+        character (*), intent(in):: domain_name
+        real(dp), allocatable:: F(:,:)
+        real(dp) p(2), mu, sig, mus, mur
+        integer num_years_int, num_sims_rand
+        character(6) buf
+        logical rescale
+        rescale=.true.
+        allocate(F(1:data_len, 1:num_sim))
+        call random_number(p(1:2))
+        num_years_int = start_year + floor( float(stop_year - start_year + 1) * p(1) )
+        num_sims_rand = ceiling( float(num_sim) * p(2) )
+        write(buf,'(I6)') num_years_int
+                
+        call Read_Scalar_Field('Output/Sim'//domain_name//'Clim'//trim(adjustl(buf))//'/KrigingEstimate.txt', &
+        &            F(1:data_len,num_sims_rand), data_len)
+        R(1:data_len) = F(1:data_len, num_sims_rand)
+        ! Adjust mean to random number based on historical record of mean. log(interanual mean)~ N(mu,sig)
+        if (rescale)then
+            !log normal average for 1979-2018
+            if (domain_name(1:2).eq.'GB')then
+                mu =  -3.0198
+                sig =  1.1068
+            else
+                mu=-3.5329
+                sig=1.0036
+            endif
+            mus = sum(R(1:data_len)) / float(data_len)
+            call random_number(p(1:2))
+            mur = mu + sig * p(1)
+            R(1:data_len) = R(1:data_len) * exp(mur) / mus
+        endif
+        deallocate(F)
+        
+        return
+    endsubroutine Random_Recruits
+    
+endmodule Recruit_Mod
+   
