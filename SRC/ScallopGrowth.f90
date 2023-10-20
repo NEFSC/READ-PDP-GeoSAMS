@@ -1,6 +1,7 @@
 MODULE Growth_Mod
     use globals
-    integer, parameter :: max_size_class = (165-30) / 5 + 1 ! not 25,
+    implicit none
+    integer, parameter :: max_size_class = (180-30) / 5 + 1 ! not 25,
     integer, parameter :: growth_param_size = 4
     type Growth_Struct
         real(dp) L_inf_mu, K_mu
@@ -14,43 +15,44 @@ MODULE Growth_Mod
 
     CONTAINS
 
-    subroutine Gen_Trans_Matrix(growth, lengths, num_size_class, delta_time)
+    subroutine Gen_Trans_Matrix(growth, lengths, num_size_classes, delta_time)
         !-----------------------------------------------------------------------
         ! Keston Smith (IBSS corp) June-July 2021
         !-----------------------------------------------------------------------
         !use SSTMmod
         implicit none
         real(dp), intent(in):: lengths(*), delta_time
-        integer, intent(in)::num_size_class
+        integer, intent(in)::num_size_classes
         real(dp), allocatable :: G(:,:)
         integer j
         character(72) file_name
         real(dp) K_mu, K_sd, L_inf_mu, L_inf_sd
-        
         type(Growth_Struct):: growth
-        allocate(G(1:num_size_class,1:num_size_class) )
+
+        allocate(G(1:num_size_classes,1:num_size_classes) )
         L_inf_mu = growth%L_inf_mu
         L_inf_sd = growth%L_inf_sd
         K_mu = growth%K_mu
         K_sd = growth%K_sd
 
-        call MN18_appndxC_transition_matrix(L_inf_mu, K_mu, L_inf_sd, K_sd,lengths, delta_time, G, num_size_class, num_size_class)
+        call MN18_appndxC_transition_matrix(L_inf_mu, K_mu, L_inf_sd, K_sd,lengths, &
+        &      delta_time, G, num_size_classes, num_size_classes)
         
         ! If growth increments are assumed normally distributed the left hand tail of the distribution can lead to unrealistic "shrinking" transitions
               
-        call enforce_non_negative_growth(G, num_size_class, num_size_class)
-        do j = 1,num_size_class
+        call enforce_non_negative_growth(G, num_size_classes, num_size_classes)
+        do j = 1,num_size_classes
             if(lengths(j).gt.L_inf_mu)then
-                G(j,1:num_size_class) = 0._dp
+                G(j,1:num_size_classes) = 0._dp
                 G(j,j) = 1._dp
             endif
         enddo
 
-        growth%G(1:num_size_class, 1:num_size_class) = G(1:num_size_class, 1:num_size_class)
+        growth%G(1:num_size_classes, 1:num_size_classes) = G(1:num_size_classes, 1:num_size_classes)
         
         ! output transition matrix
-         file_name = 'Growth.csv'
-        call Write_CSV(num_size_class,num_size_class,G,file_name,num_size_class)
+         file_name = 'Output/Growth.csv'
+        call Write_CSV(num_size_classes,num_size_classes,G,file_name,num_size_classes)
         
         deallocate( G )
         return
@@ -70,12 +72,16 @@ MODULE Growth_Mod
             shell_height(n) = shell_height(n-1) + lengthDelta
         enddo
         PRINT '(A, F6.2, A, F6.2)', ' Shell size MIN, MAX', shell_height(1), ', ', shell_height(num_size_classes)
+        if (num_size_classes .GT. max_size_class) then
+            PRINT *, term_red, 'WARNING number of size classes too large', num_size_classes, '>', max_size_class, term_blk
+        else
+            PRINT *, term_blu, 'OKAY number of size classes', num_size_classes, '<=', max_size_class, term_blk
+        endif
         return
     end subroutine Set_Shell_Height_Intervals
 
     subroutine Set_Growth(growth, grid, lengths, delta_time, data_len, num_size_classes, domain_name)
         use Data_Point_Mod
-        implicit none
         type(Growth_Struct), intent(inout):: growth(*) 
         type(Data_Point):: grid
         real(dp), intent(in):: lengths(*),delta_time
@@ -113,7 +119,7 @@ MODULE Growth_Mod
         Gpar(1:data_len,2)=growth(1:data_len)%L_inf_sd
         Gpar(1:data_len,3)=growth(1:data_len)%K_mu
         Gpar(1:data_len,4)=growth(1:data_len)%K_sd
-        call Write_CSV(data_len, growth_param_size, Gpar, 'GrowthParOut.csv', data_len)
+        call Write_CSV(data_len, growth_param_size, Gpar, 'Output/GrowthParOut.csv', data_len)
         
         return 
     end subroutine Set_Growth
@@ -122,7 +128,6 @@ MODULE Growth_Mod
     subroutine Get_Growth_GB(depth, lat, is_open, Linf, K)
         ! Provides growth parameters Linf and K for Georges Bank.
         ! From R code sent by Dvora July 28th 2021
-        implicit none
         real(dp), intent(in) :: depth, lat
         logical, intent(in) :: is_open
         real(dp), intent(out) :: Linf, K
@@ -154,7 +159,6 @@ MODULE Growth_Mod
     subroutine Get_Growth_MA(depth, lat, is_open, Linf, K)
         ! Provides growth parameters Linf and K for Mid Atlantic.
         ! From R code sent by Dvora July 28th 2021
-        implicit none
         real(dp), intent(in)::depth, lat
         logical, intent(in)::is_open
         real(dp), intent(out)::Linf,K
@@ -194,7 +198,7 @@ MODULE Growth_Mod
     !          K_std [real 1x1] =  standard deviation of von Bertlanaffy growth parameter K(see HC09 eqn 1)
     !          lengths [real nx1] = lengths for each size class 
     !          delta_time [real 1x1] = time step for transition matrix in decmilal years
-    !          num_size_class [integer 1x1] = dimension of lengths and G 
+    !          num_size_classes [integer 1x1] = dimension of lengths and G 
     !
     !
     ! outputs: 
@@ -205,17 +209,15 @@ MODULE Growth_Mod
     !
     ! history:  Written by keston Smith (IBSS corp) May 2021
     !-----------------------------------------------------------------------
-    subroutine MN18_appndxC_transition_matrix(L_inf_mu,K_mu,L_inf_sd,K_sd,lengths,delta_time,G,num_size_class,n)
-        implicit none
-    
+    subroutine MN18_appndxC_transition_matrix(L_inf_mu,K_mu,L_inf_sd,K_sd,lengths,delta_time,G,num_size_classes,n)
         ! input variables
     
-        integer, INTENT(IN) :: num_size_class
-        real(dp), INTENT(IN) :: L_inf_mu, K_mu, L_inf_sd, K_sd, delta_time, lengths(num_size_class)
+        integer, INTENT(IN) :: num_size_classes
+        real(dp), INTENT(IN) :: L_inf_mu, K_mu, L_inf_sd, K_sd, delta_time, lengths(num_size_classes)
     
         ! output variables
     
-        real(dp), INTENT(OUT) :: G(num_size_class, num_size_class)
+        real(dp), INTENT(OUT) :: G(num_size_classes, num_size_classes)
     
         ! local variables
     
@@ -251,29 +253,28 @@ MODULE Growth_Mod
         return
     end subroutine MN18_appndxC_transition_matrix
 
+    !-----------------------------------------------------------------------
+    ! Purpose: This subroutine computes a growth increment distribution parameters under 
+    ! the  assumption of von Bertlanaffy growth and normally distributed growth increments. 
+    ! It is assumed that the parameters of von BernBertlanaffy growth K and L_inf have
+    ! normaldistributions.
+    !
+    ! inputs:
+    ! L_inf_mu [real 1x1] = mean of von Bertlanaffy asymptotic growth parameterL_inf(see HC09 eqn 1)
+    ! K_mu [real 1x1] =  mean of von Bertlanaffy growth parameter K(see HC09 eqn 1)
+    ! L_inf_std [real 1x1] =  standard deviation of von Bertlanaffy asymptoticgrowth parameter L_inf(see  HC09 eqn 1)
+    ! K_std [real 1x1] =  standard deviation of von Bertlanaffy growth parameter (see HC09 eqn 1)
+    ! delta_time [real 1x1] = time step for transition matrix in decmilal years
+    ! u [real 1x1] = size to estimate increment stats
+    !
+    !
+    ! outputs: 
+    ! mu [1x1] = mean of increment at u
+    ! sigma [1x1]  = standard deviation of increment at u
+    
+    ! history:  Written by keston Smith (IBSS corp) May 2021
+    !-----------------------------------------------------------------------
     subroutine increment_mean_std(L_inf_mu, K_mu, L_inf_sd, K_sd, delta_time, u, mu, sigma)
-        !-----------------------------------------------------------------------
-        ! Purpose: This subroutine computes a growth increment distribution parameters under 
-        ! the  assumption of von Bertlanaffy growth and normally distributed growth increments. 
-        ! It is assumed that the parameters of von BernBertlanaffy growth K and L_inf have
-        ! normaldistributions.
-        !
-        ! inputs:
-        ! L_inf_mu [real 1x1] = mean of von Bertlanaffy asymptotic growth parameterL_inf(see HC09 eqn 1)
-        ! K_mu [real 1x1] =  mean of von Bertlanaffy growth parameter K(see HC09 eqn 1)
-        ! L_inf_std [real 1x1] =  standard deviation of von Bertlanaffy asymptoticgrowth parameter L_inf(see  HC09 eqn 1)
-        ! K_std [real 1x1] =  standard deviation of von Bertlanaffy growth parameter (see HC09 eqn 1)
-        ! delta_time [real 1x1] = time step for transition matrix in decmilal years
-        ! u [real 1x1] = size to estimate increment stats
-        !
-        !
-        ! outputs: 
-        ! mu [1x1] = mean of increment at u
-        ! sigma [1x1]  = standard deviation of increment at u
-        
-        ! history:  Written by keston Smith (IBSS corp) May 2021
-        !-----------------------------------------------------------------------
-        implicit none
         
         ! input variables
         
@@ -324,15 +325,14 @@ MODULE Growth_Mod
         return
     end subroutine increment_mean_std
     
+    ! from MN18 apendix B
+    ! input variables
+    ! x - evaluation point
+    ! sigma,w - paramaters defined within MN18
+    
+    ! output variables
+    ! H - variable 
     subroutine H_MN18(x,sigma,w,H)
-        ! from MN18 apendix B
-        ! input variables
-        ! x - evaluation point
-        ! sigma,w - paramaters defined within MN18
-        
-        ! output variables
-        ! H - variable 
-        implicit none
         real(dp), INTENT(IN) ::sigma,w,x
         real(dp), INTENT(OUT) ::H
         real(dp) f,zero
@@ -342,23 +342,20 @@ MODULE Growth_Mod
         return
     end subroutine H_MN18
     
-    subroutine enforce_non_negative_growth(G,num_size_class,n)
-        ! input variables
-        !     G = growth transition matrix that may have effects of negative growth
-        !     num_size_class = leading dimension of G
-        !     n  = actual number of size classes
-        
-        ! outut variables
-        !     G - growth transition matrix with negative growth lumped into 0 growth
-        
-        implicit none
-        
+    ! input variables
+    !     G = growth transition matrix that may have effects of negative growth
+    !     num_size_classes = leading dimension of G
+    !     n  = actual number of size classes
+    
+    ! outut variables
+    !     G - growth transition matrix with negative growth lumped into 0 growth
+    subroutine enforce_non_negative_growth(G,num_size_classes,n)
         ! input variables
         
-        integer, INTENT(IN) :: n,num_size_class
-        
+        integer, INTENT(IN) :: n,num_size_classes
+
         ! input/output variables
-        real(dp) G(num_size_class,*)
+        real(dp) G(num_size_classes,*)
         ! local
         integer j,k
         real(dp) S      
@@ -392,16 +389,15 @@ MODULE Growth_Mod
     end subroutine enforce_non_negative_growth
            
            
+    ! computation of normal cdf
+    ! input variables
+    ! mu - mean 
+    ! sigma - standard deviation
+    ! x - evaluation point
+    
+    ! output variables
+    ! f - normal cdf value at x, f(x|mu,sigma)
     subroutine Ncdf(x,mu,sigma,f)
-        ! computation of normal cdf
-        ! input variables
-        ! mu - mean 
-        ! sigma - standard deviation
-        ! x - evaluation point
-        
-        ! output variables
-        ! f - normal cdf value at x, f(x|mu,sigma)
-        implicit none
         real(dp) mu,sigma,x,f
         f = 0.5_dp * ( 1._dp + erf( (x - mu) / (sigma * sqrt(2._dp) ) ))
         return

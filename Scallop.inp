@@ -3,7 +3,7 @@ Domain Name = MA
 Beging Year = 2000
 Ending Year = 2025
 Time steps per Year = 52
-Inintial Conditions = Output/SimMA2000/InitialCondition.csv
+Inintial Conditions = Input/SimMA2000/InitialCondition.csv
 # Fishing can be USD, BMS, or, CAS
 Fishing = USD
 Number Monte Carlo = 50
