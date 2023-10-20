@@ -1,5 +1,6 @@
 module Recruit_Mod
     use globals
+    implicit none
     integer, parameter :: max_n_year = 50
     type Recruit_Struct
        real(dp) recruitment(max_n_year)
@@ -14,35 +15,35 @@ module Recruit_Mod
     !> Set_Recruitment
     !! @brief Sets recruitment parameters
     !! @param[in,out] recruit 
-    !! @param[in,out] data_len
+    !! @param[in,out] num_grids
     !! @param[in] domain_name can be either 
     !!             MA MidAtlantic or 
     !!             GB GeorgesBank
     !! @param[in] is_random_rec
     !-----------------------------------------------------------------------
-    subroutine Set_Recruitment(recruit, data_len, domain_name, is_random_rec)
-        implicit none
+    subroutine Set_Recruitment(recruit, num_grids, domain_name, is_random_rec)
         type(Recruit_Struct), intent(inout) :: recruit(*)
-        integer, intent(inout) :: data_len
+        integer, intent(in) :: num_grids
         character(2), intent(in) :: domain_name
         logical, intent(in) :: is_random_rec
         integer j, yr, year_index
-        real(dp) tmp(data_len)
+        real(dp) tmp(num_grids)
         character(72) buf
+
         write(*,*)'Is random Rec',is_random_rec
         year_index = 0
-        do yr = 1979, 2018
-            year_index=year_index+1
+        do yr = 1979, 2018      !! TODO make these variable
+            year_index=year_index+1 ! or yr - 1978
             write(buf,'(I6)')yr
             if (is_random_rec) then
-                call Random_Recruits(tmp,yr,yr,data_len,100,domain_name)
+                call Random_Recruits(tmp,yr,yr,num_grids,100,domain_name)
             else
-                call Read_Scalar_Field('Output/Sim'//domain_name//trim(adjustl(buf))//'/KrigingEstimate.txt',tmp, data_len)
+                call Read_Scalar_Field('Input/Sim'//domain_name//trim(adjustl(buf))//'/KrigingEstimate.txt',tmp, num_grids)
             endif
-            do j=1,data_len
+            do j=1,num_grids
                 recruit(j)%recruitment(year_index) = tmp(j)
                 recruit(j)%year(year_index) = yr
-                recruit(j)%rec_start = 1.D0/365.D0
+                recruit(j)%rec_start = 1.D0/365.D0   !! TOODO define these magic numbers
                 recruit(j)%rec_stop = 100.D0/365.D0
             enddo
         enddo
@@ -50,32 +51,33 @@ module Recruit_Mod
         do yr=2019,2025
             year_index=year_index+1
             write(buf,'(I6)')yr
-            call Random_Recruits(tmp,1979,2018,data_len,100,domain_name)
-            do j=1,data_len
+            !! TODO make these variable
+            call Random_Recruits(tmp,1979,2018,num_grids,100,domain_name)
+            do j=1,num_grids
                 recruit(j)%recruitment(year_index)=tmp(j)
                 recruit(j)%year(year_index)=yr
                 recruit(j)%rec_start = 1.D0/365.D0
                 recruit(j)%rec_stop = 100.D0/365.D0
             enddo
         enddo
-        recruit(1:data_len)%n_year = year_index
+        recruit(1:num_grids)%n_year = year_index
         write(*,*)year_index,recruit(1)%recruitment(year_index)
         year_index=0
         do yr=1979,2025
                 year_index=year_index+1
                 write(buf,'(I6)')yr
-                tmp(1:data_len)=recruit(1:data_len)%Recruitment(year_index)
-                call Write_Scalar_Field(data_len,tmp,'RecruitFieldIn'//trim(adjustl(buf))//'.txt')
+                tmp(1:num_grids)=recruit(1:num_grids)%Recruitment(year_index)
+                call Write_Scalar_Field(num_grids,tmp,'Output/RecruitFieldIn'//trim(adjustl(buf))//'.txt')
         enddo
         return
     endsubroutine Set_Recruitment
         
 
     !---------------------------------------------------------------------------------------------------
-    subroutine Random_Recruits(R, start_year, stop_year, data_len, num_sim, domain_name)
+    subroutine Random_Recruits(R, start_year, stop_year, num_grids, num_sim, domain_name)
         real(dp), intent(out) :: R(*)
         integer, intent(in)::start_year, stop_year, num_sim
-        integer, intent(inout)::data_len
+        integer, intent(in)::num_grids
         character (*), intent(in):: domain_name
         real(dp), allocatable:: F(:,:)
         real(dp) p(2), mu, sig, mus, mur
@@ -83,15 +85,15 @@ module Recruit_Mod
         character(6) buf
         logical rescale
         rescale=.true.
-        allocate(F(1:data_len, 1:num_sim))
+        allocate(F(1:num_grids, 1:num_sim))
         call random_number(p(1:2))
         num_years_int = start_year + floor( float(stop_year - start_year + 1) * p(1) )
         num_sims_rand = ceiling( float(num_sim) * p(2) )
         write(buf,'(I6)') num_years_int
                 
-        call Read_Scalar_Field('Output/Sim'//domain_name//'Clim'//trim(adjustl(buf))//'/KrigingEstimate.txt', &
-        &            F(1:data_len,num_sims_rand), data_len)
-        R(1:data_len) = F(1:data_len, num_sims_rand)
+        call Read_Scalar_Field('Input/Sim'//domain_name//'Clim'//trim(adjustl(buf))//'/KrigingEstimate.txt', &
+        &            F(1:num_grids,num_sims_rand), num_grids)
+        R(1:num_grids) = F(1:num_grids, num_sims_rand)
         ! Adjust mean to random number based on historical record of mean. log(interanual mean)~ N(mu,sig)
         if (rescale)then
             !log normal average for 1979-2018
@@ -102,10 +104,10 @@ module Recruit_Mod
                 mu=-3.5329
                 sig=1.0036
             endif
-            mus = sum(R(1:data_len)) / float(data_len)
+            mus = sum(R(1:num_grids)) / float(num_grids)
             call random_number(p(1:2))
             mur = mu + sig * p(1)
-            R(1:data_len) = R(1:data_len) * exp(mur) / mus
+            R(1:num_grids) = R(1:num_grids) * exp(mur) / mus
         endif
         deallocate(F)
         
@@ -113,4 +115,3 @@ module Recruit_Mod
     endsubroutine Random_Recruits
     
 endmodule Recruit_Mod
-   

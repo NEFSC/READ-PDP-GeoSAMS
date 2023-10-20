@@ -23,10 +23,10 @@ subroutine Read_Input(domain_name, init_cond_file_name, start_year, stop_year, f
     character(72),intent(out):: init_cond_file_name
     character(2),intent(out):: domain_name
     character(3),intent(out):: fishing_type
-    character(72) :: input_string, file_name, errFileName
+    character(72) :: input_string, file_name, error_file_name
     file_name='Scallop.inp'
-    errFileName = 'InputDataError.txt'
-    open(write_dev,file=errFileName)
+    error_file_name = 'InputDataError.txt'
+    open(write_dev,file=error_file_name)
 
     open(read_dev,file=file_name)
     do
@@ -189,7 +189,7 @@ endsubroutine Read_Output_Flags
 !XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX
 
 !> 
-!! subroutine Load_Grid(x,y,z,f,num_time_steps)
+!! subroutine Load_Grid(x,y,z,f,num_grids)
 !! load grid coordinates and bathymetric depth from CSV file with 5 columns
 !! representing an x coordinate, y, bathymetric depth (z), latitude, and
 !! longitude.
@@ -200,15 +200,16 @@ endsubroutine Read_Output_Flags
 !! @param[out] z (float double) bathymetric depth at (x,y)
 !! @param[out] lat (float double) latitude at (x,y)
 !! @param[out] lon (float double) longitude at (x,y)
-!! @param[out] num_time_steps (integer)length of x,y,z,lat,lon (number of data point Time Steps)
+!! @param[out] num_grids (integer)length of x,y,z,lat,lon (number of data point Time Steps)
 !!
-!! Note: At present lat and lon variabels are not used. 
-subroutine Load_Grid(x, y, z, lat, lon, num_time_steps, E, ne, managementRegion, Clop, domain_name)
+!! TODO: At present lat and lon variabels are not used. 
+subroutine Load_Grid(x, y, z, lat, lon, num_grids, E, num_elements, management_region, is_closed, domain_name)
     use globals
-
     implicit none
+
     real(dp) lat(*),lon(*),x(*),y(*),z(*)
-    integer n, num_time_steps, ne, io, managementRegion(*), E(4,*), Clop(*)
+    integer n, num_grids, num_elements, io, management_region(*), E(4,*)
+    logical is_closed(*)
     character(72) input_str,file_name
     character(2) domain_name
     write(*,*) 'Domain Name: ', domain_name
@@ -223,16 +224,16 @@ subroutine Load_Grid(x, y, z, lat, lon, num_time_steps, E, ne, managementRegion,
      read(input_str,*) x(n),y(n),z(n),lat(n),lon(n)
     end do
     close(63)
-    num_time_steps=n
+    num_grids=n
 
     file_name='Grids/ManagementArea'//domain_name//'.txt'
     write(*,*)'reading grid file: ',trim(file_name)
     open(63,file=trim(file_name),status='old')
     n=0
-    do n=1,num_time_steps
-     read(63,'(a)',iostat=io) input_str
-     if (io.lt.0) exit
-     read(input_str,*) managementRegion(n)
+    do n=1,num_grids
+        read(63,'(a)',iostat=io) input_str
+        if (io.lt.0) exit
+        read(input_str,*) management_region(n)
     end do
     close(63)
 
@@ -247,23 +248,23 @@ subroutine Load_Grid(x, y, z, lat, lon, num_time_steps, E, ne, managementRegion,
      read(input_str,*) E(1,n),E(2,n),E(3,n),E(4,n)
     end do
     close(63)
-    ne=n
+    num_elements=n
 
     if (domain_name(1:2).eq.'GB')then
-        Clop(1:num_time_steps)=1
-        do n=1,num_time_steps
-            if( any ((/ managementRegion(n).eq.8, managementRegion(n).eq.5,&
-                        managementRegion(n).eq.10 /)))then
-                Clop(n)=0
+        is_closed(1:num_grids)=.TRUE.
+        do n=1,num_grids
+            if( any ((/ management_region(n).eq.8, management_region(n).eq.5,&
+            &           management_region(n).eq.10 /)))then
+                is_closed(n)=.FALSE.
             endif
         enddo
     endif
     if (domain_name(1:2).eq.'MA')then
-        Clop(1:num_time_steps)=0
-        do n=1,num_time_steps
-            if( any ((/ managementRegion(n).eq.3, managementRegion(n).eq.4,&
-                        managementRegion(n).eq.5, managementRegion(n).eq.7 /)))then
-                Clop(n)=1
+        is_closed(1:num_grids)=.FALSE.
+        do n=1,num_grids
+            if( any ((/ management_region(n).eq.3, management_region(n).eq.4,&
+            &           management_region(n).eq.5, management_region(n).eq.7 /)))then
+                is_closed(n)=.TRUE.
             endif
         enddo
     endif
@@ -275,7 +276,7 @@ endsubroutine Load_Grid
 
 !-----------------------------------------------------------------------
 !-----------------------------------------------------------------------
-! subroutine Load_Data(x,y,z,f,num_time_steps)
+! subroutine Load_Data(x,y,z,f,vector_len)
 ! Load data from CSV file with 4 columns representing an x coordinate, y
 ! coordinate, bathymetric depth (z), and a scaller field f.
 !
@@ -287,15 +288,15 @@ endsubroutine Load_Grid
 ! y (real(dp)) y-coordinate of data
 ! z (real(dp)) bathymetric depth at (x,y)
 ! f (real(dp)) scalar data at (x,y)
-! num_time_steps (integer)length of x,y, and z (number of data poinumTimeSteps)
+! vector_len (integer)length of x,y, and z (number of data poinumTimeSteps)
 !
 ! Keston Smith (IBSS corp) June-July 2021
 !-----------------------------------------------------------------------
-subroutine Load_Data(x,y,z,f,num_time_steps,file_name)
+subroutine Load_Data(x,y,z,f,vector_len,file_name)
     use globals
     implicit none
     real(dp), intent(out):: x(*),y(*),z(*),f(*)
-    integer, intent(out):: num_time_steps
+    integer, intent(out):: vector_len
     character (*), intent(in)::  file_name
     real(dp) year
     integer n,io
@@ -313,7 +314,7 @@ subroutine Load_Data(x,y,z,f,num_time_steps,file_name)
     ! read(input_str,*)  x(n),y(n),z(n),f(n)
     end do
     close(read_dev)
-    num_time_steps=n
+    vector_len=n
     return
 endsubroutine Load_Data
 !-----------------------------------------------------------------------
@@ -324,20 +325,20 @@ endsubroutine Load_Data
 !XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX
 !-----------------------------------------------------------------------
 
-!subroutine Read_Scalar_Field(file_name, M, num_time_steps)
+!subroutine Read_Scalar_Field(file_name, M, vector_len)
 !Purpose: Read real valued scaler field, M, from file file_name.
 ! Inputs:
 !  file_name (charecter*72) number of rows in D, Gamma
 ! Outputs:
-!  M    (real(dp))       length num_time_steps vector of values
-! num_time_steps   (integer)     length of M
+!  M    (real(dp))       length vector_len vector of values
+! vector_len   (integer)     length of M
 !-----------------------------------------------------------------------
 ! Keston Smith (IBSS corp) June-July 2021
 !-----------------------------------------------------------------------
-subroutine Read_Scalar_Field(file_name, M, num_time_steps)
+subroutine Read_Scalar_Field(file_name, M, vector_len)
     use globals
     implicit none
-    integer, intent(inout):: num_time_steps
+    integer, intent(inout):: vector_len
     real(dp), intent(out):: M(*)
     character(*), intent(in)::file_name
     integer n,io
@@ -352,7 +353,7 @@ subroutine Read_Scalar_Field(file_name, M, num_time_steps)
      read(input_str,*) M(n)
     end do
     close(read_dev)
-    num_time_steps=n
+    vector_len=n
 
     return
 endsubroutine Read_Scalar_Field
@@ -360,24 +361,24 @@ endsubroutine Read_Scalar_Field
 !--------------------------------------------------------------------------------------------------
 
 !--------------------------------------------------------------------------------------------------
-!subroutine Write_Scalar_Field(num_time_steps,f,file_name)
+!subroutine Write_Scalar_Field(vector_len,f,file_name)
 ! Purpose: Write columns of a matrrix (f) to a series of text files in exponential format.
 ! Inputs:
-!  num_time_steps (integer) number of rows in f 
+!  vector_len (integer) number of rows in f 
 ! f (real(dp)) values to write to text file
 ! file_name(character(72)) filename to write f to in csv format
 !--------------------------------------------------------------------------------------------------
 ! Keston Smith (IBSS corp) June-July 2021
 !--------------------------------------------------------------------------------------------------
-subroutine Write_Scalar_Field(num_time_steps,f,file_name)
+subroutine Write_Scalar_Field(vector_len,f,file_name)
     use globals
     implicit none
-    integer, intent(in):: num_time_steps
+    integer, intent(in):: vector_len
     real(dp), intent(in):: f(*)
     character (*), intent(in):: file_name
     integer  n
     open(write_dev,file=trim(file_name))
-    do n=1,num_time_steps
+    do n=1,vector_len
         write(write_dev,*) f(n)
     end do
     close(write_dev)
@@ -460,35 +461,39 @@ endsubroutine Write_CSV_H
 ! read a generic csv file.
 !   
 ! file_name  (character(72)) filename to write f read from csv format
-!  nndim    (integer) leading dimension of M 
-!  nf      (integer) number of columns in f
+!  nndim    (integer) max dimension of M 
+!  num_cols      (integer) number of columns in f
 !   Output:
 !   M (real(dp))    values read from csv file
-!  num_time_steps (integer) number of rows in M 
+!  num_rows (integer) number of rows in M 
 !--------------------------------------------------------------------------------------------------
 !-----------------------------------------------------------------------
 ! Keston Smith (IBSS corp) June-July 2021
 !-----------------------------------------------------------------------
-subroutine Read_CSV(num_time_steps, nf, file_name, M, nndim)
+subroutine Read_CSV(num_rows, num_cols, file_name, M, nndim)
     use globals
     implicit none
-    integer, intent(in):: nf,nndim
-    integer, intent(out):: num_time_steps
+    integer, intent(in):: num_cols,nndim
+    integer, intent(out):: num_rows
     real(dp), intent(out):: M(nndim,*)
-    real(dp) tmp(nf)
+    real(dp) tmp(num_cols)
     character (*), intent(in):: file_name
     integer n,io
 
-    open(read_dev,file=file_name,status='old')
+    open(read_dev, file=file_name, status='old')
     n=0
     do
-        read(read_dev,*,iostat=io) tmp(1:nf)
+        read(read_dev,*,iostat=io) tmp(1:num_cols)
         if (io.lt.0) exit
-        n=n+1
-        M(n,1:nf)=tmp(1:nf)
+        n = n + 1
+        if (n > nndim) exit
+        M(n,1:num_cols) = tmp(1:num_cols)
     end do
     close(read_dev)
-    num_time_steps=n
+    num_rows = n
+    if (num_rows .NE. nndim) then
+        PRINT *, term_red,' *** WARNING FILE IS NOT EXPECTED SIZE:  ', term_blk, file_name
+    endif
     return
 endsubroutine Read_CSV
 !-----------------------------------------------------------------------
