@@ -1,11 +1,15 @@
+!-------------------------------------------------------------------------
+! MN18 refers to
+! Miller, R. B. and Nottingham, 2018,
+! "Improved approximations for estimation of size-transition probabilities within size-structured models"
+!-------------------------------------------------------------------------
 MODULE Growth_Mod
     use globals
     implicit none
-    integer, parameter :: max_size_class = (180-30) / 5 + 1 ! not 25,
     integer, parameter :: growth_param_size = 4
     type Growth_Struct
-        real(dp) L_inf_mu, K_mu
-        real(dp) L_inf_sd, K_sd
+        real(dp) L_inf_mu, K_mu  ! mean 
+        real(dp) L_inf_sd, K_sd  ! standard deviation
         real(dp) G(max_size_class, max_size_class)
         character(2) region
         logical is_closed
@@ -14,6 +18,7 @@ MODULE Growth_Mod
 
 
     CONTAINS
+
 
     subroutine Gen_Trans_Matrix(growth, lengths, num_size_classes, delta_time)
         !-----------------------------------------------------------------------
@@ -38,8 +43,8 @@ MODULE Growth_Mod
         call MN18_appndxC_transition_matrix(L_inf_mu, K_mu, L_inf_sd, K_sd,lengths, &
         &      delta_time, G, num_size_classes, num_size_classes)
         
-        ! If growth increments are assumed normally distributed the left hand tail of the distribution can lead to unrealistic "shrinking" transitions
-              
+        ! If growth increments are assumed normally distributed the left hand tail of the distribution 
+        ! can lead to unrealistic "shrinking" transitions
         call enforce_non_negative_growth(G, num_size_classes, num_size_classes)
         do j = 1,num_size_classes
             if(lengths(j).gt.L_inf_mu)then
@@ -80,22 +85,22 @@ MODULE Growth_Mod
         return
     end subroutine Set_Shell_Height_Intervals
 
-    subroutine Set_Growth(growth, grid, lengths, delta_time, data_len, num_size_classes, domain_name)
+    subroutine Set_Growth(growth, grid, lengths, delta_time, num_grids, num_size_classes, domain_name)
         use Data_Point_Mod
         type(Growth_Struct), intent(inout):: growth(*) 
         type(Data_Point):: grid
         real(dp), intent(in):: lengths(*),delta_time
-        integer, intent(in)::data_len,num_size_classes
+        integer, intent(in)::num_grids,num_size_classes
         integer n
         character(2) domain_name
-        real(dp) Gpar(data_len, growth_param_size)
+        real(dp) Gpar(num_grids, growth_param_size)
         
+        growth(1:num_grids)%num_size_classes=num_size_classes
         if(domain_name(1:2).eq.'GB')then
-            do n=1,data_len
+            do n=1,num_grids
                 call Get_Growth_GB(grid%z(n), grid%lat(n), grid%is_closed(n), growth(n)%L_inf_mu, growth(n)%K_mu)
                 growth(n)%L_inf_sd = 14.5D0
                 growth(n)%K_sd = .12D0
-                growth(1:data_len)%num_size_classes=num_size_classes
                 if( grid%management_area(n) .eq. 11 ) then
                     !Peter Pan region Linfity = 110.3 K = 0.423 Th
                     growth(n)%L_inf_mu=110.3D0
@@ -104,22 +109,22 @@ MODULE Growth_Mod
             enddo
         endif
         if(domain_name(1:2).eq.'MA')then
-            do n=1,data_len
+            do n=1,num_grids
                 call Get_Growth_MA(grid%z(n), grid%lat(n), grid%is_closed(n), growth(n)%L_inf_mu, growth(n)%K_mu)
                 growth(n)%L_inf_sd = 10.8D0
                 growth(n)%K_sd = .045D0
             enddo
         endif
-        do n=1, data_len
+        do n=1, num_grids
             call Gen_Trans_Matrix(growth(n), lengths, num_size_classes, delta_time)
         enddo
-        !growth(1:data_len)%IsClosed=grid%IsClosed(1:data_len) 
-        growth(1:data_len)%num_size_classes=num_size_classes
-        Gpar(1:data_len,1)=growth(1:data_len)%L_inf_mu
-        Gpar(1:data_len,2)=growth(1:data_len)%L_inf_sd
-        Gpar(1:data_len,3)=growth(1:data_len)%K_mu
-        Gpar(1:data_len,4)=growth(1:data_len)%K_sd
-        call Write_CSV(data_len, growth_param_size, Gpar, 'Output/GrowthParOut.csv', data_len)
+        !growth(1:num_grids)%IsClosed = grid%IsClosed(1:num_grids) 
+        growth(1:num_grids)%num_size_classes = num_size_classes
+        Gpar(1:num_grids,1) = growth(1:num_grids)%L_inf_mu
+        Gpar(1:num_grids,2) = growth(1:num_grids)%L_inf_sd
+        Gpar(1:num_grids,3) = growth(1:num_grids)%K_mu
+        Gpar(1:num_grids,4) = growth(1:num_grids)%K_sd
+        call Write_CSV(num_grids, growth_param_size, Gpar, 'Output/GrowthParOut.csv', num_grids)
         
         return 
     end subroutine Set_Growth
@@ -132,7 +137,7 @@ MODULE Growth_Mod
         logical, intent(in) :: is_open
         real(dp), intent(out) :: Linf, K
         real(dp) fixed_coef(6), random_eff(3)
-        real(dp) depth_avg, latitude, intercept, slope, random_intercept, random_slope,randomCov
+        real(dp) depth_norm, latitude, intercept, slope, random_intercept, random_slope,randomCov
         real(dp) mean_start_shell_height, mean_depth, mean_lat, mean_ring2
         real(dp) open
         parameter(mean_start_shell_height = 94.73,  mean_depth = 72.89,  mean_lat = 41.04,  mean_ring2 = 109.576)
@@ -144,10 +149,10 @@ MODULE Growth_Mod
         else 
             open = 0._dp
         endif
-        depth_avg = depth / mean_depth
+        depth_norm = depth / mean_depth
         latitude = Lat/mean_lat
-        intercept = fixed_coef(1) + fixed_coef(3) * depth_avg + fixed_coef(4)*latitude + fixed_coef(5) * open + mean_ring2
-        slope = ( fixed_coef(2) + fixed_coef(6)* depth_avg ) / mean_start_shell_height
+        intercept = fixed_coef(1) + fixed_coef(3) * depth_norm + fixed_coef(4)*latitude + fixed_coef(5) * open + mean_ring2
+        slope = ( fixed_coef(2) + fixed_coef(6)* depth_norm ) / mean_start_shell_height
         random_intercept = random_eff(1)
         random_slope = random_eff(2) / mean_start_shell_height**2
         randomCov = random_eff(3) / mean_start_shell_height
@@ -163,7 +168,7 @@ MODULE Growth_Mod
         logical, intent(in)::is_open
         real(dp), intent(out)::Linf,K
         real(dp) fixed_coef(5),random_eff(3)
-        real(dp) depth_avg, latitude, intercept, slope, random_intercept, random_slope, randomCov
+        real(dp) depth_norm, latitude, intercept, slope, random_intercept, random_slope, randomCov
         real(dp) mean_start_shell_height, mean_depth, mean_lat, mean_ring2
         real(dp) open
         parameter(mean_start_shell_height = 85.74,  mean_depth = 52.79,  mean_lat = 38.99,  mean_ring2 = 106.17 )
@@ -175,9 +180,9 @@ MODULE Growth_Mod
         else 
             open = 0._dp
         endif
-        depth_avg = depth / mean_depth
+        depth_norm = depth / mean_depth
         latitude = lat/mean_lat
-        intercept = fixed_coef(1)+fixed_coef(3) * depth_avg + fixed_coef(4) *latitude + fixed_coef(5) * open + mean_ring2
+        intercept = fixed_coef(1)+fixed_coef(3) * depth_norm + fixed_coef(4) *latitude + fixed_coef(5) * open + mean_ring2
         slope = fixed_coef(2) / mean_start_shell_height
         random_intercept = random_eff(1)
         random_slope = random_eff(2) / mean_start_shell_height**2
@@ -221,31 +226,37 @@ MODULE Growth_Mod
     
         ! local variables
     
-        real(dp) w, mu, sigma, mp
+        real(dp) omega, mu, sigma, omega_avg
         integer j, k, n
         real(dp) Fya, Fyb, c, eta, Ha, Hb
     
         G = 0.
-    
+        ! MN18 p. 1312
+        ! c = 1 – exp(–K * delta_t)
+        ! and eta = c * L_infinity
+        ! where L_infinity and K are the asymptotic size and growth rate parameters, respectively,
+        ! of the corresponding von Bertalanffy curve. 
         c = 1._dp - exp(-K_mu * delta_time)
         eta = c * L_inf_mu
     
         do k = 2,n + 1
     
-            ! calculate interval width and midpoint
-    
-            w = lengths(k) - lengths(k-1) 
-            mp = (lengths(k) + lengths(k-1)) / 2._dp
+            ! calculate interval omega and midpoint
+
+            ! MN18 p. 1312
+            omega = lengths(k) - lengths(k-1) 
+            ! average size
+            omega_avg = (lengths(k) + lengths(k-1)) / 2._dp
     
             ! calculate increment mean,mu->evaluated at midpoint and increment standard deviation sigma->evaluated at midpoint   
-            call increment_mean_std(L_inf_mu, K_mu, L_inf_sd, K_sd, delta_time, mp, mu, sigma)
+            call increment_mean_std(L_inf_mu, K_mu, L_inf_sd, K_sd, delta_time, omega_avg, mu, sigma)
             do j = k,n + 1
-                call H_MN18(lengths(j) - eta - (1._dp - c) * lengths(k-1), sigma, (1._dp - c) * w, Ha)
-                call H_MN18(lengths(j) - eta - (1._dp - c) * lengths(k),   sigma, (1._dp - c) * w, Hb)
+                Ha = H_MN18(lengths(j) - eta - (1._dp - c) * lengths(k-1), sigma, (1._dp - c) * omega)
+                Hb = H_MN18(lengths(j) - eta - (1._dp - c) * lengths(k),   sigma, (1._dp - c) * omega)
                 Fya = Ha - Hb
     
-                call H_MN18(lengths(j-1) - eta - (1._dp - c) * lengths(k-1), sigma, (1._dp - c) * w, Ha)
-                call H_MN18(lengths(j-1) - eta - (1._dp - c) * lengths(k),   sigma, (1._dp - c) * w, Hb)
+                Ha = H_MN18(lengths(j-1) - eta - (1._dp - c) * lengths(k-1), sigma, (1._dp - c) * omega)
+                Hb = H_MN18(lengths(j-1) - eta - (1._dp - c) * lengths(k),   sigma, (1._dp - c) * omega)
                 Fyb = Ha - Hb
                 G(j-1, k-1) = Fya - Fyb
             enddo
@@ -265,20 +276,20 @@ MODULE Growth_Mod
     ! L_inf_std [real 1x1] =  standard deviation of von Bertlanaffy asymptoticgrowth parameter L_inf(see  HC09 eqn 1)
     ! K_std [real 1x1] =  standard deviation of von Bertlanaffy growth parameter (see HC09 eqn 1)
     ! delta_time [real 1x1] = time step for transition matrix in decmilal years
-    ! u [real 1x1] = size to estimate increment stats
+    ! size [real 1x1] = size to estimate increment stats
     !
     !
     ! outputs: 
-    ! mu [1x1] = mean of increment at u
-    ! sigma [1x1]  = standard deviation of increment at u
+    ! mu [1x1] = mean of increment at size
+    ! sigma [1x1]  = standard deviation of increment at size
     
     ! history:  Written by keston Smith (IBSS corp) May 2021
     !-----------------------------------------------------------------------
-    subroutine increment_mean_std(L_inf_mu, K_mu, L_inf_sd, K_sd, delta_time, u, mu, sigma)
+    subroutine increment_mean_std(L_inf_mu, K_mu, L_inf_sd, K_sd, delta_time, size, mu, sigma)
         
         ! input variables
         
-        real(dp), INTENT(IN) :: L_inf_mu, K_mu, L_inf_sd, K_sd, delta_time, u
+        real(dp), INTENT(IN) :: L_inf_mu, K_mu, L_inf_sd, K_sd, delta_time, size
         
         ! output variables
         
@@ -287,40 +298,38 @@ MODULE Growth_Mod
         ! local variables
         
         real(dp) sigma2
-        real(dp) m, s, p, r
+        real(dp) prod_mu, prod_sd
         real(dp) pi, H, B, y, gammainc, TL, TY, Q, a
         integer n_data
         
         pi = 4._dp * ATAN(1._dp)
         
-        ! change notation and remove dimension from K for convinience
-              
-        m = L_inf_mu
-        s = L_inf_sd
-        p = K_mu * delta_time
-        r = K_sd * delta_time
+        ! change notation and remove dimension from K for convenience
+        prod_mu = K_mu * delta_time 
+        prod_sd = K_sd * delta_time
         
-        y = (u - m) / (s * sqrt(2._dp))
+        y = (size - L_inf_mu) / (L_inf_sd * sqrt(2._dp))
         
-        H = (m / 2._dp) * (1._dp - erf(y)) - (s / sqrt(2._dp * pi)) * exp(-1._dp * y * y)
+        H = (L_inf_mu / 2._dp) * (1._dp - erf(y)) - (L_inf_sd / sqrt(2._dp * pi)) * exp(-1._dp * y * y)
         B = (1._dp / 2._dp) * (erf(-y) + 1._dp)
         n_data = 1
         a = 3. / 2._dp
         call gamma_inc_values ( n_data, a, y**2, gammainc )
-        mu = (H / B - u) * (1._dp - exp(.5_dp * r**2 - p))
+        mu = (H / B - size) * (1._dp - exp(.5_dp * prod_sd**2 - prod_mu))
         mu = max(mu, 0._dp)
         Q = sqrt(pi) * (1._dp-erf(y))
-        TL = (m -u)**2 + ( 2._dp * sqrt(2._dp) * s * (m - u) * exp(-y**2) ) / Q + 2._dp * (s**2) * gammainc / Q
-        TY = exp(2._dp * r**2 - 2._dp * p) - 2._dp * exp(.5_dp * r**2 - p)  + 1._dp 
+        TL = (L_inf_mu - size)**2 + ( 2._dp * sqrt(2._dp) * L_inf_sd * (L_inf_mu - size) * exp(-y**2) ) / Q &
+        &    + 2._dp * (L_inf_sd**2) * gammainc / Q
+        TY = exp(2._dp * prod_sd**2 - 2._dp * prod_mu) - 2._dp * exp(.5_dp * prod_sd**2 - prod_mu)  + 1._dp 
         sigma2 = TL * TY - mu**2
         
         ! mean and variance for unconditional growth
-        ! mu = (m-u) * (1._dp-exp(.5_dp * r**2-p))
-        ! sigma2 = (s**2 + (m-u)**2) * (exp(2 * r**2-2 * p)-2 * exp(.5_dp * r**2-p) + 1._dp)-((exp(.5_dp * r**2-p)-1)**2) * ((m-u)**2)
+        ! mu = (L_inf_mu-size) * (1._dp-exp(.5_dp * prod_sd**2-prod_mu))
+        ! sigma2 = (L_inf_sd**2 + (L_inf_mu-size)**2) * (exp(2 * prod_sd**2-2 * prod_mu)-2 * exp(.5_dp * prod_sd**2-prod_mu) + 1._dp)-((exp(.5_dp * prod_sd**2-prod_mu)-1)**2) * ((L_inf_mu-size)**2)
         
         mu = max(mu,0._dp)
         sigma = sqrt(sigma2)
-        !write(*,*) u, mu, sigma ,m,s,p,r
+        !write(*,*) size, mu, sigma ,L_inf_mu,L_inf_sd,prod_mu,prod_sd
         
         return
     end subroutine increment_mean_std
@@ -332,15 +341,12 @@ MODULE Growth_Mod
     
     ! output variables
     ! H - variable 
-    subroutine H_MN18(x,sigma,w,H)
+    real(dp) function H_MN18(x,sigma,w)
         real(dp), INTENT(IN) ::sigma,w,x
-        real(dp), INTENT(OUT) ::H
-        real(dp) f,zero
-        zero = 0.
-        call Ncdf(x,zero,sigma,f)
-        H = (1._dp / w) * (x * f + (sigma**2) * f)
-        return
-    end subroutine H_MN18
+        real(dp) f
+        f = N_Cumul_Dens_Fcn(x, 0._dp, sigma)
+        H_MN18 = (1._dp / w) * (x * f + (sigma**2) * f)
+    endfunction H_MN18
     
     ! input variables
     !     G = growth transition matrix that may have effects of negative growth
@@ -358,38 +364,42 @@ MODULE Growth_Mod
         real(dp) G(num_size_classes,*)
         ! local
         integer j,k
-        real(dp) S      
+        real(dp) sum
         
+        ! Transitioning from I_k to I_j
+        ! if j < k, force G(j,k) = 0. Scallop does not shrink
         do k = 2,n
             do j = 1,k-1
                 G(j,k) = 0.
             enddo
         enddo
         
+        ! force column sum to equal 1.0
+        ! That is sum of a probability distribution function 
         do k = 1,n
-            S = 0.
+            sum = 0.
             do j = k,n
-                if(G(j,k).lt.0.) G(j,k) = 0.
-                S = S + G(j,k)
+                if(G(j,k) .lt. 0.) G(j,k) = 0.
+                sum = sum + G(j,k)
             enddo
-            if (S.lt.1._dp) then
-                G(k,k) = G(k,k) + (1._dp-S)
-            endif
             do j = k,n
-                if(S.gt.0.)then
-                    G(j,k) = G(j,k)/S
+                ! because of above loop we already know that G(j,k) >= 0
+                ! therefore the sum will be >= 0
+                if(sum .gt. 0.)then
+                    G(j,k) = G(j,k)/sum ! if a+b+c+..z = sum then a/sum+b/sum+c/sum+ ..z/sum = 1.0
                 else
-                    G(j,k) = 0.
-                   if(j.eq.k)G(j,k) = 1._dp
+                    ! sum == 0
+                    if(j .eq. k) G(j,k) = 1._dp
                 endif
             enddo
+
         enddo
         
         return
     end subroutine enforce_non_negative_growth
            
            
-    ! computation of normal cdf
+    ! computation of normal cumulative density function
     ! input variables
     ! mu - mean 
     ! sigma - standard deviation
@@ -397,10 +407,9 @@ MODULE Growth_Mod
     
     ! output variables
     ! f - normal cdf value at x, f(x|mu,sigma)
-    subroutine Ncdf(x,mu,sigma,f)
-        real(dp) mu,sigma,x,f
-        f = 0.5_dp * ( 1._dp + erf( (x - mu) / (sigma * sqrt(2._dp) ) ))
-        return
-    end subroutine Ncdf
+    real(dp) function N_Cumul_Dens_Fcn(x, mu, sigma)
+        real(dp), intent(in) :: mu,sigma,x
+        N_Cumul_Dens_Fcn = 0.5_dp * ( 1._dp + erf( (x - mu) / (sigma * sqrt(2._dp) ) ))
+    endfunction N_Cumul_Dens_Fcn
         
 END MODULE Growth_Mod

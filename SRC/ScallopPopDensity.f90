@@ -25,19 +25,49 @@ PROGRAM ScallopPopDensity
     !!        representing an x coordinate, y coordinate, bathymetric depth (z), latitude, and longitude.
     !!
     !!  - III. Set Growth parameters and initial conditions
+    !!      - A. Set shell height intervals to define classes
+    !!      - B. Compute state transition matrices
+    !!          - i.   Growth
+    !!          - ii.  Recruitment
+    !!          - iii. Mortality
 
-
+    use globals
     use Growth_Mod
     use Data_Point_Mod
     use Recruit_Mod
 
     implicit none
 
+    interface
+
+    subroutine Set_Initial_Conditions(filename, numgrids, nsc, l, yr, grow, st)
+        use globals
+        use Growth_Mod
+        implicit none
+        character(*), intent(in) :: filename
+        type(Growth_Struct), intent(in):: grow(*)
+        integer, intent(in):: numgrids, nsc, yr
+        real(dp), intent(out):: st(numgrids, *)
+        real(dp), intent(in):: l(*)
+    end subroutine Set_Initial_Conditions
+    
+    real(dp) function Shell_to_Weight(shell_height, is_closed, depth, latitude, domain, ispp)
+        use globals
+        implicit none
+        real(dp) , intent(in) :: shell_height, depth, latitude
+        logical , intent(in) :: is_closed
+        character (*), intent(in) :: domain
+        logical, intent(in) ::  ispp
+    end function Shell_to_Weight
+    
+
+    end interface
+
     integer n, j  !> loop count
 
     character(2) domain_name
     integer start_year, stop_year
-    logical is_rand_recr
+    logical is_rand_rec
     character(3) fishing_type      !> Fishing can be USD,  BMS,  or,  CAS
     integer num_time_steps
     integer num_monte_carlo_iter
@@ -52,9 +82,9 @@ PROGRAM ScallopPopDensity
     !type(MortalityStruct), allocatable :: mortality(:)
     type(Recruit_Struct), allocatable :: recruit(:)
 
-    integer, parameter :: num_size_classes = (165 - 30) / 5 + 1 ! 
+    integer, parameter :: num_size_classes = (150 - 30) / 5 + 1 ! 
 
-    real(dp), allocatable :: state(:, :), shell_height(:)
+    real(dp), allocatable :: state(:, :), shell_height_mm(:), weight_grams(:,:)
 
     real(dp) L30mm
 
@@ -63,13 +93,13 @@ PROGRAM ScallopPopDensity
 
     delta_time = 1._dp / float(num_time_steps)
     
-    is_rand_recr = .FALSE.
+    is_rand_rec = .FALSE.
     
     write(*,*) '========================================================'
     write(*,'(A,A6)') ' Domain:         ', domain_name
     write(*,'(A,I6)') ' Start Year:     ', start_year
     write(*,'(A,I6)') ' Stop Year:      ', stop_year
-    write(*,'(A,L6)') ' Random''d Recr:  ', is_rand_recr
+    write(*,'(A,L6)') ' Random''d Recruit:  ', is_rand_rec
     write(*,'(A,A6)') ' Fishing Type:   ', fishing_type
     write(*,'(A,I6,A,F7.4)') ' Time steps/year:', num_time_steps, ' delta ', delta_time
     write(*,*) '========================================================'
@@ -95,58 +125,72 @@ PROGRAM ScallopPopDensity
        !!!mortality(j)%ManagementArea = grid%ManagementArea(j)
     enddo
     
-    allocate(shell_height(1:num_size_classes))
-    call Set_Shell_Height_Intervals(shell_height, num_size_classes, 30.D0, 5.D0)
+    allocate(shell_height_mm(1:num_size_classes))
+    call Set_Shell_Height_Intervals(shell_height_mm, num_size_classes, 30.D0, 5.D0)
     
     !
     ! Assign recruitment by year and node
     !
-    call Set_Growth(growth, grid, shell_height, delta_time, num_grids, num_size_classes, domain_name)
-    call Set_Recruitment(recruit, num_grids, domain_name, is_rand_recr)
-    !!!call SetMortality(mortality, grid, shell_height, num_grids, num_size_classes, domain_name)
+    call Set_Growth(growth, grid, shell_height_mm, delta_time, num_grids, num_size_classes, domain_name)
+    call Set_Recruitment(recruit, num_grids, domain_name, is_rand_rec)
+    !!!call SetMortality(mortality, grid, shell_height_mm, num_grids, num_size_classes, domain_name)
 
-    !allocate(state(1:num_grids,1:num_size_classes),StateTS(1:nts,1:num_size_classes),F(1:num_grids),Samp(1:num_grids, 1:num_size_classes),Wgrams(1:num_grids,1:num_size_classes))
-    allocate(state(1:num_grids,1:num_size_classes))
+    !allocate(state(1:num_grids,1:num_size_classes),StateTS(1:nts,1:num_size_classes),F(1:num_grids),Samp(1:num_grids, 1:num_size_classes),weight_grams(1:num_grids,1:num_size_classes))
+    allocate(state(1:num_grids,1:num_size_classes), weight_grams(1:num_grids,1:num_size_classes))
 
-    call Set_Initial_Conditions(num_grids, num_size_classes, shell_height, start_year, domain_name, growth, state)
+    call Set_Initial_Conditions(file_name, num_grids, num_size_classes, shell_height_mm, start_year, growth, state)
     open(write_dev,file='Output/RecIndx.txt')
     do n = 1, num_grids
         L30mm = (growth(n) % L_inf_mu -30.D0) * exp(-growth(n) % K_mu)
         do j=1, num_size_classes 
-            if (shell_height(j) .le. L30mm) recruit(n)%max_rec_ind = j
+            if (shell_height_mm(j) .le. L30mm) recruit(n)%max_rec_ind = j
         enddo
         write(write_dev,*) n, L30mm, recruit(n)%max_rec_ind
     enddo
     close(write_dev)
+
+    ! Compute Shell Height (mm) to Meat Weight (g)
+    do n = 1, num_grids
+        do j = 1, num_size_classes
+            weight_grams(n,j) =  Shell_to_Weight(shell_height_mm(j), grid%is_closed(n), &
+            &                         grid%z(n), grid%lat(n), domain_name, .false.)
+        enddo
+        if ( (domain_name .eq. 'GB') .and. (grid%management_area(n) .eq. 11) ) &    ! Peter Pan 
+        &    weight_grams(n,j) = Shell_to_Weight(shell_height_mm(j), grid%is_closed(n), &
+        &                               grid%z(n), grid%lat(n), domain_name, .true.)
+    enddo
+
+    call Write_CSV(num_grids, num_size_classes, weight_grams, 'Output/WeightShellHeight.csv', num_grids)
+
     
+    deallocate(growth, recruit, shell_height_mm, state, weight_grams)
 
 END PROGRAM ScallopPopDensity
 
-subroutine Set_Initial_Conditions(num_grids,num_size_classes,l,start_year,domain_name,growth,state)
+subroutine Set_Initial_Conditions(file_name, num_grids, num_size_classes, l, start_year, growth, state)
     use globals
     use Growth_Mod
     
     implicit none
+    character(*), intent(in) :: file_name
     type(Growth_Struct), intent(in):: growth(*)
     integer, intent(in):: num_grids, num_size_classes, start_year
     real(dp), intent(out):: state(num_grids, *)
     real(dp), intent(in):: l(*)
-    integer n, j, num_rows, num_cols,tmp
-    character(2) domain_name
-    character(72) buffer, file_name
-    character(3) fType
+    integer n, j, num_rows, num_cols
+    character(72) buffer
     
     write(buffer,'(I6)')start_year
-    call Read_Input(domain_name,file_name,n,j,fType,tmp, num_rows)
+
     num_rows = num_grids
     num_cols = num_size_classes
     
     call Read_CSV(num_rows, num_cols, file_name, state, num_grids)
     PRINT *, term_blu
     PRINT '(A,A)', ' READ FROM FILE: ', file_name
-    PRINT '(A,A)', ' USING DOMAIN:  ', domain_name
     PRINT '(A,I6)', ' LENGTH = ', num_rows
-    PRINT '(A,I5,A)', ' NUMBER OF SCALLOP SIZE CLASSES: ', num_size_classes, term_blk
+    PRINT '(A,I5)', ' NUMBER OF SCALLOP SIZE CLASSES: ', num_size_classes
+    PRINT *, term_blk
 
     if (num_rows > num_grids) num_rows = num_grids
     do n=1,num_rows
@@ -161,4 +205,39 @@ subroutine Set_Initial_Conditions(num_grids,num_size_classes,l,start_year,domain
     
     return
 endsubroutine Set_Initial_Conditions
+
+real(dp) function Shell_to_Weight(shell_height_mm, is_closed, depth, latitude, domain, ispp)
+    !Get Scallop meat weight shell height
+    use globals
+    implicit none
+    real(dp) , intent(in) :: shell_height_mm, depth, latitude
+    logical , intent(in) :: is_closed
+    character (*), intent(in) :: domain
+    logical, intent(in) ::  ispp
+    integer open
+
+    Shell_to_Weight = 0._dp ! default
+
+    if (is_closed) then
+        open = 1
+    else
+        open = 0
+    endif
+
+    !mm to grams
+    if(domain(1:2).eq.'GB')then
+        Shell_to_Weight = exp(-6.69 + 2.878 * log(shell_height_mm) + (-0.0073 * depth) + (-0.073 * latitude) + 1.28 * open + &
+        &              (-0.25 * (log(shell_height_mm) * open)))
+        !for GB scallops, open covariate is 1 in the former groundfish closed areas or access areas and 0 in the open areas (includes NLS-EXT and CAII-EXT)
+        if(ispp) Shell_to_Weight = exp(-11.84 + 3.167 * log(shell_height_mm)) !for peterpan
+    endif
+    if(domain(1:2).eq.'MA')then
+        Shell_to_Weight = exp(-9.48 + 2.51 * log(shell_height_mm) - 0.1743 - 0.059094 + (-0.0033 * depth) + &
+                0.021 * latitude + (-0.031 * open) + 0.00525 * (log(shell_height_mm) * 21) + (-0.000065 * (21. * depth)))
+    endif
+
+    return
+
+endfunction Shell_to_Weight
+    
     
