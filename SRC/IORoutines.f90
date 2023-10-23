@@ -19,11 +19,17 @@ subroutine Read_Input(domain_name, init_cond_file_name, start_year, stop_year, f
     use globals
     implicit none
     integer, intent(out) :: start_year, stop_year, num_time_steps, num_monte_carlo_iter
-    integer j,io
+    integer j,io  !,k
     character(72),intent(out):: init_cond_file_name
     character(2),intent(out):: domain_name
     character(3),intent(out):: fishing_type
     character(72) :: input_string, file_name, error_file_name
+
+    ! real(dp) P(5)
+    ! logical  IsStateOut,IsAbundanceOut,IsFOut,IsBMSOut,IsExplBMSOut,IsCashOut,IsRecOut
+
+    ! k=0
+
     file_name='Scallop.inp'
     error_file_name = 'InputDataError.txt'
     open(write_dev,file=error_file_name)
@@ -34,39 +40,46 @@ subroutine Read_Input(domain_name, init_cond_file_name, start_year, stop_year, f
         read(read_dev,'(a)',iostat=io) input_string
         if (io.lt.0) exit
 
-        select case (input_string(1:1))
-            case('#')
-                write(*,*)'Comment echo:',input_string
-            case('D')
-                j = scan(input_string,"=",back=.true.)
-                domain_name=trim(adjustl(input_string(j+1:)))
-                write(*,*)'Domain is ',domain_name
-            case('I')
-                j = scan(input_string,"=",back=.true.)
-                init_cond_file_name=trim(adjustl(input_string(j+1:)))
-                write(*,*)'Initial Conditions File Name =',init_cond_file_name
-            case('B')
-                j = scan(input_string,"=",back=.true.)
-                write(*,* )input_string(j+1:)
-                read( input_string(j+1:),* )start_year
-            case('E')
-                j = scan(input_string,"=",back=.true.)
-                read( input_string(j+1:),* )stop_year
-            case('T')
-                j = scan(input_string,"=",back=.true.)
-                read( input_string(j+1:),* )num_time_steps
-            case('N')
-                j = scan(input_string,"=",back=.true.)
-                read( input_string(j+1:),* )num_monte_carlo_iter
-            case('F')
-                j = scan(input_string,"=",back=.true.)
-                fishing_type=trim(adjustl(input_string(j+1:)))
-                write(*,*)'Fishing Type = ',fishing_type
-            case default
-                write(write_dev,*) 'Unrecognized line in ',file_name
-                write(write_dev,*) 'Unknown Line->',input_string
-                !   stop
-        end select
+        ! if (input_string(1:6).eq.'Output')then
+        !     ! call Read_Output_Flags()
+        
+        ! else
+  
+            select case (input_string(1:1))
+                ! case('#')
+                !     write(*,*)'Comment echo:',input_string
+                case('D')
+                    j = scan(input_string,"=",back=.true.)
+                    domain_name=trim(adjustl(input_string(j+1:)))
+                    write(*,*)'Domain is ',domain_name
+                case('I')
+                    j = scan(input_string,"=",back=.true.)
+                    init_cond_file_name=trim(adjustl(input_string(j+1:)))
+                    write(*,*)'Initial Conditions File Name =',init_cond_file_name
+                case('B')
+                    j = scan(input_string,"=",back=.true.)
+                    write(*,* )input_string(j+1:)
+                    read( input_string(j+1:),* )start_year
+                case('E')
+                    j = scan(input_string,"=",back=.true.)
+                    read( input_string(j+1:),* )stop_year
+                case('T')
+                    j = scan(input_string,"=",back=.true.)
+                    read( input_string(j+1:),* )num_time_steps
+                case('N')
+                    j = scan(input_string,"=",back=.true.)
+                    read( input_string(j+1:),* )num_monte_carlo_iter
+                case('F')
+                    j = scan(input_string,"=",back=.true.)
+                    fishing_type=trim(adjustl(input_string(j+1:)))
+                    write(*,*)'Fishing Type = ',fishing_type
+                case default
+                    write(write_dev,*) 'Unrecognized line in ',file_name
+                    write(write_dev,*) 'Unknown Line->',input_string
+                    !   stop
+            end select
+
+        ! endif
 
     end do
     close(read_dev)
@@ -344,6 +357,8 @@ subroutine Read_Scalar_Field(file_name, M, vector_len)
     integer n,io
     character(72) input_str
 
+    PRINT '(A,A,A,A)', term_blu, ' READING FILE: ', file_name, term_blk
+
     open(read_dev,file=trim(file_name),status='old')
     n=0
     do
@@ -377,6 +392,9 @@ subroutine Write_Scalar_Field(vector_len,f,file_name)
     real(dp), intent(in):: f(*)
     character (*), intent(in):: file_name
     integer  n
+
+    PRINT '(A,A,A,A)', term_blu, ' WRITING FILE: ', file_name, term_blk
+
     open(write_dev,file=trim(file_name))
     do n=1,vector_len
         write(write_dev,*) f(n)

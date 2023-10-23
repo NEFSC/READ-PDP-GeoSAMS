@@ -26,7 +26,7 @@ SRC_DIRS = .
 # Find all the f90 files we want to compile
 # Need to compile MOD files first and in particular order
 # TODO This will for for MAC and UNIX, needs tweeking for WIN
-SRCS = Globals.f90 DataPoint.f90 ScallopGrowth.f90 ScallopRecruit.f90
+SRCS = Globals.f90 DataPoint.f90 ScallopGrowth.f90 ScallopRecruit.f90 ScallopMortality.f90
 #SRCS += $(shell find $(SRC_DIRS) -name '*.f90' | grep -v 'Globals\|DataPoint\|ScallopGrowth\|ScallopRecruit')
 SRCS += ScallopPopDensity.f90 IORoutines.f90 asa239.f90
 

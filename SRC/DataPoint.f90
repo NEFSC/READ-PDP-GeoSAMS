@@ -9,7 +9,7 @@ module Data_Point_Mod
         real(dp) lat(num_dimensions)
         real(dp) lon(num_dimensions)
         real(dp) z(num_dimensions)
-        !!!real(dp) f(num_dimensions)
+        !!!real(dp) f(num_dimensions)  !  NOT USED???
         integer E(4,num_dimensions) ! NOT USED???
         logical is_closed(num_dimensions)
         integer management_area(num_dimensions)
