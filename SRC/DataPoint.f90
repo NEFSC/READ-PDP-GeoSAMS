@@ -3,7 +3,7 @@ module Data_Point_Mod
     use globals
     implicit none
     integer, parameter :: num_dimensions = 12000
-    type Data_Point
+    type Data_Point_Struct
         real(dp) x(num_dimensions)
         real(dp) y(num_dimensions)
         real(dp) lat(num_dimensions)
@@ -17,6 +17,6 @@ module Data_Point_Mod
         integer len   !>< Size of management area, i.e. number of grids
         integer num_elements  !>< Number of squares, number of elements NOT USED
                               !! Determined by MAsquares.csv
-    end type Data_Point
+    end type Data_Point_Struct
 end module Data_Point_Mod
     

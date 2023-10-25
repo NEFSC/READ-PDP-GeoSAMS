@@ -7,6 +7,7 @@ MODULE Growth_Mod
     use globals
     implicit none
     integer, parameter :: growth_param_size = 4
+    character(*), parameter :: output_dir = 'Output/'
     type Growth_Struct
         real(dp) L_inf_mu, K_mu  ! mean 
         real(dp) L_inf_sd, K_sd  ! standard deviation
@@ -56,7 +57,7 @@ MODULE Growth_Mod
         growth%G(1:num_size_classes, 1:num_size_classes) = G(1:num_size_classes, 1:num_size_classes)
         
         ! output transition matrix
-         file_name = 'Output/Growth.csv'
+         file_name = output_dir//'Growth.csv'
         call Write_CSV(num_size_classes,num_size_classes,G,file_name,num_size_classes)
         
         deallocate( G )
@@ -88,7 +89,7 @@ MODULE Growth_Mod
     subroutine Set_Growth(growth, grid, lengths, delta_time, num_grids, num_size_classes, domain_name)
         use Data_Point_Mod
         type(Growth_Struct), intent(inout):: growth(*) 
-        type(Data_Point):: grid
+        type(Data_Point_Struct):: grid
         real(dp), intent(in):: lengths(*),delta_time
         integer, intent(in)::num_grids,num_size_classes
         integer n
@@ -124,7 +125,7 @@ MODULE Growth_Mod
         Gpar(1:num_grids,2) = growth(1:num_grids)%L_inf_sd
         Gpar(1:num_grids,3) = growth(1:num_grids)%K_mu
         Gpar(1:num_grids,4) = growth(1:num_grids)%K_sd
-        call Write_CSV(num_grids, growth_param_size, Gpar, 'Output/GrowthParOut.csv', num_grids)
+        call Write_CSV(num_grids, growth_param_size, Gpar, output_dir//'GrowthParOut.csv', num_grids)
         
         return 
     end subroutine Set_Growth
@@ -139,19 +140,15 @@ MODULE Growth_Mod
         real(dp) fixed_coef(6), random_eff(3)
         real(dp) depth_norm, latitude, intercept, slope, random_intercept, random_slope,randomCov
         real(dp) mean_start_shell_height, mean_depth, mean_lat, mean_ring2
-        real(dp) open
+
         parameter(mean_start_shell_height = 94.73,  mean_depth = 72.89,  mean_lat = 41.04,  mean_ring2 = 109.576)
         fixed_coef = (/ -34.96, 57.415, -8.51, -17.65, 0.9076, 3.741/)  !fixed effects coef
         ! intercept, slope, coef of depth, latitude, closed/open for intercept term
         random_eff = (/ 81.05, 51.38, -60.53 /)  !random effects, intercept, slope, cov
-        if (is_open) then 
-            open = 1._dp 
-        else 
-            open = 0._dp
-        endif
         depth_norm = depth / mean_depth
         latitude = Lat/mean_lat
-        intercept = fixed_coef(1) + fixed_coef(3) * depth_norm + fixed_coef(4)*latitude + fixed_coef(5) * open + mean_ring2
+        intercept = fixed_coef(1) + fixed_coef(3) * depth_norm + fixed_coef(4)*latitude + fixed_coef(5) &
+        &    * Logic_To_Double(is_open) + mean_ring2
         slope = ( fixed_coef(2) + fixed_coef(6)* depth_norm ) / mean_start_shell_height
         random_intercept = random_eff(1)
         random_slope = random_eff(2) / mean_start_shell_height**2
@@ -411,5 +408,60 @@ MODULE Growth_Mod
         real(dp), intent(in) :: mu,sigma,x
         N_Cumul_Dens_Fcn = 0.5_dp * ( 1._dp + erf( (x - mu) / (sigma * sqrt(2._dp) ) ))
     endfunction N_Cumul_Dens_Fcn
+
+    subroutine Time_To_Grow(growth, mortality, recruit, state, fishing_effort, delta_time, &
+    &                      num_time_steps, state_time_steps, domain_area, domain_name, year)
+
+        use Mortality_Mod
+        use Recruit_Mod
+        
+        implicit none
+        type(Growth_Struct), INTENT(IN):: growth
+        type(Mortality_Struct), INTENT(INOUT):: mortality
+        type(Recruit_Struct), INTENT(INOUT):: recruit
+        integer, intent(in)     :: num_time_steps, year
+        character(2), intent(in) :: domain_name
+        real(dp),intent(inout)    :: state(*)
+        real(dp), intent(out)     ::state_time_steps(num_time_steps,*)
+        real(dp), intent(in)      :: delta_time, domain_area, fishing_effort
+        real(dp), allocatable :: G(:,:), Stmp(:)
+        real(dp) t
+        integer nt
+        integer num_size_classes, Rindx
+        real(dp), allocatable :: M(:), Rec(:)
+            
+        
+        num_size_classes = growth%num_size_classes
+        
+        allocate(G(1:num_size_classes, 1:num_size_classes), Stmp(1:num_size_classes), M(1:num_size_classes), &
+        &       Rec(1:num_size_classes))
+        
+        Rindx = minloc( abs(recruit%year(1:recruit%n_year)-year ), 1)
+        Rec(1:num_size_classes) = 0.D0
+        Rec(1:recruit%max_rec_ind) = recruit%recruitment(RIndx)/float(recruit%max_rec_ind)
+        
+        G(1:num_size_classes, 1:num_size_classes) = growth%G(1:num_size_classes, 1:num_size_classes)
+        
+        do nt = 1, num_time_steps
+            t = float(nt)*delta_time
+            call Mortality_Density_Dependent(recruit, mortality, state, domain_area, domain_name)
+            !Rec(1:num_size_classes) = 0.D0
+        !    if ( ( t .gt. recruit%rec_start ) .and. ( t.le.recruit%rec_stop) ) then&
+        !      state(1:num_size_classes) = state(1:num_size_classes) + delta_time*Rec(1:num_size_classes)/(recruit%rec_stop-recruit%rec_start)
+            if ( ( t .gt. recruit%rec_start ) .and. ( t.le.recruit%rec_stop) ) &
+              state(1:num_size_classes) = state(1:num_size_classes) + delta_time*Rec(1:num_size_classes) &
+              &                           / (recruit%rec_stop-recruit%rec_start)
+            
+            Stmp(1:num_size_classes) = matmul(G(1:num_size_classes, 1:num_size_classes), state(1:num_size_classes))
+            M(1:num_size_classes) = mortality%natural_mortality(1:num_size_classes) + fishing_effort &
+            &    * ( mortality%select(1:num_size_classes)+ mortality%incidental + mortality%discard(1:num_size_classes) )
+            state(1:num_size_classes) = Stmp(1:num_size_classes) *(1.D0- delta_time * M(1:num_size_classes))
+            state_time_steps(nt, 1:num_size_classes) = state(1:num_size_classes)
+        enddo
+        deallocate(G, Stmp, M, Rec)
+        
+        return
+    endsubroutine Time_To_Grow
+        
         
 END MODULE Growth_Mod

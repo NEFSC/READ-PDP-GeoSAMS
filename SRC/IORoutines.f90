@@ -357,7 +357,7 @@ subroutine Read_Scalar_Field(file_name, M, vector_len)
     integer n,io
     character(72) input_str
 
-    PRINT '(A,A,A,A)', term_blu, ' READING FILE: ', file_name, term_blk
+    !PRINT '(A,A,A,A)', term_blu, ' READING FILE: ', file_name, term_blk
 
     open(read_dev,file=trim(file_name),status='old')
     n=0
@@ -393,7 +393,7 @@ subroutine Write_Scalar_Field(vector_len,f,file_name)
     character (*), intent(in):: file_name
     integer  n
 
-    PRINT '(A,A,A,A)', term_blu, ' WRITING FILE: ', file_name, term_blk
+    !PRINT '(A,A,A,A)', term_blu, ' WRITING FILE: ', file_name, term_blk
 
     open(write_dev,file=trim(file_name))
     do n=1,vector_len
@@ -501,17 +501,25 @@ subroutine Read_CSV(num_rows, num_cols, file_name, M, nndim)
     open(read_dev, file=file_name, status='old')
     n=0
     do
-        read(read_dev,*,iostat=io) tmp(1:num_cols)
-        if (io.lt.0) exit
         n = n + 1
-        if (n > nndim) exit
+        if (n > nndim) then
+            n = n - 1
+            PRINT '(A,A,I7,A,A,A)', term_yel,' *** WARNING:  Stopped at', n, ' rows ',term_blk, file_name
+            exit
+        endif
+        read(read_dev,*,iostat=io) tmp(1:num_cols)
+        if (io.lt.0) then
+            if (n .EQ. 1) PRINT '(A,A,I7,A,A,A)', term_red,' *** FILE IO ERROR', io, ' reading file: ', term_blk, file_name
+            n = n - 1
+            exit
+        endif
         M(n,1:num_cols) = tmp(1:num_cols)
     end do
     close(read_dev)
     num_rows = n
-    if (num_rows .NE. nndim) then
-        PRINT *, term_red,' *** WARNING FILE IS NOT EXPECTED SIZE:  ', term_blk, file_name
-    endif
+    ! if (num_rows <= nndim) then
+    !     PRINT '(A,A,I7,A,A,A)', term_blu,' Read ', num_rows, ' rows from file: ', term_blk, file_name
+    ! endif
     return
 endsubroutine Read_CSV
 !-----------------------------------------------------------------------
