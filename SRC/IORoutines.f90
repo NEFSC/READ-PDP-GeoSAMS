@@ -46,7 +46,7 @@ subroutine Read_Input(domain_name, init_cond_file_name, start_year, stop_year, f
         ! else
   
             select case (input_string(1:1))
-                ! case('#')
+                case('#')
                 !     write(*,*)'Comment echo:',input_string
                 case('D')
                     j = scan(input_string,"=",back=.true.)

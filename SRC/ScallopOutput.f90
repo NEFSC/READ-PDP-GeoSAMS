@@ -62,9 +62,9 @@ module Output_Mod
         
         
         if(year.eq.start_year)then
-            open(66,file = 'CASACompTable.txt')
-            open(67,file = 'CASACompClosedTable.txt')
-            open(68,file = 'CASACompOpenTable.txt')
+            open(66,file = output_dir//'CASACompTable.txt')
+            open(67,file = output_dir//'CASACompClosedTable.txt')
+            open(68,file = output_dir//'CASACompOpenTable.txt')
             write(*,*)'     Year    Abundance       BMS     ExplBMS     FishedBMS '   
             write(*,*)'     -----------------------------------------------'   
         endif
