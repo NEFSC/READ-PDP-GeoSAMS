@@ -6,14 +6,14 @@ module Output_Mod
     CONTAINS
 
     subroutine Scallop_Output(year, num_size_classes, num_grids, samp, fishing_effort, weight_grams, mortality, recruit, &
-        &                  start_year, stop_year, element_area, domain_area, domain_name)
+        &                  start_year, stop_year, element_area, domain_area)
         use Mortality_Mod
-        use Recruit_Mod
+        use Recruit_Mod, only : Recruit_Class, Mortality_Density_Dependent
         implicit none
         integer, intent(in):: num_size_classes, year, num_grids, start_year, stop_year
         real(dp), intent(in):: fishing_effort(*), weight_grams(num_grids,*), samp(num_grids,*), element_area, domain_area
-        type(Mortality_Struct), INTENT(INOUT):: mortality(*)
-        type(Recruit_Struct), INTENT(IN):: recruit(*)
+        type(Mortality_Class), INTENT(INOUT):: mortality(*)
+        type(Recruit_Class), INTENT(IN):: recruit(*)
         real(dp) cnts(num_grids,4)
         integer n
         real(dp) BMS(num_grids), ExplBMS(num_grids), Abundance(num_grids), DollarsPerSqM(num_grids)
@@ -21,7 +21,7 @@ module Output_Mod
         real(dp) NatMort(num_grids, num_size_classes), FishMort(num_grids, num_size_classes)
         real(dp) TotalMort(num_grids, num_size_classes), Fslct(num_grids, num_size_classes)
         character(72) buf
-        character(2) domain_name
+
         do n = 1, num_grids
             Fslct(n,1:num_size_classes) = mortality(n)%select(1:num_size_classes)
             BMS(n) = sum( samp(n,1:num_size_classes) * weight_grams(n,1:num_size_classes)/(10.**6) )
@@ -29,12 +29,12 @@ module Output_Mod
             &            * weight_grams(n,1:num_size_classes)/(10.**6) )
             Abundance(n) = sum( samp(n,1:num_size_classes) )
             StateCapt(n) = sum(samp(n,1:num_size_classes) * mortality(n)%select(1:num_size_classes))
-            call Mortality_Density_Dependent(recruit(n), mortality(n), samp(n,1:num_size_classes), domain_area, domain_name)
+            call Mortality_Density_Dependent(recruit(n), mortality(n), samp(n,1:num_size_classes), domain_area)
             NatMort(n,1:num_size_classes) = mortality(n)%natural_mortality(1:num_size_classes)
             FishMort(n,1:num_size_classes) = fishing_effort(n) * mortality(n)%select(1:num_size_classes)
             call Scallops_To_Counts(samp(n,1:num_size_classes) * mortality(n)%select(1:num_size_classes), &
-            &     weight_grams(n,1:num_size_classes), num_size_classes, cnts(n,1), cnts(n,2), cnts(n,3), cnts(n,4))
-            call Cash_Money(year, num_size_classes, samp(n,1:num_size_classes) * mortality(n)%select(1:num_size_classes), &
+            &     weight_grams(n,1:num_size_classes), cnts(n,1), cnts(n,2), cnts(n,3), cnts(n,4))
+            call Cash_Money(year, samp(n,1:num_size_classes) * mortality(n)%select(1:num_size_classes), &
             &     weight_grams(n,1:num_size_classes), DollarsPerSqM(n))
             TotalMort(n,1:num_size_classes) = mortality(n)%natural_mortality(1:num_size_classes)+fishing_effort(n) * &
             &    ( mortality(n)%select(1:num_size_classes)+ mortality(n)%incidental + mortality(n)%Discard(1:num_size_classes) )
@@ -106,13 +106,13 @@ module Output_Mod
         implicit none
         integer, intent(in) :: num_size_classes, year, num_grids, start_year, stop_year, num_time_steps, n
         real(dp), intent(in) :: state_time_steps(num_time_steps, *)
-        type(Data_Point_Struct), intent(in) :: grid
+        type(Data_Point_Class), intent(in) :: grid
         character(72) buf
         integer num_years, ntsX, Nregion, ntStart, ntStop, j
         real(dp), allocatable :: region_avg(:,:,:), StateTSx(:,:)
         integer, allocatable :: management_area_count(:)
         save region_avg
-        Nregion = maxval(grid%management_area(1:num_grids))
+        Nregion = maxval(grid%mgmt_area_index(1:num_grids))
         write(8,*)
         num_years = stop_year-start_year+1
         ntsX = num_time_steps*num_years
@@ -120,7 +120,7 @@ module Output_Mod
         if ((year.eq.start_year).and.(n.eq.1))then
             open(56, file = output_dir//'ManAreaOut.txt')
             do j = 1, num_grids
-                write(56,*)grid%management_area(j)
+                write(56,*)grid%mgmt_area_index(j)
             enddo
             close(56)
             allocate(region_avg(1:ntsX, 1:num_size_classes, 1:Nregion))
@@ -130,21 +130,21 @@ module Output_Mod
         ntStart = (year-start_year)*num_time_steps+1
         ntStop  = (year-start_year)*num_time_steps+num_time_steps
         !do n = 1, num_grids
-            region_avg(ntStart:ntStop, 1:num_size_classes, grid%management_area(n)) &
-            &               = region_avg(ntStart:ntStop, 1:num_size_classes, grid%management_area(n)) &
+            region_avg(ntStart:ntStop, 1:num_size_classes, grid%mgmt_area_index(n)) &
+            &               = region_avg(ntStart:ntStop, 1:num_size_classes, grid%mgmt_area_index(n)) &
             &                 + state_time_steps(1:num_time_steps, 1:num_size_classes)
         !enddo
         if ((year.eq.stop_year).and.(n.eq.num_grids))then
             allocate(StateTSx(1:ntsX, 1:num_size_classes), management_area_count(1:Nregion))
             management_area_count(1:Nregion) = 0
             do j = 1, num_grids
-                management_area_count(grid%management_area(j)) = management_area_count(grid%management_area(j))+1
+                management_area_count(grid%mgmt_area_index(j)) = management_area_count(grid%mgmt_area_index(j))+1
             enddo
             do j = 1, Nregion
                 write(*, *)'j = ', j, management_area_count(j)
                 StateTSx(1:ntsX, 1:num_size_classes) = region_avg(1:ntsX, 1:num_size_classes, j)/float(management_area_count(j))
                 write(buf, '(I6)') j
-                call Write_CSV(ntsX, num_size_classes, StateTSx, 'Output/ManagementRegion'//trim(adjustl(buf))//'.csv', ntsX)
+                call Write_CSV(ntsX, num_size_classes, StateTSx, output_dir//'ManagementRegion'//trim(adjustl(buf))//'.csv', ntsX)
             enddo
             deallocate( region_avg, StateTSx, management_area_count)
         endif

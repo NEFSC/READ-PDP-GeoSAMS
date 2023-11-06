@@ -1,55 +1,65 @@
 import subprocess
 import socket
+import os
 
 ex="UKsrc/UK"
+ex = os.path.join('UKsrc', 'UK')
+if (os.name == 'nt'):
+    move = 'move'
+else:
+    move = 'mv'
 
 DomainName="MA"
-flin="Data/RecruitsMALump1NM.csv"
-subprocess.call([ex,DomainName,flin])
-outdir="Output/ClimMA/"
-    
-subprocess.call(["mkdir",outdir])
-subprocess.call(["mv","SpatialFunctions.csv",outdir])
-subprocess.call(["mv","KrigingEstimate.txt",outdir])
-subprocess.call(["mv","trendRF.csv",outdir])
-subprocess.call(["mv","noiseRF.csv",outdir])
-subprocess.call(["mv","totalRF.csv",outdir])
-subprocess.call(["mv","NLSFpar.csv",outdir])
-subprocess.call(["mv","SIntV.txt",outdir])
-subprocess.call(["mv","DIntV.txt",outdir])
-subprocess.call(["mv","GammaIntV.txt",outdir])
-subprocess.call(["mv","KRIGpar.txt",outdir])
-subprocess.call(["mv","beta.txt",outdir])
-subprocess.call(["mv","epsilon.txt",outdir])
-subprocess.call(["mv","residuals.csv",outdir])
-subprocess.call(["mv","OLSresidual.txt",outdir])
-subprocess.call(["mv","VSpFn.txt",outdir])
-subprocess.call(["mv","Veps.txt",outdir])
-subprocess.call(["mv","SpatialTrend.txt",outdir])
-subprocess.call(["mv","CovBeta.csv",outdir])
+#flin="Data/RecruitsMALump1NM.csv"
+flin = os.path.join('Data', 'RecruitsMALump1NM.csv')
+subprocess.run([ex, DomainName, flin], shell=True)
+#outdir="KrigingEstimates/SimMAClim/"
+outdir = os.path.join('KrigingEstimates', 'SimMAClim', '')
+
+subprocess.run(["mkdir", outdir], shell=True)
+subprocess.run([move, "SpatialFunctions.csv", outdir], shell=True)
+subprocess.run([move, "KrigingEstimate.txt", outdir], shell=True)
+subprocess.run([move, "trendRF.csv", outdir], shell=True)
+subprocess.run([move, "noiseRF.csv", outdir], shell=True)
+subprocess.run([move, "totalRF.csv", outdir], shell=True)
+subprocess.run([move, "NLSFpar.csv", outdir], shell=True)
+subprocess.run([move, "SIntV.txt", outdir], shell=True)
+subprocess.run([move, "DIntV.txt", outdir], shell=True)
+subprocess.run([move, "GammaIntV.txt", outdir], shell=True)
+subprocess.run([move, "KRIGpar.txt", outdir], shell=True)
+subprocess.run([move, "beta.txt", outdir], shell=True)
+subprocess.run([move, "epsilon.txt", outdir], shell=True)
+subprocess.run([move, "residuals.csv", outdir], shell=True)
+subprocess.run([move, "OLSresidual.txt", outdir], shell=True)
+subprocess.run([move, "VSpFn.txt", outdir], shell=True)
+subprocess.run([move, "Veps.txt", outdir], shell=True)
+subprocess.run([move, "SpatialTrend.txt", outdir], shell=True)
+subprocess.run([move, "CovBeta.csv", outdir], shell=True)
  
 DomainName="GB"
-flin="Data/RecruitsGBLump1NM.csv"
-subprocess.call([ex,DomainName,flin])
-outdir="Output/ClimGB/"
-    
-subprocess.call(["mkdir",outdir])
-subprocess.call(["mv","SpatialFunctions.csv",outdir])
-subprocess.call(["mv","KrigingEstimate.txt",outdir])
-subprocess.call(["mv","trendRF.csv",outdir])
-subprocess.call(["mv","noiseRF.csv",outdir])
-subprocess.call(["mv","totalRF.csv",outdir])
-subprocess.call(["mv","NLSFpar.csv",outdir])
-subprocess.call(["mv","SIntV.txt",outdir])
-subprocess.call(["mv","DIntV.txt",outdir])
-subprocess.call(["mv","GammaIntV.txt",outdir])
-subprocess.call(["mv","KRIGpar.txt",outdir])
-subprocess.call(["mv","beta.txt",outdir])
-subprocess.call(["mv","epsilon.txt",outdir])
-subprocess.call(["mv","residuals.csv",outdir])
-subprocess.call(["mv","OLSresidual.txt",outdir])
-subprocess.call(["mv","VSpFn.txt",outdir])
-subprocess.call(["mv","Veps.txt",outdir])
-subprocess.call(["mv","SpatialTrend.txt",outdir])
-subprocess.call(["mv","CovBeta.csv",outdir])
- 
+#flin="Data/RecruitsGBLump1NM.csv"
+flin = os.path.join('Data', 'RecruitsGBLump1NM.csv')
+
+subprocess.run([ex, DomainName, flin], shell=True)
+#outdir="KrigingEstimates/SimGBClim/"
+outdir = os.path.join('KrigingEstimates', 'SimGBClim', '')
+
+subprocess.run(["mkdir", outdir], shell=True)
+subprocess.run([move, "SpatialFunctions.csv", outdir], shell=True)
+subprocess.run([move, "KrigingEstimate.txt", outdir], shell=True)
+subprocess.run([move, "trendRF.csv", outdir], shell=True)
+subprocess.run([move, "noiseRF.csv", outdir], shell=True)
+subprocess.run([move, "totalRF.csv", outdir], shell=True)
+subprocess.run([move, "NLSFpar.csv", outdir], shell=True)
+subprocess.run([move, "SIntV.txt", outdir], shell=True)
+subprocess.run([move, "DIntV.txt", outdir], shell=True)
+subprocess.run([move, "GammaIntV.txt", outdir], shell=True)
+subprocess.run([move, "KRIGpar.txt", outdir], shell=True)
+subprocess.run([move, "beta.txt", outdir], shell=True)
+subprocess.run([move, "epsilon.txt", outdir], shell=True)
+subprocess.run([move, "residuals.csv", outdir], shell=True)
+subprocess.run([move, "OLSresidual.txt", outdir], shell=True)
+subprocess.run([move, "VSpFn.txt", outdir], shell=True)
+subprocess.run([move, "Veps.txt", outdir], shell=True)
+subprocess.run([move, "SpatialTrend.txt", outdir], shell=True)
+subprocess.run([move, "CovBeta.csv", outdir], shell=True)
