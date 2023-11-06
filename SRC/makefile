@@ -28,7 +28,7 @@ SRC_DIRS = .
 # TODO This will for for MAC and UNIX, needs tweeking for WIN
 SRCS = Globals.f90 DataPoint.f90 ScallopMortality.f90 ScallopRecruit.f90 ScallopGrowth.f90 ScallopOutput.f90
 #SRCS += $(shell find $(SRC_DIRS) -name '*.f90' | grep -v 'Globals\|DataPoint\|ScallopGrowth\|ScallopRecruit')
-SRCS += ScallopPopDensity.f90 IORoutines.f90 FishingRoutines asa239.f90
+SRCS += ScallopPopDensity.f90 IORoutines.f90 asa239.f90
 
 #LINUX, WIN?
 #LIBS = -L/usr/lib/x86_64-linux-gnu -llapack -lblas
@@ -53,12 +53,18 @@ $(OBJ_DIR)/%.o: %.f90
 #***********************************************************************
 #***********************************************************************
 clean:
-	rm -f $(EXEC)
-ifneq "$(OBJ_DIR)" ""
-	rm -f $(OBJ_DIR)/*.o
-	rm -f $(MOD_DIR)/*.mod
-else 
-	@echo "OBJ_DIR is not defined" 
+ifeq ($(OS), Windows_NT)
+	del  $(EXEC).exe
+	del .\obj\*.o
+	del .\mod\*.mod
+else
+	rm -fr  $(EXEC)
+	ifneq "$(OBJ_DIR)" ""
+		rm -fr $(OBJ_DIR)/*.o
+		rm -fr $(MOD_DIR)/*.mod
+	else 
+		@echo "OBJ_DIR is not defined" 
+	endif
 endif
 
 setup:

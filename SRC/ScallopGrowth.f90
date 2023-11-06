@@ -1,3 +1,7 @@
+!> @class Growth_Class
+!! 
+!! Subroutines that determine expected growth of scallops
+
 !-------------------------------------------------------------------------
 ! MN18 refers to
 ! Miller, R. B. and Nottingham, 2018,
@@ -7,33 +11,130 @@ MODULE Growth_Mod
     use globals
     implicit none
     integer, parameter :: growth_param_size = 4
-    character(*), parameter :: output_dir = 'Output/'
-    type Growth_Struct
-        real(dp) L_inf_mu, K_mu  ! mean 
-        real(dp) L_inf_sd, K_sd  ! standard deviation
-        real(dp) G(max_size_class, max_size_class)
-        character(2) region
-        logical is_closed
-        integer num_size_classes
-    end type Growth_Struct
+    character(*), parameter :: growth_out_dir = 'GrowthOutput/'
 
+    type Growth_Class
+        !> @public @memberof Growth_Class
+        !! Asymptotic size mean
+        real(dp) L_inf_mu 
+        !> @public @memberof Growth_Class
+        !! Growth coefficient mean
+        real(dp) K_mu  ! mean 
+        !> @public @memberof Growth_Class
+        !! Asymptotic size standard deviation
+        real(dp) L_inf_sd
+        !> @public @memberof Growth_Class
+        !! Growth coefficient standard deviation
+        real(dp) K_sd  ! 
+        !> @public @memberof Growth_Class
+        !! Growth matrix
+        real(dp) G(max_size_class, max_size_class)
+        !> @public @memberof Growth_Class
+        !! Domain Name, MA or GB
+        !!character(2) region
+    end type Growth_Class
+
+    ! @private @memberof Growth_Mod
+    integer, PRIVATE :: num_size_classes
+    character(2), PRIVATE :: region_name
 
     CONTAINS
 
 
-    subroutine Gen_Trans_Matrix(growth, lengths, num_size_classes, delta_time)
-        !-----------------------------------------------------------------------
-        ! Keston Smith (IBSS corp) June-July 2021
-        !-----------------------------------------------------------------------
-        !use SSTMmod
+    !----------------------------------------------------------------------------------------------
+    !>
+    !! @public @memberof Growth_Class
+    !!
+    !! Initializes growth for startup
+    !!
+    !! @param[in,out] growth Parameters that identify how the scallop should grow
+    !! @param[in,out] grid Vector that identifies the geospatial locations under simulation
+    !! @param[in,out] lengths Vector of the size, length, of scallops
+    !! @param[in] delta_time Amount of time in decimal years over which growth occurs
+    !! @param[in] num_grids Total number of grids under being evalutated
+    !! @param[in] num_sz_classes Number of size classes to set private member
+    !! @param[in] length_min Minimum length of shell being considered
+    !! @param[in] length_delta Size step to sort classes 
+    !!            @f$size_{max} = length_{min} + (numSizeClasses-1) * length_{delta}@f$
+    !----------------------------------------------------------------------------------------------
+    subroutine Set_Growth(growth, grid, lengths, delta_time, num_grids, num_sz_classes, domain_name, length_min, length_delta)
+        use Data_Point_Mod
+        type(Growth_Class), intent(inout) :: growth(*) 
+        type(Data_Point_Class), intent(inout) :: grid
+        real(dp), intent(inout) :: lengths(*)
+        real(dp), intent(in) :: delta_time
+        integer, intent(in) ::num_grids,num_sz_classes
+        integer, intent(in) :: length_min, length_delta
+
+        integer n
+        character(2) domain_name
+        real(dp) Gpar(num_grids, growth_param_size)
+
+        !! initalize private members
+        num_size_classes = num_sz_classes
+        region_name = domain_name
+
+        call Set_Shell_Height_Intervals(lengths, dfloat(length_min), dfloat(length_delta))
+
+        if(region_name(1:2).eq.'GB')then
+            do n=1,num_grids
+                call Get_Growth_GB(grid%z(n), grid%lat(n), grid%is_closed(n), growth(n)%L_inf_mu, growth(n)%K_mu)
+                growth(n)%L_inf_sd = 14.5D0
+                growth(n)%K_sd = .12D0
+                if( grid%mgmt_area_index(n) .eq. 11 ) then
+                    !Peter Pan region Linfity = 110.3 K = 0.423 Th
+                    growth(n)%L_inf_mu=110.3D0
+                    growth(n)%K_mu=0.423D0
+                endif
+            enddo
+        endif
+        if(region_name(1:2).eq.'MA')then
+            do n=1,num_grids
+                call Get_Growth_MA(grid%z(n), grid%lat(n), grid%is_closed(n), growth(n)%L_inf_mu, growth(n)%K_mu)
+                growth(n)%L_inf_sd = 10.8D0
+                growth(n)%K_sd = .045D0
+            enddo
+        endif
+        do n=1, num_grids
+            call Gen_Trans_Matrix(growth(n), lengths, delta_time)
+        enddo
+        !growth(1:num_grids)%IsClosed = grid%IsClosed(1:num_grids) 
+        Gpar(1:num_grids,1) = growth(1:num_grids)%L_inf_mu
+        Gpar(1:num_grids,2) = growth(1:num_grids)%L_inf_sd
+        Gpar(1:num_grids,3) = growth(1:num_grids)%K_mu
+        Gpar(1:num_grids,4) = growth(1:num_grids)%K_sd
+        call Write_CSV(num_grids, growth_param_size, Gpar, growth_out_dir//'GrowthParOut.csv', num_grids)
+        
+        return 
+    end subroutine Set_Growth
+        
+    !----------------------------------------------------------------------------------------------
+    !>
+    !! @public @memberof Growth_Class
+    !!
+    !! Transition matrix used to determine the growth of the scallop
+    !!
+    !! @f{eqnarray*}{
+    !!    \vec{\mathbf{Size}}[Grid] &=& | \mathbf{GrowthMatrix}[Grid] | * | \vec{\mathbf{Size}}[Grid] | \\
+    !!                         &*& e^{-(Mort_{nat}[Grid,Height_{shell}] + Mort_{fish}[Grid,Height_{shell}]) * timestep}
+    !! @f}
+    !!
+    !! @param[in,out] growth Growth_Class
+    !! @param[in] lengths for each size class
+    !! @param[in] num_size_classes Number of size classes
+    !! @param[in] delta_time time step for transition matrix in decimal years
+    !! @author Keston Smith (IBSS corp) June-July 2021
+    !----------------------------------------------------------------------------------------------
+    !!!subroutine Gen_Trans_Matrix(growth, lengths, num_size_classes, delta_time)
+    subroutine Gen_Trans_Matrix(growth, lengths, delta_time)
         implicit none
         real(dp), intent(in):: lengths(*), delta_time
-        integer, intent(in)::num_size_classes
+        !!!integer, intent(in)::num_size_classes
         real(dp), allocatable :: G(:,:)
         integer j
         character(72) file_name
         real(dp) K_mu, K_sd, L_inf_mu, L_inf_sd
-        type(Growth_Struct):: growth
+        type(Growth_Class):: growth
 
         allocate(G(1:num_size_classes,1:num_size_classes) )
         L_inf_mu = growth%L_inf_mu
@@ -42,11 +143,11 @@ MODULE Growth_Mod
         K_sd = growth%K_sd
 
         call MN18_appndxC_transition_matrix(L_inf_mu, K_mu, L_inf_sd, K_sd,lengths, &
-        &      delta_time, G, num_size_classes, num_size_classes)
+        &      delta_time, G)
         
         ! If growth increments are assumed normally distributed the left hand tail of the distribution 
         ! can lead to unrealistic "shrinking" transitions
-        call enforce_non_negative_growth(G, num_size_classes, num_size_classes)
+        call enforce_non_negative_growth(G)
         do j = 1,num_size_classes
             if(lengths(j).gt.L_inf_mu)then
                 G(j,1:num_size_classes) = 0._dp
@@ -57,25 +158,36 @@ MODULE Growth_Mod
         growth%G(1:num_size_classes, 1:num_size_classes) = G(1:num_size_classes, 1:num_size_classes)
         
         ! output transition matrix
-         file_name = output_dir//'Growth.csv'
+         file_name = growth_out_dir//'Growth.csv'
         call Write_CSV(num_size_classes,num_size_classes,G,file_name,num_size_classes)
         
         deallocate( G )
         return
     end subroutine Gen_Trans_Matrix
 
-    !---------------------------------------------------------------------------------------------------
-    ! setup shell lengths intervals
-    !-------------------------------
-    subroutine Set_Shell_Height_Intervals(shell_height, num_size_classes, lengthMin, lengthDelta)
-        real(dp),intent(out) :: shell_height(*)
-        integer,intent(in) :: num_size_classes
-        real(dp), intent(in) :: lengthMin, lengthDelta
+    !----------------------------------------------------------------------------------------------
+    !>
+    !! @public @memberof Growth_Class
+    !!
+    !! setup shell lengths intervals
+    !! - length_min
+    !! - length_min + length_delta
+    !! - @f$height_{shell}(n) = length_{min} + (n-1) * length_{delta}@f$
+    !!
+    !! @param[out] shell_height length in millimeters of shell
+    !! @param[in] num_size_classes
+    !! @param[in] length_min Size of smallest size class
+    !! @param[in] length_delta amount between size classes
+    !----------------------------------------------------------------------------------------------
+    subroutine Set_Shell_Height_Intervals(shell_height, length_min, length_delta)
+        real(dp),intent(inout) :: shell_height(*)
+        !!!integer,intent(in) :: num_size_classes
+        real(dp), intent(in) :: length_min, length_delta
         integer n  ! loop counter
 
-        shell_height(1) = lengthMin
+        shell_height(1) = length_min
         do n=2, num_size_classes
-            shell_height(n) = shell_height(n-1) + lengthDelta
+            shell_height(n) = shell_height(n-1) + length_delta
         enddo
         PRINT '(A, F6.2, A, F6.2)', ' Shell size MIN, MAX', shell_height(1), ', ', shell_height(num_size_classes)
         if (num_size_classes .GT. max_size_class) then
@@ -86,54 +198,21 @@ MODULE Growth_Mod
         return
     end subroutine Set_Shell_Height_Intervals
 
-    subroutine Set_Growth(growth, grid, lengths, delta_time, num_grids, num_size_classes, domain_name)
-        use Data_Point_Mod
-        type(Growth_Struct), intent(inout):: growth(*) 
-        type(Data_Point_Struct):: grid
-        real(dp), intent(in):: lengths(*),delta_time
-        integer, intent(in)::num_grids,num_size_classes
-        integer n
-        character(2) domain_name
-        real(dp) Gpar(num_grids, growth_param_size)
-        
-        growth(1:num_grids)%num_size_classes=num_size_classes
-        if(domain_name(1:2).eq.'GB')then
-            do n=1,num_grids
-                call Get_Growth_GB(grid%z(n), grid%lat(n), grid%is_closed(n), growth(n)%L_inf_mu, growth(n)%K_mu)
-                growth(n)%L_inf_sd = 14.5D0
-                growth(n)%K_sd = .12D0
-                if( grid%management_area(n) .eq. 11 ) then
-                    !Peter Pan region Linfity = 110.3 K = 0.423 Th
-                    growth(n)%L_inf_mu=110.3D0
-                    growth(n)%K_mu=0.423D0
-                endif
-            enddo
-        endif
-        if(domain_name(1:2).eq.'MA')then
-            do n=1,num_grids
-                call Get_Growth_MA(grid%z(n), grid%lat(n), grid%is_closed(n), growth(n)%L_inf_mu, growth(n)%K_mu)
-                growth(n)%L_inf_sd = 10.8D0
-                growth(n)%K_sd = .045D0
-            enddo
-        endif
-        do n=1, num_grids
-            call Gen_Trans_Matrix(growth(n), lengths, num_size_classes, delta_time)
-        enddo
-        !growth(1:num_grids)%IsClosed = grid%IsClosed(1:num_grids) 
-        growth(1:num_grids)%num_size_classes = num_size_classes
-        Gpar(1:num_grids,1) = growth(1:num_grids)%L_inf_mu
-        Gpar(1:num_grids,2) = growth(1:num_grids)%L_inf_sd
-        Gpar(1:num_grids,3) = growth(1:num_grids)%K_mu
-        Gpar(1:num_grids,4) = growth(1:num_grids)%K_sd
-        call Write_CSV(num_grids, growth_param_size, Gpar, output_dir//'GrowthParOut.csv', num_grids)
-        
-        return 
-    end subroutine Set_Growth
-        
 
+    !----------------------------------------------------------------------------------------------
+    !>
+    !! @public @memberof Growth_Class
+    !!
+    !! Provides growth parameters Linf and K for Georges Bank.
+    !! From R code sent by Dvora July 28th 2021
+    !!
+    !! @param[in] depth in meters
+    !! @param[in] lat Geospatial coordinate, Latitude
+    !! @param[in] is_open Logical that indicates if grid is open for fishing
+    !! @param[out] Linf  Von Bertlanaffy asymptotic growth parameter
+    !! @param[out] K  Von Bertlanaffy asymptotic growth parameter
+    !----------------------------------------------------------------------------------------------
     subroutine Get_Growth_GB(depth, lat, is_open, Linf, K)
-        ! Provides growth parameters Linf and K for Georges Bank.
-        ! From R code sent by Dvora July 28th 2021
         real(dp), intent(in) :: depth, lat
         logical, intent(in) :: is_open
         real(dp), intent(out) :: Linf, K
@@ -158,6 +237,19 @@ MODULE Growth_Mod
         return
     end subroutine Get_Growth_GB
         
+    !----------------------------------------------------------------------------------------------
+    !>
+    !! @public @memberof Growth_Class
+    !!
+    !! Provides growth parameters Linf and K for Mid Atlantic
+    !! From R code sent by Dvora July 28th 2021
+    !!
+    !! @param[in] depth in meters
+    !! @param[in] lat Geospatial coordinate, Latitude
+    !! @param[in] is_open Logical that indicates if grid is open for fishing
+    !! @param[out] Linf  Von Bertlanaffy asymptotic growth parameter
+    !! @param[out] K  Von Bertlanaffy asymptotic growth parameter
+    !----------------------------------------------------------------------------------------------
     subroutine Get_Growth_MA(depth, lat, is_open, Linf, K)
         ! Provides growth parameters Linf and K for Mid Atlantic.
         ! From R code sent by Dvora July 28th 2021
@@ -191,30 +283,33 @@ MODULE Growth_Mod
         
         
     !-----------------------------------------------------------------------
-    ! Purpose: This subroutine computes a sizeclass transition matrix under the  assumption of von  Bertlanaffy growth.  It is assumed that the parameters of von BernBertlanaffy growth K and L_inf have    normal distributions.
-    !
-    ! inputs:
-    !          L_inf_mu [real 1x1] = mean of von Bertlanaffy asymptotic growth parameter L_inf(see HC09     eqn 1)
-    !          K_mu [real 1x1] =  mean of von Bertlanaffy growth parameter K(see HC09 eqn 1)
-    !          L_inf_std [real 1x1] =  standard deviation of von Bertlanaffy asymptotic growth parameter  L_inf(see HC09 eqn 1)
-    !          K_std [real 1x1] =  standard deviation of von Bertlanaffy growth parameter K(see HC09 eqn 1)
-    !          lengths [real nx1] = lengths for each size class 
-    !          delta_time [real 1x1] = time step for transition matrix in decmilal years
-    !          num_size_classes [integer 1x1] = dimension of lengths and G 
-    !
-    !
-    ! outputs: 
-    ! G [real n x n] = size transition matrix estimated under the assumption of uniform size 
-    !                  distribution within size interval and growth distribution evaluated at 
-    !                  mid point of size interval. Derivation is from MN18 appendix C.  
-    !                  Derivation of formula for growth increment mean and variance is in MN18eq7.pdf
-    !
-    ! history:  Written by keston Smith (IBSS corp) May 2021
-    !-----------------------------------------------------------------------
-    subroutine MN18_appndxC_transition_matrix(L_inf_mu,K_mu,L_inf_sd,K_sd,lengths,delta_time,G,num_size_classes,n)
-        ! input variables
+    !>
+    !! Purpose: This subroutine computes a sizeclass transition matrix under the  assumption of von  Bertlanaffy growth.
+    !! It is assumed that the parameters of von BernBertlanaffy growth K and L_inf have normal distributions.
+    !!
+    !! @public @memberof Growth_Class
+    !!
+    !! inputs:
+    !! @param[in]        L_inf_mu [real 1x1] = mean of von Bertlanaffy asymptotic growth parameter L_inf(see HC09     eqn 1)
+    !! @param[in]        K_mu [real 1x1] =  mean of  mean of von Bertlanaffy asymptotic growth parameter K(see HC09 eqn 1)
+    !! @param[in]        L_inf_std [real 1x1] =  standard deviation of von Bertlanaffy asymptotic growth parameter  L_inf(see HC09 eqn 1)
+    !! @param[in]        K_std [real 1x1] =  standard deviation of von Bertlanaffy growth parameter K(see HC09 eqn 1)
+    !! @param[in]        lengths [real nx1] = lengths for each size class 
+    !! @param[in]        delta_time [real 1x1] = time step for transition matrix in decmilal years
+    !!
+    !!
+    !! outputs: 
+    !! @param[out] G [real n x n] = size transition matrix estimated under the assumption of uniform size 
+    !!                  distribution within size interval and growth distribution evaluated at 
+    !!                  mid point of size interval. Derivation is from MN18 appendix C.  
+    !!                  Derivation of formula for growth increment mean and variance is in MN18eq7.pdf
+    !!
+    !! history:  Written by keston Smith (IBSS corp) May 2021
+    ! -----------------------------------------------------------------------
+    subroutine MN18_appndxC_transition_matrix(L_inf_mu,K_mu,L_inf_sd,K_sd,lengths,delta_time,G)
+            ! input variables
     
-        integer, INTENT(IN) :: num_size_classes
+        !!!integer, INTENT(IN) :: num_size_classes
         real(dp), INTENT(IN) :: L_inf_mu, K_mu, L_inf_sd, K_sd, delta_time, lengths(num_size_classes)
     
         ! output variables
@@ -224,9 +319,9 @@ MODULE Growth_Mod
         ! local variables
     
         real(dp) omega, mu, sigma, omega_avg
-        integer j, k, n
+        integer j, k
         real(dp) Fya, Fyb, c, eta, Ha, Hb
-    
+
         G = 0.
         ! MN18 p. 1312
         ! c = 1 – exp(–K * delta_t)
@@ -236,7 +331,7 @@ MODULE Growth_Mod
         c = 1._dp - exp(-K_mu * delta_time)
         eta = c * L_inf_mu
     
-        do k = 2,n + 1
+        do k = 2, num_size_classes + 1
     
             ! calculate interval omega and midpoint
 
@@ -247,7 +342,7 @@ MODULE Growth_Mod
     
             ! calculate increment mean,mu->evaluated at midpoint and increment standard deviation sigma->evaluated at midpoint   
             call increment_mean_std(L_inf_mu, K_mu, L_inf_sd, K_sd, delta_time, omega_avg, mu, sigma)
-            do j = k,n + 1
+            do j = k, num_size_classes + 1
                 Ha = H_MN18(lengths(j) - eta - (1._dp - c) * lengths(k-1), sigma, (1._dp - c) * omega)
                 Hb = H_MN18(lengths(j) - eta - (1._dp - c) * lengths(k),   sigma, (1._dp - c) * omega)
                 Fya = Ha - Hb
@@ -262,25 +357,28 @@ MODULE Growth_Mod
     end subroutine MN18_appndxC_transition_matrix
 
     !-----------------------------------------------------------------------
-    ! Purpose: This subroutine computes a growth increment distribution parameters under 
-    ! the  assumption of von Bertlanaffy growth and normally distributed growth increments. 
-    ! It is assumed that the parameters of von BernBertlanaffy growth K and L_inf have
-    ! normaldistributions.
-    !
-    ! inputs:
-    ! L_inf_mu [real 1x1] = mean of von Bertlanaffy asymptotic growth parameterL_inf(see HC09 eqn 1)
-    ! K_mu [real 1x1] =  mean of von Bertlanaffy growth parameter K(see HC09 eqn 1)
-    ! L_inf_std [real 1x1] =  standard deviation of von Bertlanaffy asymptoticgrowth parameter L_inf(see  HC09 eqn 1)
-    ! K_std [real 1x1] =  standard deviation of von Bertlanaffy growth parameter (see HC09 eqn 1)
-    ! delta_time [real 1x1] = time step for transition matrix in decmilal years
-    ! size [real 1x1] = size to estimate increment stats
-    !
-    !
-    ! outputs: 
-    ! mu [1x1] = mean of increment at size
-    ! sigma [1x1]  = standard deviation of increment at size
-    
-    ! history:  Written by keston Smith (IBSS corp) May 2021
+    !>
+    !! Purpose: This subroutine computes a growth increment distribution parameters under 
+    !! the  assumption of von Bertlanaffy growth and normally distributed growth increments. 
+    !! It is assumed that the parameters of von BernBertlanaffy growth K and L_inf have
+    !! normaldistributions.
+    !!
+    !! @public @memberof Growth_Class
+    !!
+    !! inputs:
+    !! @param[in] L_inf_mu [real 1x1] = mean of von Bertlanaffy asymptotic growth parameterL_inf(see HC09 eqn 1)
+    !! @param[in] K_mu [real 1x1] =  mean of von Bertlanaffy growth parameter K(see HC09 eqn 1)
+    !! @param[in] L_inf_std [real 1x1] =  standard deviation of von Bertlanaffy asymptoticgrowth parameter L_inf(see  HC09 eqn 1)
+    !! @param[in] K_std [real 1x1] =  standard deviation of von Bertlanaffy growth parameter (see HC09 eqn 1)
+    !! @param[in] delta_time [real 1x1] = time step for transition matrix in decimal years
+    !! @param[in] size [real 1x1] = size to estimate increment stats
+    !!
+    !!
+    !! outputs: 
+    !! @param[out] mu [1x1] = mean of increment at size
+    !! @param[out] sigma [1x1]  = standard deviation of increment at size
+    !!
+    !! history:  Written by keston Smith (IBSS corp) May 2021
     !-----------------------------------------------------------------------
     subroutine increment_mean_std(L_inf_mu, K_mu, L_inf_sd, K_sd, delta_time, size, mu, sigma)
         
@@ -331,13 +429,19 @@ MODULE Growth_Mod
         return
     end subroutine increment_mean_std
     
-    ! from MN18 apendix B
-    ! input variables
-    ! x - evaluation point
-    ! sigma,w - paramaters defined within MN18
-    
-    ! output variables
-    ! H - variable 
+    !-----------------------------------------------------------------------
+    !>
+    !! @fn H_MN18
+    !! from MN18 apendix B
+    !!
+    !! @public @memberof Growth_Class
+    !!
+    !! @param[in] x - evaluation point
+    !! @param[in] sigma - paramaters defined within MN18
+    !! @param[in] w  - paramaters defined within MN18
+    !!
+    !! @returns H - variable 
+    !-----------------------------------------------------------------------
     real(dp) function H_MN18(x,sigma,w)
         real(dp), INTENT(IN) ::sigma,w,x
         real(dp) f
@@ -345,27 +449,21 @@ MODULE Growth_Mod
         H_MN18 = (1._dp / w) * (x * f + (sigma**2) * f)
     endfunction H_MN18
     
-    ! input variables
-    !     G = growth transition matrix that may have effects of negative growth
-    !     num_size_classes = leading dimension of G
-    !     n  = actual number of size classes
-    
-    ! outut variables
-    !     G - growth transition matrix with negative growth lumped into 0 growth
-    subroutine enforce_non_negative_growth(G,num_size_classes,n)
-        ! input variables
-        
-        integer, INTENT(IN) :: n,num_size_classes
-
-        ! input/output variables
-        real(dp) G(num_size_classes,*)
+    !-----------------------------------------------------------------------
+    !>
+    !! @public @memberof Growth_Class
+    !!
+    !! @param[in,out]    G - growth transition matrix with negative growth lumped into 0 growth
+    !-----------------------------------------------------------------------
+    subroutine enforce_non_negative_growth(G)
+        real(dp), INTENT(INOUT) :: G(num_size_classes,*)
         ! local
         integer j,k
         real(dp) sum
         
         ! Transitioning from I_k to I_j
         ! if j < k, force G(j,k) = 0. Scallop does not shrink
-        do k = 2,n
+        do k = 2, num_size_classes
             do j = 1,k-1
                 G(j,k) = 0.
             enddo
@@ -373,13 +471,13 @@ MODULE Growth_Mod
         
         ! force column sum to equal 1.0
         ! That is sum of a probability distribution function 
-        do k = 1,n
+        do k = 1, num_size_classes
             sum = 0.
-            do j = k,n
+            do j = k, num_size_classes
                 if(G(j,k) .lt. 0.) G(j,k) = 0.
                 sum = sum + G(j,k)
             enddo
-            do j = k,n
+            do j = k, num_size_classes
                 ! because of above loop we already know that G(j,k) >= 0
                 ! therefore the sum will be >= 0
                 if(sum .gt. 0.)then
@@ -396,43 +494,61 @@ MODULE Growth_Mod
     end subroutine enforce_non_negative_growth
            
            
-    ! computation of normal cumulative density function
-    ! input variables
-    ! mu - mean 
-    ! sigma - standard deviation
-    ! x - evaluation point
-    
-    ! output variables
-    ! f - normal cdf value at x, f(x|mu,sigma)
+    !-----------------------------------------------------------------------
+    !>
+    !! @fn N_Cumul_Dens_Fcn
+    !! computation of normal cumulative density function
+    !!
+    !! @public @memberof Growth_Class
+    !!
+    !! @param[in] mu - mean 
+    !! @param[in] sigma - standard deviation
+    !! @param[in] x - evaluation point
+    !!
+    !! @returns normal cdf value at x, f(x|mu,sigma)
+    !-----------------------------------------------------------------------
     real(dp) function N_Cumul_Dens_Fcn(x, mu, sigma)
         real(dp), intent(in) :: mu,sigma,x
         N_Cumul_Dens_Fcn = 0.5_dp * ( 1._dp + erf( (x - mu) / (sigma * sqrt(2._dp) ) ))
     endfunction N_Cumul_Dens_Fcn
 
+    !-----------------------------------------------------------------------
+    !>
+    !!
+    !! @public @memberof Growth_Class
+    !!
+    !! 
+    !! @param[in] growth object to hold growth simulation paramters
+    !! @param[in,out] mortality object to hold mortality simulation parameters
+    !! @param[in,out] recruit object to hold recruitment simulation parameters
+    !! @param[in,out] state vector of the current state in scallops per square meter
+    !! @param[in] fishing_effort vector of fishing effort by location
+    !! @param[in] delta_time change of time in decimal years
+    !! @param[in] num_time_steps number of time steps of simulation
+    !! @param[out] state_time_steps State at each time step
+    !! @param[in] domain_area entire area in square meters
+    !! @param[in] year under considration
+    !-----------------------------------------------------------------------
     subroutine Time_To_Grow(growth, mortality, recruit, state, fishing_effort, delta_time, &
-    &                      num_time_steps, state_time_steps, domain_area, domain_name, year)
+    &                      num_time_steps, state_time_steps, domain_area, year)
 
-        use Mortality_Mod
-        use Recruit_Mod
+        use Mortality_Mod, only : Mortality_Class
+        use Recruit_Mod, only : Recruit_Class, Mortality_Density_Dependent
         
         implicit none
-        type(Growth_Struct), INTENT(IN):: growth
-        type(Mortality_Struct), INTENT(INOUT):: mortality
-        type(Recruit_Struct), INTENT(INOUT):: recruit
+        type(Growth_Class), INTENT(IN):: growth
+        type(Mortality_Class), INTENT(INOUT):: mortality
+        type(Recruit_Class), INTENT(INOUT):: recruit
         integer, intent(in)     :: num_time_steps, year
-        character(2), intent(in) :: domain_name
         real(dp),intent(inout)    :: state(*)
         real(dp), intent(out)     ::state_time_steps(num_time_steps,*)
         real(dp), intent(in)      :: delta_time, domain_area, fishing_effort
         real(dp), allocatable :: G(:,:), Stmp(:)
         real(dp) t
         integer nt
-        integer num_size_classes, Rindx
+        integer Rindx
         real(dp), allocatable :: M(:), Rec(:)
             
-        
-        num_size_classes = growth%num_size_classes
-        
         allocate(G(1:num_size_classes, 1:num_size_classes), Stmp(1:num_size_classes), M(1:num_size_classes), &
         &       Rec(1:num_size_classes))
         
@@ -444,8 +560,8 @@ MODULE Growth_Mod
         
         do nt = 1, num_time_steps
             t = float(nt)*delta_time
-            call Mortality_Density_Dependent(recruit, mortality, state, domain_area, domain_name)
-            !Rec(1:num_size_classes) = 0.D0
+            call Mortality_Density_Dependent(recruit, mortality, state, domain_area)
+
         !    if ( ( t .gt. recruit%rec_start ) .and. ( t.le.recruit%rec_stop) ) then&
         !      state(1:num_size_classes) = state(1:num_size_classes) + delta_time*Rec(1:num_size_classes)/(recruit%rec_stop-recruit%rec_start)
             if ( ( t .gt. recruit%rec_start ) .and. ( t.le.recruit%rec_stop) ) &

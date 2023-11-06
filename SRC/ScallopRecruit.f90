@@ -2,12 +2,19 @@ module Recruit_Mod
     use globals
     implicit none
     integer, parameter :: max_n_year = 50
-    type Recruit_Struct
-       real(dp) recruitment(max_n_year)
-       real(dp) rec_start,rec_stop
-       integer year(max_n_year)
-       integer n_year, max_rec_ind ! max_rec_ind is the largest size class treated as a recruit
-    end type Recruit_Struct
+    character(*), parameter :: rec_input_dir = 'KrigingEstimates/'
+    character(*), parameter :: rec_output_dir = 'RecruitField/'
+
+    type Recruit_Class
+        real(dp) recruitment(max_n_year)
+        real(dp) rec_start,rec_stop
+        integer year(max_n_year)
+        integer n_year, max_rec_ind ! max_rec_ind is the largest size class treated as a recruit
+    end type Recruit_Class
+
+    ! @private @memberof Recruit_Mod
+    integer, PRIVATE :: num_size_classes
+    character(2), PRIVATE :: region_name
 
     CONTAINS
 
@@ -20,15 +27,21 @@ module Recruit_Mod
     !!             MA MidAtlantic or 
     !!             GB GeorgesBank
     !! @param[in] is_random_rec
+    !! @param[in] num_sz_classes
     !-----------------------------------------------------------------------
-    subroutine Set_Recruitment(recruit, num_grids, domain_name, is_random_rec)
-        type(Recruit_Struct), intent(inout) :: recruit(*)
+    subroutine Set_Recruitment(recruit, num_grids, domain_name, is_random_rec, num_sz_classes)
+        type(Recruit_Class), intent(inout) :: recruit(*)
         integer, intent(in) :: num_grids
         character(2), intent(in) :: domain_name
         logical, intent(in) :: is_random_rec
+        integer, intent(in) :: num_sz_classes
         integer j, year, year_index
         real(dp) tmp(num_grids)
         character(72) buf
+
+        !! initalize private members
+        num_size_classes = num_sz_classes
+        region_name = domain_name
 
         write(*,*)'Is random Rec',is_random_rec
         year_index = 0
@@ -36,9 +49,9 @@ module Recruit_Mod
             year_index = year_index + 1
             write(buf,'(I6)')year
             if (is_random_rec) then
-                call Random_Recruits(tmp,year,year,num_grids,100,domain_name)
+                call Random_Recruits(tmp,year,year,num_grids,100)
             else
-                call Read_Scalar_Field('Input/Sim'//domain_name//trim(adjustl(buf))//'/KrigingEstimate.txt',tmp, num_grids)
+                call Read_Scalar_Field(rec_input_dir//'Sim'//region_name//trim(adjustl(buf))//'/KrigingEstimate.txt',tmp, num_grids)
             endif
             do j = 1,num_grids
                 recruit(j)%recruitment(year_index) = tmp(j)
@@ -53,7 +66,7 @@ module Recruit_Mod
             year_index = year_index + 1
             write(buf,'(I6)')year
             !! TODO make these variable
-            call Random_Recruits(tmp,1979,2018,num_grids,100,domain_name)
+            call Random_Recruits(tmp,1979,2018,num_grids,100)
             do j = 1,num_grids
                 recruit(j)%recruitment(year_index) = tmp(j)
                 recruit(j)%year(year_index) = year
@@ -68,18 +81,17 @@ module Recruit_Mod
                 year_index = year_index + 1
                 write(buf,'(I6)')year
                 tmp(1:num_grids) = recruit(1:num_grids)%Recruitment(year_index)
-                call Write_Scalar_Field(num_grids,tmp,'Output/RecruitFieldIn'//trim(adjustl(buf))//'.txt')
+                call Write_Scalar_Field(num_grids,tmp,rec_output_dir//'RecruitFieldIn'//trim(adjustl(buf))//'.txt')
         enddo
         return
     endsubroutine Set_Recruitment
         
 
     !---------------------------------------------------------------------------------------------------
-    subroutine Random_Recruits(R, start_year, stop_year, num_grids, num_sim, domain_name)
+    subroutine Random_Recruits(R, start_year, stop_year, num_grids, num_sim)
         real(dp), intent(out) :: R(*)
         integer, intent(in)::start_year, stop_year, num_sim
         integer, intent(in)::num_grids
-        character (*), intent(in):: domain_name
         real(dp), allocatable:: fishing_effort(:,:)
         real(dp) p(2), mu, sig, mus, mur
         integer num_years_int, num_sims_rand
@@ -92,13 +104,13 @@ module Recruit_Mod
         num_sims_rand = ceiling( float(num_sim) * p(2) )
         write(buf,'(I6)') num_years_int
         
-        call Read_Scalar_Field('Input/Sim'//domain_name//'Clim'//trim(adjustl(buf))//'/KrigingEstimate.txt', &
+        call Read_Scalar_Field(rec_input_dir//'Sim'//region_name//'Clim'//'/KrigingEstimate.txt', &
         &            fishing_effort(1:num_grids,num_sims_rand), num_grids)
         R(1:num_grids) = fishing_effort(1:num_grids, num_sims_rand)
         ! Adjust mean to random number based on historical record of mean. log(interanual mean)~ N(mu,sig)
         if (rescale)then
             !log normal average for 1979-2018
-            if (domain_name(1:2).eq.'GB')then
+            if (region_name(1:2).eq.'GB')then
                 mu =  -3.0198
                 sig =  1.1068
             else
@@ -116,7 +128,7 @@ module Recruit_Mod
     endsubroutine Random_Recruits
 
 
-    subroutine Mortality_Density_Dependent(recruit, mortality, state, domain_area, domain_name)
+    subroutine Mortality_Density_Dependent(recruit, mortality, state, domain_area)
         !---------------------------------------------------------------------------------------------------
         !Density dependant mortality is taken from personal communication with Dr. Dvora Hart late March 2022
             
@@ -148,23 +160,20 @@ module Recruit_Mod
         !Sorry Rec should be logged 
         !-----------------------------------------------------------------------------------------------------
         
-        use Mortality_Mod
+        use Mortality_Mod, only : Mortality_Class
         
         implicit none
-        character(2),intent(in) :: domain_name
         real(dp),intent(in) :: state(*),domain_area
-        type(Mortality_Struct), INTENT(INOUT):: mortality
-        type(Recruit_Struct), INTENT(IN):: recruit
-        integer num_size_classes
+        type(Mortality_Class), INTENT(INOUT):: mortality
+        type(Recruit_Class), INTENT(IN):: recruit
         real(dp) recruit_density
-       
-        num_size_classes = Mortality%num_size_classes
-        if(domain_name(1:2).eq.'MA')then
+
+        if(region_name(1:2).eq.'MA')then
             recruit_density = sum(state(1:recruit%max_rec_ind)) * domain_area/(10.**6)
             mortality%natural_mort_juv = max( mortality%natural_mort_adult , exp(-9.701_dp + 1.093_dp * log(recruit_density)) )
         endif
         
-        if(domain_name(1:2).eq.'GB')then
+        if(region_name(1:2).eq.'GB')then
             recruit_density = sum(state(1:recruit%max_rec_ind))*domain_area/(10.**6)
             mortality%natural_mort_juv = max( mortality%natural_mort_adult , exp(-10.49_dp + 1.226_dp * log(recruit_density)) )
         endif
