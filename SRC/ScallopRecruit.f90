@@ -5,11 +5,23 @@ module Recruit_Mod
     character(*), parameter :: rec_input_dir = 'KrigingEstimates/'
     character(*), parameter :: rec_output_dir = 'RecruitField/'
 
+    !> @class Recruit_Class
+    !! 
+    !! Subroutines that determine expected growth of scallops
     type Recruit_Class
+        !> @public @memberof Recruit_Class
         real(dp) recruitment(max_n_year)
-        real(dp) rec_start,rec_stop
+        !> @public @memberof Recruit_Class
+        real(dp) rec_start
+        !> @public @memberof Recruit_Class
+        real(dp) rec_stop
+        !> @public @memberof Recruit_Class
         integer year(max_n_year)
-        integer n_year, max_rec_ind ! max_rec_ind is the largest size class treated as a recruit
+        !> @public @memberof Recruit_Class
+        integer n_year
+        !> @public @memberof Recruit_Class
+        !! max_rec_ind is the largest size class treated as a recruit
+        integer max_rec_ind ! max_rec_ind is the largest size class treated as a recruit
     end type Recruit_Class
 
     ! @private @memberof Recruit_Mod
@@ -20,6 +32,7 @@ module Recruit_Mod
 
     !-----------------------------------------------------------------------
     !> Set_Recruitment
+    !! @public @memberof Recruit_Class
     !! @brief Sets recruitment parameters
     !! @param[in,out] recruit 
     !! @param[in,out] num_grids

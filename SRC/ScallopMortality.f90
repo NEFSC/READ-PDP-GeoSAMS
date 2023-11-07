@@ -1,10 +1,12 @@
-!> @class Mortality_Class
-!! 
-!! Subroutines that determine expected growth of scallops
+
 
 module Mortality_Mod              
     use globals
     implicit none
+
+    !> @class Mortality_Class
+    !! 
+    !! Subroutines that determine expected mortality of scallops
     type Mortality_Class
         !> @public @memberof Mortality_Class
         !! Attrition due to natural mortality
@@ -34,7 +36,7 @@ module Mortality_Mod
         integer mgmt_area_index
     end type Mortality_Class
 
-    ! @private @memberof Growth_Mod
+    ! @private @memberof Mortality_Class
     integer, PRIVATE :: num_size_classes
     character(2), PRIVATE :: region_name
 
