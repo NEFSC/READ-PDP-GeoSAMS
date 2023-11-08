@@ -15,8 +15,7 @@ SRCS =  UniversalKriging.f90 NLSFRoutines.f90 KrigingRoutines.f90 IORoutines.f90
 
 ifeq ($(OS), Windows_NT)
 #LIBS = -L/usr/lib/x86_64-linux-gnu -llapack -lblas
-#LIBS = -L'\Program Files\MATLAB\R2023a\extern\lib\win64\mingw64' -lmwlapack -lmwblas
-LIBS = -L'\Program Files\gcc\x86_64-w64-mingw32\lib' -L..\..\Libs -llapack -lblas
+LIBS = -L..\Libs -llapack -lblas
 else # MAC, UNIX
 LIBS = -L/usr/lib -llapack -lblas
 endif
