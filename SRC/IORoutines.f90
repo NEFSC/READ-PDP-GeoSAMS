@@ -208,23 +208,22 @@ endsubroutine Read_Output_Flags
 !! longitude.
 !! @author Keston Smith (IBSS corp) June-July 2021
 !!
-!! @param[out] x (float double) x-coordinate of data
-!! @param[out] y (float double) y-coordinate of data
-!! @param[out] z (float double) bathymetric depth at (x,y)
-!! @param[out] lat (float double) latitude at (x,y)
-!! @param[out] lon (float double) longitude at (x,y)
-!! @param[out] num_grids (integer)length of x,y,z,lat,lon (number of data point Time Steps)
+!! @param[in,out] grid Map of how management area is subdivided
+!! @param[in] domain_name Area being managed
 !!
-!! TODO: At present lat and lon variabels are not used. 
-subroutine Load_Grid(x, y, z, lat, lon, num_grids, management_region, is_closed, domain_name)
+!! TODO: At present lat and lon variables are not used. 
+subroutine Load_Grid(grid, domain_name)
     use globals
+    use Data_Point_Mod
     implicit none
 
-    real(dp) lat(*),lon(*),x(*),y(*),z(*)
-    integer n, num_grids, io, management_region(*)
-    logical is_closed(*)
+    !real(dp) lat(*),lon(*),x(*),y(*),z(*)
+    !integer n, num_grids, io, management_region(*)
+    !logical is_closed(*)
+    type(Data_Vector_Class), intent(inout) :: grid
+    character(2), intent(in) :: domain_name
+    integer n, io, num_grids
     character(72) input_str,file_name
-    character(2) domain_name
     write(*,*) 'Domain Name: ', domain_name
     file_name='Grids/'//domain_name//'xyzLatLon.csv'
     write(*,*)'reading grid file: ',trim(file_name)
@@ -235,29 +234,32 @@ subroutine Load_Grid(x, y, z, lat, lon, num_grids, management_region, is_closed,
      if (io.lt.0) exit
      n=n+1
      ! merged <domain_name>xyzLatLon and ManagementArea<domain_name>
-     read(input_str,*) x(n),y(n),z(n),lat(n),lon(n),management_region(n)
+     !read(input_str,*) x(n),y(n),z(n),lat(n),lon(n),management_region(n)
+     read(input_str,*) grid%posn(n)%x, grid%posn(n)%y, &
+     &                 grid%posn(n)%z, grid%posn(n)%lat, grid%posn(n)%lon, grid%posn(n)%mgmt_area_index
     end do
     close(63)
     num_grids=n
 
     if (domain_name(1:2).eq.'GB')then
-        is_closed(1:num_grids)=.TRUE.
+        grid%posn(1:num_grids)%is_closed = .TRUE.
         do n=1,num_grids
-            if( any ((/ management_region(n).eq.8, management_region(n).eq.5,&
-            &           management_region(n).eq.10 /)))then
-                is_closed(n)=.FALSE.
+            if( any ((/grid%posn(n)%mgmt_area_index.eq.8, grid%posn(n)%mgmt_area_index.eq.5,&
+            &           grid%posn(n)%mgmt_area_index.eq.10 /)))then
+                grid%posn(n)%is_closed = .FALSE.
             endif
         enddo
     endif
     if (domain_name(1:2).eq.'MA')then
-        is_closed(1:num_grids)=.FALSE.
+        grid%posn(1:num_grids)%is_closed = .FALSE.
         do n=1,num_grids
-            if( any ((/ management_region(n).eq.3, management_region(n).eq.4,&
-            &           management_region(n).eq.5, management_region(n).eq.7 /)))then
-                is_closed(n)=.TRUE.
+            if( any ((/ grid%posn(n)%mgmt_area_index.eq.3, grid%posn(n)%mgmt_area_index.eq.4,&
+            &           grid%posn(n)%mgmt_area_index.eq.5, grid%posn(n)%mgmt_area_index.eq.7 /)))then
+                grid%posn(n)%is_closed = .TRUE.
             endif
         enddo
     endif
+    grid%len = num_grids
 
     return
 endsubroutine Load_Grid

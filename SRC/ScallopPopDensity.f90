@@ -131,7 +131,7 @@ PROGRAM ScallopPopDensity
     character(72) file_name
     real(dp) delta_time
 
-    type(Data_Point_Class):: grid
+    type(Data_Vector_Class):: grid
     real(dp) element_area, domain_area
     integer num_grids
 
@@ -170,30 +170,29 @@ PROGRAM ScallopPopDensity
     write(*,'(A,I6,A,F7.4)') ' Time steps/year:', num_time_steps, ' delta ', delta_time
     write(*,*) '========================================================'
     
-    call Load_Grid(grid%x, grid%y, grid%z, grid%lat, grid%lon, grid%len, &
-    &          grid%mgmt_area_index, grid%is_closed, domain_name)
-    write(*,'(A,I7)') ' Number of Grids:   ',grid%len
+    call Load_Grid(grid, domain_name)
     num_grids = grid%len
     element_area = meters_per_naut_mile**2 ! convert 1 sq nm to sq m
     domain_area = float(num_grids) * element_area
-    write(*,*) 'Domain Area: ', domain_area, ' square meters'
+    write(*,'(A,I7)') ' Number of Grids: ',grid%len
+    write(*,*)        ' Domain Area: ', domain_area, ' square meters'
     
     write(*,*) '========================================================'
 
     allocate(growth(1:num_grids), mortality(1:num_grids), recruit(1:num_grids) )
 
     do j=1, num_grids
-       mortality(j)%mgmt_area_index = grid%mgmt_area_index(j)
+       mortality(j)%mgmt_area_index = grid%posn(j)%mgmt_area_index
     enddo
     
     allocate(shell_height_mm(1:num_size_classes))
     !
     ! Assign recruitment by year and node, initialize shell_height_mm
     !
-    call Set_Growth(growth, grid, shell_height_mm, delta_time, num_grids, num_size_classes, &
+    call Set_Growth(growth, grid, shell_height_mm, delta_time, num_size_classes, &
     &               domain_name, shell_len_min, shell_len_delta)
     call Set_Recruitment(recruit, num_grids, domain_name, is_rand_rec, num_size_classes)
-    call SetMortality(mortality, grid, shell_height_mm, num_grids, num_size_classes, domain_name)
+    call SetMortality(mortality, grid, shell_height_mm, num_size_classes, domain_name)
 
     allocate(state(1:num_grids,1:num_size_classes), &
     &        weight_grams(1:num_grids,1:num_size_classes), &
@@ -215,12 +214,12 @@ PROGRAM ScallopPopDensity
     ! Compute Shell Height (mm) to Meat Weight (g)
     do n = 1, num_grids
         do j = 1, num_size_classes
-            weight_grams(n,j) =  Shell_to_Weight(shell_height_mm(j), grid%is_closed(n), &
-            &                         grid%z(n), grid%lat(n), domain_name, .false.)
+            weight_grams(n,j) =  Shell_to_Weight(shell_height_mm(j), grid%posn(n)%is_closed, &
+            &                         grid%posn(n)%z, grid%posn(n)%lat, domain_name, .false.)
         enddo
-        if ( (domain_name .eq. 'GB') .and. (grid%mgmt_area_index(n) .eq. 11) ) &    ! Peter Pan 
-        &    weight_grams(n,j) = Shell_to_Weight(shell_height_mm(j), grid%is_closed(n), &
-        &                               grid%z(n), grid%lat(n), domain_name, .true.)
+        if ( (domain_name .eq. 'GB') .and. (grid%posn(n)%mgmt_area_index .eq. 11) ) &    ! Peter Pan 
+        &    weight_grams(n,j) = Shell_to_Weight(shell_height_mm(j), grid%posn(n)%is_closed, &
+        &                               grid%posn(n)%z, grid%posn(n)%lat, domain_name, .true.)
     enddo
 
     call Write_CSV(num_grids, num_size_classes, weight_grams, growth_out_dir//'WeightShellHeight.csv', num_grids)

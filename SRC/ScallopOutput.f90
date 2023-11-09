@@ -106,13 +106,13 @@ module Output_Mod
         implicit none
         integer, intent(in) :: num_size_classes, year, num_grids, start_year, stop_year, num_time_steps, n
         real(dp), intent(in) :: state_time_steps(num_time_steps, *)
-        type(Data_Point_Class), intent(in) :: grid
+        type(Data_Vector_Class), intent(in) :: grid
         character(72) buf
         integer num_years, ntsX, Nregion, ntStart, ntStop, j
         real(dp), allocatable :: region_avg(:,:,:), StateTSx(:,:)
         integer, allocatable :: management_area_count(:)
         save region_avg
-        Nregion = maxval(grid%mgmt_area_index(1:num_grids))
+        Nregion = maxval(grid%posn(1:num_grids)%mgmt_area_index)
         write(8,*)
         num_years = stop_year-start_year+1
         ntsX = num_time_steps*num_years
@@ -120,7 +120,7 @@ module Output_Mod
         if ((year.eq.start_year).and.(n.eq.1))then
             open(56, file = output_dir//'ManAreaOut.txt')
             do j = 1, num_grids
-                write(56,*)grid%mgmt_area_index(j)
+                write(56,*)grid%posn(j)%mgmt_area_index
             enddo
             close(56)
             allocate(region_avg(1:ntsX, 1:num_size_classes, 1:Nregion))
@@ -130,15 +130,15 @@ module Output_Mod
         ntStart = (year-start_year)*num_time_steps+1
         ntStop  = (year-start_year)*num_time_steps+num_time_steps
         !do n = 1, num_grids
-            region_avg(ntStart:ntStop, 1:num_size_classes, grid%mgmt_area_index(n)) &
-            &               = region_avg(ntStart:ntStop, 1:num_size_classes, grid%mgmt_area_index(n)) &
+            region_avg(ntStart:ntStop, 1:num_size_classes, grid%posn(n)%mgmt_area_index) &
+            &               = region_avg(ntStart:ntStop, 1:num_size_classes, grid%posn(n)%mgmt_area_index) &
             &                 + state_time_steps(1:num_time_steps, 1:num_size_classes)
         !enddo
         if ((year.eq.stop_year).and.(n.eq.num_grids))then
             allocate(StateTSx(1:ntsX, 1:num_size_classes), management_area_count(1:Nregion))
             management_area_count(1:Nregion) = 0
             do j = 1, num_grids
-                management_area_count(grid%mgmt_area_index(j)) = management_area_count(grid%mgmt_area_index(j))+1
+                management_area_count(grid%posn(j)%mgmt_area_index) = management_area_count(grid%posn(j)%mgmt_area_index)+1
             enddo
             do j = 1, Nregion
                 write(*, *)'j = ', j, management_area_count(j)

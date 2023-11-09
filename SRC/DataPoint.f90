@@ -6,29 +6,34 @@ module Data_Point_Mod
     type Data_Point_Class
         !> @public @memberof Data_Point_Class
         !! UTM Northing
-        real(dp) x(num_dimensions)
+        real(dp) x
         !> @public @memberof Data_Point_Class
         !! UTM Easting
-        real(dp) y(num_dimensions)
+        real(dp) y
         !> @public @memberof Data_Point_Class
         !! Latitude
-        real(dp) lat(num_dimensions)
+        real(dp) lat
         !> @public @memberof Data_Point_Class
         !! Longitude
-        real(dp) lon(num_dimensions)
+        real(dp) lon
         !> @public @memberof Data_Point_Class
-        !! Depth, i.e. altitude
-        real(dp) z(num_dimensions)
+        !! bathymetric depth at (x,y)
+        real(dp) z
         !> @public @memberof Data_Point_Class
         !! Indicates if grid is closed for fishing
-        logical is_closed(num_dimensions)
+        logical is_closed
         !> @public @memberof Data_Point_Class
         !! Indexed management area
-        integer mgmt_area_index(num_dimensions)
-        !> @public @memberof Data_Point_Class
+        integer mgmt_area_index
+    end type Data_Point_Class
+
+    !> @class Data_Vector_Class
+    type Data_Vector_Class
+        !> @public @memberof Data_Vector_Class
+        type(Data_Point_Class) :: posn(num_dimensions)
+        !> @public @memberof Data_Vector_Class
         !! Size of management area, i.e. number of grids
         integer len
-                              
-    end type Data_Point_Class
+    end type Data_Vector_Class
 end module Data_Point_Mod
     

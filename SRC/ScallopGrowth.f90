@@ -48,27 +48,29 @@ MODULE Growth_Mod
     !> Initializes growth for startup
     !>
     !> @param[in,out] growth Parameters that identify how the scallop should grow
-    !> @param[in,out] grid Vector that identifies the geospatial locations under simulation
+    !> @param[in] grid Vector that identifies the geospatial locations under simulation
     !> @param[in,out] lengths Vector of the size, length, of scallops
     !> @param[in] delta_time Amount of time in decimal years over which growth occurs
-    !> @param[in] num_grids Total number of grids under being evalutated
     !> @param[in] num_sz_classes Number of size classes to set private member
     !> @param[in] length_min Minimum length of shell being considered
     !> @param[in] length_delta Size step to sort classes 
     !>            @f$size_{max} = length_{min} + (numSizeClasses-1) * length_{delta}@f$
     !----------------------------------------------------------------------------------------------
-    subroutine Set_Growth(growth, grid, lengths, delta_time, num_grids, num_sz_classes, domain_name, length_min, length_delta)
+    subroutine Set_Growth(growth, grid, lengths, delta_time, num_sz_classes, domain_name, length_min, length_delta)
         use Data_Point_Mod
         type(Growth_Class), intent(inout) :: growth(*)
-        type(Data_Point_Class), intent(inout) :: grid
+        type(Data_Vector_Class), intent(in) :: grid
         real(dp), intent(inout) :: lengths(*)
         real(dp), intent(in) :: delta_time
-        integer, intent(in) ::num_grids,num_sz_classes
+        integer, intent(in) :: num_sz_classes
         integer, intent(in) :: length_min, length_delta
 
         integer n
+        integer num_grids
         character(2) domain_name
-        real(dp) Gpar(num_grids, growth_param_size)
+        real(dp) Gpar(grid%len, growth_param_size)
+
+        num_grids = grid%len
 
         !! initalize private members
         num_size_classes = num_sz_classes
@@ -78,10 +80,10 @@ MODULE Growth_Mod
 
         if(region_name(1:2).eq.'GB')then
             do n=1,num_grids
-                call Get_Growth_GB(grid%z(n), grid%lat(n), grid%is_closed(n), growth(n)%L_inf_mu, growth(n)%K_mu)
+                call Get_Growth_GB(grid%posn(n)%z, grid%posn(n)%lat, grid%posn(n)%is_closed, growth(n)%L_inf_mu, growth(n)%K_mu)
                 growth(n)%L_inf_sd = 14.5D0
                 growth(n)%K_sd = .12D0
-                if( grid%mgmt_area_index(n) .eq. 11 ) then
+                if( grid%posn(n)%mgmt_area_index .eq. 11 ) then
                     !Peter Pan region Linfity = 110.3 K = 0.423 Th
                     growth(n)%L_inf_mu=110.3D0
                     growth(n)%K_mu=0.423D0
@@ -90,7 +92,7 @@ MODULE Growth_Mod
         endif
         if(region_name(1:2).eq.'MA')then
             do n=1,num_grids
-                call Get_Growth_MA(grid%z(n), grid%lat(n), grid%is_closed(n), growth(n)%L_inf_mu, growth(n)%K_mu)
+                call Get_Growth_MA(grid%posn(n)%z, grid%posn(n)%lat, grid%posn(n)%is_closed, growth(n)%L_inf_mu, growth(n)%K_mu)
                 growth(n)%L_inf_sd = 10.8D0
                 growth(n)%K_sd = .045D0
             enddo
