@@ -2,8 +2,6 @@ module Recruit_Mod
     use globals
     implicit none
     integer, parameter :: max_n_year = 50
-    character(*), parameter :: rec_input_dir = 'KrigingEstimates/'
-    character(*), parameter :: rec_output_dir = 'RecruitField/'
 
     !> @class Recruit_Class
     !! 
@@ -42,15 +40,21 @@ module Recruit_Mod
     !! @param[in] is_random_rec
     !! @param[in] num_sz_classes
     !-----------------------------------------------------------------------
-    subroutine Set_Recruitment(recruit, num_grids, domain_name, is_random_rec, num_sz_classes)
+    subroutine Set_Recruitment(recruit, num_grids, domain_name, is_random_rec, num_sz_classes, L_inf_mu, K_mu, shell_height_mm)
+        use globals
         type(Recruit_Class), intent(inout) :: recruit(*)
         integer, intent(in) :: num_grids
         character(2), intent(in) :: domain_name
         logical, intent(in) :: is_random_rec
         integer, intent(in) :: num_sz_classes
-        integer j, year, year_index
+        real(dp), intent(in) :: L_inf_mu(*)
+        real(dp), intent(in) :: K_mu(*)
+        real(dp), intent(in) :: shell_height_mm(*)
+
+        integer n, j, year, year_index
         real(dp) tmp(num_grids)
         character(72) buf
+        real(dp) L30mm
 
         !! initalize private members
         num_size_classes = num_sz_classes
@@ -96,6 +100,20 @@ module Recruit_Mod
                 tmp(1:num_grids) = recruit(1:num_grids)%Recruitment(year_index)
                 call Write_Scalar_Field(num_grids,tmp,rec_output_dir//'RecruitFieldIn'//trim(adjustl(buf))//'.txt')
         enddo
+
+        ! quantize recuitment
+        open(write_dev,file = init_cond_dir//'RecIndx.txt')
+        do n = 1, num_grids
+            L30mm = (L_inf_mu(n) - dfloat(min_size_mm)) * exp(-K_mu(n))
+            do j=1, num_size_classes 
+                if (shell_height_mm(j) .le. L30mm) then
+                    recruit(n)%max_rec_ind = j
+                endif
+            enddo
+            write(write_dev,*) n, L30mm, recruit(n)%max_rec_ind
+        enddo
+        close(write_dev)
+
         return
     endsubroutine Set_Recruitment
         

@@ -23,23 +23,17 @@ subroutine Read_Input(domain_name, init_cond_file_name, start_year, stop_year, f
     character(72),intent(out):: init_cond_file_name
     character(2),intent(out):: domain_name
     character(3),intent(out):: fishing_type
-    character(72) :: input_string, file_name, error_file_name
+    character(72) :: input_string
 
-    ! real(dp) P(5)
-    ! logical  IsStateOut,IsAbundanceOut,IsFOut,IsBMSOut,IsExplBMSOut,IsCashOut,IsRecOut
-
-    ! k=0
-
-    file_name='Scallop.inp'
-    error_file_name = 'InputDataError.txt'
     open(write_dev,file=error_file_name)
 
-    open(read_dev,file=file_name)
+    open(read_dev,file=sim_input_fname)
     do
         input_string=""
         read(read_dev,'(a)',iostat=io) input_string
         if (io.lt.0) exit
 
+        ! TODO
         ! if (input_string(1:6).eq.'Output')then
         !     ! call Read_Output_Flags()
         
@@ -74,7 +68,7 @@ subroutine Read_Input(domain_name, init_cond_file_name, start_year, stop_year, f
                     fishing_type=trim(adjustl(input_string(j+1:)))
                     write(*,*)'Fishing Type = ',fishing_type
                 case default
-                    write(write_dev,*) 'Unrecognized line in ',file_name
+                    write(write_dev,*) 'Unrecognized line in ',sim_input_fname
                     write(write_dev,*) 'Unknown Line->',input_string
                     !   stop
             end select
@@ -93,11 +87,10 @@ subroutine Read_Recruit_Input(RecStartYD,RecStopYD,RandomStartYear,NRecruitField
     implicit none
     real(dp), intent(out) :: RecStartYD,RecStopYD
     integer, intent(out) :: RandomStartYear,NRecruitFields
-    character(72) :: input_string,file_name
+    character(72) :: input_string
     integer io,j
-    file_name='Scallop.inp'
 
-    open(read_dev,file=file_name)
+    open(read_dev,file=sim_input_fname)
     do
         input_string=""
         read(read_dev,'(a)',iostat=io) input_string
@@ -121,7 +114,7 @@ subroutine Read_Recruit_Input(RecStartYD,RecStopYD,RandomStartYear,NRecruitField
                     read( input_string(j+1:),* )NRecruitFields
                     write(*,*)'Number of Random Recruitment fields per year=',NRecruitFields
                 case default
-                    !write(*,*) 'Unrecognized line in ',file_name
+                    !write(*,*) 'Unrecognized line in ',sim_input_fname
                     !write(*,*) 'Unkown Line->',input_string
                 end select
         endif
@@ -137,12 +130,11 @@ subroutine Read_Output_Flags(nperc,P,IsStateOut,IsAbundanceOut,IsFOut,IsBMSOut,I
     integer j,io,k
     real(dp),intent(out):: P(*)
     integer,intent(out):: nperc
-    character(72) :: input_string,file_name
+    character(72) :: input_string
     logical,intent(out) ::  IsStateOut,IsAbundanceOut,IsFOut,IsBMSOut,IsExplBMSOut,IsCashOut,IsRecOut
-    file_name='Scallop.inp'
 
     k=0;
-    open(read_dev,file=file_name)
+    open(read_dev,file=sim_input_fname)
     do
         input_string=""
         read(read_dev,'(a)',iostat=io) input_string

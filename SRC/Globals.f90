@@ -20,6 +20,14 @@ module globals
 
     real(dp), parameter :: meters_per_naut_mile = 1852.D0
 
+    character(*), parameter :: init_cond_dir = 'InitialCondition/'
+    character(*), parameter :: growth_out_dir = 'GrowthOutput/'
+    character(*), parameter :: rec_input_dir = 'KrigingEstimates/'
+    character(*), parameter :: rec_output_dir = 'RecruitField/'
+
+    character(72), parameter :: sim_input_fname = 'Scallop.inp'
+    character(72), parameter :: error_file_name = 'InputDataError.txt'
+
     CONTAINS
 
     elemental real(dp) function Logic_To_Double (value)
