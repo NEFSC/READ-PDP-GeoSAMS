@@ -1,5 +1,5 @@
 PROGRAM ScallopPopDensity
-    !> @page Scallop Popupation Density
+    !> @mainpage Scallop Popupation Density
     !! This program is used to compute Scallop Density after a given growth period
     !!
     !! Steps
@@ -79,6 +79,8 @@ PROGRAM ScallopPopDensity
     !! Geostatistics, plots etc then likely done in R, matlab etc.
     !!
     !! @section Growth_Mod
+    !!
+    !! @ref sec1
     !!
     !! @section Recruit_Mod
     !!
@@ -168,10 +170,9 @@ PROGRAM ScallopPopDensity
     write(*,'(A,I6,A,F7.4)') ' Time steps/year:', num_time_steps, ' delta ', delta_time
     write(*,*) '========================================================'
     
-    call Load_Grid(grid%x, grid%y, grid%z, grid%lat, grid%lon, grid%len, grid%E, grid%num_elements, &
+    call Load_Grid(grid%x, grid%y, grid%z, grid%lat, grid%lon, grid%len, &
     &          grid%mgmt_area_index, grid%is_closed, domain_name)
     write(*,'(A,I7)') ' Number of Grids:   ',grid%len
-    write(*,'(A,I7)') ' Number of Squares: ', grid%num_elements
     num_grids = grid%len
     element_area = meters_per_naut_mile**2 ! convert 1 sq nm to sq m
     domain_area = float(num_grids) * element_area

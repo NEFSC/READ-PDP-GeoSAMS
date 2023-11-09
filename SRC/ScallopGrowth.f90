@@ -1,8 +1,14 @@
-!-------------------------------------------------------------------------
-! MN18 refers to
-! Miller, R. B. and Nottingham, 2018,
-! "Improved approximations for estimation of size-transition probabilities within size-structured models"
-!-------------------------------------------------------------------------
+!>----------------------------------------------------------------------------------------------------------------
+!> @page page1 Growth_Mod
+!>
+!> @section sec1 Growth Class
+!>
+!> This file describes the Growth Class
+!>
+!> MN18 refers to Miller, R. B. and Nottingham, 2018, "Improved approximations for estimation of size-transition 
+!> probabilities within size-structured models"
+!>
+!>----------------------------------------------------------------------------------------------------------------
 MODULE Growth_Mod
     use globals
     implicit none
@@ -37,7 +43,6 @@ MODULE Growth_Mod
     CONTAINS
 
     !----------------------------------------------------------------------------------------------
-    !>
     !> @public @memberof Growth_Class
     !>
     !> Initializes growth for startup

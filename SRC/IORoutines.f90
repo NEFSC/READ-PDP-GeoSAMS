@@ -216,12 +216,12 @@ endsubroutine Read_Output_Flags
 !! @param[out] num_grids (integer)length of x,y,z,lat,lon (number of data point Time Steps)
 !!
 !! TODO: At present lat and lon variabels are not used. 
-subroutine Load_Grid(x, y, z, lat, lon, num_grids, E, num_elements, management_region, is_closed, domain_name)
+subroutine Load_Grid(x, y, z, lat, lon, num_grids, management_region, is_closed, domain_name)
     use globals
     implicit none
 
     real(dp) lat(*),lon(*),x(*),y(*),z(*)
-    integer n, num_grids, num_elements, io, management_region(*), E(4,*)
+    integer n, num_grids, io, management_region(*)
     logical is_closed(*)
     character(72) input_str,file_name
     character(2) domain_name
@@ -234,34 +234,11 @@ subroutine Load_Grid(x, y, z, lat, lon, num_grids, E, num_elements, management_r
      read(63,'(a)',iostat=io) input_str
      if (io.lt.0) exit
      n=n+1
-     read(input_str,*) x(n),y(n),z(n),lat(n),lon(n)
+     ! merged <domain_name>xyzLatLon and ManagementArea<domain_name>
+     read(input_str,*) x(n),y(n),z(n),lat(n),lon(n),management_region(n)
     end do
     close(63)
     num_grids=n
-
-    file_name='Grids/ManagementArea'//domain_name//'.txt'
-    write(*,*)'reading grid file: ',trim(file_name)
-    open(63,file=trim(file_name),status='old')
-    n=0
-    do n=1,num_grids
-        read(63,'(a)',iostat=io) input_str
-        if (io.lt.0) exit
-        read(input_str,*) management_region(n)
-    end do
-    close(63)
-
-    file_name='Grids/'//domain_name//'squares.csv'
-    write(*,*)'reading grid file: ',trim(file_name)
-    open(63,file=trim(file_name),status='old')
-    n=0
-    do
-     read(63,'(a)',iostat=io) input_str
-     if (io.lt.0) exit
-     n=n+1
-     read(input_str,*) E(1,n),E(2,n),E(3,n),E(4,n)
-    end do
-    close(63)
-    num_elements=n
 
     if (domain_name(1:2).eq.'GB')then
         is_closed(1:num_grids)=.TRUE.
