@@ -42,15 +42,18 @@ module Mortality_Mod
 
     CONTAINS
 
-    subroutine SetMortality(mortality, grid, l , num_grids, num_sz_classes, domain_name)
+    subroutine SetMortality(mortality, grid, l, num_sz_classes, domain_name)
         use Data_Point_Mod 
         
         type(Mortality_Class), intent(inout):: mortality(*)
-        type(Data_Point_Class), intent(in) :: grid
+        type(Data_Vector_Class), intent(in) :: grid
         real(dp), intent(in):: l(*)
-        integer num_grids, num_sz_classes, yr_index, j, num_years, year, k
-        character(2) domain_name
+        integer, intent(in) :: num_sz_classes
+        character(2), intent(in) :: domain_name
+        integer num_grids, yr_index, j, num_years, year, k
         real(dp) fishing_by_region(max_num_years, 4), a, h0
+
+        num_grids = grid%len
 
         !! initalize private members
         num_size_classes = num_sz_classes
@@ -79,7 +82,7 @@ module Mortality_Mod
                 if (region_name(1:2).eq.'MA') then
                     mortality(j)%fishing_effort(yr_index) = fishing_by_region(yr_index, 4)
                 else ! must be GB
-                    if (grid%is_closed(j)) then
+                    if (grid%posn(j)%is_closed) then
                         mortality(j)%fishing_effort(yr_index) = fishing_by_region(yr_index, 2)        
                     else
                         mortality(j)%fishing_effort(yr_index) = fishing_by_region(yr_index, 3)
@@ -93,7 +96,7 @@ module Mortality_Mod
                 do k = 1, num_size_classes
                     if(l(k).gt.90.)mortality(j)%discard(k) = 0.D0
                 enddo
-                mortality(j)%is_closed = grid%is_closed(j)
+                mortality(j)%is_closed = grid%posn(j)%is_closed
                 mortality(j)%natural_mortality(1:num_size_classes) = mortality(j)%natural_mort_adult
                 mortality(j)%alpha(1:num_size_classes) =  1. - 1. / ( 1. + exp( - a*( l(1:num_size_classes) - h0 ) ) )  
             enddo
