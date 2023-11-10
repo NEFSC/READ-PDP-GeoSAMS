@@ -1,6 +1,13 @@
-
-
-module Mortality_Mod              
+!>----------------------------------------------------------------------------------------------------------------
+!> @page page3 Mortality_Mod
+!>
+!> @section sec3 Mortality Class
+!>
+!> This file describes the Mortality Class
+!>
+!>
+!>----------------------------------------------------------------------------------------------------------------
+module Mortality_Mod
     use globals
     implicit none
 
@@ -37,12 +44,15 @@ module Mortality_Mod
     end type Mortality_Class
 
     ! @private @memberof Mortality_Class
+    integer, PRIVATE :: num_grids
     integer, PRIVATE :: num_size_classes
     character(2), PRIVATE :: region_name
+    real(dp), PRIVATE :: region_area_sqm
+    real(dp), PRIVATE :: grid_area_sqm
 
     CONTAINS
 
-    subroutine SetMortality(mortality, grid, l, num_sz_classes, domain_name)
+    subroutine SetMortality(mortality, grid, l, num_sz_classes, domain_name, domain_area, element_area)
         use Data_Point_Mod 
         
         type(Mortality_Class), intent(inout):: mortality(*)
@@ -50,14 +60,18 @@ module Mortality_Mod
         real(dp), intent(in):: l(*)
         integer, intent(in) :: num_sz_classes
         character(2), intent(in) :: domain_name
+        real(dp), intent(in) :: domain_area
+        real(dp), intent(in) :: element_area
         integer num_grids, yr_index, j, num_years, year, k
         real(dp) fishing_by_region(max_num_years, 4), a, h0
 
-        num_grids = grid%len
 
         !! initalize private members
+        num_grids = grid%len
         num_size_classes = num_sz_classes
         region_name = domain_name
+        region_area_sqm = domain_area
+        grid_area_sqm = element_area
         !
         ! Load parameters for fishing selectivity
         !(1+exp(.1*(l-70))).^-1)
@@ -166,10 +180,10 @@ module Mortality_Mod
     
 
 
-subroutine Set_Fishing(fishing_type, year, num_grids, state, weight_grams, mortality, fishing_effort, element_area)
+subroutine Set_Fishing(fishing_type, year, state, weight_grams, mortality, fishing_effort)
     implicit none
-    integer, intent(in):: num_grids, year
-    real(dp), intent(in):: state(num_grids,  * ), weight_grams(num_grids,  * ), element_area
+    integer, intent(in):: year
+    real(dp), intent(in):: state(num_grids,  * ), weight_grams(num_grids,  * )
     type(Mortality_Class), INTENT(IN):: mortality( * )
     real(dp), intent(out):: fishing_effort( * )
     character( * ), intent(in):: fishing_type !> < string inputs
@@ -184,17 +198,16 @@ subroutine Set_Fishing(fishing_type, year, num_grids, state, weight_grams, morta
         case('USD')
             if(region_name(1:2).eq.'GB')&
                 & call Set_Fish_Effort_Wgt_USD_CLOP(year, mortality, catch_open, catch_closed, fishing_effort, state, &
-                &    weight_grams, num_grids, element_area)
+                &    weight_grams)
             if(region_name(1:2).eq.'MA')&
-                &  call Set_Fishing_Effort_Weight_USD(year, mortality, TotalCatch, fishing_effort, state, weight_grams, num_grids, &
-                &    element_area)
+                &  call Set_Fishing_Effort_Weight_USD(year, mortality, TotalCatch, fishing_effort, state, weight_grams)
         case('BMS')
             if(region_name(1:2).eq.'GB')&
                 &  call Set_Fish_Effort_Wgt_X_CLOP(mortality, catch_open, catch_closed, fishing_effort, state, &
-                &    weight_grams(1:num_grids, 1:num_size_classes)/10.**6, num_grids, element_area)
+                &    weight_grams(1:num_grids, 1:num_size_classes)/10.**6)
             if(region_name(1:2).eq.'MA')&
                 &  call Set_Fish_Effort_Wgt_X(mortality, TotalCatch, fishing_effort, state, & 
-                &    weight_grams(1:num_grids, 1:num_size_classes)/10.**6, num_grids, element_area, 1.D0, 1.D0)
+                &    weight_grams(1:num_grids, 1:num_size_classes)/10.**6, 1.D0, 1.D0)
         case('CAS')
             fishing_effort(1:num_grids) = mortality(1:num_grids)%fishing_effort(Mindx)!CASA Fishing
         case default
@@ -294,7 +307,7 @@ endsubroutine Scallops_To_Counts
 ! Fishing contributes to Moratality due to fishing
 !---------------------------------------------------------------------------------------------------
 !---------------------------------------------------------------------------------------------------
-! subroutine Set_Fish_Effort_Wgt_USD_CLOP(year, mortality, catch_open, catch_closed, fishing_effort, state, weight_grams, num_grids, element_area)
+! subroutine Set_Fish_Effort_Wgt_USD_CLOP(year, mortality, catch_open, catch_closed, fishing_effort, state, weight_grams, num_grids)
 ! Purpose: Set proportional rate of fishing mortality, fishing_effort, based on monetary value of catch. The at each grid
 ! point scallops are sorted into size bins U10.10-20, 20-30, 30+.  The price for each size class is loaded 
 ! for the year and the monatary value of scallops is determined at each grid point.  Fishing effort is 
@@ -304,18 +317,16 @@ endsubroutine Scallops_To_Counts
 !   mortality (mortality mod) see main program
 !   catch_open (real(dp)) Total catch in open areas in Metric Tons in year
 !   catch_closed (real(dp)) Catch in closed areas in Metric Tons in year
-!   state (real(dp))[num_grids x num_size_classes] Scallop population by size class
-!   element_area (real(dp)) grid cell area
 !   weight_grams (real(dp)) Weight of scallop by node and size class
 !
 ! Output:
 !   fishing_effort (real(dp)) [num_grids] rate of fishing mortality
 !---------------------------------------------------------------------------------------------------
 subroutine Set_Fish_Effort_Wgt_USD_CLOP(year, mortality, catch_open, catch_closed, fishing_effort, state, &
-    &                  weight_grams, num_grids, element_area)
+    &                  weight_grams)
     implicit none
-    integer num_grids, j
-    real(dp), intent(in):: catch_open, catch_closed, element_area, weight_grams(num_grids,  * ), state(num_grids,  * )
+    integer j
+    real(dp), intent(in):: catch_open, catch_closed, weight_grams(num_grids,  * ), state(num_grids,  * )
     integer, intent(in):: year
     real(dp), intent(inout):: fishing_effort( * )
     type(Mortality_Class), INTENT(IN):: mortality( * )
@@ -328,9 +339,9 @@ subroutine Set_Fish_Effort_Wgt_USD_CLOP(year, mortality, catch_open, catch_close
         SWI(j) = sum( mortality(j)%select(1:num_size_classes) * state(j, 1:num_size_classes)  *  &
         &             weight_grams(j, 1:num_size_classes)/(10.D0**6) )
     enddo
-    Sopen = sum( USD(1:num_grids)  *  SWI(1:num_grids)  * element_area &
+    Sopen = sum( USD(1:num_grids)  *  SWI(1:num_grids)  * grid_area_sqm &
     &       * (1._dp - Logic_To_Double(mortality(1:num_grids)%is_closed)) )
-    Sclosed = sum( USD(1:num_grids)  *  SWI(1:num_grids)  * element_area &
+    Sclosed = sum( USD(1:num_grids)  *  SWI(1:num_grids)  * grid_area_sqm &
     &       * Logic_To_Double( mortality(1:num_grids)%is_closed) )
     if(Sopen.le.0.)Sopen = 1.
     if(Sclosed.le.0.)Sclosed = 1.
@@ -347,7 +358,7 @@ subroutine Set_Fish_Effort_Wgt_USD_CLOP(year, mortality, catch_open, catch_close
 endsubroutine Set_Fish_Effort_Wgt_USD_CLOP
 
 !---------------------------------------------------------------------------------------------------
-! subroutine Set_Fishing_Effort_Weight_USD(year, mortality, Catch, fishing_effort, state, weight_grams, num_grids, element_area)
+! subroutine Set_Fishing_Effort_Weight_USD(year, mortality, Catch, fishing_effort, state, weight_grams, num_grids)
 ! Purpose: Set proportional rate of fishing mortality, fishing_effort, based on monetary value of catch. The at each grid
 ! point scallops are sorted into size bins U10.10-20, 20-30, 30+.  The price for each size class is loaded 
 ! for the year and the monatary value of scallops is determined at each grid point.  Fishing effort is 
@@ -357,16 +368,15 @@ endsubroutine Set_Fish_Effort_Wgt_USD_CLOP
 !   mortality (mortality mod) see main program
 !   Catch (real(dp)) Total catch in Metric Tons in year
 !   state (real(dp))[num_grids x num_size_classes] Scallop population by size class
-!   element_area (real(dp)) grid cell area
 !   weight_grams (real(dp)) Weight of scallop by node and size class
 !
 ! Output:
 !   fishing_effort (real(dp)) [num_grids] rate of fishing mortality
 !---------------------------------------------------------------------------------------------------
-subroutine Set_Fishing_Effort_Weight_USD(year, mortality, Catch, fishing_effort, state, weight_grams, num_grids, element_area)
+subroutine Set_Fishing_Effort_Weight_USD(year, mortality, Catch, fishing_effort, state, weight_grams)
     implicit none
-    integer num_grids, j
-    real(dp), intent(in):: Catch, element_area, weight_grams(num_grids,  * ), state(num_grids,  * )
+    integer j
+    real(dp), intent(in):: Catch, weight_grams(num_grids,  * ), state(num_grids,  * )
     integer, intent(in):: year
     real(dp), intent(inout):: fishing_effort( * )
     type(Mortality_Class), INTENT(IN):: mortality( * )
@@ -379,16 +389,15 @@ subroutine Set_Fishing_Effort_Weight_USD(year, mortality, Catch, fishing_effort,
         SWI(j) = sum( mortality(j)%select(1:num_size_classes) * state(j, 1:num_size_classes)  *  &
         &             weight_grams(j, 1:num_size_classes)/(10.D0**6) )
     enddo
-    C = Catch / sum(   USD(1:num_grids)  *  SWI(1:num_grids)  * element_area   )
+    C = Catch / sum(   USD(1:num_grids)  *  SWI(1:num_grids)  * grid_area_sqm   )
     fishing_effort(1:num_grids) = C  *  USD(1:num_grids) 
     return
 endsubroutine Set_Fishing_Effort_Weight_USD
 
-subroutine Set_Fish_Effort_Wgt_X_CLOP(mortality, catch_open, catch_closed, fishing_effort, state, W, num_grids, &
-    &                                      element_area)
+subroutine Set_Fish_Effort_Wgt_X_CLOP(mortality, catch_open, catch_closed, fishing_effort, state, W)
     implicit none
-    integer num_grids, j
-    real(dp), intent(in):: state(num_grids,  * ), W(num_grids,  * ), catch_open, catch_closed, element_area
+    integer j
+    real(dp), intent(in):: state(num_grids,  * ), W(num_grids,  * ), catch_open, catch_closed
     real(dp), intent(inout):: fishing_effort( * )
     type(Mortality_Class), INTENT(IN):: mortality( * )
     real(dp)SI(num_grids), SWI(num_grids)
@@ -401,10 +410,10 @@ subroutine Set_Fish_Effort_Wgt_X_CLOP(mortality, catch_open, catch_closed, fishi
     enddo
 
 
-    SWIopen = sum(  SWI(1:num_grids)  * element_area * (1._dp - Logic_To_Double(mortality(1:num_grids)%is_closed))  )
-    SWIclosed = sum( SWI(1:num_grids)  * element_area * Logic_To_Double( mortality(1:num_grids)%is_closed)  )
-    SIopen = sum(  SI(1:num_grids)  * element_area * (1._dp - Logic_To_Double(mortality(1:num_grids)%is_closed))  )
-    SIclosed = sum( SI(1:num_grids)  * element_area * Logic_To_Double( mortality(1:num_grids)%is_closed)  )
+    SWIopen = sum(  SWI(1:num_grids)  * grid_area_sqm * (1._dp - Logic_To_Double(mortality(1:num_grids)%is_closed))  )
+    SWIclosed = sum( SWI(1:num_grids)  * grid_area_sqm * Logic_To_Double( mortality(1:num_grids)%is_closed)  )
+    SIopen = sum(  SI(1:num_grids)  * grid_area_sqm * (1._dp - Logic_To_Double(mortality(1:num_grids)%is_closed))  )
+    SIclosed = sum( SI(1:num_grids)  * grid_area_sqm * Logic_To_Double( mortality(1:num_grids)%is_closed)  )
 
     if(SIopen.le.0.)SIopen = 1.
     if(SIclosed.le.0.)SIclosed = 1.
@@ -425,10 +434,10 @@ subroutine Set_Fish_Effort_Wgt_X_CLOP(mortality, catch_open, catch_closed, fishi
 endsubroutine Set_Fish_Effort_Wgt_X_CLOP
 
 
-subroutine Set_Fish_Effort_Wgt_X(mortality, Catch, fishing_effort, state, W, num_grids, element_area, alpha, beta)
+subroutine Set_Fish_Effort_Wgt_X(mortality, Catch, fishing_effort, state, W, alpha, beta)
     implicit none
-    integer num_grids, j
-    real(dp), intent(in):: state(num_grids,  * ), W(num_grids,  * ), Catch, element_area, alpha, beta
+    integer j
+    real(dp), intent(in):: state(num_grids,  * ), W(num_grids,  * ), Catch, alpha, beta
     real(dp), intent(inout):: fishing_effort( * )
     type(Mortality_Class), INTENT(IN):: mortality( * )
     real(dp) SI(num_grids), SWI(num_grids)
@@ -441,7 +450,7 @@ subroutine Set_Fish_Effort_Wgt_X(mortality, Catch, fishing_effort, state, W, num
 
     fishing_effort(1:num_grids) = SWI(1:num_grids)**alpha  / SI(1:num_grids)**beta
     fishing_effort(1:num_grids) = fishing_effort(1:num_grids)  *  Catch / &
-    &         sum( element_area  *  fishing_effort(1:num_grids) * SWI(1:num_grids) )
+    &         sum( grid_area_sqm  *  fishing_effort(1:num_grids) * SWI(1:num_grids) )
 
     return
 endsubroutine Set_Fish_Effort_Wgt_X

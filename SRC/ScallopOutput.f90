@@ -6,14 +6,14 @@ module Output_Mod
     CONTAINS
 
     subroutine Scallop_Output(year, num_size_classes, num_grids, samp, fishing_effort, weight_grams, mortality, recruit, &
-        &                  start_year, stop_year, element_area, domain_area)
+        &                  start_year, stop_year, element_area)
         use Mortality_Mod
-        use Recruit_Mod, only : Recruit_Class, Mortality_Density_Dependent
+        use Recruit_Mod, only : Recruitment_Class, Mortality_Density_Dependent
         implicit none
         integer, intent(in):: num_size_classes, year, num_grids, start_year, stop_year
-        real(dp), intent(in):: fishing_effort(*), weight_grams(num_grids,*), samp(num_grids,*), element_area, domain_area
+        real(dp), intent(in):: fishing_effort(*), weight_grams(num_grids,*), samp(num_grids,*), element_area
         type(Mortality_Class), INTENT(INOUT):: mortality(*)
-        type(Recruit_Class), INTENT(IN):: recruit(*)
+        type(Recruitment_Class), INTENT(IN):: recruit(*)
         real(dp) cnts(num_grids,4)
         integer n
         real(dp) BMS(num_grids), ExplBMS(num_grids), Abundance(num_grids), DollarsPerSqM(num_grids)
@@ -29,7 +29,7 @@ module Output_Mod
             &            * weight_grams(n,1:num_size_classes)/(10.**6) )
             Abundance(n) = sum( samp(n,1:num_size_classes) )
             StateCapt(n) = sum(samp(n,1:num_size_classes) * mortality(n)%select(1:num_size_classes))
-            call Mortality_Density_Dependent(recruit(n), mortality(n), samp(n,1:num_size_classes), domain_area)
+            call Mortality_Density_Dependent(recruit(n), mortality(n), samp(n,1:num_size_classes))
             NatMort(n,1:num_size_classes) = mortality(n)%natural_mortality(1:num_size_classes)
             FishMort(n,1:num_size_classes) = fishing_effort(n) * mortality(n)%select(1:num_size_classes)
             call Scallops_To_Counts(samp(n,1:num_size_classes) * mortality(n)%select(1:num_size_classes), &
