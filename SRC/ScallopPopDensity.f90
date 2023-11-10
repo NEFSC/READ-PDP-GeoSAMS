@@ -1,5 +1,5 @@
 PROGRAM ScallopPopDensity
-    !> @mainpage Scallop Popupation Density
+    !> @mainpage Scallop Population Density
     !! This program is used to compute Scallop Density after a given growth period
     !!
     !! Steps
@@ -11,18 +11,23 @@ PROGRAM ScallopPopDensity
     !!      - E. Inintial Conditions as read from Input/SimMA2000/InitialCondition.csv
     !!      - F. Fishing Type: can be USD, BMS, or CAS
     !!      - G. Parameters for Recruitment 
-    !!          - i.   Start Day
-    !!          - ii.  Finish Day
+    !!          - i.   Start year
+    !!          - ii.  Finish year
     !!          - iii. Random recruit start year
     !!          - iv.  Number of random fields
-    !!      - H. Parameters for Monte Carlo
+    !!      - H. Parameters for Monte Carlo TODO
     !!          - i.   Length
     !!          - ii.  Percentile values
     !!      - I. Expected Output Parameters
     !!      .
     !!  - II. Load Grid. 
-    !!        Load grid coordinates and bathymetric depth from CSV file with 5 columns
-    !!        representing an x coordinate, y coordinate, bathymetric depth (z), latitude, and longitude.
+    !!        Load grid coordinates and bathymetric depth from CSV file with 6 columns
+    !!        - x coordinate
+    !!        - y coordinate
+    !!        - z - bathymetric depth
+    !!        - latitude
+    !!        - longitude
+    !!        - management area index
     !!
     !!  - III. Set Growth parameters and initial conditions
     !!      - A. Set shell height intervals to define classes
@@ -31,32 +36,11 @@ PROGRAM ScallopPopDensity
     !!          - ii.  Recruitment
     !!          - iii. Mortality
     !!
-    !! ReadParameters
-    !!      - RunCount
-    !!      - SizeBinWidth (typically 5mm)
-    !!      - NumberofSizeClasses
-    !!      - NumberYears
-    !!      - StepsPerYear
-    !!      - GridParameters
-    !!          - grid size
-    !!          - spatial limits)
-    !!      - NumBootstraps
-    !!      - RandomNumberSeed
-    !!      - GrowthParameters 
-    !!          - K
-    !!          - L_infinty)
-    !!      - Shell height to weight parameters
-    !!      - Dredge effeciency parameters
-    !!      - Natural Mortality (may depend on space, density)
-    !!      - Fishing selectivity parameters (may depend on space)
-    !!      - Catch Rate (LPUE) parameters
-    !! ReadInitialConditions (Number at shell height bin vectors at each grid location, potentially with uncertanty)
-    !! ReadManagementParameters (which areas are closed, open and access), levels of fishing by area
-    !! Make Growth Matrices
-    !! Selectivity Vectors
-    !! Meat and Gonad Weight Vectors etc
+    !!  - IV.  Make Growth Matrices
+    !!  - V.   Selectivity Vectors
+    !!  - VI.  Meat and Gonad Weight Vectors etc
     !!
-    !! MAIN LOOP
+    !!  - VII. MAIN LOOP
     !!
     !!      Loop over simulation number
     !!
@@ -64,19 +48,16 @@ PROGRAM ScallopPopDensity
     !!
     !!              Loop over Grid Points (maybe double loop)
     !! 
-    !!  
+    !!      @f{eqnarray*}{
+    !!          \vec{\mathbf{Size}}[Grid] &=& | \mathbf{GrowthMatrix}[Grid] | * | \vec{\mathbf{Size}}[Grid] | \\
+    !!                                    &*& e^{-(Mort_{nat}[Grid,Height_{shell}] + Mort_{fish}[Grid,Height_{shell}]) * timestep}
+    !!      @f}
     !!
-    !! @f{eqnarray*}{
-    !!    \vec{\mathbf{Size}}[Grid] &=& | \mathbf{GrowthMatrix}[Grid] | * | \vec{\mathbf{Size}}[Grid] | \\
-    !!                         &*& e^{-(Mort_{nat}[Grid,Height_{shell}] + Mort_{fish}[Grid,Height_{shell}]) * timestep}
-    !! @f}
+    !!  - VIII. Calculate Harvest
     !!
+    !!  - IX.  WriteOutput (harvest,biomass and numbers by grid cell, maybe only every year)
     !!
-    !! Calculate Harvest
-    !!
-    !! WriteOutput (harvest,biomass and numbers by grid cell, maybe only every year)
-    !!
-    !! Geostatistics, plots etc then likely done in R, matlab etc.
+    !!  - X.   Geostatistics, plots etc then likely done in R, matlab etc.
     !!
     !! @section Growth_Mod
     !!
@@ -84,7 +65,11 @@ PROGRAM ScallopPopDensity
     !!
     !! @section Recruit_Mod
     !!
+    !! @ref sec2
+    !!
     !! @section Mortallity_Mod
+    !!
+    !----------------------------------------------------------------------------
 
     use globals
     use Growth_Mod
@@ -112,7 +97,7 @@ PROGRAM ScallopPopDensity
 
     type(Growth_Class), allocatable :: growth(:)
     type(Mortality_Class), allocatable :: mortality(:)
-    type(Recruit_Class), allocatable :: recruit(:)
+    type(Recruitment_Class), allocatable :: recruit(:)
 
     integer, parameter :: shell_len_min = 30
     integer, parameter :: shell_len_delta = 5
@@ -125,7 +110,9 @@ PROGRAM ScallopPopDensity
     real(dp), allocatable :: fishing_effort(:)
     real(dp), allocatable :: samp(:,:)
 
-
+    !==================================================================================================================
+    !  - I. Read Configuration file 'Scallop.inp'
+    !==================================================================================================================
     call Read_Input(domain_name, file_name, start_year, stop_year, fishing_type, num_time_steps, num_monte_carlo_iter)
 
     delta_time = 1._dp / float(num_time_steps)
@@ -140,7 +127,10 @@ PROGRAM ScallopPopDensity
     write(*,'(A,A6)') ' Fishing Type:   ', fishing_type
     write(*,'(A,I6,A,F7.4)') ' Time steps/year:', num_time_steps, ' delta ', delta_time
     write(*,*) '========================================================'
-    
+
+    !==================================================================================================================
+    !  - II. Load Grid. 
+    !==================================================================================================================
     call Load_Grid(grid, domain_name)
     num_grids = grid%len
     element_area = meters_per_naut_mile**2 ! convert 1 sq nm to sq m
@@ -162,35 +152,50 @@ PROGRAM ScallopPopDensity
     &        fishing_effort(1:num_grids),&
     &        samp(1:num_grids, 1:num_size_classes), &
     &        state_time_steps(1:num_time_steps,1:num_size_classes))
+
+    !==================================================================================================================
+    !  - III. Set Growth parameters and initial conditions
     !
     ! Assign recruitment by year and node, initialize shell_height_mm
     !
-    call Set_Growth(growth, grid, shell_height_mm, delta_time, num_size_classes, domain_name, &
+    !==================================================================================================================
+    call Set_Growth(growth, grid, shell_height_mm, delta_time, num_size_classes, domain_name, domain_area, element_area, &
     &              shell_len_min, shell_len_delta, file_name, start_year, state, weight_grams)
-    call Set_Recruitment(recruit, num_grids, domain_name, is_rand_rec, num_size_classes, &
+    call Set_Recruitment(recruit, num_grids, domain_name, domain_area, element_area,  is_rand_rec, num_size_classes, &
                          & growth(1:num_grids)%L_inf_mu, growth(1:num_grids)%K_mu, shell_height_mm)
-    call SetMortality(mortality, grid, shell_height_mm, num_size_classes, domain_name)
+    call SetMortality(mortality, grid, shell_height_mm, num_size_classes, domain_name, domain_area, element_area)
 
+    !==================================================================================================================
+    !  - VII. MAIN LOOP
     ! Start simulation
+    !==================================================================================================================
     do year = start_year, stop_year
         do j = 1, num_grids
             mortality(j)%select = Ring_Size_Selectivity(year, shell_height_mm, mortality(j)%is_closed)
         enddo
-        call Set_Fishing(fishing_type, year, num_grids, state, weight_grams, mortality, fishing_effort, element_area)
+        call Set_Fishing(fishing_type, year, state, weight_grams, mortality, fishing_effort)
         do n = 1, num_grids
+            !- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - 
+            !  - VIII. Calculate Harvest
+            !- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - 
             call Time_To_Grow(growth(n), mortality(n), recruit(n), state(n, 1:num_size_classes), &
-            &           fishing_effort(n), delta_time, num_time_steps, state_time_steps, domain_area, year)
+            &           fishing_effort(n), delta_time, num_time_steps, state_time_steps, year)
+            !- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - 
+            !  - IX.  WriteOutput by region
+            !- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - 
             call Scallop_Output_Region(year, start_year, stop_year, num_size_classes, num_grids, state_time_steps, &
             &                        num_time_steps, grid, n)
-            samp(n, 1:num_size_classes) = state_time_steps(floor(float(num_time_steps)/2.), 1:num_size_classes)! sample mid calander year for output
+            ! sample mid calander year for output
+            samp(n, 1:num_size_classes) = state_time_steps(floor(float(num_time_steps)/2.), 1:num_size_classes)
     !        samp(n, 1:num_size_classes) = state_time_steps(171, 1:num_size_classes)
         enddo  
+        !- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+        !  - IX.  WriteOutput (harvest,biomass and numbers by grid cell, maybe only every year)
+        !- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
         call Scallop_Output(year, num_size_classes, num_grids, samp, fishing_effort, weight_grams, mortality, recruit, &
-        &                  start_year, stop_year, element_area, domain_area)
+        &                  start_year, stop_year, element_area)
     enddo
     
-
-
     deallocate(growth, mortality, recruit, shell_height_mm, state, weight_grams, fishing_effort, samp)
 
 END PROGRAM ScallopPopDensity
