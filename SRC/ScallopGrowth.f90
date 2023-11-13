@@ -9,15 +9,23 @@
 !> (henceforth MN18) Appendix C, although other methods are present in the code including direct Monte Carlo simulation.
 !> including( see subroutine@f${\it GenTransMat}@f$).
 !> Growth in GeoSAMS is based off of von Bertanlffy growth. 
-!> 
-!> @f[
-!> \delta(u)=(L_{\infty}-u)(1-e^{-K})
-!> @f]
-!> 
+!> @f{eqnarray*}{
+!> \delta(u) &=& u + (L_{\infty}-u)(1-e^{-K}) \\
+!>           &=& e^{-K}u + L_{\infty}(1-e^{-K})
+!> @f}
 !> We assume normal distribution on @f${L_\infty}@f$ and @f$K@f$ with all distribution parameters independent. 
+!> The shell height of the ith individual at time @f$t+1@f$, @f$L_{t+1,i}@f$ depends on the random effects 
+!> (@f$\alpha_i@f$ and @f$\beta_i@f$) as well as the mean slope and intercept:
+!> @f{equation}{
+!> \begin{split}
+!> &L_{t+1,i} = (m + \alpha_i)L_{t,i}+(b+\beta_i)+\epsilon,\notag\\
+!> &\mbox{where }\epsilon\mbox{ is a random error with expected value zero.}
+!> \end{split}
+!> @f}
+!>
 !> The values of the distribution means (@f$\mu_{L_\infty}@f$ and @f$\mu_K@f$) are taken from previous work of 
-!> Hart, HC2009.  The distribution of increments by size class as in MN18). 
-!> Growth increment is given by the von Bertlanaffy growth curve
+!> Hart, HC2009. The distribution of increments by size class as in MN18). Growth increment is given by the 
+!> von Bertlanaffy growth curve
 !> etc...
 !>
 !> MN18 refers to Miller, R. B. and Nottingham, 2018, "Improved approximations for estimation of size-transition 
@@ -72,9 +80,17 @@ MODULE Growth_Mod
     !> @param[in,out] lengths Vector of the size, length, of scallops
     !> @param[in] delta_time Amount of time in decimal years over which growth occurs
     !> @param[in] num_sz_classes Number of size classes to set private member
+    !> @param[in] domain_name Name of domain being simulate, 'MA' or 'GB'
+    !> @param[in] domain_area,Size of domain under consideration in square meters
+    !> @param[in] element_area, Size of grid in square meters
     !> @param[in] length_min Minimum length of shell being considered
     !> @param[in] length_delta Size step to sort classes 
     !>            @f$size_{max} = length_{min} + (numSizeClasses-1) * length_{delta}@f$
+    !> @param[in] file_name The name of the file with initial state, i.e. scallops per sq meter
+    !> @param[in] start_year Year in which to start simulation
+    !> @param[out] state Initial state as set by initial conditions
+    !> @param[in,out] weight_grams Computed combined scallop weight
+    !> 
     !==================================================================================================================
     subroutine Set_Growth(growth, grid, lengths, delta_time, num_sz_classes, domain_name, domain_area, element_area, &
         &                 length_min, length_delta, file_name, start_year, state, weight_grams)
@@ -111,7 +127,8 @@ MODULE Growth_Mod
                 growth(n)%L_inf_sd = 14.5D0
                 growth(n)%K_sd = .12D0
                 if( grid%posn(n)%mgmt_area_index .eq. 11 ) then
-                    !Peter Pan region Linfity = 110.3 K = 0.423 Th
+                    !Peter Pan region Linfity = 110.3 K = 0.423
+                    ! TODO: Why are these values held constant
                     growth(n)%L_inf_mu=110.3D0
                     growth(n)%K_mu=0.423D0
                 endif
@@ -120,6 +137,7 @@ MODULE Growth_Mod
         if(region_name(1:2).eq.'MA')then
             do n=1,num_grids
                 call Get_Growth_MA(grid%posn(n)%z, grid%posn(n)%lat, grid%posn(n)%is_closed, growth(n)%L_inf_mu, growth(n)%K_mu)
+                ! TODO: Why are these values held constant
                 growth(n)%L_inf_sd = 10.8D0
                 growth(n)%K_sd = .045D0
             enddo
@@ -243,7 +261,7 @@ MODULE Growth_Mod
         ! can lead to unrealistic "shrinking" transitions
         call enforce_non_negative_growth(G)
         do j = 1,num_size_classes
-            if(lengths(j).gt.L_inf_mu)then
+            if (lengths(j) .gt. L_inf_mu) then
                 G(j,1:num_size_classes) = 0._dp
                 G(j,j) = 1._dp
             endif
@@ -317,7 +335,7 @@ MODULE Growth_Mod
         ! intercept, slope, coef of depth, latitude, closed/open for intercept term
         random_eff = (/ 81.05, 51.38, -60.53 /)  !random effects, intercept, slope, cov
         depth_norm = depth / mean_depth
-        latitude = Lat/mean_lat
+        latitude = lat/mean_lat
         intercept = fixed_coef(1) + fixed_coef(3) * depth_norm + fixed_coef(4)*latitude + fixed_coef(5) &
         &    * Logic_To_Double(is_open) + mean_ring2
         slope = ( fixed_coef(2) + fixed_coef(6)* depth_norm ) / mean_start_shell_height
@@ -353,7 +371,7 @@ MODULE Growth_Mod
         real(dp) mean_start_shell_height, mean_depth, mean_lat, mean_ring2
         real(dp) open
         parameter(mean_start_shell_height = 85.74,  mean_depth = 52.79,  mean_lat = 38.99,  mean_ring2 = 106.17 )
-        fixed_coef = (/0.951,48.333,-9.53,-37.51,-2.31 /)  !fixed effects coef
+                fixed_coef = (/0.951,48.333,-9.53,-37.51,-2.31 /)  !fixed effects coef
         ! intercept, slope, coef of depth, latitude, closed/open for intercept term
         random_eff = (/38.35,13.27,-20.77 /)  !random effects, intercept, slope, cov 
         if (is_open) then 
@@ -514,6 +532,12 @@ MODULE Growth_Mod
     !> @fn H_MN18
     !> @public @memberof Growth_Class
     !>
+    !> @f[
+    !> f =  0.5 * ( 1.0 + erf( \frac{x - 0.0}{\sigma * \sqrt{2.0}} ) )
+    !> @f]
+    !> @f[
+    !> H_{MN18}(x, \sigma, \omega) = \frac{1.0}{\omega}(x*f+\sigma^2 * f)
+    !> @f]
     !> from MN18 apendix B
     !>
     !> @param[in] x - evaluation point

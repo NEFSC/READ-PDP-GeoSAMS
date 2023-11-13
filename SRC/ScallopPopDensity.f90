@@ -48,10 +48,12 @@ PROGRAM ScallopPopDensity
     !!
     !!              Loop over Grid Points (maybe double loop)
     !! 
-    !!      @f{eqnarray*}{
-    !!          \vec{\mathbf{Size}}[Grid] &=& | \mathbf{GrowthMatrix}[Grid] | * | \vec{\mathbf{Size}}[Grid] | \\
-    !!                                    &*& e^{-(Mort_{nat}[Grid,Height_{shell}] + Mort_{fish}[Grid,Height_{shell}]) * timestep}
-    !!      @f}
+    !! @f{equation}{
+    !! \begin{split}
+    !!   \vec{\mathbf{Size}}[Grid] =& | \mathbf{GrowthMatrix}[Grid] | * | \vec{\mathbf{Size}}[Grid] | \notag\\
+    !!                              &* e^{-(Mort_{nat}[Grid,Height_{shell}] + Mort_{fish}[Grid,Height_{shell}]) * timestep}
+    !! \end{split}
+    !! @f}
     !!
     !!  - VIII. Calculate Harvest
     !!
@@ -80,7 +82,15 @@ PROGRAM ScallopPopDensity
 
     implicit none
 
-    integer n, j  !> loop count
+    interface
+        integer function Load_Grid(g, d)
+            use Data_Point_Mod
+            type(Data_Vector_Class), intent(inout) :: g
+            character(2), intent(in) :: d
+        endfunction
+    endinterface
+
+    integer n,k !> loop count
 
     character(2) domain_name
     integer start_year, stop_year, year
@@ -131,19 +141,18 @@ PROGRAM ScallopPopDensity
     !==================================================================================================================
     !  - II. Load Grid. 
     !==================================================================================================================
-    call Load_Grid(grid, domain_name)
-    num_grids = grid%len
+    num_grids = Load_Grid(grid, domain_name)
     element_area = meters_per_naut_mile**2 ! convert 1 sq nm to sq m
     domain_area = float(num_grids) * element_area
-    write(*,'(A,I7)') ' Number of Grids: ',grid%len
+    write(*,'(A,I7)') ' Number of Grids: ', num_grids
     write(*,*)        ' Domain Area: ', domain_area, ' square meters'
     
     write(*,*) '========================================================'
 
     allocate(growth(1:num_grids), mortality(1:num_grids), recruit(1:num_grids) )
 
-    do j=1, num_grids
-       mortality(j)%mgmt_area_index = grid%posn(j)%mgmt_area_index
+    do n=1, num_grids
+       mortality(n)%mgmt_area_index = grid%posn(n)%mgmt_area_index
     enddo
     
     allocate(shell_height_mm(1:num_size_classes))
@@ -163,17 +172,23 @@ PROGRAM ScallopPopDensity
     &              shell_len_min, shell_len_delta, file_name, start_year, state, weight_grams)
     call Set_Recruitment(recruit, num_grids, domain_name, domain_area, element_area,  is_rand_rec, num_size_classes, &
                          & growth(1:num_grids)%L_inf_mu, growth(1:num_grids)%K_mu, shell_height_mm)
-    call SetMortality(mortality, grid, shell_height_mm, num_size_classes, domain_name, domain_area, element_area)
+    call Set_Mortality(mortality, grid, shell_height_mm, num_size_classes, domain_name, domain_area, element_area)
 
     !==================================================================================================================
     !  - VII. MAIN LOOP
     ! Start simulation
     !==================================================================================================================
     do year = start_year, stop_year
-        do j = 1, num_grids
-            mortality(j)%select = Ring_Size_Selectivity(year, shell_height_mm, mortality(j)%is_closed)
+        do n = 1, num_grids
+            mortality(n)%select = Ring_Size_Selectivity(year, shell_height_mm, mortality(n)%is_closed)
+            ! These equations included here as they are dependent on %select
+            mortality(n)%discard = 0.2 * mortality(n)%select
+            do k = 1, num_size_classes
+                if(shell_height_mm(k).gt.90.) mortality(n)%discard(k) = 0.D0
+            enddo
         enddo
         call Set_Fishing(fishing_type, year, state, weight_grams, mortality, fishing_effort)
+
         do n = 1, num_grids
             !- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - 
             !  - VIII. Calculate Harvest

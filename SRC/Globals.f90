@@ -39,5 +39,15 @@ module globals
         endif
     endfunction Logic_To_Double
 
+    logical function Is_Leap_Year (yr)
+        integer, intent(in) :: yr
+        if (mod(yr,100) .ne. 0 .AND. mod(yr,4) .eq. 0) then
+            Is_Leap_Year = .true.
+        elseif (mod(yr,400) .eq. 0) then
+            Is_Leap_Year = .true.
+        else
+            Is_Leap_Year = .false.
+        endif
+    endfunction
 
 end module globals

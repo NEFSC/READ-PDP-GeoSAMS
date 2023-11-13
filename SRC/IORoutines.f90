@@ -81,7 +81,6 @@ subroutine Read_Input(domain_name, init_cond_file_name, start_year, stop_year, f
     return
 end subroutine Read_Input
 
-
 subroutine Read_Recruit_Input(RecStartYD,RecStopYD,RandomStartYear,NRecruitFields)
     use globals
     implicit none
@@ -194,7 +193,7 @@ endsubroutine Read_Output_Flags
 !XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX
 
 !> 
-!! subroutine Load_Grid(x,y,z,f,num_grids)
+!! function Load_Grid()
 !! load grid coordinates and bathymetric depth from CSV file with 5 columns
 !! representing an x coordinate, y, bathymetric depth (z), latitude, and
 !! longitude.
@@ -203,15 +202,11 @@ endsubroutine Read_Output_Flags
 !! @param[in,out] grid Map of how management area is subdivided
 !! @param[in] domain_name Area being managed
 !!
-!! TODO: At present lat and lon variables are not used. 
-subroutine Load_Grid(grid, domain_name)
+!! TODO: At present lon variables are not used. 
+integer function Load_Grid(grid, domain_name)
     use globals
     use Data_Point_Mod
     implicit none
-
-    !real(dp) lat(*),lon(*),x(*),y(*),z(*)
-    !integer n, num_grids, io, management_region(*)
-    !logical is_closed(*)
     type(Data_Vector_Class), intent(inout) :: grid
     character(2), intent(in) :: domain_name
     integer n, io, num_grids
@@ -252,9 +247,10 @@ subroutine Load_Grid(grid, domain_name)
         enddo
     endif
     grid%len = num_grids
+    Load_Grid = num_grids
 
     return
-endsubroutine Load_Grid
+endfunction Load_Grid
 !-----------------------------------------------------------------------
 !-----------------------------------------------------------------------
 
