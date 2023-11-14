@@ -631,8 +631,8 @@ MODULE Growth_Mod
     !> @param[out] state_time_steps State at each time step
     !> @param[in] year under considration
     !==================================================================================================================
-    subroutine Time_To_Grow(growth, mortality, recruit, state, fishing_effort, delta_time, &
-    &                      num_time_steps, state_time_steps, year)
+    function Time_To_Grow(growth, mortality, recruit, state, fishing_effort, delta_time, &
+    &                      num_time_steps, year)
 
         use Mortality_Mod, only : Mortality_Class
         use Recruit_Mod, only : Recruitment_Class, Mortality_Density_Dependent
@@ -643,7 +643,7 @@ MODULE Growth_Mod
         type(Recruitment_Class), INTENT(INOUT):: recruit
         integer, intent(in)     :: num_time_steps, year
         real(dp),intent(inout)    :: state(*)
-        real(dp), intent(out)     ::state_time_steps(num_time_steps,*)
+        real(dp) :: Time_To_Grow(num_time_steps, num_size_classes)
         real(dp), intent(in)      :: delta_time, fishing_effort
         real(dp), allocatable :: G(:,:), Stmp(:)
         real(dp) t
@@ -672,12 +672,12 @@ MODULE Growth_Mod
             M(1:num_size_classes) = mortality%natural_mortality(1:num_size_classes) + fishing_effort &
             &    * ( mortality%select(1:num_size_classes)+ mortality%incidental + mortality%discard(1:num_size_classes) )
             state(1:num_size_classes) = Stmp(1:num_size_classes) *(1.D0- delta_time * M(1:num_size_classes))
-            state_time_steps(nt, 1:num_size_classes) = state(1:num_size_classes)
+            Time_To_Grow(nt, 1:num_size_classes) = state(1:num_size_classes)
         enddo
         deallocate(G, Stmp, M, Rec)
         
         return
-    endsubroutine Time_To_Grow
+    endfunction Time_To_Grow
         
     !==================================================================================================================
     !> @fn Shell_to_Weight

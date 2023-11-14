@@ -157,6 +157,10 @@ module Recruit_Mod
         real(dp) tmp(n_grids)
         character(72) buf
         real(dp) L30mm
+        real(dp) april_10
+
+        april_10 = 100._dp
+        if (Is_Leap_Year(year)) april_10 = 101._dp
 
         !! initalize private members
         num_grids = n_grids
@@ -193,11 +197,7 @@ module Recruit_Mod
                 recruit(j)%rec_start = 1.D0/365.D0
                 ! Jan 31, Feb 28, Mar 31, Apr 10 = 100
                 ! TODO Why stop at April 10th
-                if (Is_Leap_Year(year)) then
-                    recruit(j)%rec_stop = 101.D0/365.D0
-                else
-                    recruit(j)%rec_stop = 100.D0/365.D0
-                endif
+                recruit(j)%rec_stop = april_10/365.D0
             enddo
         enddo
         
@@ -209,11 +209,7 @@ module Recruit_Mod
                 recruit(j)%recruitment(year_index) = tmp(j)
                 recruit(j)%year(year_index) = year
                 recruit(j)%rec_start = 1.D0/365.D0
-                if (Is_Leap_Year(year)) then
-                    recruit(j)%rec_stop = 101.D0/365.D0
-                else
-                    recruit(j)%rec_stop = 100.D0/365.D0
-                endif
+                recruit(j)%rec_stop = april_10/365.D0
             enddo
         enddo
         recruit(1:num_grids)%n_year = year_index

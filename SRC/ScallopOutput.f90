@@ -1,17 +1,50 @@
 module Output_Mod
     use globals
     implicit none
-    character(*), parameter :: output_dir = 'Results/'
+
+    integer, PRIVATE :: num_grids
+    integer, PRIVATE :: num_size_classes
+    character(2), PRIVATE :: region_name
+    real(dp), PRIVATE :: region_area_sqm
+    real(dp), PRIVATE :: element_area
+    integer, PRIVATE :: start_year
+    integer, PRIVATE :: stop_year
+    integer, PRIVATE ::  num_time_steps
+
+
 
     CONTAINS
 
-    subroutine Scallop_Output(year, num_size_classes, num_grids, samp, fishing_effort, weight_grams, mortality, recruit, &
-        &                  start_year, stop_year, element_area)
+    subroutine Set_Scallop_Output( n_grids,n_size_classes,reg_name,reg_area_sqm,grid_area_sqm,start_yr,stop_yr,n_time_steps)
+        integer, intent(in) :: n_grids
+        integer, intent(in) :: n_size_classes
+        character(2), intent(in) :: reg_name
+        real(dp), intent(in) :: reg_area_sqm
+        real(dp), intent(in) :: grid_area_sqm
+        integer, intent(in) :: start_yr
+        integer, intent(in) :: stop_yr
+        integer, intent(in) :: n_time_steps
+
+        !> initalize private members
+        num_grids = n_grids
+        num_size_classes = n_size_classes
+        region_name = reg_name
+        region_area_sqm = reg_area_sqm
+        element_area = grid_area_sqm
+        start_year = start_yr
+        stop_year = stop_yr
+        num_time_steps = n_time_steps
+        return
+    endsubroutine Set_Scallop_Output
+    
+    
+
+    subroutine Scallop_Output_Annual(year, samp, fishing_effort, weight_grams, mortality, recruit)
         use Mortality_Mod, only : Mortality_Class, Scallops_To_Counts, Cash_Money
         use Recruit_Mod, only : Recruitment_Class, Mortality_Density_Dependent
         implicit none
-        integer, intent(in):: num_size_classes, year, num_grids, start_year, stop_year
-        real(dp), intent(in):: fishing_effort(*), weight_grams(num_grids,*), samp(num_grids,*), element_area
+        integer, intent(in):: year
+        real(dp), intent(in):: fishing_effort(*), weight_grams(num_grids,*), samp(num_grids,*)
         type(Mortality_Class), INTENT(INOUT):: mortality(*)
         type(Recruitment_Class), INTENT(IN):: recruit(*)
         real(dp) cnts(num_grids,4)
@@ -95,16 +128,16 @@ module Output_Mod
         endif
         
         return
-    endsubroutine Scallop_Output
+    endsubroutine Scallop_Output_Annual
     
 
-    subroutine Scallop_Output_Region(year, start_year, stop_year, num_size_classes, num_grids, state_time_steps, &
-        &                          num_time_steps, grid, grid_n)
+    subroutine Scallop_Output_Regional_Avg(year, state_at_time_step, grid, grid_n, mid_year_sample)
         use Data_Point_Mod
         implicit none
-        integer, intent(in) :: num_size_classes, year, num_grids, start_year, stop_year, num_time_steps, grid_n
-        real(dp), intent(in) :: state_time_steps(num_time_steps, *)
+        integer, intent(in) :: year, grid_n
+        real(dp), intent(in) :: state_at_time_step(num_time_steps, num_size_classes)
         type(Data_Vector_Class), intent(in) :: grid
+        real(dp), intent(out) :: mid_year_sample(num_size_classes)
         character(72) buf
         integer num_years, ntsX, Nregion, ntStart, ntStop, j
         real(dp), allocatable :: region_avg(:,:,:), StateTSx(:,:)
@@ -132,7 +165,7 @@ module Output_Mod
         ntStop  = (year-start_year)*num_time_steps+num_time_steps
         region_avg(ntStart:ntStop, 1:num_size_classes, grid%posn(grid_n)%mgmt_area_index) &
         &               = region_avg(ntStart:ntStop, 1:num_size_classes, grid%posn(grid_n)%mgmt_area_index) &
-        &                 + state_time_steps(1:num_time_steps, 1:num_size_classes)
+        &                 + state_at_time_step(1:num_time_steps, 1:num_size_classes)
         if ((year.eq.stop_year).and.(grid_n.eq.num_grids))then
             management_area_count(1:Nregion) = 0
             do j = 1, num_grids
@@ -146,9 +179,12 @@ module Output_Mod
             enddo
         endif
 
+        ! sample mid calander year for output
+        mid_year_sample(1:num_size_classes) = state_at_time_step(floor(float(num_time_steps)/2.), 1:num_size_classes)
+
         deallocate( region_avg, StateTSx, management_area_count)
         
         return
-    endsubroutine Scallop_Output_Region
+    endsubroutine Scallop_Output_Regional_Avg
     
 endmodule Output_Mod

@@ -198,12 +198,12 @@ module Mortality_Mod
     
 
 
-    subroutine Set_Fishing(fishing_type, year, state, weight_grams, mortality, fishing_effort)
+    function Set_Fishing(fishing_type, year, state, weight_grams, mortality)
         implicit none
         integer, intent(in):: year
         real(dp), intent(in):: state(num_grids,  * ), weight_grams(num_grids,  * )
         type(Mortality_Class), INTENT(IN):: mortality( * )
-        real(dp), intent(out):: fishing_effort( * )
+        real(dp) :: Set_Fishing( num_grids )
         character( * ), intent(in):: fishing_type !> < string inputs
         integer Mindx, n
         real(dp) catch_open, catch_closed, TotalCatch
@@ -215,31 +215,31 @@ module Mortality_Mod
         select case (fishing_type(1:3))
             case('USD')
                 if(region_name(1:2).eq.'GB')&
-                    & fishing_effort(1:num_grids) = Set_Fish_Effort_Wgt_USD_CLOP(year, mortality, catch_open, catch_closed, state,&
+                    & Set_Fishing(1:num_grids) = Set_Fish_Effort_Wgt_USD_CLOP(year, mortality, catch_open, catch_closed, state,&
                     &                                weight_grams)
                 if(region_name(1:2).eq.'MA')&
-                    & fishing_effort(1:num_grids) = Set_Fishing_Effort_Weight_USD(year, mortality, TotalCatch, state, weight_grams)
+                    & Set_Fishing(1:num_grids) = Set_Fishing_Effort_Weight_USD(year, mortality, TotalCatch, state, weight_grams)
             case('BMS')
                 if(region_name(1:2).eq.'GB')&
-                    &  fishing_effort(1:num_grids) = Set_Fish_Effort_Wgt_X_CLOP(mortality, catch_open, catch_closed, state, &
+                    &  Set_Fishing(1:num_grids) = Set_Fish_Effort_Wgt_X_CLOP(mortality, catch_open, catch_closed, state, &
                     &    weight_grams(1:num_grids, 1:num_size_classes)/10.**6)
                 if(region_name(1:2).eq.'MA')&
-                    &  fishing_effort(1:num_grids) = Set_Fish_Effort_Wgt_X(mortality, TotalCatch, state, & 
+                    &  Set_Fishing(1:num_grids) = Set_Fish_Effort_Wgt_X(mortality, TotalCatch, state, & 
                     &    weight_grams(1:num_grids, 1:num_size_classes)/10.**6, 1.D0, 1.D0)
             case('CAS')
-                fishing_effort(1:num_grids) = mortality(1:num_grids)%fishing_effort(Mindx)!CASA Fishing
+                Set_Fishing(1:num_grids) = mortality(1:num_grids)%fishing_effort(Mindx)!CASA Fishing
             case default
-                fishing_effort(1:num_grids) = mortality(1:num_grids)%fishing_effort(Mindx)!CASA Fishing
+                Set_Fishing(1:num_grids) = mortality(1:num_grids)%fishing_effort(Mindx)!CASA Fishing
                 write( * ,  * )'Unkown fishing fishing_type:', fishing_type, &
                 &    '.  Using spatially constant fishing_effort from CASA model'
         end select
         !enforce no fishing on Closed Area 2 North
         do n = 1, num_grids
-            if ((region_name(1:2).eq.'GB').and.(mortality(n)%mgmt_area_index.eq.6)) fishing_effort(n) = 0.D0
+            if ((region_name(1:2).eq.'GB').and.(mortality(n)%mgmt_area_index.eq.6)) Set_Fishing(n) = 0.D0
         enddo
 
         return
-    endsubroutine Set_Fishing
+    endfunction Set_Fishing
 
     !> @fn Cash_Money
     !! @brief Compute value of scallop population.

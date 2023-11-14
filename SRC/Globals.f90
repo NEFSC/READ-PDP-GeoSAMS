@@ -24,9 +24,10 @@ module globals
     character(*), parameter :: growth_out_dir = 'GrowthOutput/'
     character(*), parameter :: rec_input_dir = 'KrigingEstimates/'
     character(*), parameter :: rec_output_dir = 'RecruitField/'
+    character(*), parameter :: output_dir = 'Results/'
 
-    character(72), parameter :: sim_input_fname = 'Scallop.inp'
-    character(72), parameter :: error_file_name = 'InputDataError.txt'
+    character(*), parameter :: sim_input_fname = 'Scallop.inp'
+    character(*), parameter :: error_file_name = 'InputDataError.txt'
 
     CONTAINS
 
