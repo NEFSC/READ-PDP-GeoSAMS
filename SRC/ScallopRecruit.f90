@@ -195,7 +195,6 @@ module Recruit_Mod
                 recruit(j)%year(year_index) = year
                 ! value as a fraction of a year, i.e. Jan 30 is 8.22% of a year
                 recruit(j)%rec_start = 1.D0/365.D0
-                ! Jan 31, Feb 28, Mar 31, Apr 10 = 100
                 ! TODO Why stop at April 10th
                 recruit(j)%rec_stop = april_10/365.D0
             enddo
