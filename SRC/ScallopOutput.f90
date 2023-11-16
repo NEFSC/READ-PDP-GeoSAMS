@@ -4,12 +4,12 @@ module Output_Mod
 
     integer, PRIVATE :: num_grids
     integer, PRIVATE :: num_size_classes
-    character(2), PRIVATE :: region_name
-    real(dp), PRIVATE :: region_area_sqm
+    character(2), PRIVATE :: domain_name
+    real(dp), PRIVATE :: domain_area_sqm
     real(dp), PRIVATE :: element_area
     integer, PRIVATE :: start_year
     integer, PRIVATE :: stop_year
-    integer, PRIVATE ::  num_time_steps
+    integer, PRIVATE :: num_time_steps
 
 
 
@@ -28,8 +28,8 @@ module Output_Mod
         !> initalize private members
         num_grids = n_grids
         num_size_classes = n_size_classes
-        region_name = reg_name
-        region_area_sqm = reg_area_sqm
+        domain_name = reg_name
+        domain_area_sqm = reg_area_sqm
         element_area = grid_area_sqm
         start_year = start_yr
         stop_year = stop_yr
@@ -37,11 +37,9 @@ module Output_Mod
         return
     endsubroutine Set_Scallop_Output
     
-    
-
     subroutine Scallop_Output_Annual(year, samp, fishing_effort, weight_grams, mortality, recruit)
-        use Mortality_Mod, only : Mortality_Class, Scallops_To_Counts, Cash_Money
-        use Recruit_Mod, only : Recruitment_Class, Mortality_Density_Dependent
+        use Mortality_Mod, only : Mortality_Class, Mortality_Density_Dependent, Scallops_To_Counts, Cash_Money
+        use Recruit_Mod, only : Recruitment_Class
         implicit none
         integer, intent(in):: year
         real(dp), intent(in):: fishing_effort(*), weight_grams(num_grids,*), samp(num_grids,*)
@@ -62,7 +60,7 @@ module Output_Mod
             &            * weight_grams(n,1:num_size_classes)/(10.**6) )
             Abundance(n) = sum( samp(n,1:num_size_classes) )
             StateCapt(n) = sum(samp(n,1:num_size_classes) * mortality(n)%select(1:num_size_classes))
-            call Mortality_Density_Dependent(recruit(n), mortality(n), samp(n,1:num_size_classes))
+            call Mortality_Density_Dependent(recruit(n)%max_rec_ind, mortality(n), samp(n,1:num_size_classes))
             NatMort(n,1:num_size_classes) = mortality(n)%natural_mortality(1:num_size_classes)
             FishMort(n,1:num_size_classes) = fishing_effort(n) * mortality(n)%select(1:num_size_classes)
             call Scallops_To_Counts(samp(n,1:num_size_classes) * mortality(n)%select(1:num_size_classes), &
@@ -130,7 +128,6 @@ module Output_Mod
         return
     endsubroutine Scallop_Output_Annual
     
-
     subroutine Scallop_Output_Regional_Avg(year, state_at_time_step, grid, grid_n, mid_year_sample)
         use Data_Point_Mod
         implicit none
@@ -186,5 +183,5 @@ module Output_Mod
         
         return
     endsubroutine Scallop_Output_Regional_Avg
-    
-endmodule Output_Mod
+
+    endmodule Output_Mod
