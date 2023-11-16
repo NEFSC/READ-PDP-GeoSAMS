@@ -60,5 +60,14 @@ else
 endif
 
 setup:
+ifeq ($(OS), Windows_NT)
+ifeq ("$(wildcard .\obj)", "")
+	mkdir .\obj
+endif
+ifeq ("$(wildcard .\mod)", "")
+	mkdir .\mod
+endif
+else
 	if [ ! -d "$(OBJ_DIR)" ]; then mkdir $(OBJ_DIR); fi
 	if [ ! -d "$(MOD_DIR)" ]; then mkdir $(MOD_DIR); fi
+endif
