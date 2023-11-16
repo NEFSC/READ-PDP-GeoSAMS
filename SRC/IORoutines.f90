@@ -45,7 +45,10 @@ subroutine Read_Input(domain_name, init_cond_file_name, start_year, stop_year, f
                 case('D')
                     j = scan(input_string,"=",back=.true.)
                     domain_name=trim(adjustl(input_string(j+1:)))
-                    write(*,*)'Domain is ',domain_name
+                    if (.not. ( any ((/ domain_name.eq.'MA', domain_name.eq.'GB'/)) )) then
+                        write(*,*) term_red, ' **** INVALID DOMAIN NAME: ', domain_name, term_blk
+                        stop
+                    endif
                 case('I')
                     j = scan(input_string,"=",back=.true.)
                     init_cond_file_name=trim(adjustl(input_string(j+1:)))
@@ -66,11 +69,14 @@ subroutine Read_Input(domain_name, init_cond_file_name, start_year, stop_year, f
                 case('F')
                     j = scan(input_string,"=",back=.true.)
                     fishing_type=trim(adjustl(input_string(j+1:)))
-                    write(*,*)'Fishing Type = ',fishing_type
+                    if (.not. ( any ((/ fishing_type.eq.'USD', fishing_type.eq.'BMS', fishing_type.eq.'CAS'/)) )) then
+                        write(*,*) term_red, ' **** INVALID FISHING TYPE: ', fishing_type, term_blk
+                        stop
+                    endif
                 case default
                     write(write_dev,*) 'Unrecognized line in ',sim_input_fname
                     write(write_dev,*) 'Unknown Line->',input_string
-                    !   stop
+                    stop
             end select
 
         ! endif

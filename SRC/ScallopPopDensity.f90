@@ -10,6 +10,9 @@ PROGRAM ScallopPopDensity
     !!      - D. Time steps per Year
     !!      - E. Inintial Conditions as read from Input/SimMA2000/InitialCondition.csv
     !!      - F. Fishing Type: can be USD, BMS, or CAS
+    !!          - USD: fishing proportional to value of stock
+    !!          - BMS: fishing proportional to biomass
+    !!          - CAS: fishing spatially constant with region, CASA
     !!      - G. Parameters for Recruitment 
     !!          - i.   Start year
     !!          - ii.  Finish year
@@ -44,8 +47,8 @@ PROGRAM ScallopPopDensity
     !!
     !! @f{equation}{
     !! \begin{split}
-    !!   \vec{\mathbf{State}}[Grid] =& | \mathbf{GrowthMatrix}[Grid] | * | \vec{\mathbf{State}}[Grid] | \notag\\
-    !!                              &* e^{-(Mort_{nat}[Grid,Height_{shell}] + Mort_{fish}[Grid,Height_{shell}]) * timestep}
+    !!   \vec{\mathbf{State}}[Grid] =& \left| \mathbf{GrowthMatrix}[Grid] \right| \times \vec{\mathbf{State}}[Grid]  \notag\\
+    !!                              &\times \left|e^{-(Mort_{nat}[Grid,Height_{shell}] + Mort_{fish}[Grid,Height_{shell}]) * timestep}\right|
     !! \end{split}
     !! @f}
     !!
@@ -60,11 +63,11 @@ PROGRAM ScallopPopDensity
     !! 
     !! @section Growth_Mod
     !!
-    !! @ref sec1
+    !! @ref Gsec1
     !!
     !! @section Recruit_Mod
     !!
-    !! @ref sec2
+    !! @ref Rsec1
     !!
     !! @section Mortallity_Mod
     !!
@@ -96,7 +99,6 @@ PROGRAM ScallopPopDensity
     integer num_time_steps
     integer num_monte_carlo_iter
     character(72) file_name
-    real(dp) delta_time
 
     type(Data_Vector_Class):: grid
     real(dp) element_area, domain_area
@@ -122,17 +124,15 @@ PROGRAM ScallopPopDensity
     !==================================================================================================================
     call Read_Input(domain_name, file_name, start_year, stop_year, fishing_type, num_time_steps, num_monte_carlo_iter)
 
-    delta_time = 1._dp / float(num_time_steps)
-    
     is_rand_rec = .FALSE.
-    
+
     write(*,*) '========================================================'
     write(*,'(A,A6)') ' Domain:         ', domain_name
     write(*,'(A,I6)') ' Start Year:     ', start_year
     write(*,'(A,I6)') ' Stop Year:      ', stop_year
     write(*,'(A,L6)') ' Random''d Recruit:  ', is_rand_rec
     write(*,'(A,A6)') ' Fishing Type:   ', fishing_type
-    write(*,'(A,I6,A,F7.4)') ' Time steps/year:', num_time_steps, ' delta ', delta_time
+    write(*,'(A,I6,A,F7.4)') ' Time steps/year:', num_time_steps, ' delta ', 1._dp / dfloat(num_time_steps)
     write(*,*) '========================================================'
 
     !==================================================================================================================
@@ -165,7 +165,7 @@ PROGRAM ScallopPopDensity
     ! Assign recruitment by year and node, initialize shell_height_mm
     !
     !==================================================================================================================
-    call Set_Growth(growth, grid, shell_height_mm, delta_time, num_size_classes, domain_name, domain_area, element_area, &
+    call Set_Growth(growth, grid, shell_height_mm, num_time_steps, num_size_classes, domain_name, domain_area, element_area, &
     &              shell_len_min, shell_len_delta, file_name, start_year, state, weight_grams)
     call Set_Recruitment(recruit, num_grids, domain_name, domain_area, element_area,  is_rand_rec, num_size_classes, &
                          & growth(1:num_grids)%L_inf_mu, growth(1:num_grids)%K_mu, shell_height_mm)
@@ -182,11 +182,16 @@ PROGRAM ScallopPopDensity
         !  i. Determine fishing effort
         !- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - 
         do n = 1, num_grids
+            !+++++++++++++++++++++++++++++++++++++++
+            ! Moved from ScallopMortality
+            !+++++++++++++++++++++++++++++++++++++++
             mortality(n)%select = Ring_Size_Selectivity(year, shell_height_mm, mortality(n)%is_closed)
             ! These equations included here as they are dependent on %select
             mortality(n)%discard = 0.2 * mortality(n)%select
+
             do k = 1, num_size_classes
                 if(shell_height_mm(k).gt.90.) mortality(n)%discard(k) = 0.D0
+            !+++++++++++++++++++++++++++++++++++++++
             enddo
         enddo
         fishing_effort = Set_Fishing(fishing_type, year, state, weight_grams, mortality)
@@ -199,7 +204,7 @@ PROGRAM ScallopPopDensity
             !  a. Compute new state
             !- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - 
             state_at_time_step(1:num_time_steps, 1:num_size_classes) = Time_To_Grow(growth(n), mortality(n), recruit(n), &
-            &                         state(n, 1:num_size_classes), fishing_effort(n), delta_time, num_time_steps, year)
+            &                         state(n, 1:num_size_classes), fishing_effort(n), year)
             !- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - 
             !  b. Compute regional average
             !- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - 

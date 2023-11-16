@@ -4,6 +4,7 @@ module globals
     integer, parameter :: sp = selected_real_kind(6, 37)
     integer, parameter :: dp = selected_real_kind(15, 307)
     integer, parameter :: qp = selected_real_kind(33, 4931)
+
     integer, parameter :: max_size_mm = 150
     integer, parameter :: min_size_mm = 30
     integer, parameter :: max_size_class = (max_size_mm - min_size_mm) / 5 + 1
@@ -11,6 +12,10 @@ module globals
 
     integer, parameter :: read_dev = 69
     integer, parameter :: write_dev = 63
+
+    ! ASIN incorrectly produces error
+    ! Error: Fortran 2003: Elemental function as initialization expression with non-integer/non-character arguments
+    real(dp), parameter :: pi = 3.1415926535897931 ! 2._dp * ASIN(1._dp)
 
     ! colors taken from https://i.stack.imgur.com/9UVnC.png
     character(*), parameter :: term_red = ''//achar(27)//'[31m'
