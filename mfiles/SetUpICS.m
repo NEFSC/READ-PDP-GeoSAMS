@@ -4,7 +4,7 @@ function SetUpICS(yr,Dom);
 F=csvreadK(['Data/bin5mm',int2str(yr),Dom,'.csv']);
 %F=F(2:end,:);
 lat=table2array(F(:,4));lon=table2array(F(:,5));
-if(Dom=='MA')
+if strcmp(Dom,'MA')
   j=find(lon<-70.5);
 else
   j=find(lon>-70.5);
@@ -31,7 +31,7 @@ lat=F(:,4);lon=F(:,5);z=F(:,5);
 x=F(:,2);y=F(:,3);
 DecYr=F(:,1);
 
-[zp,H] = SAMSgrid_interp (xg,yg,zg,E,x,y);
+[zp,~] = SAMSgrid_interp (xg,yg,zg,E,x,y);
 j=find(isnan(zp));zp(j)=z(j);
 j=find(zp>250);
 zp(j)=250;
@@ -39,16 +39,16 @@ l=3:.5:15;
 %F=F(:,5:end);
 F=F(:,7:end);
 close all 
-if(Dom=='MA')
-    Gs = shaperead('ShapeFiles/MAB_Estimation_Areas_2019_UTM18_PDT.shp')
+if strcmp(Dom,'MA')
+    Gs = shaperead('ShapeFiles/MAB_Estimation_Areas_2019_UTM18_PDT.shp');
     N=length(Gs);
-    for k=1:N,
+    for k=1:N
         [Gs(k).LAT,Gs(k).LON]=utm2ll(Gs(k).X,Gs(k).Y,18);
     end
  else
-    Gs = shaperead('ShapeFiles/GB_Estimation_Areas_2020_UTM19_PDT_NLSModified_022020.shp')
+    Gs = shaperead('ShapeFiles/GB_Estimation_Areas_2020_UTM19_PDT_NLSModified_022020.shp');
     N=length(Gs);
-    for k=1:N,
+    for k=1:N
         [Gs(k).LAT,Gs(k).LON]=utm2ll(Gs(k).X,Gs(k).Y,19);
     end
  end
@@ -56,7 +56,7 @@ if(Dom=='MA')
  
 for k=1:length(l)
 
-  if k>2, 
+  if k>2 
     R=(F(:,k-2)+F(:,k-1)+F(:,k)+F(:,k+1)+F(:,k+2))/5;
   elseif(k>1)
     R=(F(:,k-1)+F(:,k)+F(:,k+1)+F(:,k+2))/4;
@@ -67,13 +67,13 @@ for k=1:length(l)
   xo=x(:);yo=y(:);zo=zp(:);fo=R(:);DecYro=DecYr(:);
   % [xo,yo,zo,fo] = clean_scallop_data (xo,yo,zo,fo);
   M=[DecYro,xo,yo,zo,fo];
-  [nnn,mmm]=size(M),
+  [~,~]=size(M);
   M = LumpDataDx (M,1000.);
-  [nnn,mmm]=size(M),
+  [~,~]=size(M);
   if (length(fo)>20)
      flnm='tmp.csv';
-     header='"decmal year", "x utm", "y utm", "bottom depth(m)","recruits per sq m"';
-     writecsv(M,flnm,['%g, %f, %f, %f, %e']);
+     %header='"decmal year", "x utm", "y utm", "bottom depth(m)","recruits per sq m"';
+     writecsv(M,flnm,'%g, %f, %f, %f, %e');
      %csvwrite(flnm,M)
 
      system(['./UKsrc/UK ',Dom,' tmp.csv']);
@@ -97,10 +97,18 @@ for k=1:length(l)
   set(gca,'visible','off');
   pause(1)
 end
-flnm=['Output/Sim',Dom,int2str(yr),'/InitialCondition.csv'];
-header= ['"30 mm","35 mm","40 mm","45 mm","50 mm","55 mm","60 mm","65 mm","70 mm","75 mm","80mm","85 mm","90 mm","95 mm","100 mm","105 mm","110 mm","115 mm","120 mm","125 mm","130 mm","135mm","140mm","145mm","150mm"'];
+
+% Check if directories have been created
+if ~exist('InitialCondition', 'dir')
+  mkdir 'InitialCondition'
+end
+if ~exist('InitialCondition/Sim',Dom,int2str(yr), 'dir')
+  mkdir 'InitialCondition/Sim'+Dom+int2str(yr)
+end
+flnm=['InitialCondition/Sim',Dom,int2str(yr),'/InitialCondition.csv'];
+%header= ['"30 mm","35 mm","40 mm","45 mm","50 mm","55 mm","60 mm","65 mm","70 mm","75 mm","80mm","85 mm","90 mm","95 mm","100 mm","105 mm","110 mm","115 mm","120 mm","125 mm","130 mm","135mm","140mm","145mm","150mm"'];
 writecsv(G,flnm,...
-['%e, %e, %e, %e, %e,%e, %e, %e, %e, %e,%e, %e, %e, %e, %e,%e, %e, %e, %e, %e,%e, %e, %e, %e, %e']);
+'%e, %e, %e, %e, %e,%e, %e, %e, %e, %e,%e, %e, %e, %e, %e,%e, %e, %e, %e, %e,%e, %e, %e, %e, %e');
 
 %csvwrite (flnm, G);
     

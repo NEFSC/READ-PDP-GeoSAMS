@@ -6,8 +6,9 @@
 !> The scallop state at each node in the domain is a vector of length @f$N_{sc} = (150 - 30) / 5 + 1 = 25@f$ 
 !> representing the abundance of scallops in size classes @f$[30-35mm, 35-40mm, ...145-150mm, 150mm+]@f$.  
 !> Size class transition matrices are generated for each node based on the work of  Millar and Nottingham 2018 
-!> (henceforth MN18) Appendix C, although other methods are present in the code including direct Monte Carlo simulation.
+!> Appendix C, henceforth MN18 \ref mn "[1]", although other methods are present in the code including direct Monte Carlo simulation.
 !> including( see subroutine@f${\it GenTransMat}@f$).
+!>
 !> Growth in GeoSAMS is based off of von Bertanlffy growth. 
 !> @f{eqnarray*}{
 !> \delta(u) &=& u + (L_{\infty}-u)(1-e^{-K}) \\
@@ -24,7 +25,7 @@
 !> @f}
 !>
 !> The values of the distribution means (@f$\mu_{L_\infty}@f$ and @f$\mu_K@f$) are taken from previous work of 
-!> Hart, HC2009. The distribution of increments by size class as in MN18). Growth increment is given by the 
+!> Hart, HC2009 \ref hc "[2]". The distribution of increments by size class as in MN18). Growth increment is given by the 
 !> von Bertlanaffy growth curve
 !> 
 !> We begin by determining the scallop time to grow for a given year: 
@@ -49,7 +50,7 @@
 !>
 !>      NOTE: At present discard is 20% of select
 !> @f[
-!> \vec{M} = \vec{M}_{nat} + (Fishing + 0.2) \vec{M}_{nat} + \vec{M}_{incidental}
+!> \vec{M} = \vec{M}_{nat} + (Fishing + 0.2) \vec{M}_{select} + \vec{M}_{incidental}
 !> @f]
 !>
 !>  - Compute new state
@@ -57,17 +58,24 @@
 !> \vec{S} = \vec{S} * (1- \delta_t * \vec{M})
 !> @f]
 !>
-!> MN18 refers to Miller, R. B. and Nottingham, 2018, "Improved approximations for estimation of size-transition 
+!> \anchor mn 1. MN18 refers to Miller, R. B. and Nottingham, 2018, "Improved approximations for estimation of size-transition 
 !> probabilities within size-structured models"
 !>
-!> HC2009 refers to Hart, D. R. and Chute, A. S. 2009, "Estimating von Bertalanffy growth parameters from growth
+!> \anchor hc 2. HC2009 refers to Hart, D. R. and Chute, A. S. 2009, "Estimating von Bertalanffy growth parameters from growth
 !> increment data using a linear mixed-effects model, with an application to the sea scallop Placopecten magellanicus."
 !>
 !> @subsection Gsubsec1 Transition Matrix
-!> Computes a sizeclass transition matrix under the  assumption of von  Bertlanaffy growth.
+!> A transition matrix, 25 by 25, is computed under the  assumption of von  Bertlanaffy growth.
 !> It is assumed that the parameters of von BernBertlanaffy growth K and L_inf have normal distributions.
 !>
 !> From MN18 p. 1312, 1313
+!> @f[
+!> G(y, l_{k}, \eta, c, \sigma, \omega_k)    = H_{MN18}(X(y,k-1), \sigma, [1-c]\omega_k)\\
+!>                                           - H_{MN18}(X(y,k),   \sigma, [1-c]\omega_k)
+!> @f]
+!> @f[
+!> X(y,k) = y - \eta - (1-c)l_{k}
+!> @f]
 !> @f[
 !> c = 1.0 - e^{-K_{\mu} * \delta_t}
 !> @f]
@@ -75,11 +83,7 @@
 !> \eta = c * L_{{\infty}_\mu}
 !> @f]
 !> @f[
-!>    \omega_k = l_k - l_{k-1}
-!> @f]
-!> @f[
-!> F_y(y, l_{k-1}, \eta, c, \sigma, \omega_k) = H_{MN18}(y - \eta - [1-c]l_{k-1}, \sigma, [1-c]\omega_k)\\
-!>                                             - H_{MN18}(y - \eta - [1-c]l_{k}, \sigma, [1-c]\omega_k)
+!> \omega_k = l_k - l_{k-1}
 !> @f]
 !>
 !> @subsubsection Gsubsubsec1 Function H(x, sigma, omega)
@@ -223,7 +227,8 @@ MODULE Growth_Mod
             enddo
         endif
         do n=1, num_grids
-            growth(n)%G = Gen_Trans_Matrix(growth(n)%L_inf_mu, growth(n)%L_inf_sd, growth(n)%K_mu, growth(n)%K_sd, lengths)
+            growth(n)%G = Gen_Trans_Matrix(growth(n)%L_inf_mu, growth(n)%L_inf_sd, &
+            &                              growth(n)%K_mu, growth(n)%K_sd, lengths, 'AppxC')
         enddo
 
         Gpar(1:num_grids,1) = growth(1:num_grids)%L_inf_mu
@@ -307,7 +312,7 @@ MODULE Growth_Mod
     !> @fn Gen_Trans_Matrix
     !> @public @memberof Growth_Class
     !>
-    !> Transition matrix used to determine the growth of the scallop
+    !> Transition matrix used to determine the growth of the scallop. The equations are based on MN18, Appendix C
     !>
     !> @f{eqnarray*}{
     !>    \vec{\mathbf{Size}}[Grid] &=& \left| \mathbf{GrowthMatrix}[Grid] \right| \times \vec{\mathbf{Size}}[Grid] \\
@@ -322,36 +327,26 @@ MODULE Growth_Mod
     !> @returns Transition Matrix
     !> @author Keston Smith (IBSS corp) June-July 2021
     !==================================================================================================================
-    function Gen_Trans_Matrix(L_inf_mu, L_inf_sd, K_mu, K_sd, lengths)
+    function Gen_Trans_Matrix(L_inf_mu, L_inf_sd, K_mu, K_sd, lengths, method)
         implicit none
         real(dp), intent(in):: lengths(*)
         real(dp), intent(in) :: K_mu, K_sd, L_inf_mu, L_inf_sd
-        real(dp)  :: Gen_Trans_Matrix(1:num_size_classes, 1:num_size_classes)
-        real(dp), allocatable :: G(:,:)
-        integer j
+        character(*), intent(in) :: method
         character(72) file_name
+        real(dp)  :: Gen_Trans_Matrix(1:num_size_classes, 1:num_size_classes)
 
-        allocate(G(1:num_size_classes,1:num_size_classes) )
+        select case (method)
+        case ('AppxC')
+            Gen_Trans_Matrix = MN18_AppxC_Trans_Matrix(L_inf_mu, K_mu, L_inf_sd, K_sd,lengths)
+        case default
+            Gen_Trans_Matrix = MN18_AppxC_Trans_Matrix(L_inf_mu, K_mu, L_inf_sd, K_sd,lengths)
+            write(*,*) term_red, ' Unknown Matrix Method', method, ' using C', term_blk
+        endselect
 
-        G = MN18_AppxC_Trans_Matrix(L_inf_mu, K_mu, L_inf_sd, K_sd,lengths)
-        
-        ! If growth increments are assumed normally distributed the left hand tail of the distribution 
-        ! can lead to unrealistic "shrinking" transitions
-        call enforce_non_negative_growth(G)
-        do j = 1,num_size_classes
-            if (lengths(j) .gt. L_inf_mu) then
-                G(j,1:num_size_classes) = 0._dp
-                G(j,j) = 1._dp
-            endif
-        enddo
-
-        Gen_Trans_Matrix(1:num_size_classes, 1:num_size_classes) = G(1:num_size_classes, 1:num_size_classes)
-        
-        ! output transition matrix
+       ! output transition matrix
         file_name = growth_out_dir//'Growth.csv'
-        call Write_CSV(num_size_classes,num_size_classes,G,file_name,num_size_classes)
-        
-        deallocate( G )
+        call Write_CSV(num_size_classes,num_size_classes, Gen_Trans_Matrix, file_name,num_size_classes)
+
         return
     end function Gen_Trans_Matrix
 
@@ -478,17 +473,20 @@ MODULE Growth_Mod
     !>
     !> From MN18 p. 1312, 1313
     !> @f[
+    !> G(y, l_{k}, \eta, c, \sigma, \omega_k)    = H_{MN18}(X(y,k-1), \sigma, [1-c]\omega_k)\\
+    !>                                             - H_{MN18}(X(y,k),   \sigma, [1-c]\omega_k)
+    !> @f]
+    !> @f[
+    !> X(y,k) = y - \eta - (1-c)l_{k}
+    !> @f]
+    !> @f[
     !> c = 1.0 - e^{-K_{\mu} * \delta_t}
     !> @f]
     !> @f[
     !> \eta = c * L_{{\infty}_\mu}
     !> @f]
     !> @f[
-    !>    \omega_k = l_k - l_{k-1}
-    !> @f]
-    !> @f[
-    !> F_y(y, l_{k-1}, \eta, c, \sigma, \omega_k) = H_{MN18}(y - \eta - [1-c]l_{k-1}, \sigma, [1-c]\omega_k)\\
-    !>                                             - H_{MN18}(y - \eta - [1-c]l_{k}, \sigma, [1-c]\omega_k)
+    !> \omega_k = l_k - l_{k-1}
     !> @f]
     !>
     !> @param[in]        L_inf_mu [real 1x1] = mean of von Bertlanaffy asymptotic growth parameter L_inf(see HC09     eqn 1)
@@ -507,6 +505,7 @@ MODULE Growth_Mod
     function MN18_AppxC_Trans_Matrix(L_inf_mu, K_mu, L_inf_sd, K_sd, lengths)
         real(dp), INTENT(IN) :: L_inf_mu, K_mu, L_inf_sd, K_sd, lengths(num_size_classes)
         real(dp) :: MN18_AppxC_Trans_Matrix(num_size_classes, num_size_classes)
+        real(dp), allocatable :: G(:,:)
     
         ! local variables
     
@@ -514,7 +513,9 @@ MODULE Growth_Mod
         integer j, k
         real(dp) Fya, Fyb, c, eta, Ha, Hb
 
-        MN18_AppxC_Trans_Matrix = 0.
+        allocate(G(1:num_size_classes,1:num_size_classes) )
+
+        G = 0._dp
         c = 1._dp - exp(-K_mu * delta_time)
         eta = c * L_inf_mu
     
@@ -534,9 +535,29 @@ MODULE Growth_Mod
                 Ha = H_MN18(lengths(j-1) - eta - (1._dp - c) * lengths(k-1), sigma, (1._dp - c) * omega)
                 Hb = H_MN18(lengths(j-1) - eta - (1._dp - c) * lengths(k),   sigma, (1._dp - c) * omega)
                 Fyb = Ha - Hb
-                MN18_AppxC_Trans_Matrix(j-1, k-1) = Fya - Fyb
+                G(j-1, k-1) = Fya - Fyb
             enddo
         enddo
+
+        ! If growth increments are assumed normally distributed the left hand tail of the distribution 
+        ! can lead to unrealistic "shrinking" transitions
+        call enforce_non_negative_growth(G)
+        do j = 1,num_size_classes
+            if (lengths(j) > L_inf_mu) then
+                G(j,1:num_size_classes) = 0._dp
+                G(j,j) = 1._dp
+            endif
+        enddo
+
+        do k = 1, num_size_classes
+            do j = 1, num_size_classes
+                if (G(k,j) < 1.0D-14) G(k,j) = 0._dp
+            enddo
+        enddo
+
+        MN18_AppxC_Trans_Matrix = G
+
+        deallocate( G )
         return
     end function MN18_AppxC_Trans_Matrix
 
