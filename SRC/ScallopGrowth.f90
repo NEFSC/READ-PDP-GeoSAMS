@@ -10,11 +10,18 @@
 !> including( see subroutine@f${\it GenTransMat}@f$).
 !>
 !> Growth in GeoSAMS is based off of von Bertanlffy growth. 
-!> @f{eqnarray*}{
-!> \delta(u) &=& u + (L_{\infty}-u)(1-e^{-K}) \\
-!>           &=& e^{-K}u + L_{\infty}(1-e^{-K})
-!> @f}
+!>
+!> @f[
+!> \delta(u) = (L_{\infty}-u)(1-e^{-K})
+!> @f]
+!>
+!> Or from HC2009 \ref hc "[2]", equation (1)
+!> @f[
+!> L_{t} = L_{t-1} e^{-K} + L_{\infty}(1-e^{-K})
+!> @f]
+!>
 !> We assume normal distribution on @f${L_\infty}@f$ and @f$K@f$ with all distribution parameters independent. 
+!>
 !> The shell height of the ith individual at time @f$t+1@f$, @f$L_{t+1,i}@f$ depends on the random effects 
 !> (@f$\alpha_i@f$ and @f$\beta_i@f$) as well as the mean slope and intercept:
 !> @f{equation}{
@@ -25,7 +32,7 @@
 !> @f}
 !>
 !> The values of the distribution means (@f$\mu_{L_\infty}@f$ and @f$\mu_K@f$) are taken from previous work of 
-!> Hart, HC2009 \ref hc "[2]". The distribution of increments by size class as in MN18). Growth increment is given by the 
+!> Hart, HC2009. The distribution of increments by size class as in MN18). Growth increment is given by the 
 !> von Bertlanaffy growth curve
 !> 
 !> We begin by determining the scallop time to grow for a given year: 
@@ -159,7 +166,7 @@ MODULE Growth_Mod
     !>
     !> @param[in,out] growth Parameters that identify how the scallop should grow
     !> @param[in] grid Vector that identifies the geospatial locations under simulation
-    !> @param[in,out] lengths Vector of the size, length, of scallops
+    !> @param[in,out] shell_lengths Vector of the size, length, of scallops
     !> @param[in] num_ts number of time steps per year for simulation
     !> @param[in] num_sz_classes Number of size classes to set private member
     !> @param[in] domain_name Name of domain being simulate, 'MA' or 'GB'
@@ -174,12 +181,12 @@ MODULE Growth_Mod
     !> @param[in,out] weight_grams Computed combined scallop weight
     !> 
     !==================================================================================================================
-    subroutine Set_Growth(growth, grid, lengths, num_ts, num_sz_classes, dom_name, dom_area, element_area, &
+    subroutine Set_Growth(growth, grid, shell_lengths, num_ts, num_sz_classes, dom_name, dom_area, element_area, &
         &                 length_min, length_delta, file_name, start_year, state, weight_grams)
         use Data_Point_Mod
         type(Growth_Class), intent(inout) :: growth(*)
         type(Data_Vector_Class), intent(in) :: grid
-        real(dp), intent(inout) :: lengths(num_size_classes)
+        real(dp), intent(inout) :: shell_lengths(num_size_classes)
         integer, intent(in) :: num_ts
         integer, intent(in) :: num_sz_classes
         character(2), intent(in) :: dom_name
@@ -203,7 +210,7 @@ MODULE Growth_Mod
         num_time_steps = num_ts
         delta_time = 1._dp / dfloat(num_ts)
 
-        lengths(1:num_size_classes) = Set_Shell_Heights(dfloat(length_min), dfloat(length_delta))
+        shell_lengths(1:num_size_classes) = Set_Shell_Heights(dfloat(length_min), dfloat(length_delta))
 
         if(domain_name(1:2).eq.'GB')then
             do n=1,num_grids
@@ -227,8 +234,8 @@ MODULE Growth_Mod
             enddo
         endif
         do n=1, num_grids
-            growth(n)%G = Gen_Trans_Matrix(growth(n)%L_inf_mu, growth(n)%L_inf_sd, &
-            &                              growth(n)%K_mu, growth(n)%K_sd, lengths, 'AppxC')
+            growth(n)%G = Gen_Size_Trans_Matrix(growth(n)%L_inf_mu, growth(n)%L_inf_sd, &
+            &                              growth(n)%K_mu, growth(n)%K_sd, shell_lengths, 'AppxC')
         enddo
 
         Gpar(1:num_grids,1) = growth(1:num_grids)%L_inf_mu
@@ -238,16 +245,16 @@ MODULE Growth_Mod
         call Write_CSV(num_grids, growth_param_size, Gpar, growth_out_dir//'GrowthParOut.csv', num_grids)
 
         ! Establishes state from which growth simulation begins
-        state = Set_Initial_Conditions(file_name, lengths, start_year, growth)
+        state = Set_Current_State(file_name, shell_lengths, start_year, growth)
         
         ! Compute Shell Height (mm) to Meat Weight (g)
         do n = 1, num_grids
             do j = 1, num_size_classes
-                weight_grams(n,j) =  Shell_to_Weight(lengths(j), grid%posn(n)%is_closed, &
+                weight_grams(n,j) =  Shell_to_Weight(shell_lengths(j), grid%posn(n)%is_closed, &
                 &                         grid%posn(n)%z, grid%posn(n)%lat, domain_name, .false.)
             enddo
             if ( (domain_name .eq. 'GB') .and. (grid%posn(n)%mgmt_area_index .eq. 11) ) &    ! Peter Pan 
-            &    weight_grams(n,j) = Shell_to_Weight(lengths(j), grid%posn(n)%is_closed, &
+            &    weight_grams(n,j) = Shell_to_Weight(shell_lengths(j), grid%posn(n)%is_closed, &
             &                               grid%posn(n)%z, grid%posn(n)%lat, domain_name, .true.)
         enddo
         call Write_CSV(num_grids, num_size_classes, weight_grams, growth_out_dir//'WeightShellHeight.csv', num_grids)
@@ -256,10 +263,10 @@ MODULE Growth_Mod
     end subroutine Set_Growth
 
     !==================================================================================================================
-    !> @fn Set_Initial_Conditions
+    !> @fn Set_Current_State
     !> @public @memberof Growth_Class
     !>
-    !> Sets initial conditions based on data in file_name
+    !> Sets the current state of scallop density based on data in file_name
     !> 
     !> @param[in] file_name The name of the file to read input conditions
     !> @param[in] length The length, or size, of the shell, in mm
@@ -267,14 +274,14 @@ MODULE Growth_Mod
     !> @param[in] growth Expected??? scallop growth
     !> @returns Current scallop state, in scallops per square meter
     !==================================================================================================================
-    function Set_Initial_Conditions(file_name, length, start_year, growth)
+    function Set_Current_State(file_name, length, start_year, growth)
         use globals
         
         implicit none
         character(*), intent(in) :: file_name
         type(Growth_Class), intent(in):: growth(*)
         integer, intent(in):: start_year
-        real(dp) :: Set_Initial_Conditions(1:num_grids, 1:num_size_classes)
+        real(dp) :: Set_Current_State(1:num_grids, 1:num_size_classes)
         real(dp), intent(in):: length(*)
         integer n, j, num_rows, num_cols
         character(72) buffer
@@ -303,13 +310,13 @@ MODULE Growth_Mod
             enddo
         enddo
 
-        Set_Initial_Conditions = state_local
+        Set_Current_State = state_local
 
         return
-    endfunction Set_Initial_Conditions
+    endfunction Set_Current_State
 
     !==================================================================================================================
-    !> @fn Gen_Trans_Matrix
+    !> @fn Gen_Size_Trans_Matrix
     !> @public @memberof Growth_Class
     !>
     !> Transition matrix used to determine the growth of the scallop. The equations are based on MN18, Appendix C
@@ -323,38 +330,38 @@ MODULE Growth_Mod
     !> @param[in] L_inf_std   [real 1x1] =  standard deviation of von Bertlanaffy asymptotic growth parameter  L_inf(see HC09 eqn 1)
     !> @param[in] K_mu        [real 1x1] =  mean of  mean of von Bertlanaffy asymptotic growth parameter K(see HC09 eqn 1)
     !> @param[in] K_sd        [real 1x1] =  standard deviation of von Bertlanaffy growth parameter K(see HC09 eqn 1)
-    !> @param[in] lengths for each size class
+    !> @param[in] shell_lengths for each size class
     !> @returns Transition Matrix
     !> @author Keston Smith (IBSS corp) June-July 2021
     !==================================================================================================================
-    function Gen_Trans_Matrix(L_inf_mu, L_inf_sd, K_mu, K_sd, lengths, method)
+    function Gen_Size_Trans_Matrix(L_inf_mu, L_inf_sd, K_mu, K_sd, shell_lengths, method)
         implicit none
-        real(dp), intent(in):: lengths(*)
+        real(dp), intent(in):: shell_lengths(*)
         real(dp), intent(in) :: K_mu, K_sd, L_inf_mu, L_inf_sd
         character(*), intent(in) :: method
         character(72) file_name
-        real(dp)  :: Gen_Trans_Matrix(1:num_size_classes, 1:num_size_classes)
+        real(dp)  :: Gen_Size_Trans_Matrix(1:num_size_classes, 1:num_size_classes)
 
         select case (method)
         case ('AppxC')
-            Gen_Trans_Matrix = MN18_AppxC_Trans_Matrix(L_inf_mu, K_mu, L_inf_sd, K_sd,lengths)
+            Gen_Size_Trans_Matrix = MN18_AppxC_Trans_Matrix(L_inf_mu, K_mu, L_inf_sd, K_sd,shell_lengths)
         case default
-            Gen_Trans_Matrix = MN18_AppxC_Trans_Matrix(L_inf_mu, K_mu, L_inf_sd, K_sd,lengths)
+            Gen_Size_Trans_Matrix = MN18_AppxC_Trans_Matrix(L_inf_mu, K_mu, L_inf_sd, K_sd,shell_lengths)
             write(*,*) term_red, ' Unknown Matrix Method', method, ' using C', term_blk
         endselect
 
        ! output transition matrix
         file_name = growth_out_dir//'Growth.csv'
-        call Write_CSV(num_size_classes,num_size_classes, Gen_Trans_Matrix, file_name,num_size_classes)
+        call Write_CSV(num_size_classes,num_size_classes, Gen_Size_Trans_Matrix, file_name,num_size_classes)
 
         return
-    end function Gen_Trans_Matrix
+    end function Gen_Size_Trans_Matrix
 
     !==================================================================================================================
     !> @fn Set_Shell_Heights
     !> @public @memberof Growth_Class
     !>
-    !> setup shell lengths intervals
+    !> setup shell shell_lengths intervals
     !> - length_min
     !> - length_min + length_delta
     !> - @f$height_{shell}(n) = length_{min} + (n-1) * length_{delta}@f$
@@ -493,7 +500,7 @@ MODULE Growth_Mod
     !> @param[in]        K_mu [real 1x1] =  mean of  mean of von Bertlanaffy asymptotic growth parameter K(see HC09 eqn 1)
     !> @param[in]        L_inf_std [real 1x1] =  standard deviation of von Bertlanaffy asymptotic growth parameter  L_inf(see HC09 eqn 1)
     !> @param[in]        K_std [real 1x1] =  standard deviation of von Bertlanaffy growth parameter K(see HC09 eqn 1)
-    !> @param[in]        lengths [real nx1] = lengths for each size class 
+    !> @param[in]        shell_lengths [real nx1] = shell_lengths for each size class 
     !>
     !> @returns G [real n x n] = size transition matrix estimated under the assumption of uniform size 
     !>                  distribution within size interval and growth distribution evaluated at 
@@ -502,8 +509,8 @@ MODULE Growth_Mod
     !>
     !> history:  Written by keston Smith (IBSS corp) May 2021
     ! -----------------------------------------------------------------------
-    function MN18_AppxC_Trans_Matrix(L_inf_mu, K_mu, L_inf_sd, K_sd, lengths)
-        real(dp), INTENT(IN) :: L_inf_mu, K_mu, L_inf_sd, K_sd, lengths(num_size_classes)
+    function MN18_AppxC_Trans_Matrix(L_inf_mu, K_mu, L_inf_sd, K_sd, shell_lengths)
+        real(dp), INTENT(IN) :: L_inf_mu, K_mu, L_inf_sd, K_sd, shell_lengths(num_size_classes)
         real(dp) :: MN18_AppxC_Trans_Matrix(num_size_classes, num_size_classes)
         real(dp), allocatable :: G(:,:)
     
@@ -521,19 +528,19 @@ MODULE Growth_Mod
     
         do k = 2, num_size_classes
             ! calculate interval omega and midpoint
-            omega = lengths(k) - lengths(k-1) 
+            omega = shell_lengths(k) - shell_lengths(k-1) 
             ! average size
-            omega_avg = (lengths(k) + lengths(k-1)) / 2._dp
+            omega_avg = (shell_lengths(k) + shell_lengths(k-1)) / 2._dp
     
             ! calculate increment mean,mu->evaluated at midpoint and increment standard deviation sigma->evaluated at midpoint   
             call increment_mean_std(L_inf_mu, K_mu, L_inf_sd, K_sd, omega_avg, mu, sigma)
             do j = k, num_size_classes
-                Ha = H_MN18(lengths(j) - eta - (1._dp - c) * lengths(k-1), sigma, (1._dp - c) * omega)
-                Hb = H_MN18(lengths(j) - eta - (1._dp - c) * lengths(k),   sigma, (1._dp - c) * omega)
+                Ha = H_MN18(shell_lengths(j) - eta - (1._dp - c) * shell_lengths(k-1), sigma, (1._dp - c) * omega)
+                Hb = H_MN18(shell_lengths(j) - eta - (1._dp - c) * shell_lengths(k),   sigma, (1._dp - c) * omega)
                 Fya = Ha - Hb
     
-                Ha = H_MN18(lengths(j-1) - eta - (1._dp - c) * lengths(k-1), sigma, (1._dp - c) * omega)
-                Hb = H_MN18(lengths(j-1) - eta - (1._dp - c) * lengths(k),   sigma, (1._dp - c) * omega)
+                Ha = H_MN18(shell_lengths(j-1) - eta - (1._dp - c) * shell_lengths(k-1), sigma, (1._dp - c) * omega)
+                Hb = H_MN18(shell_lengths(j-1) - eta - (1._dp - c) * shell_lengths(k),   sigma, (1._dp - c) * omega)
                 Fyb = Ha - Hb
                 G(j-1, k-1) = Fya - Fyb
             enddo
@@ -543,7 +550,7 @@ MODULE Growth_Mod
         ! can lead to unrealistic "shrinking" transitions
         call enforce_non_negative_growth(G)
         do j = 1,num_size_classes
-            if (lengths(j) > L_inf_mu) then
+            if (shell_lengths(j) > L_inf_mu) then
                 G(j,1:num_size_classes) = 0._dp
                 G(j,j) = 1._dp
             endif
