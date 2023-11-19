@@ -1,10 +1,17 @@
 !>----------------------------------------------------------------------------------------------------------------
 !> @page page3 Mortality_Mod
 !>
-!> @section sec3 Mortality Class
+!> @section Msec1 Mortality Class
 !>
-!> This file describes the Mortality Class
+!> Scallop mortality is caused by both natural and man-made means, i.e. fishing.
+!>  - For MA, natural mortality is determined to be 25%
+!>  - For GB, it is at 20%
 !>
+!> @subsection Msubsec1 Ring_Size_Selectivity
+!> Assign size class fishing selectivity based on increasing logistic function
+!> @f[
+!> Selectivity = \frac{1}{ 1 + e^{ a - b * height_{shell}}}
+!> @f]
 !>
 !>----------------------------------------------------------------------------------------------------------------
 module Mortality_Mod
@@ -56,19 +63,19 @@ module Mortality_Mod
     !>
     !> @param[in,out] mortality Parameters that identify how the scallop should reaches mortality
     !> @param[in] grid Vector that identifies the geospatial locations under simulation
-    !> @param[in] l Vector of the size, or length, of scallops
+    !> @param[in] shell_lengths Vector of the size, or length, of scallops
     !> @param[in] num_sz_classes Number of size classes to set private member
     !> @param[in] domain_name Name of domain being simulate, 'MA' or 'GB'
     !> @param[in] domain_area,Size of domain under consideration in square meters
     !> @param[in] element_area, Size of grid in square meters
     !> 
     !==================================================================================================================
-    subroutine Set_Mortality(mortality, grid, l, num_sz_classes, dom_name, dom_area, element_area)
+    subroutine Set_Mortality(mortality, grid, shell_lengths, num_sz_classes, dom_name, dom_area, element_area)
         use Data_Point_Mod 
         
         type(Mortality_Class), intent(inout):: mortality(*)
         type(Data_Vector_Class), intent(in) :: grid
-        real(dp), intent(in):: l(*)
+        real(dp), intent(in):: shell_lengths(*)
         integer, intent(in) :: num_sz_classes
         character(2), intent(in) :: dom_name
         real(dp), intent(in) :: dom_area
@@ -84,7 +91,7 @@ module Mortality_Mod
         grid_area_sqm = element_area
         !
         ! Load parameters for fishing selectivity
-        !(1+exp(.1*(l-70))).^-1)
+        !(1+exp(.1*(shell_lengths-70))).^-1)
         call Read_CSV(num_years, 4, 'Data/FYrGBcGBoMA.csv', fishing_by_region, max_num_years)
         !Assign Fishing presure, selectivity parameters, and Natural Mortality from CASA model
         if (domain_name .eq. 'MA') then
@@ -103,7 +110,7 @@ module Mortality_Mod
         do j = 1, num_grids
             !3!
             mortality(j)%natural_mortality(1:num_size_classes) = mortality(j)%natural_mort_adult
-            mortality(j)%alpha(1:num_size_classes) =  1. - 1. / ( 1. + exp( - a*( l(1:num_size_classes) - h0 ) ) )  
+            mortality(j)%alpha(1:num_size_classes) =  1. - 1. / ( 1. + exp( - a*( shell_lengths(1:num_size_classes) - h0 ) ) )  
         enddo
 
         yr_index = 0
@@ -129,7 +136,7 @@ module Mortality_Mod
             ! These values get overwritten for each value of year
             ! Furthermore, these values are overwritten again in the MAIN LOOP
             ! Moved to MAIN LOOP, especially since mortality(j)%is_closed was being used before it was set
-            !!! mortality(j)%select(1:num_size_classes) = Ring_Size_Selectivity(year, l(1:num_size_classes), &
+            !!! mortality(j)%select(1:num_size_classes) = Ring_Size_Selectivity(year, shell_lengths(1:num_size_classes), &
             !!! &                                          mortality(j)%is_closed)
             ! TODO should this equation be included in MAIN LOOP as well, it is dependent on %select
             ! Moved to MAIN LOOP
@@ -141,11 +148,11 @@ module Mortality_Mod
             !1!if(domain_name(1:2).eq.'MA') mortality(j)%incidental = 0.05D0
             !!! Moved to MAIN LOOP
             !!!do k = 1, num_size_classes
-            !!!    if(l(k).gt.90.)mortality(j)%discard(k) = 0.D0
+            !!!    if(shell_lengths(k).gt.90.)mortality(j)%discard(k) = 0.D0
             !!!enddo
             !3!mortality(j)%is_closed = grid%posn(j)%is_closed
             !3!mortality(j)%natural_mortality(1:num_size_classes) = mortality(j)%natural_mort_adult
-            !3!mortality(j)%alpha(1:num_size_classes) =  1. - 1. / ( 1. + exp( - a*( l(1:num_size_classes) - h0 ) ) )  
+            !3!mortality(j)%alpha(1:num_size_classes) =  1. - 1. / ( 1. + exp( - a*( shell_lengths(1:num_size_classes) - h0 ) ) )  
             mortality(1:num_grids)%year(yr_index) = year
         enddo
         mortality(1:num_grids)%num_years = yr_index
@@ -317,19 +324,22 @@ module Mortality_Mod
         real(dp), intent(out):: cnt10, cnt10to20, cnt20to30, cnt30plus
         real(dp) PoundsPerScallop(num_size_classes)
         integer j
-        real, parameter :: GramsPerPound = 453.592
+        real(dp), parameter :: GramsPerPound = 453.592
         PoundsPerScallop(1:num_size_classes) = meat_weight_grams(1:num_size_classes)/GramsPerPound
         cnt10 = 0.
         cnt10to20 = 0.
         cnt20to30 = 0.
         cnt30plus = 0.
         do j = 1, num_size_classes
-            if( PoundsPerScallop(j).gt.1./10. )cnt10 = cnt10+scallops_per_sqm(j)
-            if((PoundsPerScallop(j).le.1./10.).and.(PoundsPerScallop(j).gt.1./20.))&
-                cnt10to20 = cnt10to20+scallops_per_sqm(j)
-            if((PoundsPerScallop(j).le.1./20.).and.(PoundsPerScallop(j).gt.1./30.))&
-                cnt20to30 = cnt20to30+scallops_per_sqm(j)
-            if(PoundsPerScallop(j).le.1./30.)cnt30plus = cnt30plus+scallops_per_sqm(j)
+            if( PoundsPerScallop(j).gt. 1._dp/10._dp ) then
+                cnt10 = cnt10 + scallops_per_sqm(j)
+            elseif (PoundsPerScallop(j) .gt. 1._dp/20._dp) then
+                cnt10to20 = cnt10to20 + scallops_per_sqm(j)
+            elseif (PoundsPerScallop(j).gt. 1._dp/30._dp) then
+                cnt20to30 = cnt20to30 + scallops_per_sqm(j)
+            else
+                cnt30plus = cnt30plus + scallops_per_sqm(j)
+            endif
         enddo
 
         return
