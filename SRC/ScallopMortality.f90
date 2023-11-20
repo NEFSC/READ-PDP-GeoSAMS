@@ -98,12 +98,10 @@ module Mortality_Mod
             mortality(1:num_grids)%natural_mort_adult = .25D0
             mortality(1:num_grids)%incidental = 0.05D0
             h0 = 65._dp
-        elseif (domain_name .eq. 'GB') then
+        else
             mortality(1:num_grids)%natural_mort_adult = .2D0
             mortality(1:num_grids)%incidental = 0.1D0
             h0 = 70._dp
-        else
-            PRINT *, term_red, 'UNKNOWN DOMAIN NAME', domain_name, term_blk
         endif
         a = 0.1D0
         mortality(1:num_grids)%is_closed = grid%posn(1:num_grids)%is_closed
@@ -571,9 +569,7 @@ module Mortality_Mod
         if(domain_name(1:2).eq.'MA')then
             recruit_density = sum(state(1:max_rec_ind)) * domain_area_sqm/(10.**6)
             mortality%natural_mort_juv = max( mortality%natural_mort_adult , exp(-9.701_dp + 1.093_dp * log(recruit_density)) )
-        endif
-        
-        if(domain_name(1:2).eq.'GB')then
+        else
             recruit_density = sum(state(1:max_rec_ind)) * domain_area_sqm/(10.**6)
             mortality%natural_mort_juv = max( mortality%natural_mort_adult , exp(-10.49_dp + 1.226_dp * log(recruit_density)) )
         endif

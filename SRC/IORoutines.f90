@@ -234,7 +234,7 @@ integer function Load_Grid(grid, domain_name)
     close(63)
     num_grids=n
 
-    if (domain_name(1:2).eq.'GB')then
+    if (domain_name .eq. 'GB')then
         grid%posn(1:num_grids)%is_closed = .TRUE.
         do n=1,num_grids
             if( any ((/grid%posn(n)%mgmt_area_index.eq.8, grid%posn(n)%mgmt_area_index.eq.5,&
@@ -242,8 +242,7 @@ integer function Load_Grid(grid, domain_name)
                 grid%posn(n)%is_closed = .FALSE.
             endif
         enddo
-    endif
-    if (domain_name(1:2).eq.'MA')then
+    else
         grid%posn(1:num_grids)%is_closed = .FALSE.
         do n=1,num_grids
             if( any ((/ grid%posn(n)%mgmt_area_index.eq.3, grid%posn(n)%mgmt_area_index.eq.4,&
