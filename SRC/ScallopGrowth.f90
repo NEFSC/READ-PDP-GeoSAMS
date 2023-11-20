@@ -124,13 +124,13 @@
 !>----------------------------------------------------------------------------------------------------------------
 MODULE Growth_Mod
     use globals
-    implicit none
+        implicit none
     integer, parameter :: growth_param_size = 4
 
     !> @class Growth_Class
     !> 
     !> Subroutines that determine expected growth of scallops
-    type Growth_Class
+        type Growth_Class
         !> @public @memberof Growth_Class
         !> Asymptotic size mean
         real(dp) L_inf_mu 
@@ -212,31 +212,23 @@ MODULE Growth_Mod
 
         shell_lengths(1:num_size_classes) = Set_Shell_Heights(dfloat(length_min), dfloat(length_delta))
 
-        if(domain_name(1:2).eq.'GB')then
+        if(domain_name .eq. 'GB')then
             do n=1,num_grids
-                call Get_Growth_GB(grid%posn(n)%z, grid%posn(n)%lat, grid%posn(n)%is_closed, growth(n)%L_inf_mu, growth(n)%K_mu)
-                growth(n)%L_inf_sd = 14.5D0
-                growth(n)%K_sd = .12D0
-                if( grid%posn(n)%mgmt_area_index .eq. 11 ) then
-                    !Peter Pan region Linfity = 110.3 K = 0.423
-                    ! TODO: Why are these values held constant
-                    growth(n)%L_inf_mu=110.3D0
-                    growth(n)%K_mu=0.423D0
-                endif
+                ! TODO Get_Growth_ is expecting is_open, change to .NOT. is_closed?
+                call Get_Growth_GB(grid%posn(n)%z, grid%posn(n)%lat, grid%posn(n)%is_closed, growth(n)%L_inf_mu, growth(n)%K_mu,&
+                &                  growth(n)%L_inf_sd, growth(n)%K_sd, grid%posn(n)%mgmt_area_index)
+                growth(n)%G = Gen_Size_Trans_Matrix(growth(n)%L_inf_mu, growth(n)%L_inf_sd, &
+                &                              growth(n)%K_mu, growth(n)%K_sd, shell_lengths, 'AppxC')
+            enddo
+        else
+            do n=1,num_grids
+                ! TODO Get_Growth_ is expecting is_open, change to .NOT. is_closed?
+                call Get_Growth_MA(grid%posn(n)%z, grid%posn(n)%lat, grid%posn(n)%is_closed, growth(n)%L_inf_mu, growth(n)%K_mu,&
+                &                  growth(n)%L_inf_sd, growth(n)%K_sd)
+                growth(n)%G = Gen_Size_Trans_Matrix(growth(n)%L_inf_mu, growth(n)%L_inf_sd, &
+                &                              growth(n)%K_mu, growth(n)%K_sd, shell_lengths, 'AppxC')
             enddo
         endif
-        if(domain_name(1:2).eq.'MA')then
-            do n=1,num_grids
-                call Get_Growth_MA(grid%posn(n)%z, grid%posn(n)%lat, grid%posn(n)%is_closed, growth(n)%L_inf_mu, growth(n)%K_mu)
-                ! TODO: Why are these values held constant
-                growth(n)%L_inf_sd = 10.8D0
-                growth(n)%K_sd = .045D0
-            enddo
-        endif
-        do n=1, num_grids
-            growth(n)%G = Gen_Size_Trans_Matrix(growth(n)%L_inf_mu, growth(n)%L_inf_sd, &
-            &                              growth(n)%K_mu, growth(n)%K_sd, shell_lengths, 'AppxC')
-        enddo
 
         Gpar(1:num_grids,1) = growth(1:num_grids)%L_inf_mu
         Gpar(1:num_grids,2) = growth(1:num_grids)%L_inf_sd
@@ -388,42 +380,57 @@ MODULE Growth_Mod
         return
     endfunction Set_Shell_Heights
 
-
     !==================================================================================================================
     !>
     !> @public @memberof Growth_Class
     !>
-    !> Provides growth parameters Linf and K for Georges Bank.
+    !> Provides growth parameters L and K parameters for Georges Bank.
     !> From R code sent by Dvora July 28th 2021
     !>
     !> @param[in] depth in meters
     !> @param[in] lat Geospatial coordinate, Latitude
     !> @param[in] is_open Logical that indicates if grid is open for fishing
-    !> @param[out] Linf  von Bertlanaffy asymptotic growth parameter
-    !> @param[out] K  von Bertlanaffy asymptotic growth parameter
+    !> @param[out] L_inf_mu  von Bertlanaffy asymptotic growth parameter
+    !> @param[out] K_mu  von Bertlanaffy asymptotic growth parameter
+    !> @param[out] L_inf_sd  standard deviation von Bertlanaffy asymptotic growth parameter
+    !> @param[out] K_sd standard deviation von Bertlanaffy asymptotic growth parameter
+    !> @param[in] area_index index to indicate management area
     !==================================================================================================================
-    subroutine Get_Growth_GB(depth, lat, is_open, Linf, K)
+    subroutine Get_Growth_GB(depth, lat, is_open, L_inf_mu, K_mu, L_inf_sd, K_sd, area_index)
         real(dp), intent(in) :: depth, lat
         logical, intent(in) :: is_open
-        real(dp), intent(out) :: Linf, K
+        real(dp), intent(out) :: L_inf_mu, K_mu
+        real(dp), intent(out) :: L_inf_sd, K_sd
+        integer, intent(in) :: area_index
+
         real(dp) fixed_coef(6), random_eff(3)
         real(dp) depth_norm, latitude, intercept, slope, random_intercept, random_slope,randomCov
         real(dp) mean_start_shell_height, mean_depth, mean_lat, mean_ring2
 
         parameter(mean_start_shell_height = 94.73,  mean_depth = 72.89,  mean_lat = 41.04,  mean_ring2 = 109.576)
-        fixed_coef = (/ -34.96, 57.415, -8.51, -17.65, 0.9076, 3.741/)  !fixed effects coef
-        ! intercept, slope, coef of depth, latitude, closed/open for intercept term
-        random_eff = (/ 81.05, 51.38, -60.53 /)  !random effects, intercept, slope, cov
-        depth_norm = depth / mean_depth
-        latitude = lat/mean_lat
-        intercept = fixed_coef(1) + fixed_coef(3) * depth_norm + fixed_coef(4)*latitude + fixed_coef(5) &
-        &    * Logic_To_Double(is_open) + mean_ring2
-        slope = ( fixed_coef(2) + fixed_coef(6)* depth_norm ) / mean_start_shell_height
-        random_intercept = random_eff(1)
-        random_slope = random_eff(2) / mean_start_shell_height**2
-        randomCov = random_eff(3) / mean_start_shell_height
-        K = -log(slope) + random_slope/2. / slope**2
-        Linf = (intercept/(1.-slope)) + (intercept * random_slope / (1. - slope) + randomCov) / (1. - slope**2)
+        if (area_index .eq. 11) then
+            !Peter Pan region Linfity = 110.3 K = 0.423
+            L_inf_mu = 110.3D0
+            K_mu = 0.423D0
+        else
+            fixed_coef = (/ -34.96, 57.415, -8.51, -17.65, 0.9076, 3.741/)  !fixed effects coef
+            ! intercept, slope, coef of depth, latitude, closed/open for intercept term
+            random_eff = (/ 81.05, 51.38, -60.53 /)  !random effects, intercept, slope, cov
+            depth_norm = depth / mean_depth
+            latitude = lat/mean_lat
+            intercept = fixed_coef(1) + fixed_coef(3) * depth_norm + fixed_coef(4)*latitude + fixed_coef(5) &
+            &    * Logic_To_Double(is_open) + mean_ring2
+            slope = ( fixed_coef(2) + fixed_coef(6)* depth_norm ) / mean_start_shell_height
+            random_intercept = random_eff(1)
+            random_slope = random_eff(2) / mean_start_shell_height**2
+            randomCov = random_eff(3) / mean_start_shell_height
+
+            L_inf_mu = (intercept/(1.-slope)) + (intercept * random_slope / (1. - slope) + randomCov) / (1. - slope**2)
+            K_mu = -log(slope) + random_slope/2. / slope**2
+        endif
+
+        L_inf_sd = 10.8D0
+        K_sd = .045D0
         return
     end subroutine Get_Growth_GB
         
@@ -431,46 +438,47 @@ MODULE Growth_Mod
     !>
     !> @public @memberof Growth_Class
     !>
-    !> Provides growth parameters Linf and K for Mid Atlantic
+    !> Provides growth parameters L and K parameters for Mid Atlantic
     !> From R code sent by Dvora July 28th 2021
     !>
     !> @param[in] depth in meters
     !> @param[in] lat Geospatial coordinate, Latitude
     !> @param[in] is_open Logical that indicates if grid is open for fishing
-    !> @param[out] Linf  von Bertlanaffy asymptotic growth parameter
-    !> @param[out] K  von Bertlanaffy asymptotic growth parameter
+    !> @param[out] L_inf_mu  von Bertlanaffy asymptotic growth parameter
+    !> @param[out] K_mu  von Bertlanaffy asymptotic growth parameter
+    !> @param[out] L_inf_sd  standard deviation von Bertlanaffy asymptotic growth parameter
+    !> @param[out] K_sd standard deviation von Bertlanaffy asymptotic growth parameter
     !==================================================================================================================
-    subroutine Get_Growth_MA(depth, lat, is_open, Linf, K)
-        ! Provides growth parameters Linf and K for Mid Atlantic.
-        ! From R code sent by Dvora July 28th 2021
+    subroutine Get_Growth_MA(depth, lat, is_open, L_inf_mu, K_mu, L_inf_sd, K_sd)
         real(dp), intent(in)::depth, lat
         logical, intent(in)::is_open
-        real(dp), intent(out)::Linf,K
+        real(dp), intent(out)::L_inf_mu,K_mu
+        real(dp), intent(out) :: L_inf_sd, K_sd
+
         real(dp) fixed_coef(5),random_eff(3)
         real(dp) depth_norm, latitude, intercept, slope, random_intercept, random_slope, randomCov
         real(dp) mean_start_shell_height, mean_depth, mean_lat, mean_ring2
-        real(dp) open
+
         parameter(mean_start_shell_height = 85.74,  mean_depth = 52.79,  mean_lat = 38.99,  mean_ring2 = 106.17 )
                 fixed_coef = (/0.951,48.333,-9.53,-37.51,-2.31 /)  !fixed effects coef
         ! intercept, slope, coef of depth, latitude, closed/open for intercept term
         random_eff = (/38.35,13.27,-20.77 /)  !random effects, intercept, slope, cov 
-        if (is_open) then 
-            open = 1._dp 
-        else 
-            open = 0._dp
-        endif
         depth_norm = depth / mean_depth
         latitude = lat/mean_lat
-        intercept = fixed_coef(1)+fixed_coef(3) * depth_norm + fixed_coef(4) *latitude + fixed_coef(5) * open + mean_ring2
+        intercept = fixed_coef(1)+fixed_coef(3) * depth_norm + fixed_coef(4) *latitude &
+        &         + fixed_coef(5) * Logic_To_Double(is_open) + mean_ring2
         slope = fixed_coef(2) / mean_start_shell_height
         random_intercept = random_eff(1)
         random_slope = random_eff(2) / mean_start_shell_height**2
         randomCov = random_eff(3) / mean_start_shell_height
-        K = -log(slope) + random_slope/2./slope**2
-        Linf = (intercept / (1.-slope)) + (intercept*random_slope / (1.-slope) + randomCov) / (1.-slope**2)
+        L_inf_mu = (intercept / (1.-slope)) + (intercept*random_slope / (1.-slope) + randomCov) / (1.-slope**2)
+        K_mu = -log(slope) + random_slope/2./slope**2
+
+        L_inf_sd = 10.8D0
+        K_sd = .045D0
         return
     end subroutine Get_Growth_MA
-        
+
         
     !==================================================================================================================
     !> @fn MN18_AppxC_Trans_Matrix
