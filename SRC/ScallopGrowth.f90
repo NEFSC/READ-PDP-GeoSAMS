@@ -55,11 +55,6 @@
 !> \vec{M} = \vec{M}_{nat} + Fishing * \vec{M}_{select} + \vec{M}_{incidental} + \vec{M}_{discard}
 !> @f]
 !>
-!>      NOTE: At present discard is 20% of select
-!> @f[
-!> \vec{M} = \vec{M}_{nat} + (Fishing + 0.2) \vec{M}_{select} + \vec{M}_{incidental}
-!> @f]
-!>
 !>  - Compute new state
 !> @f[
 !> \vec{S} = \vec{S} * (1- \delta_t * \vec{M})
@@ -182,7 +177,7 @@ MODULE Growth_Mod
     !> 
     !==================================================================================================================
     subroutine Set_Growth(growth, grid, shell_lengths, num_ts, num_sz_classes, dom_name, dom_area, element_area, &
-        &                 length_min, length_delta, file_name, start_year, state, weight_grams)
+        &                 length_min, length_delta, file_name, state, weight_grams)
         use Data_Point_Mod
         type(Growth_Class), intent(inout) :: growth(*)
         type(Data_Vector_Class), intent(in) :: grid
@@ -194,7 +189,6 @@ MODULE Growth_Mod
         real(dp), intent(in) :: element_area
         integer, intent(in) :: length_min, length_delta
         character(*), intent(in) :: file_name
-        integer, intent(in):: start_year
         real(dp), intent(out):: state(1:grid%len, 1:num_sz_classes)
         real(dp), intent(inout) :: weight_grams(1:grid%len, 1:num_sz_classes)
     
@@ -211,19 +205,21 @@ MODULE Growth_Mod
         delta_time = 1._dp / dfloat(num_ts)
 
         shell_lengths(1:num_size_classes) = Set_Shell_Heights(dfloat(length_min), dfloat(length_delta))
-
+                
         if(domain_name .eq. 'GB')then
             do n=1,num_grids
-                ! TODO Get_Growth_ is expecting is_open, change to .NOT. is_closed?
-                call Get_Growth_GB(grid%posn(n)%z, grid%posn(n)%lat, grid%posn(n)%is_closed, growth(n)%L_inf_mu, growth(n)%K_mu,&
+                ! Get_Growth is expecting is_open, change to .NOT. is_closed?
+                call Get_Growth_GB(grid%posn(n)%z, grid%posn(n)%lat, .NOT. grid%posn(n)%is_closed, &
+                &                  growth(n)%L_inf_mu, growth(n)%K_mu,&
                 &                  growth(n)%L_inf_sd, growth(n)%K_sd, grid%posn(n)%mgmt_area_index)
                 growth(n)%G = Gen_Size_Trans_Matrix(growth(n)%L_inf_mu, growth(n)%L_inf_sd, &
                 &                              growth(n)%K_mu, growth(n)%K_sd, shell_lengths, 'AppxC')
             enddo
         else
             do n=1,num_grids
-                ! TODO Get_Growth_ is expecting is_open, change to .NOT. is_closed?
-                call Get_Growth_MA(grid%posn(n)%z, grid%posn(n)%lat, grid%posn(n)%is_closed, growth(n)%L_inf_mu, growth(n)%K_mu,&
+                ! Get_Growth is expecting is_open, change to .NOT. is_closed?
+                call Get_Growth_MA(grid%posn(n)%z, grid%posn(n)%lat, .NOT. grid%posn(n)%is_closed, &
+                &                  growth(n)%L_inf_mu, growth(n)%K_mu,&
                 &                  growth(n)%L_inf_sd, growth(n)%K_sd)
                 growth(n)%G = Gen_Size_Trans_Matrix(growth(n)%L_inf_mu, growth(n)%L_inf_sd, &
                 &                              growth(n)%K_mu, growth(n)%K_sd, shell_lengths, 'AppxC')
@@ -236,9 +232,9 @@ MODULE Growth_Mod
         Gpar(1:num_grids,4) = growth(1:num_grids)%K_sd
         call Write_CSV(num_grids, growth_param_size, Gpar, growth_out_dir//'GrowthParOut.csv', num_grids)
 
-        ! Establishes state from which growth simulation begins
-        state = Set_Current_State(file_name, shell_lengths, start_year, growth)
-        
+        ! Establishes state from which growth simulation begins as a f(growth(n)%L_inf_mu, length)
+        state = Set_Current_State(file_name, shell_lengths, growth)
+
         ! Compute Shell Height (mm) to Meat Weight (g)
         do n = 1, num_grids
             do j = 1, num_size_classes
@@ -266,20 +262,16 @@ MODULE Growth_Mod
     !> @param[in] growth Expected??? scallop growth
     !> @returns Current scallop state, in scallops per square meter
     !==================================================================================================================
-    function Set_Current_State(file_name, length, start_year, growth)
+    function Set_Current_State(file_name, length, growth)
         use globals
         
         implicit none
         character(*), intent(in) :: file_name
         type(Growth_Class), intent(in):: growth(*)
-        integer, intent(in):: start_year
         real(dp) :: Set_Current_State(1:num_grids, 1:num_size_classes)
         real(dp), intent(in):: length(*)
         integer n, j, num_rows, num_cols
-        character(72) buffer
         real(dp) :: state_local(1:num_grids, 1:num_size_classes) 
-
-        write(buffer,'(I6)')start_year
 
         num_rows = num_grids
         num_cols = num_size_classes
@@ -526,7 +518,7 @@ MODULE Growth_Mod
     
         real(dp) omega, mu, sigma, omega_avg
         integer j, k
-        real(dp) Fya, Fyb, c, eta, Ha, Hb
+        real(dp) Fya, Fyb, c, eta, Ha, Hb, x0, x1, w
 
         allocate(G(1:num_size_classes,1:num_size_classes) )
 
@@ -543,12 +535,17 @@ MODULE Growth_Mod
             ! calculate increment mean,mu->evaluated at midpoint and increment standard deviation sigma->evaluated at midpoint   
             call increment_mean_std(L_inf_mu, K_mu, L_inf_sd, K_sd, omega_avg, mu, sigma)
             do j = k, num_size_classes
-                Ha = H_MN18(shell_lengths(j) - eta - (1._dp - c) * shell_lengths(k-1), sigma, (1._dp - c) * omega)
-                Hb = H_MN18(shell_lengths(j) - eta - (1._dp - c) * shell_lengths(k),   sigma, (1._dp - c) * omega)
+                x0 = shell_lengths(j) - eta - (1._dp - c) * shell_lengths(k-1)
+                x1 = shell_lengths(j) - eta - (1._dp - c) * shell_lengths(k)
+                w = (1._dp - c) * omega
+                Ha = H_MN18(x0, sigma, w)
+                Hb = H_MN18(x1, sigma, w)
                 Fya = Ha - Hb
     
-                Ha = H_MN18(shell_lengths(j-1) - eta - (1._dp - c) * shell_lengths(k-1), sigma, (1._dp - c) * omega)
-                Hb = H_MN18(shell_lengths(j-1) - eta - (1._dp - c) * shell_lengths(k),   sigma, (1._dp - c) * omega)
+                x0 = shell_lengths(j-1) - eta - (1._dp - c) * shell_lengths(k-1)
+                x1 = shell_lengths(j-1) - eta - (1._dp - c) * shell_lengths(k)
+                Ha = H_MN18(x0, sigma, w)
+                Hb = H_MN18(x1, sigma, w)
                 Fyb = Ha - Hb
                 G(j-1, k-1) = Fya - Fyb
             enddo
@@ -581,7 +578,7 @@ MODULE Growth_Mod
     !> Purpose: This subroutine computes a growth increment distribution parameters under 
     !> the  assumption of von Bertlanaffy growth and normally distributed growth increments. 
     !> It is assumed that the parameters of von BernBertlanaffy growth K and L_inf have
-    !> normaldistributions.
+    !> normal distributions.
     !>
     !> @public @memberof Growth_Class
     !>
@@ -779,15 +776,9 @@ MODULE Growth_Mod
     !> @f[
     !> \vec{S} = \left| G \right| \times \vec{S} 
     !> @f]
-    !> where G is the transition matrix
     !>  - Compute overall mortality, <b>M</b>
     !> @f[
     !> \vec{M} = \vec{M}_{nat} + Fishing * \vec{M}_{select} + \vec{M}_{incidental} + \vec{M}_{discard}
-    !> @f]
-    !>
-    !>      NOTE: At present discard is 20% of select
-    !> @f[
-    !> \vec{M} = \vec{M}_{nat} + (Fishing + 0.2) \vec{M}_{nat} + \vec{M}_{incidental}
     !> @f]
     !>
     !>  - Compute new state

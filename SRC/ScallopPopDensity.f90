@@ -8,7 +8,7 @@ PROGRAM ScallopPopDensity
     !!      - B. Get Start Year
     !!      - C. Get End Year
     !!      - D. Time steps per Year
-    !!      - E. Inintial Conditions as read from Input/SimMA2000/InitialCondition.csv
+    !!      - E. Initial Conditions as read from Input/SimMA2000/InitialCondition.csv
     !!      - F. Fishing Type: can be USD, BMS, or CAS
     !!          - USD: fishing proportional to value of stock
     !!          - BMS: fishing proportional to biomass
@@ -166,7 +166,7 @@ PROGRAM ScallopPopDensity
     !
     !==================================================================================================================
     call Set_Growth(growth, grid, shell_height_mm, num_time_steps, num_size_classes, domain_name, domain_area, element_area, &
-    &              shell_len_min, shell_len_delta, file_name, start_year, state, weight_grams)
+    &              shell_len_min, shell_len_delta, file_name, state, weight_grams)
     call Set_Recruitment(recruit, num_grids, domain_name, domain_area, element_area,  is_rand_rec, num_size_classes, &
                          & growth(1:num_grids)%L_inf_mu, growth(1:num_grids)%K_mu, shell_height_mm)
     call Set_Mortality(mortality, grid, shell_height_mm, num_size_classes, domain_name, domain_area, element_area)
