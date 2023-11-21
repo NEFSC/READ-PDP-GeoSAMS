@@ -41,7 +41,7 @@
 !>
 !> For each time step, @f$\delta_t@f$
 !>  - Computes mortality based on current state.
-!>  - Computes increase in population due to recruitment, @f$\vec{R}@f$
+!>  - Computes increase in population due to recruitment, @f$\vec{R}@f$,if within recruitment months, i.e. Jan to April 10th
 !> @f[
 !> \vec{S} = \vec{S} + \delta_t\frac{\vec{R}}{RecruitDuration}
 !> @f]
@@ -768,7 +768,7 @@ MODULE Growth_Mod
     !>
     !> For each time step, @f$\delta_t@f$
     !>  - Computes mortality based on current state.
-    !>  - Computes increase in population due to recruitment, @f$\vec{R}@f$
+    !>  - Computes increase in population due to recruitment, @f$\vec{R}@f$,if within recruitment months, i.e. Jan to April 10th
     !> @f[
     !> \vec{S} = \vec{S} + \delta_t\frac{\vec{R}}{RecruitDuration}
     !> @f]
