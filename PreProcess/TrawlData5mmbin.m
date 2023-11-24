@@ -34,14 +34,13 @@ for yr=1979:2017
     j=and(year==yr,sc==3.);
     lat_t = M(j,18);
     lon_t = array2table(-table2array(M(j,19)),'VariableNames',{'lon'});
-    Year = table2array(M(j,4));
     mon = table2array(M(j,5));
     day = table2array(M(j,6));
     yd = 0 * day;
     for k=1:length(day)
         yd(k) = yearday(mon(k),day(k),0);
     end
-    DecYr_t = array2table(Year(:) + (yd(:)/365.25 ),'VariableNames',{'DecYr'});
+    DecYr_t = array2table(year(j) + yd/365.25,'VariableNames',{'DecYr'});
     z_t = M(j,21);
     x_t = array2table(xx(j),'VariableNames',{'x'});
     y_t = array2table(yy(j),'VariableNames',{'y'});
@@ -107,14 +106,13 @@ for yr=1979:2017
     j=and(year==yr,sc==3.);
     lat_t = M(j,18);
     lon_t = array2table(-table2array(M(j,19)),'VariableNames',{'lon'});
-    Year = table2array(M(j,4));
     mon = table2array(M(j,5));
     day = table2array(M(j,6));
     yd = 0 * day;
     for k=1:length(day)
         yd(k) = yearday(mon(k),day(k),0);
     end
-    DecYr_t = array2table(Year(:) + (yd(:)/365.25 ),'VariableNames',{'DecYr'});
+    DecYr_t = array2table(year(j) + yd/365.25,'VariableNames',{'DecYr'});
     z_t = M(j,21);
     x_t = array2table(xx(j),'VariableNames',{'x'});
     y_t = array2table(yy(j),'VariableNames',{'y'});
