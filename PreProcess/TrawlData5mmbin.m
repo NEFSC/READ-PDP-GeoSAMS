@@ -1,140 +1,130 @@
-
-
+%-------------------------------
+% GB
+%-------------------------------
 clear
 
-TowSqFt=6076.12*8
+TowSqFt=6076.12*8;
 MpSqft=.3048^2;
-T2M2=1/(MpSqft*TowSqFt)
- 
+T2M2=1/(MpSqft*TowSqFt);
 Detect=.4;
-DetectRS=.27;
-DetectHD=.13;
-DetectHDThreshold=2;%scallops/m^2
 
-M=csvreadK('OrigonalData/dredgetowbysize7917.csv');
+M = readtable('OriginalData/dredgetowbysize7917.csv',"FileType","text");
 
- mon=M(:,5);
- j=find(mon>0);
- M=M(j,:);
- year=M(:,4);
- sc=M(:,27);
- mon=M(:,5);
- day=M(:,6);
+mon=table2array(M(:,5));
+j=mon>0;
+M=M(j,:);
+%------- new M table ----------------------
  
- lon=-M(:,19);%GB
- j=find(lon>-70.5);
- M=M(j,:);
- year=M(:,4);
- sc=M(:,27);
- mon=M(:,5);
- day=M(:,6);
- 
- %RecM2=Rec*T2M2;
- 
- yd=0*day;
- for k=1:length(day);
-   yd(k)=yearday(mon(k),day(k),0);
-end
+lon = -table2array(M(:,19));
+j = lon>-70.5;%GB
 
-DecYr=year(:)+( yd(:)/365.25 );
+M = M(j,:);
+%------- new M table ----------------------
 
-lat=M(:,18);
-lon=-M(:,19);
+lat=table2array(M(:,18));
+lon=-table2array(M(:,19));
 [xx,yy]=ll2utm(lat,lon,19);
 
-for yr=1979:2019
- X=[];
- j=find(and(year==yr,sc==3.));
- a=M(j,30);
- sci=M(j,27);
- lat=M(j,18);
- lon=-M(j,19);
- mon=M(j,5);
- day=M(j,6);
- z=M(j,21);
- x=xx(j);y=yy(j);
- sl=3:.5:18;
- for k=1:length(day);
-   yd(k)=yearday(mon(k),day(k),0);
- end
- for k=1:length(j)
-  n=j(k);
-  X=[X;DecYr(k),x(k),y(k),lat(k),lon(k),z(k),M(n:n+30,30)'*T2M2/Detect];
- end
-flnm=['Data/bin5mm',int2str(yr),'GB.csv']
-csvwrite(flnm,X);
+year = table2array(M(:,4));
+sc = table2array(M(:,27));
 
-
-endfor
-
-
-
-
-clear
-
-TowSqFt=6076.12*8
-MpSqft=.3048^2;
-T2M2=1/(MpSqft*TowSqFt)
- 
-Detect=.4;
-DetectRS=.27;
-DetectHD=.13;
-DetectHDThreshold=2;%scallops/m^2
-
-M=csvreadK('OrigonalData/dredgetowbysize7917.csv');
-
- mon=M(:,5);
- j=find(mon>0);
- M=M(j,:);
- year=M(:,4);
- sc=M(:,27);
- mon=M(:,5);
- day=M(:,6);
- 
- lon=-M(:,19);%MA
- j=find(lon<-70.5);
- M=M(j,:);
- year=M(:,4);
- sc=M(:,27);
- mon=M(:,5);
- day=M(:,6);
- 
- %RecM2=Rec*T2M2;
- 
- yd=0*day;
- for k=1:length(day);
-   yd(k)=yearday(mon(k),day(k),0);
+for yr=1979:2017
+    fprintf( 'Working on GB Year %d\n', yr);
+    X=[];
+    j=and(year==yr,sc==3.);
+    lat_t = M(j,18);
+    lon_t = array2table(-table2array(M(j,19)),'VariableNames',{'lon'});
+    Year = table2array(M(j,4));
+    mon = table2array(M(j,5));
+    day = table2array(M(j,6));
+    yd = 0 * day;
+    for k=1:length(day)
+        yd(k) = yearday(mon(k),day(k),0);
+    end
+    DecYr_t = array2table(Year(:) + (yd(:)/365.25 ),'VariableNames',{'DecYr'});
+    z_t = M(j,21);
+    x_t = array2table(xx(j),'VariableNames',{'x'});
+    y_t = array2table(yy(j),'VariableNames',{'y'});
+    %
+    % At this point x_t, y_t would be the same as
+    % lat=table2array(M(j,18));
+    % lon=-table2array(M(j,19));
+    % [xx,yy]=ll2utm(lat,lon,19);
+    %
+    n=find(and(year==yr,sc==3.));
+    for k=1:numel(lat_t)
+        % bring in the surv_n data from size group 3 to 18, 
+        % which is in the 30 rows following sc==3
+        temp=rows2vars(array2table(table2array(M(n(k):n(k)+30,30))*T2M2/Detect));
+        X=[X;DecYr_t(k,:), x_t(k,:), y_t(k,:), lat_t(k,:), lon_t(k,:), z_t(k,:), temp(1,2:end)];
+    end
+    flnm=['Data/bin5mm',int2str(yr),'GB.csv'];
+    writetable(X,flnm,'WriteVariableNames',0);
 end
 
-DecYr=year(:)+( yd(:)/365.25 );
+%-------------------------------
+% MA
+%-------------------------------
+clear
 
-lat=M(:,18);
-lon=-M(:,19);
+TowSqFt=6076.12*8;
+MpSqft=.3048^2;
+T2M2=1/(MpSqft*TowSqFt);
+Detect=.4;
+
+M = readtable('OriginalData/dredgetowbysize7917.csv',"FileType","text");
+
+mon=table2array(M(:,5));
+j=mon>0;
+M=M(j,:);
+%------- new M table ----------------------
+
+lon = -table2array(M(:,19));
+j = lon<-70.5;%MA
+M = M(j,:);
+%------- new M table ----------------------
+
+year = table2array(M(:,4));
+mon  = table2array(M(:,5));
+day  = table2array(M(:,6));
+ 
+yd = 0 * day;
+for k=1:length(day)
+    yd(k) = yearday(mon(k), day(k), 0);
+end
+
+DecYr_t = array2table(year(:) + (yd(:)/365.25 ),'VariableNames',{'DecYr'});
+
+lat=table2array(M(:,18));
+lon=-table2array(M(:,19));
 [xx,yy]=ll2utm(lat,lon,18);
 
-for yr=1979:2019
- X=[];
- j=find(and(year==yr,sc==3.));
- a=M(j,30);
- sci=M(j,27);
- lat=M(j,18);
- lon=-M(j,19);
- mon=M(j,5);
- day=M(j,6);
- z=M(j,21);
- x=xx(j);y=yy(j);
- sl=3:.5:18;
- for k=1:length(day);
-   yd(k)=yearday(mon(k),day(k),0);
- end
- for k=1:length(j)
-  n=j(k);
-  X=[X;DecYr(k),x(k),y(k),lat(k),lon(k),z(k),M(n:n+30,30)'*T2M2/Detect];
- end
-flnm=['Data/bin5mm',int2str(yr),'MA.csv']
-csvwrite(flnm,X);
-endfor
+sc = table2array(M(:,27));
 
-
-
-
+for yr=1979:2017
+    fprintf( 'Working on MA Year %d\n', yr);
+    X=[];
+    j=and(year==yr,sc==3.);
+    lat_t = M(j,18);
+    lon_t = array2table(-table2array(M(j,19)),'VariableNames',{'lon'});
+    Year = table2array(M(j,4));
+    mon = table2array(M(j,5));
+    day = table2array(M(j,6));
+    yd = 0 * day;
+    for k=1:length(day)
+        yd(k) = yearday(mon(k),day(k),0);
+    end
+    DecYr_t = array2table(Year(:) + (yd(:)/365.25 ),'VariableNames',{'DecYr'});
+    z_t = M(j,21);
+    x_t = array2table(xx(j),'VariableNames',{'x'});
+    y_t = array2table(yy(j),'VariableNames',{'y'});
+    n=find(and(year==yr,sc==3.));
+    for k=1:numel(lat_t)
+        % bring in the surv_n data from size group 3 to 18, 
+        % which is in the 30 rows following sc==3
+        temp=rows2vars(array2table(table2array(M(n(k):n(k)+30,30))*T2M2/Detect));
+        X=[X;DecYr_t(k,:), x_t(k,:), y_t(k,:), lat_t(k,:), lon_t(k,:), z_t(k,:), temp(1,2:end)];
+    end
+    flnm=['Data/bin5mm',int2str(yr),'MA.csv'];
+    writetable(X,flnm,'WriteVariableNames',0);
+end
