@@ -1,8 +1,17 @@
 
-function SetUpICS(yr,Dom);
+function SetUpICS(yr,Dom)
 
-F=csvreadK(['Data/bin5mm',int2str(yr),Dom,'.csv']);
-%F=F(2:end,:);
+% Check if directories have been created
+if ~exist('InitialCondition', 'dir')
+  mkdir ('InitialCondition')
+end
+if ~exist(['InitialCondition' filesep 'Sim',Dom,int2str(yr)], 'dir')
+  mkdir(['InitialCondition' filesep 'Sim',Dom,int2str(yr)])
+end
+
+
+%F=csvreadK(['Data/bin5mm',int2str(yr),Dom,'.csv']);
+F = readtable(['Data/bin5mm',int2str(yr),Dom,'.csv'],"FileType","text");
 lat=table2array(F(:,4));lon=table2array(F(:,5));
 if strcmp(Dom,'MA')
   j=find(lon<-70.5);
@@ -27,7 +36,6 @@ G=zeros(nn,25);
 
 
 lat=F(:,4);lon=F(:,5);z=F(:,5);
-%addpath /home/keston/mfiles/mapping-matlab-master/latlonutm/
 x=F(:,2);y=F(:,3);
 DecYr=F(:,1);
 
@@ -98,13 +106,6 @@ for k=1:length(l)
   pause(1)
 end
 
-% Check if directories have been created
-if ~exist('InitialCondition', 'dir')
-  mkdir 'InitialCondition'
-end
-if ~exist('InitialCondition/Sim',Dom,int2str(yr), 'dir')
-  mkdir 'InitialCondition/Sim'+Dom+int2str(yr)
-end
 flnm=['InitialCondition/Sim',Dom,int2str(yr),'/InitialCondition.csv'];
 %header= ['"30 mm","35 mm","40 mm","45 mm","50 mm","55 mm","60 mm","65 mm","70 mm","75 mm","80mm","85 mm","90 mm","95 mm","100 mm","105 mm","110 mm","115 mm","120 mm","125 mm","130 mm","135mm","140mm","145mm","150mm"'];
 writecsv(G,flnm,...
