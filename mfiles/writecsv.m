@@ -8,8 +8,8 @@ if(nargin>3)
 end
 if or( nargin<3,isempty(fmt))
   fmtstr=[];
-  for k=1:m-1,
-    fmtstr,'%g, '
+  for k=1:m-1
+    fmtstr;'%g, ';
     fmtstr=[fmtstr,'%f, '];
   end
   fmtstr=[fmtstr,'%f'];

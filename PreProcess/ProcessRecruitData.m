@@ -22,7 +22,8 @@ DetectRS=.27;
 DetectHD=.13;
 DetectHDThreshold=2;%scallops/m^2
 
-F=csvreadK('OriginalData/recruitsv2.csv');
+F= readtable('OriginalData/recruitsv2.csv',"FileType","text");
+%F=csvreadK('OriginalData/recruitsv2.csv');
 %F=csvreadK('OrigonalData/recruitsv2KWS.csv');
 year=table2array(F(:,5));mon=table2array(F(:,6));day=table2array(F(:,7));
 j=find(isnan(mon+day));mon(j)=6;day(j)=21;% assign missing date to summer solstice
@@ -92,7 +93,7 @@ MinLat=[40.83333,40.83333,zeros(1,11)];
 NRS=length(RSI);
 
 flnm='Data/RecruitsUnadjusted.csv';
-F=table2array(csvreadK(flnm));
+F=table2array(readtable(flnm,'PreserveVariableNames', true));
 [N,five]=size(F);lat=F(:,2);lon=F(:,3);DecYr=F(:,1);Depth=F(:,4);Rec=F(:,5);
 G = shaperead('ShapeFiles/Shellfish_Strata.shp');
 IsRock=zeros(size(lat));
