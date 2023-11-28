@@ -190,7 +190,11 @@ PROGRAM ScallopPopDensity
             mortality(n)%discard = 0.2 * mortality(n)%select
 
             do k = 1, num_size_classes
-                if(shell_height_mm(k).gt.90.) mortality(n)%discard(k) = 0.D0
+                if (domain_name .eq. 'MA') then
+                    if(shell_height_mm(k) .gt. 90.) mortality(n)%discard(k) = 0.D0
+                else
+                    if ((shell_height_mm(k) .gt. 100.) .and. (mortality(n)%is_closed)) mortality(n)%discard(k) = 0.D0
+                endif
             !+++++++++++++++++++++++++++++++++++++++
             enddo
         enddo

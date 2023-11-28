@@ -2,7 +2,12 @@
 	"folders": [
 		{
 			"path": "."
+		},
+		{
+			"path": "../GeoSAMS"
 		}
 	],
-	"settings": {}
+	"settings": {
+		"workbench.colorTheme": "Default Dark Modern"
+	}
 }
