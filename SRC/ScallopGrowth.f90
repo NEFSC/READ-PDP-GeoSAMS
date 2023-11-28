@@ -208,8 +208,7 @@ MODULE Growth_Mod
                 
         if(domain_name .eq. 'GB')then
             do n=1,num_grids
-                ! Get_Growth is expecting is_open, change to .NOT. is_closed?
-                call Get_Growth_GB(grid%posn(n)%z, grid%posn(n)%lat, .NOT. grid%posn(n)%is_closed, &
+                call Get_Growth_GB(grid%posn(n)%z, grid%posn(n)%lat, grid%posn(n)%is_closed, &
                 &                  growth(n)%L_inf_mu, growth(n)%K_mu,&
                 &                  growth(n)%L_inf_sd, growth(n)%K_sd, grid%posn(n)%mgmt_area_index)
                 growth(n)%G = Gen_Size_Trans_Matrix(growth(n)%L_inf_mu, growth(n)%L_inf_sd, &
@@ -217,8 +216,7 @@ MODULE Growth_Mod
             enddo
         else
             do n=1,num_grids
-                ! Get_Growth is expecting is_open, change to .NOT. is_closed?
-                call Get_Growth_MA(grid%posn(n)%z, grid%posn(n)%lat, .NOT. grid%posn(n)%is_closed, &
+                call Get_Growth_MA(grid%posn(n)%z, grid%posn(n)%lat, grid%posn(n)%is_closed, &
                 &                  growth(n)%L_inf_mu, growth(n)%K_mu,&
                 &                  growth(n)%L_inf_sd, growth(n)%K_sd)
                 growth(n)%G = Gen_Size_Trans_Matrix(growth(n)%L_inf_mu, growth(n)%L_inf_sd, &
@@ -295,7 +293,7 @@ MODULE Growth_Mod
         enddo
 
         Set_Current_State = state_local
-
+        
         return
     endfunction Set_Current_State
 
@@ -381,16 +379,16 @@ MODULE Growth_Mod
     !>
     !> @param[in] depth in meters
     !> @param[in] lat Geospatial coordinate, Latitude
-    !> @param[in] is_open Logical that indicates if grid is open for fishing
+    !> @param[in] is_closed Logical that indicates if grid is closed for fishing
     !> @param[out] L_inf_mu  von Bertlanaffy asymptotic growth parameter
     !> @param[out] K_mu  von Bertlanaffy asymptotic growth parameter
     !> @param[out] L_inf_sd  standard deviation von Bertlanaffy asymptotic growth parameter
     !> @param[out] K_sd standard deviation von Bertlanaffy asymptotic growth parameter
     !> @param[in] area_index index to indicate management area
     !==================================================================================================================
-    subroutine Get_Growth_GB(depth, lat, is_open, L_inf_mu, K_mu, L_inf_sd, K_sd, area_index)
+    subroutine Get_Growth_GB(depth, lat, is_closed, L_inf_mu, K_mu, L_inf_sd, K_sd, area_index)
         real(dp), intent(in) :: depth, lat
-        logical, intent(in) :: is_open
+        logical, intent(in) :: is_closed
         real(dp), intent(out) :: L_inf_mu, K_mu
         real(dp), intent(out) :: L_inf_sd, K_sd
         integer, intent(in) :: area_index
@@ -411,7 +409,7 @@ MODULE Growth_Mod
             depth_norm = depth / mean_depth
             latitude = lat/mean_lat
             intercept = fixed_coef(1) + fixed_coef(3) * depth_norm + fixed_coef(4)*latitude + fixed_coef(5) &
-            &    * Logic_To_Double(is_open) + mean_ring2
+            &    * Logic_To_Double(is_closed) + mean_ring2
             slope = ( fixed_coef(2) + fixed_coef(6)* depth_norm ) / mean_start_shell_height
             random_intercept = random_eff(1)
             random_slope = random_eff(2) / mean_start_shell_height**2
@@ -435,15 +433,15 @@ MODULE Growth_Mod
     !>
     !> @param[in] depth in meters
     !> @param[in] lat Geospatial coordinate, Latitude
-    !> @param[in] is_open Logical that indicates if grid is open for fishing
+    !> @param[in] is_closed Logical that indicates if grid is closed for fishing
     !> @param[out] L_inf_mu  von Bertlanaffy asymptotic growth parameter
     !> @param[out] K_mu  von Bertlanaffy asymptotic growth parameter
     !> @param[out] L_inf_sd  standard deviation von Bertlanaffy asymptotic growth parameter
     !> @param[out] K_sd standard deviation von Bertlanaffy asymptotic growth parameter
     !==================================================================================================================
-    subroutine Get_Growth_MA(depth, lat, is_open, L_inf_mu, K_mu, L_inf_sd, K_sd)
+    subroutine Get_Growth_MA(depth, lat, is_closed, L_inf_mu, K_mu, L_inf_sd, K_sd)
         real(dp), intent(in)::depth, lat
-        logical, intent(in)::is_open
+        logical, intent(in)::is_closed
         real(dp), intent(out)::L_inf_mu,K_mu
         real(dp), intent(out) :: L_inf_sd, K_sd
 
@@ -458,7 +456,7 @@ MODULE Growth_Mod
         depth_norm = depth / mean_depth
         latitude = lat/mean_lat
         intercept = fixed_coef(1)+fixed_coef(3) * depth_norm + fixed_coef(4) *latitude &
-        &         + fixed_coef(5) * Logic_To_Double(is_open) + mean_ring2
+        &         + fixed_coef(5) * Logic_To_Double(is_closed) + mean_ring2
         slope = fixed_coef(2) / mean_start_shell_height
         random_intercept = random_eff(1)
         random_slope = random_eff(2) / mean_start_shell_height**2
@@ -818,7 +816,7 @@ MODULE Growth_Mod
         
         Rindx = minloc( abs(recruit%year(1:recruit%n_year)-year ), 1)
         Rec(1:num_size_classes) = 0.D0
-        Rec(1:recruit%max_rec_ind) = recruit%recruitment(RIndx)/float(recruit%max_rec_ind)
+        Rec(1:recruit%max_rec_ind) = recruit%recruitment(Rindx)/float(recruit%max_rec_ind)
         
         do nt = 1, num_time_steps
             t = float(nt)*delta_time
