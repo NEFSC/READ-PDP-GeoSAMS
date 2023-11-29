@@ -25,7 +25,9 @@ F=F1;
 [~,j]=sort(F(:,4));
 F=F(j,:);
 
-M=load(['Grids/',Dom,'squares.csv']);E=M(:,1:4);
+M=load(['Grids/',Dom,'squares.csv']);
+E=M(:,1:4);
+
 M=csvread(['Grids/',Dom,'xyzLatLon.csv']);
 xg=M(:,1);yg=M(:,2);long=M(:,5);latg=M(:,4);zg=M(:,3);
 nn=length(xg);

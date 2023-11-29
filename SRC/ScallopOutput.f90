@@ -164,16 +164,21 @@ module Output_Mod
         &               = region_avg(ntStart:ntStop, 1:num_size_classes, grid%posn(grid_n)%mgmt_area_index) &
         &                 + state_at_time_step(1:num_time_steps, 1:num_size_classes)
         if ((year.eq.stop_year).and.(grid_n.eq.num_grids))then
+            ! write headings for next section
+            write(*,*) '     Region #  Area Count    # non-zero '
+            write(*,*) '     --------  ------------   ----------'
+          
             management_area_count(1:Nregion) = 0
             do j = 1, num_grids
                 management_area_count(grid%posn(j)%mgmt_area_index) = management_area_count(grid%posn(j)%mgmt_area_index)+1
             enddo
             do j = 1, Nregion
-                write(*, *)'j = ', j, management_area_count(j)
                 StateTSx(1:ntsX, 1:num_size_classes) = region_avg(1:ntsX, 1:num_size_classes, j)/float(management_area_count(j))
+                write(*, *) j, management_area_count(j), count(StateTSx/=0)
                 write(buf, '(I6)') j
                 call Write_CSV(ntsX, num_size_classes, StateTSx, output_dir//'ManagementRegion'//trim(adjustl(buf))//'.csv', ntsX)
             enddo
+            write(*,*) '----------------------------------------------'
         endif
 
         ! sample mid calander year for output

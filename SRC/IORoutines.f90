@@ -233,6 +233,7 @@ integer function Load_Grid(grid, domain_name)
     end do
     close(63)
     num_grids=n
+    write(*,*) 'READ ', n, 'LINE(S)'
 
     if (domain_name .eq. 'GB')then
         grid%posn(1:num_grids)%is_closed = .TRUE.

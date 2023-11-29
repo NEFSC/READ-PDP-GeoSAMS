@@ -57,7 +57,7 @@
 !>
 !>  - Compute new state
 !> @f[
-!> \vec{S} = \vec{S} * (1- \delta_t * \vec{M})
+!> \vec{S_{t+1}} = \vec{S_t} * (1- \delta_t * \vec{M})
 !> @f]
 !>
 !> \anchor mn 1. MN18 refers to Miller, R. B. and Nottingham, 2018, "Improved approximations for estimation of size-transition 
@@ -781,7 +781,7 @@ MODULE Growth_Mod
     !>
     !>  - Compute new state
     !> @f[
-    !> \vec{S} = \vec{S} * (1- \delta_t * \vec{M})
+    !> \vec{S_{t+1}} = \vec{S_t} * (1- \delta_t * \vec{M})
     !> @f]
     !> 
     !> @param[in] growth object to hold growth simulation paramters

@@ -194,8 +194,9 @@ module Recruit_Mod
                 ! TODO replace magic number 100
                 tmp = Random_Recruits(year, year, 100)
             else
-                call Read_Scalar_Field(rec_input_dir//'Sim'//domain_name//trim(adjustl(buf))//'/KrigingEstimate.txt',tmp, num_grids)
+                call Read_Scalar_Field(rec_input_dir//'Sim'//domain_name//trim(adjustl(buf))//'/KrigingEstimate.txt',tmp, n_grids)
             endif
+            write(*,*) term_blu, 'RECRUIT GRIDS:', n_grids, term_blk
             do j = 1,num_grids
                 recruit(j)%recruitment(year_index) = tmp(j)
                 recruit(j)%year(year_index) = year

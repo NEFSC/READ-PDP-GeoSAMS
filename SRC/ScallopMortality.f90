@@ -549,7 +549,7 @@ module Mortality_Mod
     !>
     !> Finally
     !> @f[
-    !> mort_{nat} = (\alpha) mort_{juv} + (1-\alpha) mort_{adult}
+    !> mort_{nat} = \alpha * mort_{juv} + (1-\alpha) mort_{adult}
     !> @f]
     !> 
     !> @param[in] recruit
@@ -566,11 +566,10 @@ module Mortality_Mod
         ! Find the total sum of scallops per sq meter x region area yields total estimate of scallops, 
         ! recruit_density is the number of scallops in millions
 
+        recruit_density = sum(state(1:max_rec_ind)) * domain_area_sqm/(10.**6)
         if(domain_name(1:2).eq.'MA')then
-            recruit_density = sum(state(1:max_rec_ind)) * domain_area_sqm/(10.**6)
             mortality%natural_mort_juv = max( mortality%natural_mort_adult , exp(-9.701_dp + 1.093_dp * log(recruit_density)) )
         else
-            recruit_density = sum(state(1:max_rec_ind)) * domain_area_sqm/(10.**6)
             mortality%natural_mort_juv = max( mortality%natural_mort_adult , exp(-10.49_dp + 1.226_dp * log(recruit_density)) )
         endif
         
