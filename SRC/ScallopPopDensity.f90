@@ -194,7 +194,6 @@ PROGRAM ScallopPopDensity
         !- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - 
         do n = 1, num_grids
         !!!do n = 22, 22
-            write(*,*) 'START', n, num_grids
             !- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - 
             !  a. Compute new state
             !- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - 
@@ -204,7 +203,6 @@ PROGRAM ScallopPopDensity
             !  b. Compute regional average
             !- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - 
             !!!call Scallop_Output_Regional_Avg(year, state_at_time_step, grid, n, mid_year_sample(n,:))
-            write(*,*) 'END',n, num_grids
         enddo  
         !- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
         !  iii. ouput annual data

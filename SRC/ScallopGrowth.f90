@@ -877,8 +877,6 @@ MODULE Growth_Mod
         Rec(1:recruit%max_rec_ind) = recruit%recruitment(Rindx)/float(recruit%max_rec_ind)
 
         write( stateFileName,"(A,I4,A)") growth_out_dir//'State', year, '.csv'
-        write (*,*) 'FILENAME: ',stateFileName
-        
         do nt = 1, num_time_steps
             ! Computes mortality based on current state
             !!!call Mortality_Density_Dependent(recruit%max_rec_ind, mortality, state)

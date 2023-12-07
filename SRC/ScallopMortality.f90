@@ -598,7 +598,6 @@ module Mortality_Mod
         recruits = sum(state(1:num_size_classes)) * domain_area_sqm/(10.**6)
         if(domain_name(1:2).eq.'MA')then
             mortality%natural_mort_juv = max( mortality%natural_mort_adult , exp(1.093_dp * log(recruits) - 9.701_dp) )
-            !mortality%natural_mort_juv = exp(1.093_dp * log(recruits) - 9.701_dp)
         else
             mortality%natural_mort_juv = max( mortality%natural_mort_adult , exp(1.226_dp * log(recruits) - 10.49_dp ))
         endif

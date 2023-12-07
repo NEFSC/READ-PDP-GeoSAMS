@@ -6,7 +6,7 @@ Time steps per Year = 52
 #Initial Conditions = InitialCondition/SimMA2000/InitialCondition.csv
 Initial Conditions = Data/bin5mm2000MA.csv
 # Fishing can be USD, BMS, or, CAS
-Fishing = BMS
+Fishing = USD
 #Number Monte Carlo = 50
 #Recruitment Start Day = 1.
 #Recruitment Finish Day = 90.
