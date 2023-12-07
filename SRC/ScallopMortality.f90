@@ -16,6 +16,7 @@
 !>----------------------------------------------------------------------------------------------------------------
 module Mortality_Mod
     use globals
+    use Data_Point_Mod, only : num_dimensions
     implicit none
 
     !> @class Mortality_Class
@@ -81,7 +82,7 @@ module Mortality_Mod
         real(dp), intent(in) :: dom_area
         real(dp), intent(in) :: element_area
         integer yr_index, j, num_years, year
-        real(dp) fishing_by_region(max_num_years, 4), a, h0
+        real(dp) fishing_by_region(max_num_years, 4), length_0
 
         !! initalize private members
         num_grids = grid%len
@@ -89,28 +90,36 @@ module Mortality_Mod
         domain_name = dom_name
         domain_area_sqm = dom_area
         grid_area_sqm = element_area
+
+        do j=1, num_grids
+            mortality(j)%mgmt_area_index = grid%posn(j)%mgmt_area_index
+        enddo
+
         !
         ! Load parameters for fishing selectivity
         !(1+exp(.1*(shell_lengths-70))).^-1)
-        call Read_CSV(num_years, 4, 'Data/FYrGBcGBoMA.csv', fishing_by_region, max_num_years)
-        !Assign Fishing presure, selectivity parameters, and Natural Mortality from CASA model
+
+        !Assign Fishing pressure, selectivity parameters, and Natural Mortality from CASA model
         if (domain_name .eq. 'MA') then
             mortality(1:num_grids)%natural_mort_adult = .25D0
             mortality(1:num_grids)%incidental = 0.05D0
-            h0 = 65._dp
+            length_0 = 65._dp
         else
             mortality(1:num_grids)%natural_mort_adult = .2D0
             mortality(1:num_grids)%incidental = 0.1D0
-            h0 = 70._dp
+            length_0 = 70._dp
         endif
-        a = 0.1D0
+
+        !a = 0.1D0
         mortality(1:num_grids)%is_closed = grid%posn(1:num_grids)%is_closed
         do j = 1, num_grids
             !3!
             mortality(j)%natural_mortality(1:num_size_classes) = mortality(j)%natural_mort_adult
-            mortality(j)%alpha(1:num_size_classes) =  1. - 1. / ( 1. + exp( - a*( shell_lengths(1:num_size_classes) - h0 ) ) )  
+            mortality(j)%alpha(1:num_size_classes) =  1._dp &
+            &     - 1._dp / ( 1._dp + exp( - ( shell_lengths(1:num_size_classes)/10._dp - length_0 ) ) )  
         enddo
 
+        call Read_CSV(num_years, 4, 'Data/FYrGBcGBoMA.csv', fishing_by_region, size(fishing_by_region,1))
         yr_index = 0
         !!!do year = 1975, 2019
         ! these years match what is in 'Data/FYrGBcGBoMA.csv'
@@ -150,7 +159,7 @@ module Mortality_Mod
             !!!enddo
             !3!mortality(j)%is_closed = grid%posn(j)%is_closed
             !3!mortality(j)%natural_mortality(1:num_size_classes) = mortality(j)%natural_mort_adult
-            !3!mortality(j)%alpha(1:num_size_classes) =  1. - 1. / ( 1. + exp( - a*( shell_lengths(1:num_size_classes) - h0 ) ) )  
+            !3!mortality(j)%alpha(1:num_size_classes) =  1. - 1. / ( 1. + exp( - a*( shell_lengths(1:num_size_classes) - length_0 ) ) )  
             mortality(1:num_grids)%year(yr_index) = year
         enddo
         mortality(1:num_grids)%num_years = yr_index
@@ -164,10 +173,10 @@ module Mortality_Mod
     !>
     !> Purpose: Assign size class fishing selectivity based on increasing logistic function
     !> @f[
-    !> Selectivity = \frac{1}{ 1 + e^{ a - b * height_{shell}}}
+    !> Selectivity = \frac{1}{ 1 + e^{ a - b * length_{shell}}}
     !> @f]
     !>
-    !> @param[in] shell_height (real(dp))    length n vector of shell lengths
+    !> @param[in] shell_length (real(dp))    length n vector of shell lengths
     !> @param[in] a, b         (real(dp))    parameters of logistic selectivity curve
     !> @param[in] year      (integer)	Year to determine if this is before 2005 (3.5" rings) or after (4" rings)
     !> @param[in] is_closed true if grid is closed to fishing
@@ -176,10 +185,10 @@ module Mortality_Mod
     !> 
     !> @returns  length num_size_classes vector of selectivity
     !==================================================================================================================
-    elemental function Ring_Size_Selectivity(year, shell_height, is_closed)
+    elemental function Ring_Size_Selectivity(year, shell_length, is_closed)
         implicit none
         integer, intent(in) :: year
-        real(dp), intent(in)::shell_height
+        real(dp), intent(in)::shell_length
         logical, intent(in) :: is_closed
         real(dp) Ring_Size_Selectivity
 
@@ -203,7 +212,7 @@ module Mortality_Mod
         
             endif
         endif
-        Ring_Size_Selectivity = 1.D0 / ( 1.D0 + exp( a - b * shell_height ) )
+        Ring_Size_Selectivity = 1.D0 / ( 1.D0 + exp( a - b * shell_length ) )
 
     endfunction Ring_Size_Selectivity
 
@@ -227,8 +236,8 @@ module Mortality_Mod
     function Set_Fishing(fishing_type, year, state, weight_grams, mortality)
         implicit none
         integer, intent(in):: year
-        real(dp), intent(in):: state(num_grids,  * ), weight_grams(num_grids,  * )
-        type(Mortality_Class), INTENT(IN):: mortality( * )
+        real(dp), intent(in):: state(num_dimensions, *), weight_grams(num_dimensions, * )
+        type(Mortality_Class), INTENT(IN):: mortality(*)
         real(dp) :: Set_Fishing( num_grids )
         character(*), intent(in):: fishing_type !> < string inputs
         integer Mindx, n
@@ -244,7 +253,7 @@ module Mortality_Mod
                 &           catch_open, catch_closed, state, weight_grams)
             case('BMS')
                 Set_Fishing(1:num_grids) = Set_Fishing_Effort_Weight_X(mortality, TotalCatch, 1.D0, 1.D0, &
-                &           catch_open, catch_closed, state,weight_grams(1:num_grids, 1:num_size_classes)/10.**6)
+                &           catch_open, catch_closed, state,weight_grams)
             case('CAS')
                 Set_Fishing(1:num_grids) = mortality(1:num_grids)%fishing_effort(Mindx)!CASA Fishing
             case default
@@ -253,9 +262,11 @@ module Mortality_Mod
                 &    '.  Using spatially constant fishing_effort from CASA model'
         end select
         !enforce no fishing on Closed Area 2 North
-        do n = 1, num_grids
-            if ((domain_name(1:2).eq.'GB').and.(mortality(n)%mgmt_area_index.eq.6)) Set_Fishing(n) = 0.D0
-        enddo
+        if (domain_name(1:2).eq.'GB') then
+            do n = 1, num_grids
+                if (mortality(n)%mgmt_area_index.eq.6) Set_Fishing(n) = 0.D0
+            enddo
+        endif
 
         return
     endfunction Set_Fishing
@@ -288,12 +299,18 @@ module Mortality_Mod
         real(dp) cnt10, cnt10to20, cnt20to30, cnt30plus
         real(dp) ScallopPrice(50, 5);
         integer NPriceYears, indx
-        real, parameter :: GramsPerPound = 453.592
 
-        !'"decmal year", "U10", "10-20", "20-30", "30+"';
-        call Read_CSV(NPriceYears, 5, 'Data/ScallopPrice.csv', ScallopPrice, 50)
+        ! convert weight in grams  to count per pount and sort
         call Scallops_To_Counts(scallops_per_sqm, meat_weight_grams, cnt10, cnt10to20, cnt20to30, cnt30plus)
+
+        ! Read in price per pound
+        !'"decmal year", "U10", "10-20", "20-30", "30+"';
+        call Read_CSV(NPriceYears, 5, 'Data/ScallopPrice.csv', ScallopPrice, size(ScallopPrice,1))
+
+        ! Find index into ScallopPrice for the current year
         indx = minloc( abs( float(year)-ScallopPrice(1:NPriceYears, 1)  ), 1  )
+
+        ! Find total dollar amount of scallops
         Cash_Money = cnt10 * ScallopPrice(indx, 2)+cnt10to20 * ScallopPrice(indx, 3)+&
                     cnt20to30 * ScallopPrice(indx, 4)+cnt30plus * ScallopPrice(indx, 5)
         return
@@ -322,8 +339,7 @@ module Mortality_Mod
         real(dp), intent(out):: cnt10, cnt10to20, cnt20to30, cnt30plus
         real(dp) PoundsPerScallop(num_size_classes)
         integer j
-        real(dp), parameter :: GramsPerPound = 453.592
-        PoundsPerScallop(1:num_size_classes) = meat_weight_grams(1:num_size_classes)/GramsPerPound
+        PoundsPerScallop(1:num_size_classes) = meat_weight_grams(1:num_size_classes)/grams_per_pound
         cnt10 = 0.
         cnt10to20 = 0.
         cnt20to30 = 0.
@@ -351,57 +367,63 @@ module Mortality_Mod
     !> @public @memberof Mortality_Class
     !> Purpose: Set proportional rate of fishing mortality, fishing_effort, based on monetary value of catch. The at each grid
     !> point scallops are sorted into size bins U10.10-20, 20-30, 30+.  The price for each size class is loaded 
-    !> for the year and the monatary value of scallops is determined at each grid point.  Fishing effort is 
+    !> for the year and the monetary value of scallops is determined at each grid point.  Fishing effort is 
     !> to be porportional to the value of scallops.  This version has seperate catches for closed and open areas. 
     !> 
     !> @param[in] year (integer) current year
     !> @param[in] mortality (mortality mod) see main program
     !> @param[in] catch
     !> @param[in] catch_open (real(dp)) Total catch in open areas in Metric Tons in year
-    !> @param[in] catch_closed (real(dp)) Catch in closed areas in Metric Tons in year
+    !> @param[in] catch_closed (real(dp)) catch in closed areas in Metric Tons in year
     !> @param[in] state current amount of scallops per square meter
     !> @param[in] weight_grams (real(dp)) Weight of scallop by node and size class
     !>
     !> Output:
     !>   fishing_effort based on monetary value (real(dp)) [num_grids] rate of fishing mortality
     !==================================================================================================================
-    function Set_Fishing_Effort_Weight_USD(year, mortality, Catch, catch_open, catch_closed, state, weight_grams)
+    function Set_Fishing_Effort_Weight_USD(year, mortality, catch, catch_open, catch_closed, state, weight_grams)
         implicit none
         integer j
-        real(dp), intent(in):: Catch, catch_open, catch_closed, weight_grams(num_grids,  * ), state(num_grids,  * )
+        real(dp), intent(in):: catch, catch_open, catch_closed, weight_grams(num_dimensions,*), state(num_dimensions,*)
         integer, intent(in):: year
         real(dp) :: Set_Fishing_Effort_Weight_USD( num_grids )
         type(Mortality_Class), INTENT(IN):: mortality( * )
-        real(dp) lambda, USD(num_grids), SWI(num_grids), C, Cclosed, Copen, Sopen, Sclosed
-    
-        lambda = 1.0
+        real(dp) total_catch_per_dollar, Cclosed, Copen, total_dollars_open, total_dollars_closed
+        real(dp) USD_per_sqm(num_grids) ! was just USD
+        real(dp) total_weight_lbs(num_grids) ! was SWI
+        real(dp) scallops_per_sqm(num_size_classes)
+        real(dp) total_dollars( num_grids )
+
         do j = 1, num_grids
-            USD(j) = Cash_Money(year, mortality(j)%select(1:num_size_classes) * state(j, 1:num_size_classes), &
-            &              weight_grams(j, 1:num_size_classes))    
-            SWI(j) = sum( mortality(j)%select(1:num_size_classes) * state(j, 1:num_size_classes)  *  &
-            &             weight_grams(j, 1:num_size_classes)/(10.D0**6) )
+            scallops_per_sqm = mortality(j)%select(1:num_size_classes) * state(j, 1:num_size_classes)
+            USD_per_sqm(j) = Cash_Money(year, scallops_per_sqm, weight_grams(j, 1:num_size_classes))
+            ! TODO Cash is determined for $/pound, this next line is using total weight in grams
+            ! total_weight_lbs(j) = sum( mortality(j)%select(1:num_size_classes) * state(j, 1:num_size_classes)  *  &
+            ! &             weight_grams(j, 1:num_size_classes)/(10.D0**6) )
+            ! FIXED with GramsPerPound
+            total_weight_lbs(j) = sum(scallops_per_sqm * weight_grams(j, 1:num_size_classes) / grams_per_pound)
         enddo
+
+        total_dollars = USD_per_sqm * total_weight_lbs * grid_area_sqm
         if (domain_name .eq. 'MA') then
-            C = Catch / sum(   USD(1:num_grids)  *  SWI(1:num_grids)  * grid_area_sqm   )
-            Set_Fishing_Effort_Weight_USD(1:num_grids) = C  *  USD(1:num_grids) 
+            total_catch_per_dollar = catch / sum(total_dollars)
+            Set_Fishing_Effort_Weight_USD(1:num_grids) = total_catch_per_dollar  *  USD_per_sqm(1:num_grids) 
         else
-            Sopen = sum( USD(1:num_grids)  *  SWI(1:num_grids)  * grid_area_sqm &
-            &       * (1._dp - Logic_To_Double(mortality(1:num_grids)%is_closed)) )
-            Sclosed = sum( USD(1:num_grids)  *  SWI(1:num_grids)  * grid_area_sqm &
-            &       * Logic_To_Double( mortality(1:num_grids)%is_closed) )
-            if(Sopen.le.0.)Sopen = 1.
-            if(Sclosed.le.0.)Sclosed = 1.
-            Cclosed = catch_closed / Sclosed
-            Copen = catch_open / Sopen
+            total_dollars_open = sum( total_dollars * (1._dp - Logic_To_Double(mortality(1:num_grids)%is_closed)))
+            total_dollars_closed = sum( total_dollars * Logic_To_Double( mortality(1:num_grids)%is_closed) )
+            if (total_dollars_open .le. 0.) total_dollars_open = 1.
+            if (total_dollars_closed .le. 0.) total_dollars_closed = 1.
+            Cclosed = catch_closed / total_dollars_closed
+            Copen = catch_open / total_dollars_open
             do j = 1, num_grids
                 if(mortality(j)%is_closed) then
-                    Set_Fishing_Effort_Weight_USD(j) = Cclosed  *  USD(j) 
+                    Set_Fishing_Effort_Weight_USD(j) = Cclosed  *  USD_per_sqm(j) 
                 else 
-                    Set_Fishing_Effort_Weight_USD(j) = Copen  *  USD(j) 
+                    Set_Fishing_Effort_Weight_USD(j) = Copen  *  USD_per_sqm(j) 
                 endif
             enddo
         endif
-        return
+    return
     endfunction Set_Fishing_Effort_Weight_USD
     
     !==================================================================================================================
@@ -416,37 +438,39 @@ module Mortality_Mod
     !> @param[in] catch
     !> @param[in] alpha, beta
     !> @param[in] catch_open (real(dp)) Total catch in open areas in Metric Tons in year
-    !> @param[in] catch_closed (real(dp)) Catch in closed areas in Metric Tons in year
+    !> @param[in] catch_closed (real(dp)) catch in closed areas in Metric Tons in year
     !> @param[in] state current amount of scallops per square meter
     !> @param[in] weight_grams (real(dp)) Weight of scallop by node and size class
     !>
     !> @returns fishing_effort  based on weight (real(dp)) [num_grids] rate of fishing mortality
     !==================================================================================================================
-    function Set_Fishing_Effort_Weight_X(mortality, Catch, alpha, beta, catch_open, catch_closed, state, weight_grams)
+    function Set_Fishing_Effort_Weight_X(mortality, catch, alpha, beta, catch_open, catch_closed, state, weight_grams)
         implicit none
         integer j
-        real(dp), intent(in):: state(num_grids,  * ), weight_grams(num_grids,  * ), catch_open, catch_closed, Catch, alpha, beta
+        real(dp), intent(in):: state(num_dimensions,*),weight_grams(num_dimensions,*),catch_open,catch_closed,catch,alpha,beta
         real(dp) Set_Fishing_Effort_Weight_X( num_grids )
         type(Mortality_Class), INTENT(IN):: mortality( * )
-        real(dp) SI(num_grids), SWI(num_grids), tmp(num_grids)
+        real(dp) SI(num_grids), tmp(num_grids)
+        real(dp) total_weight_grams(num_grids) ! was SWI
         real(dp) SIclosed, SWIclosed, SIopen, SWIopen, Cclosed, Copen
-    
+
         do j = 1, num_grids
             SI(j) = sum( mortality(j)%select(1:num_size_classes) * state(j, 1:num_size_classes) )
-            if(SI(j).le.0.)SI(j) = 1.D0
-            SWI(j) = sum( mortality(j)%select(1:num_size_classes) * weight_grams(j, 1:num_size_classes) &
+            if(SI(j) .le. 0.) SI(j) = 1.D0
+            total_weight_grams(j) = sum( mortality(j)%select(1:num_size_classes) * (weight_grams(j, 1:num_size_classes)/10._dp**6) &
             &        * state(j, 1:num_size_classes) )
         enddo
     
         if (domain_name .eq. 'MA') then
-            tmp(1:num_grids) = SWI(1:num_grids)**alpha  / SI(1:num_grids)**beta
+            tmp(1:num_grids) = total_weight_grams(1:num_grids)**alpha  / SI(1:num_grids)**beta
             Set_Fishing_Effort_Weight_X(1:num_grids) = &
-            &    tmp(1:num_grids) * Catch / sum( grid_area_sqm * tmp(1:num_grids) * SWI(1:num_grids) )
+            &    tmp(1:num_grids) * catch / sum( grid_area_sqm * tmp(1:num_grids) * total_weight_grams(1:num_grids) )
         else
-            SWIopen = sum(  SWI(1:num_grids)  * grid_area_sqm * (1._dp - Logic_To_Double(mortality(1:num_grids)%is_closed))  )
-            SWIclosed = sum( SWI(1:num_grids)  * grid_area_sqm * Logic_To_Double( mortality(1:num_grids)%is_closed)  )
-            SIopen = sum(  SI(1:num_grids)  * grid_area_sqm * (1._dp - Logic_To_Double(mortality(1:num_grids)%is_closed))  )
-            SIclosed = sum( SI(1:num_grids)  * grid_area_sqm * Logic_To_Double( mortality(1:num_grids)%is_closed)  )
+            SWIopen = sum( total_weight_grams(1:num_grids) &
+            &               * grid_area_sqm * (1._dp - Logic_To_Double(mortality(1:num_grids)%is_closed)))
+            SWIclosed = sum(total_weight_grams(1:num_grids) * grid_area_sqm * Logic_To_Double( mortality(1:num_grids)%is_closed))
+            SIopen = sum(SI(1:num_grids)  * grid_area_sqm * (1._dp - Logic_To_Double(mortality(1:num_grids)%is_closed)) )
+            SIclosed = sum(SI(1:num_grids)  * grid_area_sqm * Logic_To_Double( mortality(1:num_grids)%is_closed)  )
     
             if(SIopen.le.0.)SIopen = 1.
             if(SIclosed.le.0.)SIclosed = 1.
@@ -457,9 +481,9 @@ module Mortality_Mod
             Copen = catch_open / SWIopen
             do j = 1, num_grids
                 if(mortality(j)%is_closed) then
-                    Set_Fishing_Effort_Weight_X(j) = Cclosed  *  SWI(j) 
+                    Set_Fishing_Effort_Weight_X(j) = Cclosed  *  total_weight_grams(j) 
                 else
-                    Set_Fishing_Effort_Weight_X(j) = Copen  *  SWI(j)
+                    Set_Fishing_Effort_Weight_X(j) = Copen  *  total_weight_grams(j)
                 endif
             enddo
         endif
@@ -487,10 +511,10 @@ module Mortality_Mod
         logical, save :: first_call = .true.
         integer, save :: yr_indx = 1
         integer, save :: num_years = num_years_max
-        !write(*,*)'GTC',first_call,yr_indx,num_years,yr_indx
+
         if (first_call) then
             !regional landings in metric tons
-            call Read_CSV(num_years,4,'Data/Landings_75-19nh.csv',M,num_years_max)
+            call Read_CSV(num_years,4,'Data/Landings_75-19nh.csv',M,size(M,1))
             first_call = .false.
         endif
         
@@ -515,12 +539,11 @@ module Mortality_Mod
     !==================================================================================================================
     !> @public @memberof Mortality_Class
     !>
-    !> Computes the total number of scallops, <b>S</b>, in millions. Then determines a mortality based 
-    !> on the following equations taking into consideration the relationship between juvenile natural mortality 
-    !> and adult natural mortality.
+    !> Computes the total number of scallops, <b>S</b>, in millions. 
+    !> Then recomputes juvenile mortality as a function of S.
     !> @f[
     !> M_{juv} = \begin{cases} 
-    !>         e^{(-9.701 + 1.093 S)}, & \text{if } S > 1400 \text{ million (2030?)} \\
+    !>         e^{1.093 * log(S) - 9.701}, & \text{if } S > 1400 \text{ million (2030?)} \\
     !>         M_{adult},                                   & \text{otherwise}
     !> \end{cases}
     !> @f]
@@ -538,45 +561,52 @@ module Mortality_Mod
     !>
     !> Decreasing logistic function,
     !> @f[
-    !> \alpha(h) = 1-\frac{1}{1+e^{-h_0[h-a]}}
+    !> \alpha(length) = 1-\frac{1}{1+e^{-length_0[length-a]}}
     !> @f]
     !>
     !> TODO, current alpha equation is:
     !> @f[
-    !> \alpha(h) = 1-\frac{1}{1+e^{- a*( h-h0 )}}
+    !> \alpha(length) = 1-\frac{1}{1+e^{- a*( length/10.0-length_0 )}}
     !> @f]
     !> where @f$h_0@f$ is 65 if MA or 70 if GB
     !>
     !> Finally
     !> @f[
-    !> mort_{nat} = \alpha * mort_{juv} + (1-\alpha) mort_{adult}
+    !> M_{nat} = \alpha * M_{juv} + (1-\alpha) M_{adult}
     !> @f]
     !> 
     !> @param[in] recruit
     !> @param[in,out] mortality
     !> @param[in] state  Current state of scallop population in scallops/m^2
+    !> @returns natural_mortality and juvenile mortality
+    !>
     !==================================================================================================================------------------------------
-    subroutine Mortality_Density_Dependent(max_rec_ind, mortality, state)
+    !!!subroutine Compute_Natural_Mortality(max_rec_ind, mortality, state)
+    function Compute_Natural_Mortality(mortality, state)
         implicit none
         real(dp),intent(in) :: state(*)
         type(Mortality_Class), INTENT(INOUT):: mortality
-        integer, INTENT(IN):: max_rec_ind
-        real(dp) recruit_density
+        real(dp) Compute_Natural_Mortality(1:num_size_classes)
+        !!!integer, INTENT(IN):: max_rec_ind
+        real(dp) recruits
 
-        ! Find the total sum of scallops per sq meter x region area yields total estimate of scallops, 
-        ! recruit_density is the number of scallops in millions
+        ! Find the total sum of scallops per sq meter time region area yields total estimate of scallops, 
+        ! recruits is the number of scallops in millions
 
-        recruit_density = sum(state(1:max_rec_ind)) * domain_area_sqm/(10.**6)
+        ! Sum all sizes, not just recruitment size
+        !recruits = sum(state(1:max_rec_ind)) * domain_area_sqm/(10.**6)
+        recruits = sum(state(1:num_size_classes)) * domain_area_sqm/(10.**6)
         if(domain_name(1:2).eq.'MA')then
-            mortality%natural_mort_juv = max( mortality%natural_mort_adult , exp(-9.701_dp + 1.093_dp * log(recruit_density)) )
+            mortality%natural_mort_juv = max( mortality%natural_mort_adult , exp(1.093_dp * log(recruits) - 9.701_dp) )
+            !mortality%natural_mort_juv = exp(1.093_dp * log(recruits) - 9.701_dp)
         else
-            mortality%natural_mort_juv = max( mortality%natural_mort_adult , exp(-10.49_dp + 1.226_dp * log(recruit_density)) )
+            mortality%natural_mort_juv = max( mortality%natural_mort_adult , exp(1.226_dp * log(recruits) - 10.49_dp ))
         endif
-        
-        mortality%natural_mortality(1:num_size_classes) = mortality%alpha(1:num_size_classes) * mortality%natural_mort_juv &
+
+        Compute_Natural_Mortality(1:num_size_classes) = mortality%alpha(1:num_size_classes) * mortality%natural_mort_juv &
         &                       + (1._dp - mortality%alpha(1:num_size_classes)) * mortality%natural_mort_adult
         return
-    endsubroutine Mortality_Density_Dependent
+    endfunction Compute_Natural_Mortality
 
 end module Mortality_Mod
    

@@ -37,21 +37,23 @@ module Output_Mod
         return
     endsubroutine Set_Scallop_Output
     
-    subroutine Scallop_Output_Annual(year, samp, fishing_effort, weight_grams, mortality, recruit)
-        use Mortality_Mod, only : Mortality_Class, Mortality_Density_Dependent, Scallops_To_Counts, Cash_Money
+    !!!subroutine Scallop_Output_Annual(year, samp, fishing_effort, weight_grams, mortality, recruit)
+    subroutine Scallop_Output_Annual(year, samp, fishing_effort, weight_grams, mortality)
+        use Mortality_Mod, only : Mortality_Class, Compute_Natural_Mortality, Scallops_To_Counts, Cash_Money
         use Recruit_Mod, only : Recruitment_Class
+        use Data_Point_Mod, only : num_dimensions
         implicit none
         integer, intent(in):: year
-        real(dp), intent(in):: fishing_effort(*), weight_grams(num_grids,*), samp(num_grids,*)
+        real(dp), intent(in):: fishing_effort(*), weight_grams(num_dimensions,*), samp(num_dimensions,*)
         type(Mortality_Class), INTENT(INOUT):: mortality(*)
-        type(Recruitment_Class), INTENT(IN):: recruit(*)
+        !!!type(Recruitment_Class), INTENT(IN):: recruit(*)
         real(dp) cnts(num_grids,4)
         integer n
         real(dp) BMS(num_grids), ExplBMS(num_grids), Abundance(num_grids), DollarsPerSqM(num_grids)
         real(dp) StateCapt(num_grids) !  , Recs(num_grids, num_size_classes)
         real(dp) NatMort(num_grids, num_size_classes), FishMort(num_grids, num_size_classes)
         real(dp) TotalMort(num_grids, num_size_classes), Fslct(num_grids, num_size_classes)
-        character(72) buf
+        character(4) buf
 
         do n = 1, num_grids
             Fslct(n,1:num_size_classes) = mortality(n)%select(1:num_size_classes)
@@ -60,7 +62,9 @@ module Output_Mod
             &            * weight_grams(n,1:num_size_classes)/(10.**6) )
             Abundance(n) = sum( samp(n,1:num_size_classes) )
             StateCapt(n) = sum(samp(n,1:num_size_classes) * mortality(n)%select(1:num_size_classes))
-            call Mortality_Density_Dependent(recruit(n)%max_rec_ind, mortality(n), samp(n,1:num_size_classes))
+            !!!call Mortality_Density_Dependent(recruit(n)%max_rec_ind, mortality(n), samp(n,1:num_size_classes))
+            !!!call Mortality_Density_Dependent(mortality(n), samp(n,1:num_size_classes))
+            mortality(n)%natural_mortality(1:num_size_classes) = Compute_Natural_Mortality(mortality(n), samp(n,1:num_size_classes))
             NatMort(n,1:num_size_classes) = mortality(n)%natural_mortality(1:num_size_classes)
             FishMort(n,1:num_size_classes) = fishing_effort(n) * mortality(n)%select(1:num_size_classes)
             call Scallops_To_Counts(samp(n,1:num_size_classes) * mortality(n)%select(1:num_size_classes), &
@@ -72,24 +76,24 @@ module Output_Mod
         !  Recs(n,1:num_size_classes) = recruit(n)%RecVec(1:num_size_classes)
         enddo
         
-        write(buf, '(I6)')year
-        call Write_CSV(num_grids, num_size_classes, samp, output_dir//'State'//trim(adjustl(buf))//'.csv', num_grids)
-        call Write_CSV(num_grids, num_size_classes, TotalMort, output_dir//'TotalMortality'//trim(adjustl(buf))//'.csv', num_grids)
-        call Write_CSV(num_grids, num_size_classes, NatMort, output_dir//'NaturalMortality'//trim(adjustl(buf))//'.csv', num_grids)
-        !call Write_CSV(num_grids, num_size_classes, Recs, 'RecruitInput'//trim(adjustl(buf))//'.csv', num_grids)
-        call Write_CSV(num_grids, num_size_classes, FishMort, output_dir//'FishingMortality'//trim(adjustl(buf))//'.csv', num_grids)
-        call Write_CSV(num_grids, num_size_classes, Fslct, output_dir//'Selectivity'//trim(adjustl(buf))//'.csv', num_grids)
-        call Write_CSV(num_grids, 4, cnts, output_dir//'Cnts'//trim(adjustl(buf))//'.csv', num_grids)
-        call Write_Scalar_Field(num_grids, DollarsPerSqM, output_dir//'Dollars'//trim(adjustl(buf))//'.txt')
-        call Write_Scalar_Field(num_grids, fishing_effort, output_dir//'fishing_effort'//trim(adjustl(buf))//'.txt')
-        call Write_Scalar_Field(num_grids, BMS, output_dir//'BMS'//trim(adjustl(buf))//'.txt')
-        call Write_Scalar_Field(num_grids, ExplBMS, output_dir//'ExplBMS'//trim(adjustl(buf))//'.txt')
-        call Write_Scalar_Field(num_grids, Abundance, output_dir//'Abundance'//trim(adjustl(buf))//'.txt')
-        call Write_Scalar_Field(num_grids, StateCapt, output_dir//'IndvCaught'//trim(adjustl(buf))//'.txt')
+        write(buf,'(I4)') year
+        call Write_CSV(num_grids, num_size_classes, samp, output_dir//'State'//buf//'.csv', size(samp,1))
+        call Write_CSV(num_grids, num_size_classes, TotalMort, output_dir//'TotalMortality'//buf//'.csv', size(TotalMort,1))
+        call Write_CSV(num_grids, num_size_classes, NatMort, output_dir//'NaturalMortality'//buf//'.csv', size(NatMort,1))
+        !call Write_CSV(num_grids, num_size_classes, Recs, 'RecruitInput'//buf//'.csv', size(Recs,1))
+        call Write_CSV(num_grids, num_size_classes, FishMort, output_dir//'FishingMortality'//buf//'.csv', size(FishMort,1))
+        call Write_CSV(num_grids, num_size_classes, Fslct, output_dir//'Selectivity'//buf//'.csv', size(Fslct,1))
+        call Write_CSV(num_grids, 4, cnts, output_dir//'Cnts'//buf//'.csv', size(cnts,1))
+        call Write_Scalar_Field(num_grids, DollarsPerSqM, output_dir//'Dollars'//buf//'.txt')
+        call Write_Scalar_Field(num_grids, fishing_effort, output_dir//'fishing_effort'//buf//'.txt')
+        call Write_Scalar_Field(num_grids, BMS, output_dir//'BMS'//buf//'.txt')
+        call Write_Scalar_Field(num_grids, ExplBMS, output_dir//'ExplBMS'//buf//'.txt')
+        call Write_Scalar_Field(num_grids, Abundance, output_dir//'Abundance'//buf//'.txt')
+        call Write_Scalar_Field(num_grids, StateCapt, output_dir//'IndvCaught'//buf//'.txt')
         do n = 1, num_grids
             Fslct(n, 1:num_size_classes) = mortality(n)%select(1:num_size_classes)
         enddo
-        call Write_CSV(num_grids, num_size_classes, Fslct, output_dir//'Fslct'//trim(adjustl(buf))//'.csv', num_grids)
+        call Write_CSV(num_grids, num_size_classes, Fslct, output_dir//'Fslct'//buf//'.csv', size(Fslct,1))
         
         if(year.eq.start_year)then
             open(66,file = output_dir//'CASACompTable.txt')
@@ -135,7 +139,7 @@ module Output_Mod
         real(dp), intent(in) :: state_at_time_step(num_time_steps, num_size_classes)
         type(Data_Vector_Class), intent(in) :: grid
         real(dp), intent(out) :: mid_year_sample(num_size_classes)
-        character(72) buf
+        character(2) buf
         integer num_years, ntsX, Nregion, ntStart, ntStop, j
         real(dp), allocatable :: region_avg(:,:,:), StateTSx(:,:)
         integer, allocatable :: management_area_count(:)
@@ -175,8 +179,12 @@ module Output_Mod
             do j = 1, Nregion
                 StateTSx(1:ntsX, 1:num_size_classes) = region_avg(1:ntsX, 1:num_size_classes, j)/float(management_area_count(j))
                 write(*, *) j, management_area_count(j), count(StateTSx/=0)
-                write(buf, '(I6)') j
-                call Write_CSV(ntsX, num_size_classes, StateTSx, output_dir//'ManagementRegion'//trim(adjustl(buf))//'.csv', ntsX)
+                if (j<10) then
+                    write(buf, '(A,I1)') '0',j
+                else
+                    write(buf, '(I2)') j
+                endif
+                call Write_CSV(ntsX, num_size_classes, StateTSx, output_dir//'ManagementRegion'//buf//'.csv', size(StateTSx,1))
             enddo
             write(*,*) '----------------------------------------------'
         endif

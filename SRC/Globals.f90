@@ -17,13 +17,16 @@ module globals
     ! Error: Fortran 2003: Elemental function as initialization expression with non-integer/non-character arguments
     real(dp), parameter :: pi = 3.1415926535897931 ! 2._dp * ASIN(1._dp)
 
+    ! metric equivalents
+    real, parameter :: grams_per_pound = 453.592
+    real(dp), parameter :: meters_per_naut_mile = 1852.D0
+
     ! colors taken from https://i.stack.imgur.com/9UVnC.png
     character(*), parameter :: term_red = ''//achar(27)//'[31m'
     character(*), parameter :: term_blu = ''//achar(27)//'[94m'
     character(*), parameter :: term_yel = ''//achar(27)//'[33m'
     character(*), parameter :: term_blk = ''//achar(27)//'[0m'
 
-    real(dp), parameter :: meters_per_naut_mile = 1852.D0
 
     character(*), parameter :: init_cond_dir = 'InitialCondition/'
     character(*), parameter :: growth_out_dir = 'GrowthOutput/'

@@ -1,11 +1,12 @@
 #input file for Scallops 
 Domain Name = MA
 Beging Year = 2000
-Ending Year = 2025
+Ending Year = 2000
 Time steps per Year = 52
-Inintial Conditions = InitialCondition/SimMA2000/InitialCondition.csv
+#Initial Conditions = InitialCondition/SimMA2000/InitialCondition.csv
+Initial Conditions = Data/bin5mm2000MA.csv
 # Fishing can be USD, BMS, or, CAS
-Fishing = USD
+Fishing = BMS
 #Number Monte Carlo = 50
 #Recruitment Start Day = 1.
 #Recruitment Finish Day = 90.

@@ -143,10 +143,10 @@ module Recruit_Mod
     !! @param[in] num_sz_classes
     !! @param[in] L_inf_mu asymptotic size, average
     !! @param[in] K_mu Brody growth coefficient K, average
-    !! @param[in] shell_height_mm Shell height in millimeters
+    !! @param[in] shell_length_mm Shell height in millimeters
     !==================================================================================================================
     subroutine Set_Recruitment(recruit, n_grids, dom_name, dom_area, element_area, &
-        &                      is_random_rec, num_sz_classes, L_inf_mu, K_mu, shell_height_mm)
+        &                      is_random_rec, num_sz_classes, L_inf_mu, K_mu, shell_length_mm)
         use globals
         type(Recruitment_Class), intent(inout) :: recruit(*)
         integer, intent(in) :: n_grids
@@ -157,7 +157,7 @@ module Recruit_Mod
         integer, intent(in) :: num_sz_classes
         real(dp), intent(in) :: L_inf_mu(*)
         real(dp), intent(in) :: K_mu(*)
-        real(dp), intent(in) :: shell_height_mm(*)
+        real(dp), intent(in) :: shell_length_mm(*)
 
         integer n, j, year, year_index
         real(dp) tmp(n_grids)
@@ -182,7 +182,7 @@ module Recruit_Mod
         !       recruitment(year_index) = KrigingEstimate
         !       year(year_index) = year, i.e. 1979 + (year_idx - 1)
         !       rec_start = 1/365, or January 1st
-        !       rec_stop = 100/235, or April 10 
+        !       rec_stop = 100/365, or April 10 
         !-------------------------------------------------------------------------
         write(*,*)'Is random Rec',is_random_rec
         year_index = 0
@@ -192,15 +192,14 @@ module Recruit_Mod
             write(buf,'(I6)')year
             if (is_random_rec) then
                 ! TODO replace magic number 100
-                tmp = Random_Recruits(year, year, 100)
+                tmp = Random_Recruits(year, year, 100, is_random_rec)
             else
-                call Read_Scalar_Field(rec_input_dir//'Sim'//domain_name//trim(adjustl(buf))//'/KrigingEstimate.txt',tmp, n_grids)
+                call Read_Scalar_Field(rec_input_dir//'Sim'//domain_name//trim(adjustl(buf))//'/KrigingEstimate.txt',tmp, num_grids)
             endif
-            write(*,*) term_blu, 'RECRUIT GRIDS:', n_grids, term_blk
             do j = 1,num_grids
                 recruit(j)%recruitment(year_index) = tmp(j)
                 recruit(j)%year(year_index) = year
-                ! value as a fraction of a year, i.e. Jan 30 is 8.22% of a year
+                ! value as a fraction of a year, e.g. Jan 30 is 8.22% of a year
                 recruit(j)%rec_start = 1.D0/365.D0
                 ! TODO Why stop at April 10th
                 recruit(j)%rec_stop = april_10/365.D0
@@ -210,7 +209,7 @@ module Recruit_Mod
         do year = 2019,2025
             year_index = year_index + 1
             write(buf,'(I6)')year
-            tmp = Random_Recruits(1979, 2018, 100)
+            tmp = Random_Recruits(1979, 2018, 100, .true.)
             do j = 1,num_grids
                 recruit(j)%recruitment(year_index) = tmp(j)
                 recruit(j)%year(year_index) = year
@@ -229,12 +228,12 @@ module Recruit_Mod
             call Write_Scalar_Field(num_grids,tmp,rec_output_dir//'RecruitFieldIn'//trim(adjustl(buf))//'.txt')
         enddo
 
-        ! quantize recuitment
+        ! quantize recruitment
         open(write_dev,file = init_cond_dir//'RecIndx.txt')
         do n = 1, num_grids
             L30mm = (L_inf_mu(n) - dfloat(min_size_mm)) * exp(-K_mu(n))
             do j=1, num_size_classes 
-                if (shell_height_mm(j) .le. L30mm) then
+                if (shell_length_mm(j) .le. L30mm) then
                     recruit(n)%max_rec_ind = j
                 endif
             enddo
@@ -247,15 +246,14 @@ module Recruit_Mod
         
 
     !==================================================================================================================----------------------------
-    function Random_Recruits(start_year, stop_year, num_sim)
+    function Random_Recruits(start_year, stop_year, num_sim, rescale)
         real(dp) :: Random_Recruits(num_grids)
         integer, intent(in)::start_year, stop_year, num_sim
         real(dp), allocatable:: fishing_effort(:,:)
+        logical, intent(in) :: rescale
         real(dp) p(2), mu, sig, mus, mur
         integer num_years_int, num_sims_rand
         character(6) buf
-        logical rescale
-        rescale = .true.
         allocate(fishing_effort(1:num_grids, 1:num_sim))
         call random_number(p(1:2))
         num_years_int = start_year + floor( float(stop_year - start_year + 1) * p(1) )

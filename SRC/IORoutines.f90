@@ -55,7 +55,6 @@ subroutine Read_Input(domain_name, init_cond_file_name, start_year, stop_year, f
                     write(*,*)'Initial Conditions File Name =',init_cond_file_name
                 case('B')
                     j = scan(input_string,"=",back=.true.)
-                    write(*,* )input_string(j+1:)
                     read( input_string(j+1:),* )start_year
                 case('E')
                     j = scan(input_string,"=",back=.true.)
@@ -313,6 +312,7 @@ endsubroutine Load_Data
 
 !subroutine Read_Scalar_Field(file_name, M, vector_len)
 !Purpose: Read real valued scaler field, M, from file file_name.
+! The number of data points may be greater than desired, so limits number to vector_len.
 ! Inputs:
 !  file_name (charecter*72) number of rows in D, Gamma
 ! Outputs:
@@ -334,11 +334,11 @@ subroutine Read_Scalar_Field(file_name, M, vector_len)
 
     open(read_dev,file=trim(file_name),status='old')
     n=0
-    do
-     read(read_dev,'(a)',iostat=io) input_str
-     if (io.lt.0) exit
-     n=n+1
-     read(input_str,*) M(n)
+    do while (n < vector_len)
+        read(read_dev,'(a)',iostat=io) input_str
+        if (io.lt.0) exit
+        n=n+1
+        read(input_str,*) M(n)
     end do
     close(read_dev)
     vector_len=n
@@ -378,7 +378,7 @@ endsubroutine Write_Scalar_Field
 
 !--------------------------------------------------------------------------------------------------
 !subroutine Write_CSV(n,m,f,file_name,ndim)
-! Purpose: Write values of a matrrix (f) to a csv file in exponential format.
+! Purpose: Write values of a matrix (f) to a csv file in exponential format.
 ! Inputs:
 !  n (integer) number of rows in f 
 !  m (integer) number of columns in f
@@ -406,9 +406,34 @@ subroutine Write_CSV(n,m,f,file_name,ndim)
     do k=1,n
      !write(write_dev,trim(fmtstr)) f(k,1:m)
      write(write_dev,fmtstr) f(k,1:m)
-    enddo
+         enddo
     close(write_dev)
 endsubroutine Write_CSV
+
+subroutine Write_CSV_Append(n,m,f,file_name,ndim)
+    use globals
+    implicit none
+    integer, intent(in):: n,m,ndim
+    real(dp), intent(in):: f(ndim,*)
+    character(*), intent(in)::file_name
+    integer  k
+    character(100) buf,fmtstr
+    character(1) cr
+
+    k=m-1
+    write(buf,'(I6)')k
+    !
+    ! format for exponential format
+    !
+    fmtstr='('//trim(adjustl(buf))//'(ES14.7 : ", ") (ES14.7 : ))'//NEW_LINE(cr)
+    open(write_dev,file=file_name, status="old", position="append", action="write")
+
+    do k=1,n
+        write(write_dev,fmtstr) f(k,1:m)
+    enddo
+    close(write_dev)
+endsubroutine Write_CSV_Append
+
 !--------------------------------------------------------------------------------------------------
 !--------------------------------------------------------------------------------------------------
 !subroutine Write_CSV_H(n,m,f,file_name,ndim)

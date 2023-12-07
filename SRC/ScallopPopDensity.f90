@@ -82,19 +82,12 @@ PROGRAM ScallopPopDensity
 
     implicit none
 
-    interface
-        integer function Load_Grid(g, d)
-            use Data_Point_Mod
-            type(Data_Vector_Class), intent(inout) :: g
-            character(2), intent(in) :: d
-        endfunction
-    endinterface
-
     integer n,k !> loop count
 
     character(2) domain_name
     integer start_year, stop_year, year
     logical is_rand_rec
+    logical use_interp
     character(3) fishing_type      !> Fishing can be USD,  BMS,  or,  CAS
     integer num_time_steps
     integer num_monte_carlo_iter
@@ -114,7 +107,7 @@ PROGRAM ScallopPopDensity
 
     real(dp), allocatable :: state(:, :)
     real(dp), allocatable :: state_at_time_step(:,:)
-    real(dp), allocatable :: shell_height_mm(:)
+    real(dp), allocatable :: shell_length_mm(:)
     real(dp), allocatable :: weight_grams(:,:)
     real(dp), allocatable :: fishing_effort(:) ! rate of fishing mortality TODO units?
     real(dp), allocatable :: mid_year_sample(:,:)
@@ -123,6 +116,8 @@ PROGRAM ScallopPopDensity
     !  - I. Read Configuration file 'Scallop.inp'
     !==================================================================================================================
     call Read_Input(domain_name, file_name, start_year, stop_year, fishing_type, num_time_steps, num_monte_carlo_iter)
+    n = index(file_name, '/') - 1
+    use_interp = (file_name(1:n) == 'InitialCondition')
 
     is_rand_rec = .FALSE.
 
@@ -135,46 +130,33 @@ PROGRAM ScallopPopDensity
     write(*,'(A,I6,A,F7.4)') ' Time steps/year:', num_time_steps, ' delta ', 1._dp / dfloat(num_time_steps)
     write(*,*) '========================================================'
 
-    !==================================================================================================================
-    !  - II. Load Grid. 
-    !==================================================================================================================
-    num_grids = Load_Grid(grid, domain_name)
-    element_area = meters_per_naut_mile**2 ! convert 1 sq nm to sq m
-    domain_area = float(num_grids) * element_area
-    write(*,'(A,I7)') ' Number of Grids: ', num_grids
-    write(*,*)        ' Domain Area: ', domain_area, ' square meters'
-    
-    write(*,*) '========================================================'
-
-    allocate(growth(1:num_grids), mortality(1:num_grids), recruit(1:num_grids) )
-
-    do n=1, num_grids
-       mortality(n)%mgmt_area_index = grid%posn(n)%mgmt_area_index
-    enddo
-    
-    allocate(shell_height_mm(1:num_size_classes))
-    allocate(state(1:num_grids,1:num_size_classes), &
-    &        weight_grams(1:num_grids,1:num_size_classes), &
-    &        fishing_effort(1:num_grids),&
-    &        mid_year_sample(1:num_grids, 1:num_size_classes), &
+    ! allow for maximum expected number of grids
+    allocate(growth(1:num_dimensions), mortality(1:num_dimensions), recruit(1:num_dimensions) )
+    allocate(shell_length_mm(1:num_size_classes))
+    allocate(state(1:num_dimensions,1:num_size_classes), &
+    &        weight_grams(1:num_dimensions,1:num_size_classes))
+    allocate(fishing_effort(1:num_dimensions),&
+    &        mid_year_sample(1:num_dimensions, 1:num_size_classes), &
     &        state_at_time_step(1:num_time_steps,1:num_size_classes))
 
     !==================================================================================================================
-    !  - III. Set Growth parameters and initial conditions
+    !  - II. Set Growth parameters and initial conditions
     !
-    ! Assign recruitment by year and node, initialize shell_height_mm
+    ! Assign recruitment by year and node, initialize shell_length_mm
     !
     !==================================================================================================================
-    call Set_Growth(growth, grid, shell_height_mm, num_time_steps, num_size_classes, domain_name, domain_area, element_area, &
-    &              shell_len_min, shell_len_delta, file_name, state, weight_grams)
+    call Set_Growth(use_interp, growth, grid, shell_length_mm, num_time_steps, num_size_classes, domain_name, domain_area,&
+    &              element_area, shell_len_min, shell_len_delta, file_name, state, weight_grams)
+    num_grids = grid%len
+
     call Set_Recruitment(recruit, num_grids, domain_name, domain_area, element_area,  is_rand_rec, num_size_classes, &
-                         & growth(1:num_grids)%L_inf_mu, growth(1:num_grids)%K_mu, shell_height_mm)
-    call Set_Mortality(mortality, grid, shell_height_mm, num_size_classes, domain_name, domain_area, element_area)
+                         & growth(1:num_grids)%L_inf_mu, growth(1:num_grids)%K_mu, shell_length_mm)
+    call Set_Mortality(mortality, grid, shell_length_mm, num_size_classes, domain_name, domain_area, element_area)
     call Set_Scallop_Output( num_grids, num_size_classes, domain_name, domain_area, element_area, start_year, stop_year,&
     &                        num_time_steps)
 
     !==================================================================================================================
-    !  - VII. MAIN LOOP
+    !  - III. MAIN LOOP
     ! Start simulation
     !==================================================================================================================
     do year = start_year, stop_year
@@ -185,18 +167,25 @@ PROGRAM ScallopPopDensity
             !+++++++++++++++++++++++++++++++++++++++
             ! Moved from ScallopMortality
             !+++++++++++++++++++++++++++++++++++++++
-            mortality(n)%select = Ring_Size_Selectivity(year, shell_height_mm, mortality(n)%is_closed)
-            ! These equations included here as they are dependent on %select
-            mortality(n)%discard = 0.2 * mortality(n)%select
+            mortality(n)%select = Ring_Size_Selectivity(year, shell_length_mm, mortality(n)%is_closed)
 
+            ! These equations included here as they are dependent on %select
             do k = 1, num_size_classes
                 if (domain_name .eq. 'MA') then
-                    if(shell_height_mm(k) .gt. 90.) mortality(n)%discard(k) = 0.D0
+                    if(shell_length_mm(k) .gt. 90.) then
+                        mortality(n)%discard(k) = 0.D0
+                    else
+                        mortality(n)%discard(k) = 0.2 * mortality(n)%select(k)
+                    endif
                 else
-                    if ((shell_height_mm(k) .gt. 100.) .and. (mortality(n)%is_closed)) mortality(n)%discard(k) = 0.D0
+                    if ((shell_length_mm(k) .gt. 100.) .and. (mortality(n)%is_closed)) then
+                        mortality(n)%discard(k) = 0.D0
+                    else
+                        mortality(n)%discard(k) = 0.2 * mortality(n)%select(k)
+                    endif
                 endif
-            !+++++++++++++++++++++++++++++++++++++++
             enddo
+            !+++++++++++++++++++++++++++++++++++++++
         enddo
         fishing_effort = Set_Fishing(fishing_type, year, state, weight_grams, mortality)
 
@@ -204,6 +193,8 @@ PROGRAM ScallopPopDensity
         !  ii. For each grid
         !- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - 
         do n = 1, num_grids
+        !!!do n = 22, 22
+            write(*,*) 'START', n, num_grids
             !- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - 
             !  a. Compute new state
             !- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - 
@@ -212,15 +203,16 @@ PROGRAM ScallopPopDensity
             !- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - 
             !  b. Compute regional average
             !- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - 
-            call Scallop_Output_Regional_Avg(year, state_at_time_step, grid, n, mid_year_sample(n,:))
+            !!!call Scallop_Output_Regional_Avg(year, state_at_time_step, grid, n, mid_year_sample(n,:))
+            write(*,*) 'END',n, num_grids
         enddo  
         !- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
         !  iii. ouput annual data
         !- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-        call Scallop_Output_Annual(year, mid_year_sample, fishing_effort, weight_grams, mortality, recruit)
+        !!!call Scallop_Output_Annual(year, mid_year_sample, fishing_effort, weight_grams, mortality, recruit)
     enddo
     
-    deallocate(growth, mortality, recruit, shell_height_mm, state, weight_grams, fishing_effort, mid_year_sample)
+    deallocate(growth, mortality, recruit, shell_length_mm, state, weight_grams, fishing_effort, mid_year_sample)
 
 END PROGRAM ScallopPopDensity
 
