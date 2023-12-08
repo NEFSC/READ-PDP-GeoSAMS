@@ -90,8 +90,8 @@
 !> X(y,k) = l_y - \eta - (1-c)l_{k}
 !> @f]
 !> @f[
-!> G(y, l_{k}, \eta, c, \sigma, \omega_k)    = H_{MN18}(X(y,k-1), \sigma, \Omega)\\
-!>                                             - H_{MN18}(X(y,k),   \sigma, \Omega)
+!> G(y, k, \sigma, \omega_k) = H_{MN18}(X(y,k-1), \sigma, \Omega)\\
+!>                           - H_{MN18}(X(y,k),   \sigma, \Omega)
 !> @f]
 !>
 !> @subsubsection Gsubsubsec1 Function H(x, sigma, omega)
@@ -544,8 +544,8 @@ MODULE Growth_Mod
     !> X(y,k) = l_y - \eta - (1-c)l_{k}
     !> @f]
     !> @f[
-    !> G(y, l_{k}, \eta, c, \sigma, \omega_k)    = H_{MN18}(X(y,k-1), \sigma, \Omega)\\
-    !>                                             - H_{MN18}(X(y,k),   \sigma, \Omega)
+    !> G(y, k, \sigma, \omega_k) = H_{MN18}(X(y,k-1), \sigma, \Omega)\\
+    !>                           - H_{MN18}(X(y,k),   \sigma, \Omega)
     !> @f]
     !>
     !> @param[in]        L_inf_mu [real 1x1] = mean of von Bertlanaffy asymptotic growth parameter L_inf(see HC09     eqn 1)
@@ -871,13 +871,14 @@ MODULE Growth_Mod
             
         allocate(M(1:num_size_classes), Rec(1:num_size_classes))
         
+        ! find location of current year
         Rindx = minloc( abs(recruit%year(1:recruit%n_year)-year ), 1)
         Rec(1:num_size_classes) = 0.D0
         Rec(1:recruit%max_rec_ind) = recruit%recruitment(Rindx)/float(recruit%max_rec_ind)
 
         do nt = 1, num_time_steps
             ! Compute natural mortality based on current state
-            mortality%natural_mortality(1:num_size_classes) = Compute_Natural_Mortality(mortality, state)
+            mortality%natural_mortality(1:num_size_classes) = Compute_Natural_Mortality(recruit%max_rec_ind, mortality, state)
 
             ! adjust population state based on von Bertalanffy growth
             state(1:num_size_classes) = matmul(growth%G(1:num_size_classes, 1:num_size_classes), state(1:num_size_classes))

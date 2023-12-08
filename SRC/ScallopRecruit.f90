@@ -233,9 +233,7 @@ module Recruit_Mod
         do n = 1, num_grids
             L30mm = (L_inf_mu(n) - dfloat(min_size_mm)) * exp(-K_mu(n))
             do j=1, num_size_classes 
-                if (shell_length_mm(j) .le. L30mm) then
-                    recruit(n)%max_rec_ind = j
-                endif
+                if (shell_length_mm(j) .le. L30mm) recruit(n)%max_rec_ind = j
             enddo
             write(write_dev,*) n, L30mm, recruit(n)%max_rec_ind
         enddo

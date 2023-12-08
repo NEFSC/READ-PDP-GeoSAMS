@@ -37,8 +37,7 @@ module Output_Mod
         return
     endsubroutine Set_Scallop_Output
     
-    !!!subroutine Scallop_Output_Annual(year, samp, fishing_effort, weight_grams, mortality, recruit)
-    subroutine Scallop_Output_Annual(year, samp, fishing_effort, weight_grams, mortality)
+    subroutine Scallop_Output_Annual(year, samp, fishing_effort, weight_grams, mortality, recruit)
         use Mortality_Mod, only : Mortality_Class, Compute_Natural_Mortality, Scallops_To_Counts, Cash_Money
         use Recruit_Mod, only : Recruitment_Class
         use Data_Point_Mod, only : num_dimensions
@@ -46,7 +45,7 @@ module Output_Mod
         integer, intent(in):: year
         real(dp), intent(in):: fishing_effort(*), weight_grams(num_dimensions,*), samp(num_dimensions,*)
         type(Mortality_Class), INTENT(INOUT):: mortality(*)
-        !!!type(Recruitment_Class), INTENT(IN):: recruit(*)
+        type(Recruitment_Class), INTENT(IN):: recruit(*)
         real(dp) cnts(num_grids,4)
         integer n
         real(dp) BMS(num_grids), ExplBMS(num_grids), Abundance(num_grids), DollarsPerSqM(num_grids)
@@ -62,9 +61,8 @@ module Output_Mod
             &            * weight_grams(n,1:num_size_classes)/(10.**6) )
             Abundance(n) = sum( samp(n,1:num_size_classes) )
             StateCapt(n) = sum(samp(n,1:num_size_classes) * mortality(n)%select(1:num_size_classes))
-            !!!call Mortality_Density_Dependent(recruit(n)%max_rec_ind, mortality(n), samp(n,1:num_size_classes))
-            !!!call Mortality_Density_Dependent(mortality(n), samp(n,1:num_size_classes))
-            mortality(n)%natural_mortality(1:num_size_classes) = Compute_Natural_Mortality(mortality(n), samp(n,1:num_size_classes))
+            mortality(n)%natural_mortality(1:num_size_classes) = &
+            &           Compute_Natural_Mortality(recruit(n)%max_rec_ind, mortality(n), samp(n,1:num_size_classes))
             NatMort(n,1:num_size_classes) = mortality(n)%natural_mortality(1:num_size_classes)
             FishMort(n,1:num_size_classes) = fishing_effort(n) * mortality(n)%select(1:num_size_classes)
             call Scallops_To_Counts(samp(n,1:num_size_classes) * mortality(n)%select(1:num_size_classes), &

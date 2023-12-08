@@ -581,21 +581,18 @@ module Mortality_Mod
     !> @returns natural_mortality and juvenile mortality
     !>
     !==================================================================================================================------------------------------
-    !!!subroutine Compute_Natural_Mortality(max_rec_ind, mortality, state)
-    function Compute_Natural_Mortality(mortality, state)
+    function Compute_Natural_Mortality(max_rec_ind, mortality, state)
         implicit none
         real(dp),intent(in) :: state(*)
         type(Mortality_Class), INTENT(INOUT):: mortality
         real(dp) Compute_Natural_Mortality(1:num_size_classes)
-        !!!integer, INTENT(IN):: max_rec_ind
+        integer, INTENT(IN):: max_rec_ind
         real(dp) recruits
 
         ! Find the total sum of scallops per sq meter time region area yields total estimate of scallops, 
         ! recruits is the number of scallops in millions
 
-        ! Sum all sizes, not just recruitment size
-        !recruits = sum(state(1:max_rec_ind)) * domain_area_sqm/(10.**6)
-        recruits = sum(state(1:num_size_classes)) * domain_area_sqm/(10.**6)
+        recruits = sum(state(1:max_rec_ind)) * domain_area_sqm/(10.**6)
         if(domain_name(1:2).eq.'MA')then
             mortality%natural_mort_juv = max( mortality%natural_mort_adult , exp(1.093_dp * log(recruits) - 9.701_dp) )
         else
