@@ -72,13 +72,6 @@
 !>
 !> From MN18 p. 1312, 1313
 !> @f[
-!> G(y, l_{k}, \eta, c, \sigma, \omega_k)    = H_{MN18}(X(y,k-1), \sigma, [1-c]\omega_k)\\
-!>                                           - H_{MN18}(X(y,k),   \sigma, [1-c]\omega_k)
-!> @f]
-!> @f[
-!> X(y,k) = y - \eta - (1-c)l_{k}
-!> @f]
-!> @f[
 !> c = 1.0 - e^{-K_{\mu} * \delta_t}
 !> @f]
 !> @f[
@@ -89,6 +82,16 @@
 !> @f]
 !> @f[
 !> \omega_{k_{avg}} = \frac{l_k + l_{k-1}}{2}
+!> @f]
+!> @f[
+!> \Omega = (1 - c) \omega_k
+!> @f]
+!> @f[
+!> X(y,k) = l_y - \eta - (1-c)l_{k}
+!> @f]
+!> @f[
+!> G(y, l_{k}, \eta, c, \sigma, \omega_k)    = H_{MN18}(X(y,k-1), \sigma, \Omega)\\
+!>                                             - H_{MN18}(X(y,k),   \sigma, \Omega)
 !> @f]
 !>
 !> @subsubsection Gsubsubsec1 Function H(x, sigma, omega)
@@ -215,8 +218,6 @@ MODULE Growth_Mod
         num_time_steps = num_ts
         delta_time = 1._dp / dfloat(num_ts)
 
-        shell_lengths(1:num_size_classes) = Set_Shell_Lengths(dfloat(length_min), dfloat(length_delta))
-
         ! Load Grid. 
         if (use_interp) then
             ! Loads grid data based on TBD, use to interpolate the survey data by overlaying onto this grid
@@ -228,7 +229,6 @@ MODULE Growth_Mod
             num_grids = Load_Grid_State(grid, state, file_name)
             grid%len = num_grids
         endif
-
         element_area = meters_per_naut_mile**2 ! convert 1 sq nm to sq m
         ! initalize private members
         grid_area_sqm = element_area
@@ -239,8 +239,15 @@ MODULE Growth_Mod
         
         write(*,*) '========================================================'
 
+        ! Compute Shell Lengths (mm) and conversion to Meat Weight (g)
+        shell_lengths(1:num_size_classes) = Set_Shell_Lengths(dfloat(length_min), dfloat(length_delta))
+        do n = 1, num_grids
+            weight_grams(n,1:num_size_classes) =  Shell_to_Weight(shell_lengths(1:num_size_classes), &
+            &                grid%posn(n)%is_closed, grid%posn(n)%z, grid%posn(n)%lat, grid%posn(n)%mgmt_area_index )
+        enddo
+        call Write_CSV(num_grids, num_size_classes, weight_grams, growth_out_dir//'WeightShellHeight.csv', size(weight_grams,1))
+
         allocate(Gpar(1:num_grids, 1:growth_param_size))
-                
         ! Compute Growth Parameters, L_inf_mu, K_mu, L_inf_sd, K_sd based on depth, latitude, and if grid is closed
         if(domain_name .eq. 'GB')then
             do n=1,num_grids
@@ -285,13 +292,6 @@ MODULE Growth_Mod
                 enddo
             enddo
         endif
-
-        ! Compute Shell Length (mm) to Meat Weight (g)
-        do n = 1, num_grids
-            weight_grams(n,1:num_size_classes) =  Shell_to_Weight(shell_lengths(1:num_size_classes), &
-            &                grid%posn(n)%is_closed, grid%posn(n)%z, grid%posn(n)%lat, grid%posn(n)%mgmt_area_index )
-        enddo
-        call Write_CSV(num_grids, num_size_classes, weight_grams, growth_out_dir//'WeightShellHeight.csv', size(weight_grams,1))
 
         return 
     end subroutine Set_Growth
@@ -526,13 +526,6 @@ MODULE Growth_Mod
     !>
     !> From MN18 p. 1312, 1313
     !> @f[
-    !> G(y, l_{k}, \eta, c, \sigma, \omega_k)    = H_{MN18}(X(y,k-1), \sigma, [1-c]\omega_k)\\
-    !>                                             - H_{MN18}(X(y,k),   \sigma, [1-c]\omega_k)
-    !> @f]
-    !> @f[
-    !> X(y,k) = y - \eta - (1-c)l_{k}
-    !> @f]
-    !> @f[
     !> c = 1.0 - e^{-K_{\mu} * \delta_t}
     !> @f]
     !> @f[
@@ -543,6 +536,16 @@ MODULE Growth_Mod
     !> @f]
     !> @f[
     !> \omega_{k_{avg}} = \frac{l_k + l_{k-1}}{2}
+    !> @f]
+    !> @f[
+    !> \Omega = (1 - c) \omega_k
+    !> @f]
+    !> @f[
+    !> X(y,k) = l_y - \eta - (1-c)l_{k}
+    !> @f]
+    !> @f[
+    !> G(y, l_{k}, \eta, c, \sigma, \omega_k)    = H_{MN18}(X(y,k-1), \sigma, \Omega)\\
+    !>                                             - H_{MN18}(X(y,k),   \sigma, \Omega)
     !> @f]
     !>
     !> @param[in]        L_inf_mu [real 1x1] = mean of von Bertlanaffy asymptotic growth parameter L_inf(see HC09     eqn 1)
@@ -832,7 +835,7 @@ MODULE Growth_Mod
     !> @f]
     !>  - Compute overall mortality, <b>M</b>
     !> @f[
-    !> \vec{M} = \vec{M}_{nat} + Fishing * \vec{M}_{select} + \vec{M}_{incidental} + \vec{M}_{discard}
+    !> \vec{M} = \vec{M}_{nat} + Fishing *( \vec{M}_{select} + \vec{M}_{incidental} + \vec{M}_{discard})
     !> @f]
     !>
     !>  - Compute new state
@@ -861,50 +864,41 @@ MODULE Growth_Mod
         real(dp),intent(inout)    :: state(*)
         real(dp) :: Time_To_Grow(num_time_steps, num_size_classes)
         real(dp), intent(in) :: fishing_effort
-        real(dp), allocatable :: Stmp(:)
         real(dp) t
         integer nt
         integer Rindx
         real(dp), allocatable :: M(:), Rec(:)
-        character(130) :: stateFileName
             
-        allocate(Stmp(1:num_size_classes), M(1:num_size_classes), Rec(1:num_size_classes))
+        allocate(M(1:num_size_classes), Rec(1:num_size_classes))
         
         Rindx = minloc( abs(recruit%year(1:recruit%n_year)-year ), 1)
         Rec(1:num_size_classes) = 0.D0
         Rec(1:recruit%max_rec_ind) = recruit%recruitment(Rindx)/float(recruit%max_rec_ind)
 
-        write( stateFileName,"(A,I4,A)") growth_out_dir//'State', year, '.csv'
         do nt = 1, num_time_steps
-            ! Computes mortality based on current state
-            !!!call Mortality_Density_Dependent(recruit%max_rec_ind, mortality, state)
+            ! Compute natural mortality based on current state
             mortality%natural_mortality(1:num_size_classes) = Compute_Natural_Mortality(mortality, state)
 
-            ! Compute overall mortality
-            M(1:num_size_classes) = mortality%natural_mortality(1:num_size_classes) &
-            & + fishing_effort * ( mortality%select(1:num_size_classes) &
-            & + mortality%incidental + mortality%discard(1:num_size_classes) )
+            ! adjust population state based on von Bertalanffy growth
+            state(1:num_size_classes) = matmul(growth%G(1:num_size_classes, 1:num_size_classes), state(1:num_size_classes))
 
-            if (nt .EQ. 1) then
-                call Write_CSV(1, num_size_classes, state, stateFileName, 1)
-            endif
             t = dfloat(nt) * delta_time
-            ! adjust based on von Bertalanffy growth
-            Stmp(1:num_size_classes) = matmul(growth%G(1:num_size_classes, 1:num_size_classes), state(1:num_size_classes))
-
             ! Compute increase due to recruitment
             if ( ( t .gt. recruit%rec_start ) .and. ( t.le.recruit%rec_stop) ) &
               state(1:num_size_classes) = state(1:num_size_classes) + delta_time * Rec(1:num_size_classes) &
               &                           / (recruit%rec_stop-recruit%rec_start)
 
-            ! Compute new state
-            state(1:num_size_classes) = Stmp(1:num_size_classes) * (1.D0- delta_time * M(1:num_size_classes))
-            if (nt .GT. 1) then
-                call Write_CSV_Append(1, num_size_classes, state, stateFileName, 1)
-            endif
-            Time_To_Grow(nt, 1:num_size_classes) = state(1:num_size_classes)
+            ! Compute overall mortality
+             M(1:num_size_classes) = mortality%natural_mortality(1:num_size_classes) &
+             & + fishing_effort * ( mortality%select(1:num_size_classes) &
+             & + mortality%incidental + mortality%discard(1:num_size_classes) )
+  
+            ! Apply mortality and compute new state
+             state(1:num_size_classes) = state(1:num_size_classes) * (1.D0- delta_time * M(1:num_size_classes))
+
+             Time_To_Grow(nt, 1:num_size_classes) = state(1:num_size_classes)
         enddo
-        deallocate(Stmp, M, Rec)
+        deallocate(M, Rec)
         
         return
     endfunction Time_To_Grow
@@ -964,13 +958,14 @@ MODULE Growth_Mod
                 Shell_to_Weight = exp(-11.84 + 3.167 * log(shell_length_mm)) !for peterpan 
             else
                 Shell_to_Weight = exp(-6.69 + 2.878 * log(shell_length_mm) + (-0.0073 * depth) + (-0.073 * latitude) &
-                &                + 1.28 * Logic_To_Double(is_closed) &
-                &                + (-0.25 * (log(shell_length_mm) * Logic_To_Double(is_closed))))
+                &                + (1.28 - 0.25 * log(shell_length_mm)) * Logic_To_Double(is_closed))
             endif
         else
-            Shell_to_Weight = exp(-9.48 + 2.51 * log(shell_length_mm) - 0.1743 - 0.059094 + (-0.0033 * depth) &
-            &      + 0.021 * latitude + (-0.031 * Logic_To_Double(is_closed)) + 0.00525 * (log(shell_length_mm) * 21.) &
-            &      + (-0.000065 * (21. * depth)))
+            ! Shell_to_Weight = exp(-9.48 + 2.51 * log(shell_length_mm) - 0.1743 - 0.059094 + (-0.0033 * depth) &
+            ! &      + 0.021 * latitude + (-0.031 * Logic_To_Double(is_closed)) + 0.00525 * (log(shell_length_mm) * 21.) &
+            ! &      + (-0.000065 * (21. * depth)))
+            Shell_to_Weight = exp(-9.713394 + 2.62025 * log(shell_length_mm) - 0.004665 * depth + 0.021 * latitude &
+            &                     - 0.031 * Logic_To_Double(is_closed))
         endif
         return
     endfunction Shell_to_Weight

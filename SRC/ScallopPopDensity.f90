@@ -112,6 +112,8 @@ PROGRAM ScallopPopDensity
     real(dp), allocatable :: fishing_effort(:) ! rate of fishing mortality TODO units?
     real(dp), allocatable :: mid_year_sample(:,:)
 
+    character(130) :: stateFileName
+
     !==================================================================================================================
     !  - I. Read Configuration file 'Scallop.inp'
     !==================================================================================================================
@@ -140,10 +142,7 @@ PROGRAM ScallopPopDensity
     &        state_at_time_step(1:num_time_steps,1:num_size_classes))
 
     !==================================================================================================================
-    !  - II. Set Growth parameters and initial conditions
-    !
-    ! Assign recruitment by year and node, initialize shell_length_mm
-    !
+    !  - II. Instantiate modes, that is objects
     !==================================================================================================================
     call Set_Growth(use_interp, growth, grid, shell_length_mm, num_time_steps, num_size_classes, domain_name, domain_area,&
     &              element_area, shell_len_min, shell_len_delta, file_name, state, weight_grams)
@@ -192,8 +191,8 @@ PROGRAM ScallopPopDensity
         !- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - 
         !  ii. For each grid
         !- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - 
+        write( stateFileName,"(A,I4,A)") growth_out_dir//'State', year, '_main.csv'
         do n = 1, num_grids
-        !!!do n = 22, 22
             !- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - 
             !  a. Compute new state
             !- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - 
@@ -203,7 +202,10 @@ PROGRAM ScallopPopDensity
             !  b. Compute regional average
             !- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - 
             !!!call Scallop_Output_Regional_Avg(year, state_at_time_step, grid, n, mid_year_sample(n,:))
-        enddo  
+            if (n .eq. 22) &
+            &   call Write_CSV(num_time_steps, num_size_classes, state_at_time_step, stateFileName, size(state_at_time_step,1))
+        enddo
+
         !- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
         !  iii. ouput annual data
         !- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
