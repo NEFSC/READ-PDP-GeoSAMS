@@ -288,10 +288,8 @@ MODULE Growth_Mod
 
         ! Compute Shell Length (mm) to Meat Weight (g)
         do n = 1, num_grids
-            do j = 1, num_size_classes
-                weight_grams(n,j) =  Shell_to_Weight(shell_lengths(j), grid%posn(n)%is_closed, &
-                &                         grid%posn(n)%z, grid%posn(n)%lat, grid%posn(n)%mgmt_area_index )
-            enddo
+            weight_grams(n,1:num_size_classes) =  Shell_to_Weight(shell_lengths(1:num_size_classes), &
+            &                grid%posn(n)%is_closed, grid%posn(n)%z, grid%posn(n)%lat, grid%posn(n)%mgmt_area_index )
         enddo
         call Write_CSV(num_grids, num_size_classes, weight_grams, growth_out_dir//'WeightShellHeight.csv', size(weight_grams,1))
 
@@ -952,14 +950,12 @@ MODULE Growth_Mod
     !> @param[in] ispp Logic to indiate is Peter Pan???
     !> @returns weight in grams
     !==================================================================================================================
-    real(dp) function Shell_to_Weight(shell_length_mm, is_closed, depth, latitude, mgmt_idx)
+    elemental real(dp) function Shell_to_Weight(shell_length_mm, is_closed, depth, latitude, mgmt_idx)
         use globals
         implicit none
         real(dp) , intent(in) :: shell_length_mm, depth, latitude
         logical , intent(in) :: is_closed
         integer, intent(in) ::  mgmt_idx
-
-        Shell_to_Weight = 0._dp ! default
 
         !mm to grams
         if(domain_name.eq.'GB')then
