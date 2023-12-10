@@ -10,7 +10,7 @@
 !> @subsection Msubsec1 Ring_Size_Selectivity
 !> Assign size class fishing selectivity based on increasing logistic function
 !> @f[
-!> Selectivity = \frac{1}{ 1 + e^{ a - b * height_{shell}}}
+!> Selectivity = \frac{1}{ 1 + e^{ a - b * length_{shell}}}
 !> @f]
 !>
 !>----------------------------------------------------------------------------------------------------------------
@@ -272,7 +272,7 @@ module Mortality_Mod
     endfunction Set_Fishing
 
     !==================================================================================================================
-    !> @fn Cash_Money
+    !> @fn Dollars_Per_Pound
     !> @public @memberof Mortality_Class
     !> @brief Compute value of scallop population.
     !>
@@ -292,7 +292,7 @@ module Mortality_Mod
     !Hi Keston. Attached are landings (metric tons), value (thousand $) and price ($/lb) from 1998 to 2021. 
     !The market categories are given in 
     !NESPP4: 8002 = U10, 8003 = 10-20, 8004 = 20-30, 8005 = 30-40, 8006 = 40-50, 8007 = 50-60, 8008 = 60+, 8009 = unclassified
-    real(dp) function Cash_Money(year, scallops_per_sqm, meat_weight_grams)
+    real(dp) function Dollars_Per_Pound(year, scallops_per_sqm, meat_weight_grams)
         implicit none
         real(dp), intent(in):: scallops_per_sqm( * ), meat_weight_grams( * )
         integer, intent(in):: year
@@ -300,7 +300,7 @@ module Mortality_Mod
         real(dp) ScallopPrice(50, 5);
         integer NPriceYears, indx
 
-        ! convert weight in grams  to count per pount and sort
+        ! convert weight in grams to count per pound and sort
         call Scallops_To_Counts(scallops_per_sqm, meat_weight_grams, cnt10, cnt10to20, cnt20to30, cnt30plus)
 
         ! Read in price per pound
@@ -311,10 +311,10 @@ module Mortality_Mod
         indx = minloc( abs( float(year)-ScallopPrice(1:NPriceYears, 1)  ), 1  )
 
         ! Find total dollar amount of scallops
-        Cash_Money = cnt10 * ScallopPrice(indx, 2)+cnt10to20 * ScallopPrice(indx, 3)+&
+        Dollars_Per_Pound = cnt10 * ScallopPrice(indx, 2)+cnt10to20 * ScallopPrice(indx, 3)+&
                     cnt20to30 * ScallopPrice(indx, 4)+cnt30plus * ScallopPrice(indx, 5)
         return
-    endfunction Cash_Money
+    endfunction Dollars_Per_Pound
 
     !==================================================================================================================
     !> @public @memberof Mortality_Class
@@ -389,14 +389,14 @@ module Mortality_Mod
         real(dp) :: Set_Fishing_Effort_Weight_USD( num_grids )
         type(Mortality_Class), INTENT(IN):: mortality( * )
         real(dp) total_catch_per_dollar, Cclosed, Copen, total_dollars_open, total_dollars_closed
-        real(dp) USD_per_sqm(num_grids) ! was just USD
+        real(dp) USD_per_pound(num_grids) ! was just USD
         real(dp) total_weight_lbs(num_grids) ! was SWI
         real(dp) scallops_per_sqm(num_size_classes)
         real(dp) total_dollars( num_grids )
 
         do j = 1, num_grids
             scallops_per_sqm = mortality(j)%select(1:num_size_classes) * state(j, 1:num_size_classes)
-            USD_per_sqm(j) = Cash_Money(year, scallops_per_sqm, weight_grams(j, 1:num_size_classes))
+            USD_per_pound(j) = Dollars_Per_Pound(year, scallops_per_sqm, weight_grams(j, 1:num_size_classes))
             ! TODO Cash is determined for $/pound, this next line is using total weight in grams
             ! total_weight_lbs(j) = sum( mortality(j)%select(1:num_size_classes) * state(j, 1:num_size_classes)  *  &
             ! &             weight_grams(j, 1:num_size_classes)/(10.D0**6) )
@@ -404,10 +404,10 @@ module Mortality_Mod
             total_weight_lbs(j) = sum(scallops_per_sqm * weight_grams(j, 1:num_size_classes) / grams_per_pound)
         enddo
 
-        total_dollars = USD_per_sqm * total_weight_lbs * grid_area_sqm
+        total_dollars = USD_per_pound * total_weight_lbs * grid_area_sqm
         if (domain_name .eq. 'MA') then
             total_catch_per_dollar = catch / sum(total_dollars)
-            Set_Fishing_Effort_Weight_USD(1:num_grids) = total_catch_per_dollar  *  USD_per_sqm(1:num_grids) 
+            Set_Fishing_Effort_Weight_USD(1:num_grids) = total_catch_per_dollar  *  USD_per_pound(1:num_grids) 
         else
             total_dollars_open = sum( total_dollars * (1._dp - Logic_To_Double(mortality(1:num_grids)%is_closed)))
             total_dollars_closed = sum( total_dollars * Logic_To_Double( mortality(1:num_grids)%is_closed) )
@@ -417,9 +417,9 @@ module Mortality_Mod
             Copen = catch_open / total_dollars_open
             do j = 1, num_grids
                 if(mortality(j)%is_closed) then
-                    Set_Fishing_Effort_Weight_USD(j) = Cclosed  *  USD_per_sqm(j) 
+                    Set_Fishing_Effort_Weight_USD(j) = Cclosed  *  USD_per_pound(j) 
                 else 
-                    Set_Fishing_Effort_Weight_USD(j) = Copen  *  USD_per_sqm(j) 
+                    Set_Fishing_Effort_Weight_USD(j) = Copen  *  USD_per_pound(j) 
                 endif
             enddo
         endif

@@ -23,7 +23,7 @@ PROGRAM ScallopPopDensity
     !! @subsubsection ms1p2p2 For each class: Define shell_lengths weight conversion
     !! @paragraph ms1p2p2p1 Shell Length
     !! Starting at 30mm to 150mm inclusive, in 5 mm steps.\n
-    !! That is (150 – 30) / 5 + 1, or 25 size classes
+    !! That is (150 - 30) / 5 + 1, or 25 size classes
     !!
     !! @paragraph ms1p2p2p2 Weigth in grams
     !! GB
@@ -106,21 +106,149 @@ PROGRAM ScallopPopDensity
     !!
     !! @subsubsection ms1p3p3 It then quantizes recruitment,
     !! For each grid, n
-    !!  - L30mm = (@f$L_{\infty_\mu}@f$(n) – 30) * exp(-@f$K_\mu@f$(n))
+    !!  - L30mm = (@f$L_{\infty_\mu}@f$(n) - 30) * exp(-@f$K_\mu@f$(n))
     !!  - For each class, j
     !!      - If (length(n) <= L30mm) recruit(n).max_rec_ind = j
     !!
     !! @subsection ms1p4 Instantiate Mortality
+    !! The simulation next instantiates how mortality is defined.
+    !!
+    !! <table>
+    !! <caption id="multi_row">Mortality</caption>
+    !! <tr><th>Region<th>Adult<th>Incidental<th>Base Length\n l<SUB>0</SUB>
+    !! <tr><td>MA<td>25%<td>5%<td>65.0
+    !! <tr><td>GB<td>20%<td>10%<td>70.0
+    !! </table>
+    !! @subsubsection ms1p4p1 Compute alpha
+    !! @f[
+    !! \alpha(l) = 1-\frac{1}{1+e^{- a( l/10.0-l_0 )}}
+    !! @f]
+    !!
+    !! @subsubsection ms1p4p2 Compute Fishing Effort
+    !!
+    !! Fishing effort is defined by year and region from past history @a Data/FYrGBcGBoMA.csv
+    !! 
+    !! <table>
+    !! <caption id="multi_row">Fishing Effort</caption>
+    !! <tr><th>Year<th>GB Closed<th>GB Open<th>MA
+    !! <tr><td>2000<td>0.07<td>0.54<td>0.42
+    !! </table>
+    !!
     !! @section ms2 Main Loop
+    !! For each year\n
     !! @subsection ms2p1 Determine Selectivity
+    !!
+    !! @f[
+    !! Selectivity = \frac{1}{ 1 + e^{ a - b * length}}
+    !! @f]
+    !! where a, b are dependent on year and domain.\n
+    !! @a Discard is set at 20% of selectivity \n
+    !! Unless shell length is > 90 mm 
+    !! (or 100mm and is_closed for GB) \n
+    !! in which case discard is 0.0
+    !!
     !! @subsection ms2p2 Set Fishing Effort
+    !! Here there is defined a fishing effort that is independent of mortality. 
+    !! Whereas the mortality fishing effort is a function of region and historical data, 
+    !! this fishing effort is a function of cost, biomass or as a spatial constant within region. 
+    !! For example, the following is by cost.
+    !!
+    !! @subsubsection ms2p2p1 Determine Total Catch, or Landings
+    !! Data is based on actual landings in @a Data/Landings_75-19nh.csv, years 1975 to 2019
+    !! 
+    !! <table>
+    !! <caption id="multi_row">Total Catch</caption>
+    !! <tr><th>Year<th>GB Closed<th>GB Open<th>MA
+    !! <tr><td>2000<td>2346.47<td>2697.53<td>9351
+    !! <tr><td>2001<td>507<td>4501<td>15703
+    !! </table>
+    !!
+    !! @subsubsection ms2p2p2 US Dollars
+    !!
+    !! @paragraph ms2p2p2p1 Determine viable scallops per square meter
+    !! scallopsPerSqm = selectivity * state
+    !! 
+    !! @paragraph ms2p2p2p2 Convert weight in grams to pounds per scallop and sort by weight 
+    !! - > 0.1 lbs  into cnt10
+    !! - <= 0.1 and > 0.02 lbs into cnt20
+    !! - <= 0.2 and > 0.03333 lbs into cnt30
+    !! - <= 0.03333 into cnt30plus
+    !!
+    !! @paragraph ms2p2p2p3 Scallop Price
+    !!
+    !! Data is read from @a Data/ScallopPrice.csv, years 1998 to 2021
+    !! <table>
+    !! <caption id="multi_row">Scallop Price</caption>
+    !! <tr><th>Year<th>Cnt10<th>Cnt10-20<th>Cnt20-30<th>Cnt30+
+    !! <tr><td>2000<td>6.8548<td>5.30293<td>4.66137<td>5.05687
+    !! <tr><td>2001<td>5.82235<td>3.78224<td>3.54774<td>3.60425
+    !! </table>
+    !! - Compute Price per Pound
+    !!
+    !! @f{eqnarray*}{
+    !! USDperPound   &=& cnt10 * scallopPrice(1) \\
+ 	!!           &+& cnt10to20 * scallopPrice(2)\\
+ 	!!           &+& cnt20to30 * scallopPrice(3)\\
+ 	!!           &+& cnt30plus * scallopPrice(4)
+    !! @f}
+    !! - Determine total weight of scallops in pounds\n
+    !!   totalWeightLBS = sum(scallopsPerSqm * weightGrams / gramsPerPound)
+    !!
+    !! - Compute worth in dollars\n
+    !!   TotalDollars = USDperPound * gridAreaSqm * totalWeightLBS
+    !! 
+    !! @subsubsection ms2p2p3	Fishing Effort by Weight
+    !! - Fishing Effort by Weight in USD = (TotalCatch / TotalDollars) * USDperPound
+    !!
     !! @subsection ms2p3 For Each Grid
-    !! @subsubsection ms2p3p1 Compute natural mortality based on current state
+    !! At each time step @f$\delta_t@f$
+    !!
+    !! @subsubsection ms2p3p1 Compute natural mortality
+    !! Determine the number of scallops in millions, S, given the current state
+    !! @f[
+    !! S = state * domainArea
+    !! @f]
+    !! This is used to determine the juvenile mortality. Adult mortality was defined at module instantiation.
+    !!
+    !! Mid-Atlantic:
+    !! @f[
+    !! M_{juv} = \begin{cases} 
+    !!         e^{1.093 * log(S) - 9.701}, & \text{if } S > 1400 \text{ million} \\
+    !!         M_{adult},                                   & \text{otherwise}
+    !! \end{cases}
+    !! @f]
+    !! 
+    !! Georges Bank:
+    !! @f[
+    !! M_{juv} = \begin{cases} 
+    !!         e^{(1.226*log(S)-10.49)}, &  \text{if } S > 1400 \text{ million} \\
+    !!         M_{adult},                                  & \text{otherwise}
+    !! \end{cases}
+    !! @f]
+    !! where @f$M_{adult}@f$ is 0.25 if MA or 0.2 if GB\n
+    !! Finally
+    !! @f[
+    !! M_{nat} = \alpha * M_{juv} + (1-\alpha) M_{adult}
+    !! @f]
+    !! 
     !! @subsubsection ms2p3p2 Adjust population state based on von Bertalanffy growth
+    !! @f[
+    !! \vec{S} = \left| G \right| \times \vec{S} 
+    !! @f]
+    !!
     !! @subsubsection ms2p3p3 Compute increase in population due to recruitment, R
+    !! If within recruitment period, i.e. Jan 1st to April 10th
+    !! @f[
+    !! \vec{S} = \vec{S} + \delta_t\frac{\vec{R}}{RecruitDuration}
+    !! @f]
     !! @subsubsection ms2p3p4 Compute Overall Mortality
+    !! @f[
+    !! \vec{M} = \vec{M}_{nat} + Fishing *( \vec{M}_{select} + \vec{M}_{incidental} + \vec{M}_{discard})
+    !! @f]
     !! @subsubsection ms2p3p5 Compute effect of mortality to arrive at new state
-
+    !! @f[
+    !! \vec{S}_{t+1} = \vec{S}_t * (1- \delta_t * \vec{M})
+    !! @f]
     !----------------------------------------------------------------------------
 
     use globals
