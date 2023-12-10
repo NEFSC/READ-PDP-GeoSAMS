@@ -2,75 +2,125 @@ PROGRAM ScallopPopDensity
     !> @mainpage Scallop Population Density
     !! This program is used to compute Scallop Density after a given growth period
     !!
-    !! Steps
-    !!  - I. Read Configuration file 'Scallop.inp'
-    !!      - A. Get Domain Name
-    !!      - B. Get Start Year
-    !!      - C. Get End Year
-    !!      - D. Time steps per Year
-    !!      - E. Initial Conditions as read from Input/SimMA2000/InitialCondition.csv
-    !!      - F. Fishing Type: can be USD, BMS, or CAS
-    !!          - USD: fishing proportional to value of stock
-    !!          - BMS: fishing proportional to biomass
-    !!          - CAS: fishing spatially constant with region, CASA
-    !!      - G. Parameters for Recruitment 
-    !!          - i.   Start year
-    !!          - ii.  Finish year
-    !!          - iii. Random recruit start year
-    !!          - iv.  Number of random fields
-    !!      - H. Parameters for Monte Carlo TODO
-    !!          - i.   Length
-    !!          - ii.  Percentile values
-    !!      - I. Expected Output Parameters
-    !!      .
-    !!  - II. Load Grid. 
-    !!        Load grid coordinates and bathymetric depth from CSV file with 6 columns
-    !!        - x coordinate
-    !!        - y coordinate
-    !!        - z - bathymetric depth
-    !!        - latitude
-    !!        - longitude
-    !!        - management area index
+    !! @section ms1 Initialize Simulation Parameters
+    !! @subsection ms1p1 Read Input
+    !!  - Domain Name = MA or GB
+    !!  - Beging Year = YYYY
+    !!  - Ending Year = YYYY
+    !!  - Fishing type = USD, BMS, or CAS
+    !!  - Time steps per Year = 52
+    !!  - Initial Conditions File, population density in #/m^2 umber of grids by number of size classes
+    !!    File Name = Data/bin5mm2000MA.csv this data is pulled from dredge survey data in OriginalData/dredgetowbysize7917.csv
+    !!    or InitialCondition/InitialCondition.txt this data has been interpolated to lay over existing grid positions
     !!
-    !!  - III. Set Growth parameters and initial conditions
-    !!      - A. Set shell height intervals to define classes
-    !!      - B. Compute state transition matrices
-    !!          - i.   Growth
-    !!          - ii.  Recruitment
-    !!          - iii. Mortality
+    !! @subsection ms1p2 Instantiate Growth Module
+    !! The simulation then instantiates parameters that define how growth occurs
     !!
-    !!  - IV.  Make Growth Matrices
-    !!  - V.   Selectivity Vectors
-    !!  - VI.  Meat and Gonad Weight Vectors etc
+    !! @subsubsection ms1p2p1 Load Grid and Initial State
+    !! The data in each file, Data/bin5mmYYYY[MA|GB].csv has grid information of where each grid is located and its depth. 
+    !! Data in the same row is used for the initial state, in units of scallop count per square for each size classs.
     !!
-    !!  - VII. MAIN LOOP
+    !! @subsubsection ms1p2p2 For each class: Define shell_lengths weight conversion
+    !! @paragraph ms1p2p2p1 Shell Length
+    !! Starting at 30mm to 150mm inclusive, in 5 mm steps.\n
+    !! That is (150 – 30) / 5 + 1, or 25 size classes
     !!
-    !! @f{equation}{
-    !! \begin{split}
-    !!   \vec{\mathbf{State}}[Grid] =& \left| \mathbf{GrowthMatrix}[Grid] \right| \times \vec{\mathbf{State}}[Grid]  \notag\\
-    !!                              &\times \left|e^{-(Mort_{nat}[Grid,Height_{shell}] + Mort_{fish}[Grid,Height_{shell}]) * timestep}\right|
-    !! \end{split}
+    !! @paragraph ms1p2p2p2 Weigth in grams
+    !! GB
+    !! @f{eqnarray*}{
+    !! ShellToWeight = exp( &-& 6.69 + 2.878 * log(shellLengthmm) \\
+    !!                      &-& 0.0073 * depth - 0.073 * latitude \\
+    !!                      &+& (1.28 - 0.25 * log(shellLengthmm)) * isClosed )
     !! @f}
     !!
-    !!      - A. Loop years
     !!
-    !!          - i.   Determine fishing effort
-    !!          - ii.  For each grid
-    !!              - a. Compute new state
-    !!              - b. Compute regional average
-    !!          - iii. ouput annual data
+    !! MA\n
+    !! @f{eqnarray*}{
+    !! ShellToWeight = exp( &-& 9.713394 + 2.62025 * log(shell_length_mm) \\
+    !!                      &-& 0.004665 * depth + 0.021 * latitude \\
+    !!                      &-& 0.031 * isClosed)
+    !! @f}
     !!
+    !! where @a isClosed is 1 if closed or 0 if open
+    !!
+    !! @subsubsection ms1p2p3 Computes Growth Parameters, given depth, latitude, and isClosed
+    !! - @f$L_{\infty_\mu}@f$
+    !! - @f$L_{\infty_\sigma}@f$
+    !! - @f$K_\mu@f$
+    !! - @f$K_\sigma@f$
+    !!
+    !! @subsubsection ms1p2p4 Computes G matrix for given growth parameters
+    !!
+    !> From MN18 p. 1312, 1313
+    !! @f[
+    !! c = 1.0 - e^{-K_{\mu} * \delta_t}
+    !! @f]
+    !! @f[
+    !! \eta = c * L_{{\infty}_\mu}
+    !! @f]
+    !! For each size class, @a k
+    !! @f[
+    !! \omega_k = l_k - l_{k-1}
+    !! @f]
+    !! @f[
+    !! \omega_{k_{avg}} = \frac{l_k + l_{k-1}}{2}
+    !! @f]
+    !! @f[
+    !! \Omega = (1 - c) \omega_k
+    !! @f]
+    !! @f[
+    !! X(y,k) = l_y - \eta - (1-c)l_{k}
+    !! @f]
+    !! @f[
+    !! \Phi(x,\mu,\sigma) = \frac{1}{2}(1+Erf(\frac{x-\mu}{\sigma\sqrt{2}}))
+    !! @f]
+    !! @f[
+    !! \phi(x,\mu,\sigma) = \frac{1}{\sigma\sqrt{2\pi}}e^{-\frac{(x-\mu)^2}{2\sigma^2}}
+    !! @f]
+    !! @f[
+    !! H_{MN18}(x, \sigma, \omega) = \frac{1}{\omega}\left[x\Phi_N(x,0,\sigma^2) + \sigma^2\phi_N(x,0,\sigma^2)\right]
+    !! @f]
+    !!
+    !! @f[
+    !! G(y, k, \sigma, \omega_k) = H_{MN18}(X(y,k-1), \sigma, \Omega)\\
+    !!                           - H_{MN18}(X(y,k),   \sigma, \Omega)
+    !! @f]
     !! 
-    !! @section Growth_Mod
+    !! @subsection ms1p3 Instantiate Recruitment
     !!
-    !! @ref Gsec1
+    !! The simulation next instantiates how recruitment will be handled.
+    !! @subsubsection ms1p3p1 Recruitment data
+    !! @paragraph ms1p3p1p1 For years 1979, 2018
+    !! Data is read in from KrigingEstimates/Sim[MA|GB]YYYY/KrigingEstimate.txt
+    !! @paragraph ms1p3p1p2 For years 2019, 2025
+    !! Data is read in from KrigingEstimates/Sim[MA|GB]Clim//KrigingEstimate.txt
     !!
-    !! @section Recruit_Mod
+    !! @subsubsection ms1p3p2 This method is effectively setting
+    !! For all years\n
+    !!  - Year_index = year - 1978
+    !!  - for year_index in [1..max]
+    !!      -recruitment(year_index) = KrigingEstimate
+    !!      - year(year_index) = year
+    !!      - rec_start = 1/365, or January 1st
+    !!      - rec_stop = 100/365, or April 10
     !!
-    !! @ref Rsec1
+    !! @subsubsection ms1p3p3 It then quantizes recruitment,
+    !! For each grid, n
+    !!  - L30mm = (@f$L_{\infty_\mu}@f$(n) – 30) * exp(-@f$K_\mu@f$(n))
+    !!  - For each class, j
+    !!      - If (length(n) <= L30mm) recruit(n).max_rec_ind = j
     !!
-    !! @section Mortallity_Mod
-    !!
+    !! @subsection ms1p4 Instantiate Mortality
+    !! @section ms2 Main Loop
+    !! @subsection ms2p1 Determine Selectivity
+    !! @subsection ms2p2 Set Fishing Effort
+    !! @subsection ms2p3 For Each Grid
+    !! @subsubsection ms2p3p1 Compute natural mortality based on current state
+    !! @subsubsection ms2p3p2 Adjust population state based on von Bertalanffy growth
+    !! @subsubsection ms2p3p3 Compute increase in population due to recruitment, R
+    !! @subsubsection ms2p3p4 Compute Overall Mortality
+    !! @subsubsection ms2p3p5 Compute effect of mortality to arrive at new state
+
     !----------------------------------------------------------------------------
 
     use globals
