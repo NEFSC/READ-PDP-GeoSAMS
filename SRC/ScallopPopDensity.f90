@@ -192,13 +192,13 @@ PROGRAM ScallopPopDensity
  	!!           &+& cnt30plus * scallopPrice(4)
     !! @f}
     !! - Determine total weight of scallops in pounds\n
-    !!   totalWeightLBS = sum(scallopsPerSqm * weightGrams / gramsPerPound)
+    !!   totalWeightLBS(1:num_grids)  = sum(scallopsPerSqm(1:num_grids)  * weightGrams(1:num_grids)  / gramsPerPound)
     !!
     !! - Compute worth in dollars\n
-    !!   TotalDollars = USDperPound * gridAreaSqm * totalWeightLBS
+    !!   TotalDollars(1:num_grids)  = USDperPound(1:num_grids)  * gridAreaSqm * totalWeightLBS(1:num_grids) 
     !! 
     !! @subsubsection ms2p2p3	Fishing Effort by Weight
-    !! - Fishing Effort by Weight in USD = (TotalCatch / TotalDollars) * USDperPound
+    !! - Fishing Effort by Weight in USD(1:num_grids)  = (TotalCatch / TotalDollars(1:num_grids) ) * USDperPound(1:num_grids) 
     !!
     !! @subsection ms2p3 For Each Grid
     !! At each time step @f$\delta_t@f$
