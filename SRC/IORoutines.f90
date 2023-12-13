@@ -410,6 +410,30 @@ subroutine Write_CSV(n,m,f,file_name,ndim)
     close(write_dev)
 endsubroutine Write_CSV
 
+subroutine Write_CSV_Append(n,m,f,file_name,ndim)
+    use globals
+    implicit none
+    integer, intent(in):: n,m,ndim
+    real(dp), intent(in):: f(ndim,*)
+    character(*), intent(in)::file_name
+    integer  k
+    character(100) buf,fmtstr
+    character(1) cr
+
+    k=m-1
+    write(buf,'(I6)')k
+    !
+    ! format for exponential format
+    !
+    fmtstr='('//trim(adjustl(buf))//'(ES14.7 : ", ") (ES14.7 : ))'//NEW_LINE(cr)
+    open(write_dev,file=file_name, status="old", position="append", action="write")
+
+    do k=1,n
+        write(write_dev,fmtstr) f(k,1:m)
+    enddo
+    close(write_dev)
+endsubroutine Write_CSV_Append
+
 !--------------------------------------------------------------------------------------------------
 !--------------------------------------------------------------------------------------------------
 !subroutine Write_CSV_H(n,m,f,file_name,ndim)

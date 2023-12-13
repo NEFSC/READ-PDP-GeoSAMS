@@ -55,22 +55,23 @@ module Output_Mod
         character(4) buf
 
         do n = 1, num_grids
-            Fslct(n,1:num_size_classes) = mortality(n)%select(1:num_size_classes)
+            Fslct(n,1:num_size_classes) = mortality(n)%selectivity(1:num_size_classes)
             BMS(n) = sum( samp(n,1:num_size_classes) * weight_grams(n,1:num_size_classes)/(10.**6) )
-            ExplBMS(n) = sum( mortality(n)%select(1:num_size_classes) * samp(n,1:num_size_classes) &
+            ExplBMS(n) = sum( mortality(n)%selectivity(1:num_size_classes) * samp(n,1:num_size_classes) &
             &            * weight_grams(n,1:num_size_classes)/(10.**6) )
             Abundance(n) = sum( samp(n,1:num_size_classes) )
-            StateCapt(n) = sum(samp(n,1:num_size_classes) * mortality(n)%select(1:num_size_classes))
+            StateCapt(n) = sum(samp(n,1:num_size_classes) * mortality(n)%selectivity(1:num_size_classes))
             mortality(n)%natural_mortality(1:num_size_classes) = &
             &           Compute_Natural_Mortality(recruit(n)%max_rec_ind, mortality(n), samp(n,1:num_size_classes))
             NatMort(n,1:num_size_classes) = mortality(n)%natural_mortality(1:num_size_classes)
-            FishMort(n,1:num_size_classes) = fishing_effort(n) * mortality(n)%select(1:num_size_classes)
-            call Scallops_To_Counts(samp(n,1:num_size_classes) * mortality(n)%select(1:num_size_classes), &
+            FishMort(n,1:num_size_classes) = fishing_effort(n) * mortality(n)%selectivity(1:num_size_classes)
+            call Scallops_To_Counts(samp(n,1:num_size_classes) * mortality(n)%selectivity(1:num_size_classes), &
             &     weight_grams(n,1:num_size_classes), cnts(n,1), cnts(n,2), cnts(n,3), cnts(n,4))
-            DollarsPerPound(n) = Dollars_Per_Pound(year, samp(n,1:num_size_classes) * mortality(n)%select(1:num_size_classes), &
-            &     weight_grams(n,1:num_size_classes))
-            TotalMort(n,1:num_size_classes) = mortality(n)%natural_mortality(1:num_size_classes)+fishing_effort(n) * &
-            &    ( mortality(n)%select(1:num_size_classes)+ mortality(n)%incidental + mortality(n)%Discard(1:num_size_classes) )
+            DollarsPerPound(n) = Dollars_Per_Pound(year, samp(n,1:num_size_classes) &
+            &    * mortality(n)%selectivity(1:num_size_classes), weight_grams(n,1:num_size_classes))
+            TotalMort(n,1:num_size_classes) = mortality(n)%natural_mortality(1:num_size_classes) &
+            &    + fishing_effort(n) * &
+            & (mortality(n)%selectivity(1:num_size_classes) + mortality(n)%incidental + mortality(n)%Discard(1:num_size_classes))
         !  Recs(n,1:num_size_classes) = recruit(n)%RecVec(1:num_size_classes)
         enddo
         
@@ -89,7 +90,7 @@ module Output_Mod
         call Write_Scalar_Field(num_grids, Abundance, output_dir//'Abundance'//buf//'.txt')
         call Write_Scalar_Field(num_grids, StateCapt, output_dir//'IndvCaught'//buf//'.txt')
         do n = 1, num_grids
-            Fslct(n, 1:num_size_classes) = mortality(n)%select(1:num_size_classes)
+            Fslct(n, 1:num_size_classes) = mortality(n)%selectivity(1:num_size_classes)
         enddo
         call Write_CSV(num_grids, num_size_classes, Fslct, output_dir//'Fslct'//buf//'.csv', size(Fslct,1))
         
@@ -111,11 +112,11 @@ module Output_Mod
         &    element_area * sum(fishing_effort(1:num_grids)*ExplBMS(1:num_grids )* &
         &    Logic_To_Double(mortality(1:num_grids)%is_closed))
         write(68,*)year,  element_area * sum( Abundance(1:num_grids) &
-        &    * (1._dp - Logic_To_Double(mortality(1:num_grids)%is_closed)) ),&
-        &    element_area * sum(BMS(1:num_grids) * (1._dp - Logic_To_Double(mortality(1:num_grids)%is_closed))),&
-        &    element_area * sum(ExplBMS(1:num_grids) * (1._dp - Logic_To_Double(mortality(1:num_grids)%is_closed))),&
+        &    * (Logic_To_Double(.NOT. mortality(1:num_grids)%is_closed)) ),&
+        &    element_area * sum(BMS(1:num_grids) * (Logic_To_Double(.NOT. mortality(1:num_grids)%is_closed))),&
+        &    element_area * sum(ExplBMS(1:num_grids) * (Logic_To_Double(.NOT. mortality(1:num_grids)%is_closed))),&
         &    element_area * sum(fishing_effort(1:num_grids)*ExplBMS(1:num_grids) &
-        &    * (1._dp - Logic_To_Double(mortality(1:num_grids)%is_closed)))
+        &    * (Logic_To_Double(.NOT. mortality(1:num_grids)%is_closed)))
         write(*,*)year,  floor(element_area * sum( Abundance(1:num_grids) )/10.D0**6),&
         &    floor(element_area * sum(BMS(1:num_grids))),&
         &    floor(element_area * sum(ExplBMS(1:num_grids))),&

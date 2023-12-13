@@ -52,7 +52,7 @@
 !> where G is the transition matrix
 !>  - Compute overall mortality, <b>M</b>
 !> @f[
-!> \vec{M} = \vec{M}_{nat} + Fishing * \vec{M}_{select} + \vec{M}_{incidental} + \vec{M}_{discard}
+!> \vec{M} = \vec{M}_{nat} + Fishing * \vec{M}_{selectivity} + \vec{M}_{incidental} + \vec{M}_{discard}
 !> @f]
 !>
 !>  - Compute new state
@@ -835,7 +835,7 @@ MODULE Growth_Mod
     !> @f]
     !>  - Compute overall mortality, <b>M</b>
     !> @f[
-    !> \vec{M} = \vec{M}_{nat} + Fishing *( \vec{M}_{select} + \vec{M}_{incidental} + \vec{M}_{discard})
+    !> \vec{M} = \vec{M}_{nat} + Fishing *( \vec{M}_{selectivity} + \vec{M}_{incidental} + \vec{M}_{discard})
     !> @f]
     !>
     !>  - Compute new state
@@ -861,7 +861,7 @@ MODULE Growth_Mod
         type(Mortality_Class), INTENT(INOUT):: mortality
         type(Recruitment_Class), INTENT(INOUT):: recruit
         integer, intent(in) :: year
-        real(dp),intent(inout)    :: state(*)
+        real(dp),intent(inout) :: state(*)
         real(dp) :: Time_To_Grow(num_time_steps, num_size_classes)
         real(dp), intent(in) :: fishing_effort
         real(dp) t
@@ -891,7 +891,7 @@ MODULE Growth_Mod
 
             ! Compute overall mortality
              M(1:num_size_classes) = mortality%natural_mortality(1:num_size_classes) &
-             & + fishing_effort * ( mortality%select(1:num_size_classes) &
+             & + fishing_effort * ( mortality%selectivity(1:num_size_classes) &
              & + mortality%incidental + mortality%discard(1:num_size_classes) )
   
             ! Apply mortality and compute new state
