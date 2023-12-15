@@ -156,12 +156,11 @@ MODULE Growth_Mod
         real(dp) K_sd  ! 
         !> @public @memberof Growth_Class
         !> Growth matrix
-        real(dp) G(max_size_class, max_size_class)
+        real(dp) G(num_size_classes, num_size_classes)
     end type Growth_Class
 
     ! @private @memberof Growth_Mod
     integer, PRIVATE :: num_grids
-    integer, PRIVATE :: num_size_classes
     character(2), PRIVATE :: domain_name
     real(dp), PRIVATE :: domain_area_sqm
     real(dp), PRIVATE :: grid_area_sqm
@@ -192,28 +191,26 @@ MODULE Growth_Mod
     !> @param[in,out] weight_grams Computed combined scallop weight
     !> 
     !==================================================================================================================
-    subroutine Set_Growth(use_interp, growth, grid, shell_lengths, num_ts, num_sz_classes, dom_name, dom_area, element_area, &
+    subroutine Set_Growth(use_interp, growth, grid, shell_lengths, num_ts, dom_name, dom_area, element_area, &
         &                 length_min, length_delta, file_name, state, weight_grams)
         logical, intent(in) :: use_interp
         type(Growth_Class), intent(inout) :: growth(*)
         type(Data_Vector_Class), intent(inout) :: grid
         real(dp), intent(inout) :: shell_lengths(num_size_classes)
         integer, intent(in) :: num_ts
-        integer, intent(in) :: num_sz_classes
         character(2), intent(in) :: dom_name
         real(dp), intent(out) :: dom_area
         real(dp), intent(out) :: element_area
         integer, intent(in) :: length_min, length_delta
         character(*), intent(in) :: file_name
         ! allow for max on first dimension. Recall that fortran stores by column first.
-        real(dp), intent(out):: state(1:num_dimensions, 1:num_sz_classes)
-        real(dp), intent(inout) :: weight_grams(1:num_dimensions, 1:num_sz_classes)
+        real(dp), intent(out):: state(1:num_dimensions, 1:num_size_classes)
+        real(dp), intent(inout) :: weight_grams(1:num_dimensions, 1:num_size_classes)
     
         integer n, j
         real(dp), allocatable :: Gpar(:,:)
 
         ! initalize private members
-        num_size_classes = num_sz_classes
         domain_name = dom_name
         num_time_steps = num_ts
         delta_time = 1._dp / dfloat(num_ts)
@@ -279,7 +276,7 @@ MODULE Growth_Mod
         if (use_interp) then
             ! Reads data from file_name
             ! Establishes state from which growth simulation begins as a f(growth(n)%L_inf_mu, length)
-            state = Set_Current_State(file_name, shell_lengths, growth)
+            call Set_Current_State(file_name, state, shell_lengths, growth)
         else
             ! already read in state via Load_Grid_State, truncate larger size classes.
             do n=1,num_grids
@@ -308,21 +305,20 @@ MODULE Growth_Mod
     !> @param[in] growth Expected??? scallop growth
     !> @returns Current scallop state, in scallops per square meter
     !==================================================================================================================
-    function Set_Current_State(file_name, length, growth)
+    subroutine Set_Current_State(file_name, state, length, growth)
         use globals
         
         implicit none
         character(*), intent(in) :: file_name
+        real(dp), intent(inout) :: state(1:num_dimensions, 1:num_size_classes) 
         type(Growth_Class), intent(in):: growth(*)
-        real(dp) :: Set_Current_State(1:num_dimensions, 1:num_size_classes)
         real(dp), intent(in):: length(*)
         integer n, j, num_rows, num_cols
-        real(dp) :: state_local(1:num_dimensions, 1:num_size_classes) 
 
         num_rows = num_grids
         num_cols = num_size_classes
         
-        call Read_CSV(num_rows, num_cols, file_name, state_local, size(state_local,1))
+        call Read_CSV(num_rows, num_cols, file_name, state, size(state,1))
         PRINT *, term_blu
         PRINT '(A,A)', ' READ FROM FILE: ', file_name
         PRINT '(A,I6)', ' LENGTH = ', num_rows
@@ -332,18 +328,16 @@ MODULE Growth_Mod
         if (num_rows > num_grids) num_rows = num_grids
         do n=1,num_rows
             do j=num_size_classes,2,-1
-                if( (length(j) .gt. growth(n)%L_inf_mu) .and. (state_local(n,j) .gt. 0.D0) )then
+                if( (length(j) .gt. growth(n)%L_inf_mu) .and. (state(n,j) .gt. 0.D0) )then
                     ! lump scallops into smaller class
-                    state_local(n,j-1) = state_local(n,j-1) + state_local(n,j)
-                    state_local(n,j) = 0.D0
+                    state(n,j-1) = state(n,j-1) + state(n,j)
+                    state(n,j) = 0.D0
                 endif
             enddo
         enddo
 
-        Set_Current_State = state_local
-        
         return
-    endfunction Set_Current_State
+    endsubroutine Set_Current_State
 
     !==================================================================================================================
     !> @fn Gen_Size_Trans_Matrix
@@ -409,12 +403,6 @@ MODULE Growth_Mod
         do n=2, num_size_classes
             Set_Shell_Lengths(n) = Set_Shell_Lengths(n-1) + length_delta
         enddo
-        PRINT '(A, F6.2, A, F6.2)', ' Shell size MIN, MAX', Set_Shell_Lengths(1), ', ', Set_Shell_Lengths(num_size_classes)
-        if (num_size_classes .GT. max_size_class) then
-            PRINT *, term_red, 'WARNING number of size classes too large', num_size_classes, '>', max_size_class, term_blk
-        else
-            PRINT *, term_blu, 'OKAY number of size classes', num_size_classes, '<=', max_size_class, term_blk
-        endif
         return
     endfunction Set_Shell_Lengths
 

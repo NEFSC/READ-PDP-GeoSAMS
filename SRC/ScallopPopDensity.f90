@@ -243,7 +243,7 @@ PROGRAM ScallopPopDensity
     !! @f]
     !! @subsubsection ms2p3p4 Compute Overall Mortality
     !! @f[
-    !! \vec{M} = \vec{M}_{nat} + Fishing *( \vec{M}_{select} + \vec{M}_{incidental} + \vec{M}_{discard})
+    !! \vec{M} = \vec{M}_{nat} + Fishing *( \vec{M}_{selectivity} + \vec{M}_{incidental} + \vec{M}_{discard})
     !! @f]
     !! @subsubsection ms2p3p5 Compute effect of mortality to arrive at new state
     !! @f[
@@ -260,7 +260,7 @@ PROGRAM ScallopPopDensity
 
     implicit none
 
-    integer n,k !> loop count
+    integer n !> loop count
 
     character(2) domain_name
     integer start_year, stop_year, year
@@ -279,10 +279,6 @@ PROGRAM ScallopPopDensity
     type(Mortality_Class), allocatable :: mortality(:)
     type(Recruitment_Class), allocatable :: recruit(:)
 
-    integer, parameter :: shell_len_min = 30
-    integer, parameter :: shell_len_delta = 5
-    integer, parameter :: num_size_classes = (150 - shell_len_min) / shell_len_delta + 1
-
     real(dp), allocatable :: state(:, :)
     real(dp), allocatable :: state_at_time_step(:,:)
     real(dp), allocatable :: shell_length_mm(:)
@@ -298,6 +294,15 @@ PROGRAM ScallopPopDensity
     call Read_Input(domain_name, file_name, start_year, stop_year, fishing_type, num_time_steps, num_monte_carlo_iter)
     n = index(file_name, '/') - 1
     use_interp = (file_name(1:n) == 'InitialCondition')
+
+    ! Force correct region
+    ! InitialCondition/SimMA2000/InitialCondition.csv
+    ! Data/bin5mm2005MA.csv
+    if (use_interp) then
+        file_name(21:22) = domain_name
+    else
+        file_name(16:17) = domain_name
+    endif
 
     is_rand_rec = .FALSE.
 
@@ -322,15 +327,14 @@ PROGRAM ScallopPopDensity
     !==================================================================================================================
     !  - II. Instantiate modes, that is objects
     !==================================================================================================================
-    call Set_Growth(use_interp, growth, grid, shell_length_mm, num_time_steps, num_size_classes, domain_name, domain_area,&
+    call Set_Growth(use_interp, growth, grid, shell_length_mm, num_time_steps, domain_name, domain_area,&
     &              element_area, shell_len_min, shell_len_delta, file_name, state, weight_grams)
     num_grids = grid%len
 
-    call Set_Recruitment(recruit, num_grids, domain_name, domain_area, element_area,  is_rand_rec, num_size_classes, &
+    call Set_Recruitment(recruit, num_grids, domain_name, domain_area, element_area,  is_rand_rec, &
                          & growth(1:num_grids)%L_inf_mu, growth(1:num_grids)%K_mu, shell_length_mm)
-    call Set_Mortality(mortality, grid, shell_length_mm, num_size_classes, domain_name, domain_area, element_area)
-    call Set_Scallop_Output( num_grids, num_size_classes, domain_name, domain_area, element_area, start_year, stop_year,&
-    &                        num_time_steps)
+    call Set_Mortality(mortality, grid, shell_length_mm, domain_name, domain_area, element_area,num_time_steps)
+    call Set_Scallop_Output( num_grids, domain_name, domain_area, element_area, start_year, stop_year, num_time_steps)
 
     !==================================================================================================================
     !  - III. MAIN LOOP
@@ -340,36 +344,12 @@ PROGRAM ScallopPopDensity
         !- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - 
         !  i. Determine fishing effort
         !- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - 
-        do n = 1, num_grids
-            !+++++++++++++++++++++++++++++++++++++++
-            ! Moved from ScallopMortality
-            !+++++++++++++++++++++++++++++++++++++++
-            mortality(n)%select = Ring_Size_Selectivity(year, shell_length_mm, mortality(n)%is_closed)
-
-            ! These equations included here as they are dependent on %select
-            do k = 1, num_size_classes
-                if (domain_name .eq. 'MA') then
-                    if(shell_length_mm(k) .gt. 90.) then
-                        mortality(n)%discard(k) = 0.D0
-                    else
-                        mortality(n)%discard(k) = 0.2 * mortality(n)%select(k)
-                    endif
-                else
-                    if ((shell_length_mm(k) .gt. 100.) .and. (mortality(n)%is_closed)) then
-                        mortality(n)%discard(k) = 0.D0
-                    else
-                        mortality(n)%discard(k) = 0.2 * mortality(n)%select(k)
-                    endif
-                endif
-            enddo
-            !+++++++++++++++++++++++++++++++++++++++
-        enddo
         fishing_effort = Set_Fishing(fishing_type, year, state, weight_grams, mortality)
 
         !- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - 
         !  ii. For each grid
         !- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - 
-        write( stateFileName,"(A,I4,A)") growth_out_dir//'State', year, '_main.csv'
+        write( stateFileName,"(A,I4,A)") growth_out_dir//'State', year, fishing_type//domain_name//'_main.csv'
         do n = 1, num_grids
             !- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - 
             !  a. Compute new state
@@ -380,7 +360,8 @@ PROGRAM ScallopPopDensity
             !  b. Compute regional average
             !- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - 
             !!!call Scallop_Output_Regional_Avg(year, state_at_time_step, grid, n, mid_year_sample(n,:))
-            if (n .eq. 22) &
+            
+            if ( (n .eq. 22 .and. domain_name .eq. 'MA') .or. (n .eq. 9 .and. domain_name .eq. 'GB')) &
             &   call Write_CSV(num_time_steps, num_size_classes, state_at_time_step, stateFileName, size(state_at_time_step,1))
         enddo
 
@@ -391,6 +372,5 @@ PROGRAM ScallopPopDensity
     enddo
     
     deallocate(growth, mortality, recruit, shell_length_mm, state, weight_grams, fishing_effort, mid_year_sample)
-
+    call Destructor()
 END PROGRAM ScallopPopDensity
-

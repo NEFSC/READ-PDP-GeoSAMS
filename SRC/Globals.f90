@@ -5,9 +5,11 @@ module globals
     integer, parameter :: dp = selected_real_kind(15, 307)
     integer, parameter :: qp = selected_real_kind(33, 4931)
 
-    integer, parameter :: max_size_mm = 150
-    integer, parameter :: min_size_mm = 30
-    integer, parameter :: max_size_class = (max_size_mm - min_size_mm) / 5 + 1
+    integer, parameter :: shell_len_max = 150
+    integer, parameter :: shell_len_min = 30
+    integer, parameter :: shell_len_delta = 5
+    integer, parameter :: num_size_classes = (shell_len_max - shell_len_min) / shell_len_delta + 1
+
     integer, parameter :: max_num_years  = 50
 
     integer, parameter :: read_dev = 69
@@ -18,7 +20,7 @@ module globals
     real(dp), parameter :: pi = 3.1415926535897931 ! 2._dp * ASIN(1._dp)
 
     ! metric equivalents
-    real, parameter :: grams_per_pound = 453.592
+    real(dp), parameter :: grams_per_pound = 453.592_dp
     real(dp), parameter :: meters_per_naut_mile = 1852.D0
 
     ! colors taken from https://i.stack.imgur.com/9UVnC.png

@@ -3,7 +3,6 @@ module Output_Mod
     implicit none
 
     integer, PRIVATE :: num_grids
-    integer, PRIVATE :: num_size_classes
     character(2), PRIVATE :: domain_name
     real(dp), PRIVATE :: domain_area_sqm
     real(dp), PRIVATE :: element_area
@@ -15,9 +14,8 @@ module Output_Mod
 
     CONTAINS
 
-    subroutine Set_Scallop_Output( n_grids,n_size_classes,reg_name,reg_area_sqm,grid_area_sqm,start_yr,stop_yr,n_time_steps)
+    subroutine Set_Scallop_Output( n_grids,reg_name,reg_area_sqm,grid_area_sqm,start_yr,stop_yr,n_time_steps)
         integer, intent(in) :: n_grids
-        integer, intent(in) :: n_size_classes
         character(2), intent(in) :: reg_name
         real(dp), intent(in) :: reg_area_sqm
         real(dp), intent(in) :: grid_area_sqm
@@ -27,7 +25,6 @@ module Output_Mod
 
         !> initalize private members
         num_grids = n_grids
-        num_size_classes = n_size_classes
         domain_name = reg_name
         domain_area_sqm = reg_area_sqm
         element_area = grid_area_sqm
@@ -65,10 +62,8 @@ module Output_Mod
             &           Compute_Natural_Mortality(recruit(n)%max_rec_ind, mortality(n), samp(n,1:num_size_classes))
             NatMort(n,1:num_size_classes) = mortality(n)%natural_mortality(1:num_size_classes)
             FishMort(n,1:num_size_classes) = fishing_effort(n) * mortality(n)%selectivity(1:num_size_classes)
-            call Scallops_To_Counts(samp(n,1:num_size_classes) * mortality(n)%selectivity(1:num_size_classes), &
-            &     weight_grams(n,1:num_size_classes), cnts(n,1), cnts(n,2), cnts(n,3), cnts(n,4))
-            DollarsPerPound(n) = Dollars_Per_Pound(year, samp(n,1:num_size_classes) &
-            &    * mortality(n)%selectivity(1:num_size_classes), weight_grams(n,1:num_size_classes))
+            call Scallops_To_Counts(weight_grams(n,1:num_size_classes), cnts(n,1), cnts(n,2), cnts(n,3), cnts(n,4))
+            DollarsPerPound(n) = Dollars_Per_Pound(year, weight_grams(n,1:num_size_classes))
             TotalMort(n,1:num_size_classes) = mortality(n)%natural_mortality(1:num_size_classes) &
             &    + fishing_effort(n) * &
             & (mortality(n)%selectivity(1:num_size_classes) + mortality(n)%incidental + mortality(n)%Discard(1:num_size_classes))

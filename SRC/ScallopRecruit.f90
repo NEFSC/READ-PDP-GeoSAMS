@@ -121,7 +121,6 @@ module Recruit_Mod
 
     ! @private @memberof Recruit_Mod
     integer, PRIVATE :: num_grids
-    integer, PRIVATE :: num_size_classes
     character(2), PRIVATE :: domain_name
     real(dp), PRIVATE :: domain_area_sqm
     real(dp), PRIVATE :: grid_area_sqm
@@ -146,7 +145,7 @@ module Recruit_Mod
     !! @param[in] shell_length_mm Shell height in millimeters
     !==================================================================================================================
     subroutine Set_Recruitment(recruit, n_grids, dom_name, dom_area, element_area, &
-        &                      is_random_rec, num_sz_classes, L_inf_mu, K_mu, shell_length_mm)
+        &                      is_random_rec, L_inf_mu, K_mu, shell_length_mm)
         use globals
         type(Recruitment_Class), intent(inout) :: recruit(*)
         integer, intent(in) :: n_grids
@@ -154,7 +153,6 @@ module Recruit_Mod
         real(dp), intent(in) :: dom_area
         real(dp), intent(in) :: element_area
         logical, intent(in) :: is_random_rec
-        integer, intent(in) :: num_sz_classes
         real(dp), intent(in) :: L_inf_mu(*)
         real(dp), intent(in) :: K_mu(*)
         real(dp), intent(in) :: shell_length_mm(*)
@@ -170,7 +168,6 @@ module Recruit_Mod
 
         !! initalize private members
         num_grids = n_grids
-        num_size_classes = num_sz_classes
         domain_name = dom_name
         domain_area_sqm = dom_area
         grid_area_sqm = element_area
@@ -231,7 +228,7 @@ module Recruit_Mod
         ! quantize recruitment
         open(write_dev,file = init_cond_dir//'RecIndx.txt')
         do n = 1, num_grids
-            L30mm = (L_inf_mu(n) - dfloat(min_size_mm)) * exp(-K_mu(n))
+            L30mm = (L_inf_mu(n) - dfloat(shell_len_min)) * exp(-K_mu(n))
             do j=1, num_size_classes 
                 if (shell_length_mm(j) .le. L30mm) recruit(n)%max_rec_ind = j
             enddo
