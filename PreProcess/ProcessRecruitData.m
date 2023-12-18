@@ -5,13 +5,10 @@
 %"SVSPP","PropChains","AREAKIND","STRATMAP","SQNM","ysta","gperiod","recruit","linf","K",
 %"date","days_from_apr1","sh_apr1","upper","rec""
 
+% addpath (genpath('.'))
 
-%
-%
-% need to unique data!!!!
-%
-%
 clear
+isOctave = (exist('OCTAVE_VERSION', 'builtin') ~= 0);
 
 TowSqFt=6076.12*8;
 MpSqft=.3048^2;
@@ -22,12 +19,15 @@ DetectRS=.27;
 DetectHD=.13;
 DetectHDThreshold=2;%scallops/m^2
 
-F= readtable('OriginalData/recruitsv2.csv',"FileType","text");
-%F=csvreadK('OriginalData/recruitsv2.csv');
 %F=csvreadK('OrigonalData/recruitsv2KWS.csv');
-year=table2array(F(:,5));mon=table2array(F(:,6));day=table2array(F(:,7));
+if isOctave
+  F=csvreadK('OriginalData/recruitsv2.csv');
+  year=F(:,5);mon=F(:,6);day=F(:,7);
+else
+  F= readtable('OriginalData/recruitsv2.csv',"FileType","text");
+  year=table2array(F(:,5));mon=table2array(F(:,6));day=table2array(F(:,7));
+end
 j=find(isnan(mon+day));mon(j)=6;day(j)=21;% assign missing date to summer solstice
-%j=find(~isnan(mon+day));F=F(j,:);year=F(:,5);mon=F(:,6);day=F(:,7);
 
 N=length(year);
 for n=1:N
@@ -35,10 +35,17 @@ for n=1:N
 end
 yd=yd(:);
 DecYr=year(:)+( yd(:)/365.25 );
-lat=table2array(F(:,19));lon=-table2array(F(:,20));
-%Rec=F(:,55);
-Rec=table2array(F(:,end));
-Depth=table2array(F(:,22));
+
+if isOctave
+  lat=F(:,19);lon=-F(:,20);
+  Rec=F(:,end);
+  Depth=F(:,22);
+else
+  lat=table2array(F(:,19));lon=-table2array(F(:,20));
+  Rec=table2array(F(:,end));
+  Depth=table2array(F(:,22));
+end
+
 RecM2=Rec*T2M2;
 M=[DecYr(:),lat(:),lon(:),Depth(:),RecM2(:)];
 j=find(~isnan(sum(M')));M=M(j,:);
@@ -93,7 +100,13 @@ MinLat=[40.83333,40.83333,zeros(1,11)];
 NRS=length(RSI);
 
 flnm='Data/RecruitsUnadjusted.csv';
-F=table2array(readtable(flnm,'PreserveVariableNames', true));
+
+if isOctave
+  F=csvreadK(flnm);
+else
+  F=table2array(readtable(flnm,'PreserveVariableNames', true));
+end
+
 [N,five]=size(F);lat=F(:,2);lon=F(:,3);DecYr=F(:,1);Depth=F(:,4);Rec=F(:,5);
 G = shaperead('ShapeFiles/Shellfish_Strata.shp');
 IsRock=zeros(size(lat));
@@ -167,7 +180,10 @@ clear
 flnm='Data/RecruitsMA.csv'
 F=csvreadK(flnm);
 DecYr=F(:,1);
-for yr=1979:2018
+%for yr=1979:2018
+yearMin = min(floor(DecYr))
+yearMax = max(floor(DecYr))
+for yr=yearMin:yearMax % no data for 2018
   j=find(floor(DecYr)==yr);
   M=F(j,:);
   G = LumpDataDx (M,1000.);
@@ -182,7 +198,10 @@ clear
 flnm='Data/RecruitsGB.csv'
 F=csvreadK(flnm);
 DecYr=F(:,1);
-for yr=1979:2019
+%for yr=1979:2019
+yearMin = min(floor(DecYr))
+yearMax = max(floor(DecYr))
+for yr=yearMin:yearMax % no data for 2018,2019
   j=find(floor(DecYr)==yr);
   M=F(j,:);
   G = LumpDataDx (M,1000.);
@@ -208,5 +227,4 @@ flnm='Data/RecruitsGBLump1NM.csv'
 header='"decmal year", "x utm", "y utm", "bottom depth(m)","recruits per sq m"';
 writecsv(Fout,flnm,['%g, %f, %f, %f, %e'],header);
 %XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX
-
 
