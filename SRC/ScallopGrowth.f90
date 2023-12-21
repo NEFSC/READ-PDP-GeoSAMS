@@ -873,9 +873,8 @@ MODULE Growth_Mod
 
             t = dfloat(nt) * delta_time
             ! Compute increase due to recruitment
-            if ( ( t .gt. recruit%rec_start ) .and. ( t.le.recruit%rec_stop) ) &
-              state(1:num_size_classes) = state(1:num_size_classes) + delta_time * Rec(1:num_size_classes) &
-              &                           / (recruit%rec_stop-recruit%rec_start)
+            if ( ( t .gt. recruit%rec_start ) .and. ( t.le.recruit%rec_stop) ) state(1:num_size_classes) = &
+            &       state(1:num_size_classes) + delta_time * Rec(1:num_size_classes) / (recruit%rec_stop-recruit%rec_start)
 
             ! Compute overall mortality
              M(1:num_size_classes) = mortality%natural_mortality(1:num_size_classes) &
@@ -884,7 +883,7 @@ MODULE Growth_Mod
   
             ! Apply mortality and compute new state
              state(1:num_size_classes) = state(1:num_size_classes) * (1.D0- delta_time * M(1:num_size_classes))
-
+             
              Time_To_Grow(nt, 1:num_size_classes) = state(1:num_size_classes)
         enddo
         deallocate(M, Rec)

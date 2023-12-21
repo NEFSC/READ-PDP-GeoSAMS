@@ -35,7 +35,7 @@ module Output_Mod
     endsubroutine Set_Scallop_Output
     
     subroutine Scallop_Output_Annual(year, samp, fishing_effort, weight_grams, mortality, recruit)
-        use Mortality_Mod, only : Mortality_Class, Compute_Natural_Mortality, Scallops_To_Counts, Dollars_Per_Pound
+        use Mortality_Mod, only : Mortality_Class, Compute_Natural_Mortality, Scallops_To_Counts, Dollars_Per_SqM
         use Recruit_Mod, only : Recruitment_Class
         use Data_Point_Mod, only : num_dimensions
         implicit none
@@ -45,7 +45,7 @@ module Output_Mod
         type(Recruitment_Class), INTENT(IN):: recruit(*)
         real(dp) cnts(num_grids,4)
         integer n
-        real(dp) BMS(num_grids), ExplBMS(num_grids), Abundance(num_grids), DollarsPerPound(num_grids)
+        real(dp) BMS(num_grids), ExplBMS(num_grids), Abundance(num_grids), Dollars_Per_SqMeter(num_grids)
         real(dp) StateCapt(num_grids) !  , Recs(num_grids, num_size_classes)
         real(dp) NatMort(num_grids, num_size_classes), FishMort(num_grids, num_size_classes)
         real(dp) TotalMort(num_grids, num_size_classes), Fslct(num_grids, num_size_classes)
@@ -63,7 +63,7 @@ module Output_Mod
             NatMort(n,1:num_size_classes) = mortality(n)%natural_mortality(1:num_size_classes)
             FishMort(n,1:num_size_classes) = fishing_effort(n) * mortality(n)%selectivity(1:num_size_classes)
             call Scallops_To_Counts(weight_grams(n,1:num_size_classes), cnts(n,1), cnts(n,2), cnts(n,3), cnts(n,4))
-            DollarsPerPound(n) = Dollars_Per_Pound(year, weight_grams(n,1:num_size_classes))
+            Dollars_Per_SqMeter(n) = Dollars_Per_SqM(year, weight_grams(n,1:num_size_classes))
             TotalMort(n,1:num_size_classes) = mortality(n)%natural_mortality(1:num_size_classes) &
             &    + fishing_effort(n) * &
             & (mortality(n)%selectivity(1:num_size_classes) + mortality(n)%incidental + mortality(n)%Discard(1:num_size_classes))
@@ -78,7 +78,7 @@ module Output_Mod
         call Write_CSV(num_grids, num_size_classes, FishMort, output_dir//'FishingMortality'//buf//'.csv', size(FishMort,1))
         call Write_CSV(num_grids, num_size_classes, Fslct, output_dir//'Selectivity'//buf//'.csv', size(Fslct,1))
         call Write_CSV(num_grids, 4, cnts, output_dir//'Cnts'//buf//'.csv', size(cnts,1))
-        call Write_Scalar_Field(num_grids, DollarsPerPound, output_dir//'Dollars'//buf//'.txt')
+        call Write_Scalar_Field(num_grids, Dollars_Per_SqMeter, output_dir//'Dollars'//buf//'.txt')
         call Write_Scalar_Field(num_grids, fishing_effort, output_dir//'fishing_effort'//buf//'.txt')
         call Write_Scalar_Field(num_grids, BMS, output_dir//'BMS'//buf//'.txt')
         call Write_Scalar_Field(num_grids, ExplBMS, output_dir//'ExplBMS'//buf//'.txt')

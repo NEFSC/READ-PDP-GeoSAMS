@@ -331,6 +331,9 @@ PROGRAM ScallopPopDensity
     &              element_area, shell_len_min, shell_len_delta, file_name, state, weight_grams)
     num_grids = grid%len
 
+    write( stateFileName,"(A,I4,A)") 'VERIFY/InitialState.csv'
+    call Write_CSV(num_grids, num_size_classes, state, stateFileName, size(state,1))
+
     call Set_Recruitment(recruit, num_grids, domain_name, domain_area, element_area,  is_rand_rec, &
                          & growth(1:num_grids)%L_inf_mu, growth(1:num_grids)%K_mu, shell_length_mm)
     call Set_Mortality(mortality, grid, shell_length_mm, domain_name, domain_area, element_area,num_time_steps)
@@ -361,7 +364,8 @@ PROGRAM ScallopPopDensity
             !- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - 
             !!!call Scallop_Output_Regional_Avg(year, state_at_time_step, grid, n, mid_year_sample(n,:))
             
-            if ( (n .eq. 22 .and. domain_name .eq. 'MA') .or. (n .eq. 9 .and. domain_name .eq. 'GB')) &
+            !if ( (n .eq. 22 .and. domain_name .eq. 'MA') .or. (n .eq. 9 .and. domain_name .eq. 'GB')) &
+            if (n .eq. 2) &
             &   call Write_CSV(num_time_steps, num_size_classes, state_at_time_step, stateFileName, size(state_at_time_step,1))
         enddo
 

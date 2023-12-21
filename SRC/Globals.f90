@@ -22,6 +22,7 @@ module globals
     ! metric equivalents
     real(dp), parameter :: grams_per_pound = 453.592_dp
     real(dp), parameter :: meters_per_naut_mile = 1852.D0
+    real(dp), parameter :: grams_per_metric_ton = 1000000._dp
 
     ! colors taken from https://i.stack.imgur.com/9UVnC.png
     character(*), parameter :: term_red = ''//achar(27)//'[31m'
