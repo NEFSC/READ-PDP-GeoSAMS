@@ -16,3 +16,5 @@ docs/html/
 docs/rtf/
 docs/latex/
 docs/*.docx
+VERIFY/
+InitiaCondition/*.txt

@@ -26,8 +26,9 @@ module globals
 
     ! colors taken from https://i.stack.imgur.com/9UVnC.png
     character(*), parameter :: term_red = ''//achar(27)//'[31m'
-    character(*), parameter :: term_blu = ''//achar(27)//'[94m'
     character(*), parameter :: term_yel = ''//achar(27)//'[33m'
+    character(*), parameter :: term_grn = ''//achar(27)//'[92m'
+    character(*), parameter :: term_blu = ''//achar(27)//'[94m'
     character(*), parameter :: term_blk = ''//achar(27)//'[0m'
 
 

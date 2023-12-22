@@ -12,13 +12,13 @@
 !! @param[out] start_year Starting year for simulation read from config file
 !! @param[out] stop_year  End year for simulation read from config file
 !! @param[out] fishing_type Fishing can be USD, BMS, or, CAS
-!! @param[out] num_time_steps Number of times steps to evaluate growth
+!! @param[out] time_steps_per_year Number of times steps to evaluate growth
 !! @param[out] num_monte_carlo_iter Number of iterations for Monte Carlo simulation
 !-----------------------------------------------------------------------
-subroutine Read_Input(domain_name, init_cond_file_name, start_year, stop_year, fishing_type,num_time_steps,num_monte_carlo_iter)
+subroutine Read_Input(domain_name, init_cond_file_name, start_year, stop_year, fishing_type,time_steps_per_year) !,num_monte_carlo_iter)
     use globals
     implicit none
-    integer, intent(out) :: start_year, stop_year, num_time_steps, num_monte_carlo_iter
+    integer, intent(out) :: start_year, stop_year, time_steps_per_year ! , num_monte_carlo_iter
     integer j,io  !,k
     character(72),intent(out):: init_cond_file_name
     character(2),intent(out):: domain_name
@@ -61,10 +61,10 @@ subroutine Read_Input(domain_name, init_cond_file_name, start_year, stop_year, f
                     read( input_string(j+1:),* )stop_year
                 case('T')
                     j = scan(input_string,"=",back=.true.)
-                    read( input_string(j+1:),* )num_time_steps
-                case('N')
-                    j = scan(input_string,"=",back=.true.)
-                    read( input_string(j+1:),* )num_monte_carlo_iter
+                    read( input_string(j+1:),* )time_steps_per_year
+                ! case('N')
+                !     j = scan(input_string,"=",back=.true.)
+                !     read( input_string(j+1:),* )num_monte_carlo_iter
                 case('F')
                     j = scan(input_string,"=",back=.true.)
                     fishing_type=trim(adjustl(input_string(j+1:)))

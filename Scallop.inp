@@ -1,8 +1,8 @@
 #input file for Scallops 
 Domain Name = MA
 Beging Year = 2005
-Ending Year = 2005
-Time steps per Year = 52
+Ending Year = 2008
+Time steps per Year = 13
 #Initial Conditions = InitialCondition/SimMA2000/InitialCondition.csv
 Initial Conditions = Data/bin5mm9999MA.csv
 # Fishing can be USD, BMS, or, CAS

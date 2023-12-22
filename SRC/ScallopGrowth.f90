@@ -165,6 +165,7 @@ MODULE Growth_Mod
     real(dp), PRIVATE :: domain_area_sqm
     real(dp), PRIVATE :: grid_area_sqm
     integer, PRIVATE :: num_time_steps
+    integer, PRIVATE :: time_steps_year
     real(dp), PRIVATE :: delta_time
 
     CONTAINS
@@ -191,13 +192,14 @@ MODULE Growth_Mod
     !> @param[in,out] weight_grams Computed combined scallop weight
     !> 
     !==================================================================================================================
-    subroutine Set_Growth(use_interp, growth, grid, shell_lengths, num_ts, dom_name, dom_area, element_area, &
+    subroutine Set_Growth(use_interp, growth, grid, shell_lengths, num_ts, ts_per_year, dom_name, dom_area, element_area, &
         &                 length_min, length_delta, file_name, state, weight_grams)
         logical, intent(in) :: use_interp
         type(Growth_Class), intent(inout) :: growth(*)
         type(Data_Vector_Class), intent(inout) :: grid
         real(dp), intent(inout) :: shell_lengths(num_size_classes)
         integer, intent(in) :: num_ts
+        integer, intent(in) :: ts_per_year
         character(2), intent(in) :: dom_name
         real(dp), intent(out) :: dom_area
         real(dp), intent(out) :: element_area
@@ -213,7 +215,8 @@ MODULE Growth_Mod
         ! initalize private members
         domain_name = dom_name
         num_time_steps = num_ts
-        delta_time = 1._dp / dfloat(num_ts)
+        delta_time = 1._dp / dfloat(ts_per_year)
+        time_steps_year = ts_per_year
 
         ! Load Grid. 
         if (use_interp) then
@@ -837,9 +840,9 @@ MODULE Growth_Mod
     !> @param[in,out] state vector of the current state in scallops per square meter
     !> @param[in] fishing_effort vector of fishing effort by location
     !> @param[out] state_time_steps State at each time step
-    !> @param[in] year under considration
+    !> @param[in] start_year under considration
     !==================================================================================================================
-    function Time_To_Grow(growth, mortality, recruit, state, fishing_effort, year)
+    function Time_To_Grow(growth, mortality, recruit, state, fishing_effort, start_year)
 
         use Mortality_Mod, only : Mortality_Class, Compute_Natural_Mortality
         use Recruit_Mod, only : Recruitment_Class
@@ -848,7 +851,7 @@ MODULE Growth_Mod
         type(Growth_Class), INTENT(IN):: growth
         type(Mortality_Class), INTENT(INOUT):: mortality
         type(Recruitment_Class), INTENT(INOUT):: recruit
-        integer, intent(in) :: year
+        integer, intent(in) :: start_year
         real(dp),intent(inout) :: state(*)
         real(dp) :: Time_To_Grow(num_time_steps, num_size_classes)
         real(dp), intent(in) :: fishing_effort
@@ -856,22 +859,27 @@ MODULE Growth_Mod
         integer nt
         integer Rindx
         real(dp), allocatable :: M(:), Rec(:)
+        integer year
             
         allocate(M(1:num_size_classes), Rec(1:num_size_classes))
-        
+
+        year = start_year
         ! find location of current year
-        Rindx = minloc( abs(recruit%year(1:recruit%n_year)-year ), 1)
+        Rindx = minloc( abs(recruit%year(1:recruit%n_year) - year), 1)
         Rec(1:num_size_classes) = 0.D0
         Rec(1:recruit%max_rec_ind) = recruit%recruitment(Rindx)/float(recruit%max_rec_ind)
 
         do nt = 1, num_time_steps
+            t = dfloat(nt) * delta_time
+
+            Time_To_Grow(nt, 1:num_size_classes) = state(1:num_size_classes)
+
             ! Compute natural mortality based on current state
             mortality%natural_mortality(1:num_size_classes) = Compute_Natural_Mortality(recruit%max_rec_ind, mortality, state)
 
             ! adjust population state based on von Bertalanffy growth
             state(1:num_size_classes) = matmul(growth%G(1:num_size_classes, 1:num_size_classes), state(1:num_size_classes))
 
-            t = dfloat(nt) * delta_time
             ! Compute increase due to recruitment
             if ( ( t .gt. recruit%rec_start ) .and. ( t.le.recruit%rec_stop) ) state(1:num_size_classes) = &
             &       state(1:num_size_classes) + delta_time * Rec(1:num_size_classes) / (recruit%rec_stop-recruit%rec_start)
@@ -883,8 +891,15 @@ MODULE Growth_Mod
   
             ! Apply mortality and compute new state
              state(1:num_size_classes) = state(1:num_size_classes) * (1.D0- delta_time * M(1:num_size_classes))
-             
-             Time_To_Grow(nt, 1:num_size_classes) = state(1:num_size_classes)
+
+             ! finished with time_steps_year, increment year
+             if (mod(nt, time_steps_year) .eq. 0) then
+                year = year + 1
+                Rindx = minloc( abs(recruit%year(1:recruit%n_year) - year), 1)
+                Rec(1:num_size_classes) = 0.D0
+                Rec(1:recruit%max_rec_ind) = recruit%recruitment(Rindx)/float(recruit%max_rec_ind)
+            endif
+
         enddo
         deallocate(M, Rec)
         

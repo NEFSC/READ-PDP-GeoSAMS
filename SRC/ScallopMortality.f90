@@ -61,7 +61,7 @@ module Mortality_Mod
 
     real(dp), PRIVATE, allocatable :: expl_biomass_by_loc(:)
     real(dp), PRIVATE, allocatable :: USD_per_sqm_by_loc(:)
-    real(dp), PRIVATE, allocatable :: scallops_per_sqm_by_loc(:)
+    real(dp), PRIVATE, allocatable :: expl_scallops_psqm_by_loc(:)
     real(dp), PRIVATE, allocatable :: expl_num_by_loc(:)
     real(dp), PRIVATE, allocatable :: F_mort_by_loc(:)
     real(dp), PRIVATE, allocatable :: landings_by_num(:)
@@ -69,7 +69,7 @@ module Mortality_Mod
     real(dp), PRIVATE, allocatable :: landings_wgt_grams_open(:)
     real(dp), PRIVATE, allocatable :: landings_wgt_grams_closed(:)
 
-    real(dp), PRIVATE :: scallops_per_sqm_at_size(num_size_classes)
+    real(dp), PRIVATE :: expl_scallops_psqm_at_size(num_size_classes)
     real(dp), PRIVATE :: landings_at_size(num_size_classes)
     real(dp), PRIVATE :: landings_at_size_open(num_size_classes)
     real(dp), PRIVATE :: landings_at_size_closed(num_size_classes)
@@ -79,7 +79,7 @@ module Mortality_Mod
     subroutine Destructor()
         deallocate(expl_biomass_by_loc)
         deallocate(USD_per_sqm_by_loc)
-        deallocate(scallops_per_sqm_by_loc)
+        deallocate(expl_scallops_psqm_by_loc)
         deallocate(expl_num_by_loc)
         deallocate(F_mort_by_loc)
 
@@ -103,7 +103,7 @@ module Mortality_Mod
     !> @param[in] element_area, Size of grid in square meters
     !> 
     !==================================================================================================================
-    subroutine Set_Mortality(mortality, grid, shell_lengths, dom_name, dom_area, element_area, num_ts)
+    subroutine Set_Mortality(mortality, grid, shell_lengths, dom_name, dom_area, element_area, num_ts, ts_per_year)
         use Data_Point_Mod 
         implicit none
         
@@ -113,7 +113,7 @@ module Mortality_Mod
         character(2), intent(in) :: dom_name
         real(dp), intent(in) :: dom_area
         real(dp), intent(in) :: element_area
-        integer, intent(in) :: num_ts
+        integer, intent(in) :: num_ts, ts_per_year
         integer yr_index, j, k, num_years, year
         real(dp) fishing_by_region(max_num_years, 4), length_0
 
@@ -123,11 +123,11 @@ module Mortality_Mod
         domain_area_sqm = dom_area
         grid_area_sqm = element_area
         num_time_steps = num_ts
-        delta_time = 1._dp / dfloat(num_ts)
+        delta_time = 1._dp / dfloat(ts_per_year)
 
         allocate(expl_biomass_by_loc(num_grids))
         allocate(USD_per_sqm_by_loc(num_grids))
-        allocate(scallops_per_sqm_by_loc(num_grids))
+        allocate(expl_scallops_psqm_by_loc(num_grids))
         allocate(expl_num_by_loc(num_grids))
         allocate(F_mort_by_loc(num_grids))
 
@@ -141,6 +141,7 @@ module Mortality_Mod
 
         !Assign Fishing pressure, selectivity parameters, and Natural Mortality from CASA model
         if (domain_name .eq. 'MA') then
+            !TO DO add to params file
             mortality(1:num_grids)%natural_mort_adult = .25D0
             mortality(1:num_grids)%incidental = 0.05D0
             length_0 = 65._dp
@@ -166,9 +167,11 @@ module Mortality_Mod
 
             do k = 1, num_size_classes
                 if (domain_name .eq. 'MA') then
+                    ! TODO Add cull size to params file
                     if(shell_lengths(k) .gt. 90.) then
                         mortality(j)%discard(k) = 0.D0
                     else
+                        ! TODO add to parameter file
                         mortality(j)%discard(k) = 0.2 * mortality(j)%selectivity(k)
                     endif
                 else
@@ -292,15 +295,15 @@ module Mortality_Mod
         ! these sums are over num_size_classes
         do loc = 1,num_grids
             ! selectivity * state
-            scallops_per_sqm_at_size(:) = mortality(loc)%selectivity(1:num_size_classes) * state(loc, 1:num_size_classes)
+            expl_scallops_psqm_at_size(:) = mortality(loc)%selectivity(1:num_size_classes) * state(loc, 1:num_size_classes)
             ! dot_product(selectivity, state)
-            scallops_per_sqm_by_loc(loc) = & 
+            expl_scallops_psqm_by_loc(loc) = & 
             &    dot_product(mortality(loc)%selectivity(1:num_size_classes), state(loc,1:num_size_classes))
             ! dot_product(selectivity, state) * grid_area_sqm
-            expl_num_by_loc(loc) = scallops_per_sqm_by_loc(loc) * grid_area_sqm
+            expl_num_by_loc(loc) = expl_scallops_psqm_by_loc(loc) * grid_area_sqm
 
             ! dot_product(selectivity * state, weight)
-            expl_biomass_by_loc(loc) = dot_product(scallops_per_sqm_at_size(:), weight_grams(loc,1:num_size_classes))
+            expl_biomass_by_loc(loc) = dot_product(expl_scallops_psqm_at_size(:), weight_grams(loc,1:num_size_classes))
 
             ! grid_area * state
             pop_number_at_size(loc, 1:num_size_classes) = state(loc, 1:num_size_classes) * grid_area_sqm
@@ -445,13 +448,13 @@ module Mortality_Mod
         cnt30plus = 0.
         do j = 1, num_size_classes
             if( PoundsPerScallop(j).gt. 1._dp/10._dp ) then
-                cnt10 = cnt10 + scallops_per_sqm_at_size(j)
+                cnt10 = cnt10 + expl_scallops_psqm_at_size(j)
             elseif (PoundsPerScallop(j) .gt. 1._dp/20._dp) then
-                cnt10to20 = cnt10to20 + scallops_per_sqm_at_size(j)
+                cnt10to20 = cnt10to20 + expl_scallops_psqm_at_size(j)
             elseif (PoundsPerScallop(j).gt. 1._dp/30._dp) then
-                cnt20to30 = cnt20to30 + scallops_per_sqm_at_size(j)
+                cnt20to30 = cnt20to30 + expl_scallops_psqm_at_size(j)
             else
-                cnt30plus = cnt30plus + scallops_per_sqm_at_size(j)
+                cnt30plus = cnt30plus + expl_scallops_psqm_at_size(j)
             endif
         enddo
 
@@ -539,15 +542,15 @@ module Mortality_Mod
             do j = 1, num_grids
                 tmp = 0;
                 do n = 1, num_grids
-                    if (scallops_per_sqm_by_loc(n).eq.0.0) then
+                    if (expl_scallops_psqm_by_loc(n).eq.0.0) then
                         tmp = tmp + expl_biomass_by_loc(n) * expl_biomass_by_loc(n)
                     else
-                        tmp = tmp + expl_biomass_by_loc(n) * expl_biomass_by_loc(n) / scallops_per_sqm_by_loc(n)
+                        tmp = tmp + expl_biomass_by_loc(n) * expl_biomass_by_loc(n) / expl_scallops_psqm_by_loc(n)
                     endif
                 enddo
                 ! 
                 Set_Fishing_Effort_Weight_BMS(j) = &
-                &   (expl_biomass_by_loc(j) * catch / scallops_per_sqm_by_loc(j) ) / (tmp  * grid_area_sqm)
+                &   (expl_biomass_by_loc(j) * catch / expl_scallops_psqm_by_loc(j) ) / (tmp  * grid_area_sqm)
             enddo
         else
             exp_bms_open = sum( Logic_To_Double(.NOT. is_closed(1:num_grids)) * expl_biomass_by_loc(:))
