@@ -289,12 +289,21 @@ PROGRAM ScallopPopDensity
     real(dp), allocatable :: fishing_effort(:) ! rate of fishing mortality TODO units?
     real(dp), allocatable :: mid_year_sample(:,:)
 
-    character(130) :: stateFileName
+    character(130) :: stateFileName, arg
+
+    call get_command_argument(1, arg)
+    file_name = config_dir//trim(arg)
+    if (len_trim(file_name) == 0) then
+        write(*,*) term_red, 'No configuration file', term_blk
+        stop
+    endif
+    write (*,*) term_blu, file_name, term_blk
+  
 
     !==================================================================================================================
     !  - I. Read Configuration file 'Scallop.inp'
     !==================================================================================================================
-    call Read_Input(domain_name, file_name, start_year, stop_year, fishing_type, ts_per_year) !, num_monte_carlo_iter)
+    call Read_Startup_Config(domain_name, file_name, start_year, stop_year, fishing_type, ts_per_year)
     n = index(file_name, '/') - 1
     use_interp = (file_name(1:n) == 'InitialCondition')
 
@@ -389,3 +398,98 @@ PROGRAM ScallopPopDensity
     deallocate(growth, mortality, recruit, shell_length_mm, state, weight_grams, fishing_effort, mid_year_sample)
     call Destructor()
 END PROGRAM ScallopPopDensity
+
+!-----------------------------------------------------------------------
+!> Read_Startup_Config
+!! @brief Read Input File
+!! 
+!! Reads a configuration file, 'Scallop.inp', to set data parameters for simulation
+!!
+!! 
+!! @param[out] domain_name can be either 
+!!             MA MidAtlantic or 
+!!             GB GeorgesBank
+!! @param[out] init_cond_file_name File name that contains intial simulation conditions
+!! @param[out] start_year Starting year for simulation read from config file
+!! @param[out] stop_year  End year for simulation read from config file
+!! @param[out] fishing_type Fishing can be USD, BMS, or, CAS
+!! @param[out] time_steps_per_year Number of times steps to evaluate growth
+!! @param[out] num_monte_carlo_iter Number of iterations for Monte Carlo simulation
+!-----------------------------------------------------------------------
+subroutine Read_Startup_Config(domain_name, file_name, start_year, stop_year, fishing_type,time_steps_per_year)
+    use globals
+    use Mortality_Mod, only : Mortality_Set_Config_File_Name => Set_Config_File_Name
+    use Recruit_Mod, only : Recruit_Set_Config_File_Name => Set_Config_File_Name
+
+    implicit none
+    integer, intent(out) :: start_year, stop_year, time_steps_per_year ! , num_monte_carlo_iter
+    integer j, k, io
+    character(85) tag
+    character(15) value
+    character(72),intent(inout):: file_name
+    character(2),intent(out):: domain_name
+    character(3),intent(out):: fishing_type
+    character(72) input_string
+    character(72) init_cond_fname
+
+    open(read_dev,file=file_name)
+    do
+        input_string=""
+        read(read_dev,'(a)',iostat=io) input_string
+        if (io.lt.0) exit
+
+        if (input_string(1:1) .NE. '#') then
+            j = scan(input_string,"=",back=.true.)
+            tag = trim(adjustl(input_string(1:j-1)))
+            ! explicitly ignore inline comment
+            k = scan(input_string,"#",back=.true.)
+            if (k .EQ. 0) k = len(input_string)
+            value =  trim(adjustl(input_string(j+1:k-1)))
+
+            select case (tag)
+            case('Domain Name')
+                j = scan(input_string,"=",back=.true.)
+                domain_name=trim(adjustl(input_string(j+1:)))
+                if (.not. ( any ((/ domain_name.eq.'MA', domain_name.eq.'GB'/)) )) then
+                    write(*,*) term_red, ' **** INVALID DOMAIN NAME: ', domain_name, term_blk
+                    stop
+                endif
+            case('Initial Conditions')
+                j = scan(input_string,"=",back=.true.)
+                init_cond_fname=trim(adjustl(input_string(j+1:)))
+                write(*,*)'Initial Conditions File Name =',init_cond_fname
+            case('Beginning Year')
+                j = scan(input_string,"=",back=.true.)
+                read( input_string(j+1:),* )start_year
+            case('Ending Year')
+                j = scan(input_string,"=",back=.true.)
+                read( input_string(j+1:),* )stop_year
+            case('Time steps per Year')
+                j = scan(input_string,"=",back=.true.)
+                read( input_string(j+1:),* )time_steps_per_year
+            case('Fishing')
+                j = scan(input_string,"=",back=.true.)
+                fishing_type=trim(adjustl(input_string(j+1:)))
+                if (.not. ( any ((/ fishing_type.eq.'USD', fishing_type.eq.'BMS', fishing_type.eq.'CAS'/)) )) then
+                    write(*,*) term_red, ' **** INVALID FISHING TYPE: ', fishing_type, term_blk
+                    stop
+                endif
+            case('Mortality Config File')
+                j = scan(input_string,"=",back=.true.)
+                input_string = trim(adjustl(input_string(j+1:)))
+                call Mortality_Set_Config_File_Name(input_string)
+            case('Recruit Config File')
+                j = scan(input_string,"=",back=.true.)
+                input_string = trim(adjustl(input_string(j+1:)))
+                call Recruit_Set_Config_File_Name(input_string)
+            case default
+                write(*,*) term_red, 'Unrecognized line in ',file_name
+                write(*,*) 'Unknown Line-> ',input_string, term_blk
+                stop
+            end select
+        endif
+    end do
+    file_name = init_cond_fname
+    close(read_dev)
+    return
+end subroutine Read_Startup_Config

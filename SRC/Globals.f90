@@ -37,9 +37,9 @@ module globals
     character(*), parameter :: rec_input_dir = 'KrigingEstimates/'
     character(*), parameter :: rec_output_dir = 'RecruitField/'
     character(*), parameter :: output_dir = 'Results/'
+    character(*), parameter :: config_dir = 'Configuration/'
 
     character(*), parameter :: sim_input_fname = 'Scallop.inp'
-    character(*), parameter :: error_file_name = 'InputDataError.txt'
 
     CONTAINS
 
@@ -62,5 +62,28 @@ module globals
             Is_Leap_Year = .false.
         endif
     endfunction
+
+!   ==============================
+!   Changes a string to upper case
+!   ==============================
+    Pure Function to_upper (str) Result (string)
+    Implicit None
+    Character(*), Intent(In) :: str
+    Character(LEN(str))      :: string
+
+    Integer :: ic, i
+
+    Character(26), Parameter :: cap = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ'
+    Character(26), Parameter :: low = 'abcdefghijklmnopqrstuvwxyz'
+
+!   Capitalize each letter if it is lowecase
+    string = str
+    do i = 1, LEN_TRIM(str)
+        ic = INDEX(low, str(i:i))
+        if (ic > 0) string(i:i) = cap(ic:ic)
+    end do
+
+endfunction to_upper
+
 
 end module globals

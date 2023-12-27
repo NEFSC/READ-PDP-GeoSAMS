@@ -52,12 +52,33 @@ module Mortality_Mod
     end type Mortality_Class
 
     ! @private @memberof Mortality_Class
+    character(72), PRIVATE :: config_file_name
     integer, PRIVATE :: num_grids
     character(2), PRIVATE :: domain_name
     real(dp), PRIVATE :: domain_area_sqm
     real(dp), PRIVATE :: grid_area_sqm
     integer, PRIVATE :: num_time_steps
     real(dp), PRIVATE :: delta_time
+
+    ! configuration parameters
+    real(dp), PRIVATE :: ma_cull_size_mm
+    real(dp), PRIVATE :: ma_discard
+    real(dp), PRIVATE :: gb_cull_size_mm
+    real(dp), PRIVATE :: gb_discard
+
+    real(dp), PRIVATE :: ma_fselect_a
+    real(dp), PRIVATE :: ma_fselect_b
+    real(dp), PRIVATE :: gbc_fselect_a
+    real(dp), PRIVATE :: gbc_fselect_b
+    real(dp), PRIVATE :: gbo_fselect_a
+    real(dp), PRIVATE :: gbo_fselect_b
+
+    real(dp), PRIVATE :: ma_mort_adult
+    real(dp), PRIVATE :: ma_incidental
+    real(dp), PRIVATE :: ma_length_0
+    real(dp), PRIVATE :: gb_mort_adult
+    real(dp), PRIVATE :: gb_incidental
+    real(dp), PRIVATE :: gb_length_0
 
     real(dp), PRIVATE, allocatable :: expl_biomass_by_loc(:)
     real(dp), PRIVATE, allocatable :: USD_per_sqm_by_loc(:)
@@ -117,6 +138,27 @@ module Mortality_Mod
         integer yr_index, j, k, num_years, year
         real(dp) fishing_by_region(max_num_years, 4), length_0
 
+        ! default values
+        ma_cull_size_mm = 90.
+        ma_discard = 0.2
+        ma_fselect_a = 20.5079
+        ma_fselect_b = 0.19845
+
+        gb_cull_size_mm = 100.
+        gb_discard = 0.2
+        gbc_fselect_a = 17.72
+        gbc_fselect_b = 0.15795
+        gbo_fselect_a = 21.7345
+        gbo_fselect_b = 0.2193
+        ma_mort_adult = .25D0
+        ma_incidental = 0.05D0
+        ma_length_0 = 65._dp
+        gb_mort_adult = .2D0
+        gb_incidental = 0.1D0
+        gb_length_0 = 70._dp
+
+        call Read_Configuration()
+
         !! initalize private members
         num_grids = grid%len
         domain_name = dom_name
@@ -167,18 +209,16 @@ module Mortality_Mod
 
             do k = 1, num_size_classes
                 if (domain_name .eq. 'MA') then
-                    ! TODO Add cull size to params file
-                    if(shell_lengths(k) .gt. 90.) then
+                    if(shell_lengths(k) .gt. ma_cull_size_mm) then
                         mortality(j)%discard(k) = 0.D0
                     else
-                        ! TODO add to parameter file
-                        mortality(j)%discard(k) = 0.2 * mortality(j)%selectivity(k)
+                        mortality(j)%discard(k) = ma_discard * mortality(j)%selectivity(k)
                     endif
                 else
-                    if ((shell_lengths(k) .gt. 100.) .and. (mortality(j)%is_closed)) then
+                    if ((shell_lengths(k) .gt. gb_cull_size_mm) .and. (mortality(j)%is_closed)) then
                         mortality(j)%discard(k) = 0.D0
                     else
-                        mortality(j)%discard(k) = 0.2 * mortality(j)%selectivity(k)
+                        mortality(j)%discard(k) = gb_discard * mortality(j)%selectivity(k)
                     endif
                 endif
             enddo
@@ -244,15 +284,15 @@ module Mortality_Mod
         real(dp) a, b
         
         if(domain_name(1:2) .eq. 'MA')then
-            a = 20.5079
-            b = 0.19845
+            a = ma_fselect_a
+            b = ma_fselect_b
         else
             if(is_closed) then
-                a = 17.72
-                b = 0.15795
+                a = gbc_fselect_a
+                b = gbc_fselect_b
             else
-                a = 21.7345
-                b =  0.2193
+                a = gbo_fselect_a
+                b = gbo_fselect_b
             endif
         endif
         Ring_Size_Selectivity = 1.D0 / ( 1.D0 + exp( a - b * (shell_length+shell_len_delta/2._dp)))
@@ -693,6 +733,109 @@ module Mortality_Mod
     elemental real(dp) function Fishing_Mortality()
         Fishing_Mortality = 0.4_dp
     endfunction Fishing_Mortality
+
+    !-----------------------------------------------------------------------------------------------
+    !! @public @memberof Mortality_Class
+    !> Used during instantiation to set the name of the file to read to for configuration parameters
+    !> @brief Read Input File
+    !> 
+    !> Sets name of a configuration file, 'config_file_name.cfg'
+    !-----------------------------------------------------------------------------------------------
+    subroutine Set_Config_File_Name(fname)
+        character(*), intent(in) :: fname
+        config_file_name = fname
+    endsubroutine Set_Config_File_Name
+
+    !-----------------------------------------------------------------------
+    !> @public @memberof Mortality_Class
+    !> Read_Configuration
+    !> @brief Read Input File
+    !> 
+    !> Reads a configuration file, 'config_file_name.cfg', to set data parameters for Mortality
+    !>
+    !-----------------------------------------------------------------------
+    subroutine Read_Configuration() !,num_monte_carlo_iter)
+    
+        implicit none
+        character(100) input_string
+        character(85) tag
+        character(15) value
+        integer j, k, io
+
+        write(*,*) ' READING IN ', config_dir//config_file_name
+
+        open(read_dev,file=config_dir//config_file_name)
+        do
+            input_string=""
+            read(read_dev,'(a)',iostat=io) input_string
+            if (io.lt.0) exit
+            if (input_string(1:1) .NE. '#') then
+                j = scan(input_string,"=",back=.true.)
+                tag = trim(adjustl(input_string(1:j-1)))
+                ! explicitly ignore inline comment
+                k = scan(input_string,"#",back=.true.)
+                if (k .EQ. 0) k = len(input_string)
+                value =  trim(adjustl(input_string(j+1:k-1)))
+
+                select case(tag)
+                case ('MA Cull size')
+                    read(value, *) ma_cull_size_mm
+
+                case('MA Discard')
+                    read(value, *) ma_discard
+
+                case('GB Cull size')
+                    read(value, *) gb_cull_size_mm
+
+                case('GB Discard')
+                    read(value, *) gb_discard
+
+                case('MA FSelectA')
+                    read(value, *) ma_fselect_a
+
+                case('MA FSelectB')
+                    read(value, *) ma_fselect_b
+
+                case('GB Closed FSelectA')
+                    read(value, *) gbc_fselect_a
+
+                case('GB Closed FSelectB')
+                    read(value, *) gbc_fselect_b
+
+                case('GB Open FSelectA')
+                    read(value, *) gbo_fselect_a
+
+                case('GB Open FSelectB')
+                    read(value, *) gbo_fselect_b
+
+                case('MA Adult Mortality')
+                    read(value, *) ma_mort_adult
+
+                case('GB Adult Mortality')
+                    read(value, *) gb_mort_adult
+
+                case('MA Incidental')
+                    read(value, *) ma_incidental
+
+                case('GB Incidental')
+                    read(value, *) gb_incidental
+
+                case('MA Length_0')
+                    read(value, *) ma_length_0
+
+                case('GB Length_0')
+                    read(value, *) gb_length_0
+
+                case default
+                    write(*,*) term_red, 'Unrecognized line in ',config_file_name
+                    write(*,*) 'Unknown Line-> ',input_string, term_blk
+                end select
+            endif
+        end do
+        close(read_dev)
+        return
+    end subroutine Read_Configuration
+    
 
 end module Mortality_Mod
    

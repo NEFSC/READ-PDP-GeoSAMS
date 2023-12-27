@@ -120,10 +120,17 @@ module Recruit_Mod
     end type Recruitment_Class
 
     ! @private @memberof Recruit_Mod
+    character(72), PRIVATE :: config_file_name
     integer, PRIVATE :: num_grids
     character(2), PRIVATE :: domain_name
     real(dp), PRIVATE :: domain_area_sqm
     real(dp), PRIVATE :: grid_area_sqm
+
+    integer, PRIVATE :: recr_start_year ! historical data interpolated at start
+    integer, PRIVATE :: recr_stop_year ! historical data interpolated at stop
+    integer, PRIVATE :: recr_all_rand_stop ! all random recruitment, start year is recr_stop_year + 1
+    real(dp), PRIVATE :: recr_period_start ! day of year as a fraction of year, Jan 1 is 1/365
+    real(dp), PRIVATE :: recr_period_stop  ! day of year as a fraction of year, Apr 10 is 100/365
 
     CONTAINS
 
@@ -161,10 +168,15 @@ module Recruit_Mod
         real(dp) tmp(n_grids)
         character(72) buf
         real(dp) L30mm
-        real(dp) april_10
 
-        april_10 = 100._dp
-        if (Is_Leap_Year(year)) april_10 = 101._dp
+        ! set default values
+        recr_period_start = 1./365.
+        recr_period_stop = 100./365.
+        recr_start_year = 1979
+        recr_stop_year = 2018
+        recr_all_rand_stop = 2025
+
+        call Read_Configuration()
 
         !! initalize private members
         num_grids = n_grids
@@ -183,8 +195,7 @@ module Recruit_Mod
         !-------------------------------------------------------------------------
         write(*,*)'Is random Rec',is_random_rec
         year_index = 0
-        !! TODO replace magic numbers, where does 1979 - 2025 come from
-        do year = 1979, 2018
+        do year = recr_start_year, recr_stop_year
             year_index = year_index + 1
             write(buf,'(I6)')year
             if (is_random_rec) then
@@ -196,22 +207,20 @@ module Recruit_Mod
             do j = 1,num_grids
                 recruit(j)%recruitment(year_index) = tmp(j)
                 recruit(j)%year(year_index) = year
-                ! value as a fraction of a year, e.g. Jan 30 is 8.22% of a year
-                recruit(j)%rec_start = 1.D0/365.D0
-                ! TODO Why stop at April 10th
-                recruit(j)%rec_stop = april_10/365.D0
+                recruit(j)%rec_start = recr_period_start
+                recruit(j)%rec_stop = recr_period_stop
             enddo
         enddo
         
-        do year = 2019,2025
+        do year = recr_stop_year+1, recr_all_rand_stop
             year_index = year_index + 1
             write(buf,'(I6)')year
-            tmp = Random_Recruits(1979, 2018, 100, .true.)
+            tmp = Random_Recruits(recr_start_year, recr_stop_year, 100, .true.)
             do j = 1,num_grids
                 recruit(j)%recruitment(year_index) = tmp(j)
                 recruit(j)%year(year_index) = year
-                recruit(j)%rec_start = 1.D0/365.D0
-                recruit(j)%rec_stop = april_10/365.D0
+                recruit(j)%rec_start = recr_period_start
+                recruit(j)%rec_stop = recr_period_stop
             enddo
         enddo
         recruit(1:num_grids)%n_year = year_index
@@ -278,6 +287,81 @@ module Recruit_Mod
         return
     endfunction Random_Recruits
 
+    !-----------------------------------------------------------------------------------------------
+    !! @public @memberof Recruitment_Class
+    !> Used during instantiation to set the name of the file to read to for configuration parameters
+    !> @brief Read Input File
+    !> 
+    !> Sets name of a configuration file, 'config_file_name.cfg'
+    !-----------------------------------------------------------------------------------------------
+    subroutine Set_Config_File_Name(fname)
+        character(*), intent(in) :: fname
+        config_file_name = fname
+    endsubroutine Set_Config_File_Name
+
+    !-----------------------------------------------------------------------
+    !! @public @memberof Recruitment_Class
+    !> Read_Configuration
+    !> @brief Read Input File
+    !> 
+    !> Reads a configuration file, 'config_file_name.cfg', to set data parameters for Recruitment
+    !-----------------------------------------------------------------------
+    subroutine Read_Configuration() !,num_monte_carlo_iter)
+    
+        implicit none
+        character(100) input_string
+        integer j, k, io
+        character(85) tag
+        character(15) value
+
+        write(*,*) ' READING IN ', config_dir//config_file_name
+
+        open(read_dev,file=config_dir//config_file_name)
+        do
+            input_string=""
+            read(read_dev,'(a)',iostat=io) input_string
+            if (io.lt.0) exit
+
+            if (input_string(1:1) .NE. '#') then
+                j = scan(input_string,"=",back=.true.)
+                tag = trim(adjustl(input_string(1:j-1)))
+                ! explicitly ignore inline comment
+                k = scan(input_string,"#",back=.true.)
+                if (k .EQ. 0) k = len(input_string)
+                value =  trim(adjustl(input_string(j+1:k-1)))
+
+                select case (tag)
+                case('Start Year')
+                    j = scan(input_string,"=",back=.true.)
+                    read(value, *) recr_start_year
+
+                case('Stop Year')
+                    j = scan(input_string,"=",back=.true.)
+                    read(value, *)recr_stop_year
+
+                case('All Random Stop Year')
+                    j = scan(input_string,"=",back=.true.)
+                    read(value, *)recr_all_rand_stop
+
+                case('Start Period')
+                    j = scan(input_string,"=",back=.true.)
+                    read(value, *) recr_period_start
+                    recr_period_start = recr_period_start / 365._dp
+
+                case('Stop Period')
+                    j = scan(input_string,"=",back=.true.)
+                    read(value, *) recr_period_stop
+                    recr_period_stop = recr_period_stop / 365._dp
+
+                case default
+                    write(*,*) term_red, 'Unrecognized line in ',config_file_name
+                    write(*,*) 'Unknown Line-> ',input_string, term_blk
+                end select
+            endif
+        end do
+        close(read_dev)
+        return
+    end subroutine Read_Configuration
 
         
 endmodule Recruit_Mod

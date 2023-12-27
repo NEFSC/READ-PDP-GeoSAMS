@@ -25,8 +25,6 @@ subroutine Read_Input(domain_name, init_cond_file_name, start_year, stop_year, f
     character(3),intent(out):: fishing_type
     character(72) :: input_string
 
-    open(write_dev,file=error_file_name)
-
     open(read_dev,file=sim_input_fname)
     do
         input_string=""
@@ -73,8 +71,8 @@ subroutine Read_Input(domain_name, init_cond_file_name, start_year, stop_year, f
                         stop
                     endif
                 case default
-                    write(write_dev,*) 'Unrecognized line in ',sim_input_fname
-                    write(write_dev,*) 'Unknown Line->',input_string
+                    write(*,*) 'Unrecognized line in ',sim_input_fname
+                    write(*,*) 'Unknown Line->',input_string
                     stop
             end select
 
@@ -82,7 +80,6 @@ subroutine Read_Input(domain_name, init_cond_file_name, start_year, stop_year, f
 
     end do
     close(read_dev)
-    close(write_dev)
     return
 end subroutine Read_Input
 

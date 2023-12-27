@@ -770,7 +770,7 @@ MODULE Growth_Mod
         real(dp), INTENT(INOUT) :: G(num_size_classes,*)
         ! local
         integer j,k
-        real(dp) sum
+        real(dp) col_sum
         
         ! Transitioning from I_k to I_j
         ! if j < k, force G(j,k) = 0. Scallop does not shrink
@@ -780,21 +780,21 @@ MODULE Growth_Mod
             enddo
         enddo
         
-        ! force column sum to equal 1.0
-        ! That is sum of a probability distribution function 
+        ! force column col_sum to equal 1.0
+        ! That is col_sum of a probability distribution function 
         do k = 1, num_size_classes
-            sum = 0.
+            col_sum = 0.
             do j = k, num_size_classes
                 if(G(j,k) .lt. 0.) G(j,k) = 0.
-                sum = sum + G(j,k)
+                col_sum = col_sum + G(j,k)
             enddo
             do j = k, num_size_classes
                 ! because of above loop we already know that G(j,k) >= 0
-                ! therefore the sum will be >= 0
-                if(sum .gt. 0.)then
-                    G(j,k) = G(j,k)/sum ! if a+b+c+..z = sum then a/sum+b/sum+c/sum+ ..z/sum = 1.0
+                ! therefore the col_sum will be >= 0
+                if(col_sum .gt. 0.)then
+                    G(j,k) = G(j,k)/col_sum ! if a+b+c+..z = col_sum then a/col_sum+b/col_sum+c/col_sum+ ..z/col_sum = 1.0
                 else
-                    ! sum == 0
+                    ! col_sum == 0
                     if(j .eq. k) G(j,k) = 1._dp
                 endif
             enddo
