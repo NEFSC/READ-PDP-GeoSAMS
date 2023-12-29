@@ -131,7 +131,7 @@ MODULE Growth_Mod
     interface
         integer function Load_Grid(g, d)
             use Data_Point_Mod
-            type(Data_Vector_Class), intent(inout) :: g
+            type(Data_Point_Class), intent(inout) :: g(*)
             character(2), intent(in) :: d
         endfunction
     endinterface
@@ -163,7 +163,6 @@ MODULE Growth_Mod
     integer, PRIVATE :: num_grids
     character(2), PRIVATE :: domain_name
     real(dp), PRIVATE :: domain_area_sqm
-    real(dp), PRIVATE :: grid_area_sqm
     integer, PRIVATE :: num_time_steps
     integer, PRIVATE :: time_steps_year
     real(dp), PRIVATE :: delta_time
@@ -182,32 +181,28 @@ MODULE Growth_Mod
     !> @param[in] num_sz_classes Number of size classes to set private member
     !> @param[in] domain_name Name of domain being simulate, 'MA' or 'GB'
     !> @param[out] domain_area, Size of domain under consideration in square meters
-    !> @param[out] element_area, Size of grid in square meters
-    !> @param[in] length_min Minimum length of shell being considered
-    !> @param[in] length_delta Size step to sort classes 
-    !>            @f$size_{max} = length_{min} + (numSizeClasses-1) * length_{delta}@f$
     !> @param[in] file_name The name of the file with initial state, i.e. scallops per sq meter
     !> @param[in] start_year Year in which to start simulation
     !> @param[out] state Initial state as set by initial conditions
     !> @param[in,out] weight_grams Computed combined scallop weight
     !> 
     !==================================================================================================================
-    subroutine Set_Growth(use_interp, growth, grid, shell_lengths, num_ts, ts_per_year, dom_name, dom_area, element_area, &
-        &                 length_min, length_delta, file_name, state, weight_grams)
+    subroutine Set_Growth(use_interp, growth, grid, shell_lengths, num_ts, ts_per_year, dom_name, dom_area, &
+        &                 file_name, state, weight_grams, ngrids)
         logical, intent(in) :: use_interp
         type(Growth_Class), intent(inout) :: growth(*)
-        type(Data_Vector_Class), intent(inout) :: grid
-        real(dp), intent(inout) :: shell_lengths(num_size_classes)
+        type(Data_Point_Class), intent(inout) :: grid(*)
+        real(dp), intent(inout) :: shell_lengths(*)
         integer, intent(in) :: num_ts
         integer, intent(in) :: ts_per_year
         character(2), intent(in) :: dom_name
         real(dp), intent(out) :: dom_area
-        real(dp), intent(out) :: element_area
-        integer, intent(in) :: length_min, length_delta
         character(*), intent(in) :: file_name
-        ! allow for max on first dimension. Recall that fortran stores by column first.
+        ! state actual first dimension. Recall that fortran stores by column first.
+        ! second dimension as this is constant
         real(dp), intent(out):: state(1:num_dimensions, 1:num_size_classes)
         real(dp), intent(inout) :: weight_grams(1:num_dimensions, 1:num_size_classes)
+        integer, intent(out) :: ngrids
     
         integer n, j
         real(dp), allocatable :: Gpar(:,:)
@@ -222,17 +217,16 @@ MODULE Growth_Mod
         if (use_interp) then
             ! Loads grid data based on TBD, use to interpolate the survey data by overlaying onto this grid
             ! Grid is defined by: Grids/[MA|GB]xyzLatLon.csv
-            num_grids = Load_Grid(grid, domain_name)
+            ngrids = Load_Grid(grid, domain_name)
         else
             ! read in grid and state from file_name
             PRINT *, term_yel,'NO INTERP: using ', file_name,term_blk
-            num_grids = Load_Grid_State(grid, state, file_name)
-            grid%len = num_grids
+            ngrids = Load_Grid_State(grid, state, file_name)
         endif
-        element_area = meters_per_naut_mile**2 ! convert 1 sq nm to sq m
-        ! initalize private members
-        grid_area_sqm = element_area
-        dom_area = float(num_grids) * element_area
+        ! set private variable
+        num_grids = ngrids
+
+        dom_area = float(num_grids) * grid_area_sqm
         domain_area_sqm = dom_area
         write(*,'(A,I7)') ' Number of Grids: ', num_grids
         write(*,*)        ' Domain Area: ', dom_area, ' square meters'
@@ -240,10 +234,10 @@ MODULE Growth_Mod
         write(*,*) '========================================================'
 
         ! Compute Shell Lengths (mm) and conversion to Meat Weight (g)
-        shell_lengths(1:num_size_classes) = Set_Shell_Lengths(dfloat(length_min), dfloat(length_delta))
+        shell_lengths(1:num_size_classes) = Set_Shell_Lengths(dfloat(shell_len_min), dfloat(shell_len_delta))
         do n = 1, num_grids
             weight_grams(n,1:num_size_classes) =  Shell_to_Weight(shell_lengths(1:num_size_classes), &
-            &                grid%posn(n)%is_closed, grid%posn(n)%z, grid%posn(n)%lat, grid%posn(n)%mgmt_area_index )
+            &                grid(n)%is_closed, grid(n)%z, grid(n)%lat, grid(n)%mgmt_area_index )
         enddo
         call Write_CSV(num_grids, num_size_classes, weight_grams, growth_out_dir//'WeightShellHeight.csv', size(weight_grams,1))
 
@@ -251,16 +245,16 @@ MODULE Growth_Mod
         ! Compute Growth Parameters, L_inf_mu, K_mu, L_inf_sd, K_sd based on depth, latitude, and if grid is closed
         if(domain_name .eq. 'GB')then
             do n=1,num_grids
-                call Get_Growth_GB(grid%posn(n)%z, grid%posn(n)%lat, grid%posn(n)%is_closed, &
+                call Get_Growth_GB(grid(n)%z, grid(n)%lat, grid(n)%is_closed, &
                 &                  growth(n)%L_inf_mu, growth(n)%K_mu,&
-                &                  growth(n)%L_inf_sd, growth(n)%K_sd, grid%posn(n)%mgmt_area_index)
+                &                  growth(n)%L_inf_sd, growth(n)%K_sd, grid(n)%mgmt_area_index)
                 ! Compute Growth Transition Matrix
                 growth(n)%G = Gen_Size_Trans_Matrix(growth(n)%L_inf_mu, growth(n)%L_inf_sd, &
                 &                              growth(n)%K_mu, growth(n)%K_sd, shell_lengths, 'AppxC')
             enddo
         else
             do n=1,num_grids
-                call Get_Growth_MA(grid%posn(n)%z, grid%posn(n)%lat, grid%posn(n)%is_closed, &
+                call Get_Growth_MA(grid(n)%z, grid(n)%lat, grid(n)%is_closed, &
                 &                  growth(n)%L_inf_mu, growth(n)%K_mu,&
                 &                  growth(n)%L_inf_sd, growth(n)%K_sd)
                 ! Compute Growth Transition Matrix
@@ -842,65 +836,51 @@ MODULE Growth_Mod
     !> @param[out] state_time_steps State at each time step
     !> @param[in] start_year under considration
     !==================================================================================================================
-    function Time_To_Grow(growth, mortality, recruit, state, fishing_effort, start_year)
+    function Time_To_Grow(ts, growth, mortality, recruit, state, fishing_effort, year)
 
         use Mortality_Mod, only : Mortality_Class, Compute_Natural_Mortality
         use Recruit_Mod, only : Recruitment_Class
         
         implicit none
+        integer, intent(in) :: ts !time step
         type(Growth_Class), INTENT(IN):: growth
         type(Mortality_Class), INTENT(INOUT):: mortality
         type(Recruitment_Class), INTENT(INOUT):: recruit
-        integer, intent(in) :: start_year
+        integer, intent(in) :: year
         real(dp),intent(inout) :: state(*)
-        real(dp) :: Time_To_Grow(num_time_steps, num_size_classes)
+        real(dp) :: Time_To_Grow(num_size_classes)
         real(dp), intent(in) :: fishing_effort
         real(dp) t
-        integer nt
         integer Rindx
         real(dp), allocatable :: M(:), Rec(:)
-        integer year
             
         allocate(M(1:num_size_classes), Rec(1:num_size_classes))
 
-        year = start_year
         ! find location of current year
         Rindx = minloc( abs(recruit%year(1:recruit%n_year) - year), 1)
         Rec(1:num_size_classes) = 0.D0
         Rec(1:recruit%max_rec_ind) = recruit%recruitment(Rindx)/float(recruit%max_rec_ind)
 
-        do nt = 1, num_time_steps
-            t = dfloat(nt) * delta_time
+        t = dfloat(ts) * delta_time
 
-            Time_To_Grow(nt, 1:num_size_classes) = state(1:num_size_classes)
+        ! Compute natural mortality based on current state
+        mortality%natural_mortality(1:num_size_classes) = Compute_Natural_Mortality(recruit%max_rec_ind, mortality, state)
 
-            ! Compute natural mortality based on current state
-            mortality%natural_mortality(1:num_size_classes) = Compute_Natural_Mortality(recruit%max_rec_ind, mortality, state)
+        ! adjust population state based on von Bertalanffy growth
+        state(1:num_size_classes) = matmul(growth%G(1:num_size_classes, 1:num_size_classes), state(1:num_size_classes))
 
-            ! adjust population state based on von Bertalanffy growth
-            state(1:num_size_classes) = matmul(growth%G(1:num_size_classes, 1:num_size_classes), state(1:num_size_classes))
+        ! Compute increase due to recruitment
+        if ( ( t .gt. recruit%rec_start ) .and. ( t.le.recruit%rec_stop) ) state(1:num_size_classes) = &
+        &       state(1:num_size_classes) + delta_time * Rec(1:num_size_classes) / (recruit%rec_stop-recruit%rec_start)
 
-            ! Compute increase due to recruitment
-            if ( ( t .gt. recruit%rec_start ) .and. ( t.le.recruit%rec_stop) ) state(1:num_size_classes) = &
-            &       state(1:num_size_classes) + delta_time * Rec(1:num_size_classes) / (recruit%rec_stop-recruit%rec_start)
+        ! Compute overall mortality
+        M(1:num_size_classes) = mortality%natural_mortality(1:num_size_classes) &
+        & + fishing_effort * ( mortality%selectivity(1:num_size_classes) &
+        & + mortality%incidental + mortality%discard(1:num_size_classes) )
 
-            ! Compute overall mortality
-             M(1:num_size_classes) = mortality%natural_mortality(1:num_size_classes) &
-             & + fishing_effort * ( mortality%selectivity(1:num_size_classes) &
-             & + mortality%incidental + mortality%discard(1:num_size_classes) )
-  
-            ! Apply mortality and compute new state
-             state(1:num_size_classes) = state(1:num_size_classes) * (1.D0- delta_time * M(1:num_size_classes))
+        ! Apply mortality and compute new state
+        Time_To_Grow(1:num_size_classes) = state(1:num_size_classes) * (1.D0- delta_time * M(1:num_size_classes))
 
-             ! finished with time_steps_year, increment year
-             if (mod(nt, time_steps_year) .eq. 0) then
-                year = year + 1
-                Rindx = minloc( abs(recruit%year(1:recruit%n_year) - year), 1)
-                Rec(1:num_size_classes) = 0.D0
-                Rec(1:recruit%max_rec_ind) = recruit%recruitment(Rindx)/float(recruit%max_rec_ind)
-            endif
-
-        enddo
         deallocate(M, Rec)
         
         return
@@ -990,7 +970,7 @@ MODULE Growth_Mod
     !>
     !==================================================================================================================
     integer function Load_Grid_State(grid, state, file_name)
-        type(Data_Vector_Class), intent(inout) :: grid
+        type(Data_Point_Class), intent(inout) :: grid(*)
         real(dp), intent(out):: state(1:num_dimensions, 1:num_size_classes)
         character(*), intent(in) :: file_name
 
@@ -1007,15 +987,14 @@ MODULE Growth_Mod
             read(63,'(a)',iostat=io) input_str
             if (io.lt.0) exit
             n=n+1
-            read(input_str,*) year, grid%posn(n)%x, grid%posn(n)%y, grid%posn(n)%lat, grid%posn(n)%lon, grid%posn(n)%z, &
+            read(input_str,*) year, grid(n)%x, grid(n)%y, grid(n)%lat, grid(n)%lon, grid(n)%z, &
             &               is_closed, state(n,1:num_size_classes)
-            grid%posn(n)%is_closed = (is_closed > 0)
-            grid%posn(n)%mgmt_area_index = 0
+            grid(n)%is_closed = (is_closed > 0)
+            grid(n)%mgmt_area_index = 0
         end do
         close(63)
         write(*,*) term_blu, 'READ ', n, 'LINE(S)', term_blk
 
-        grid%len = n
         Load_Grid_State = n
 
     endfunction Load_Grid_State

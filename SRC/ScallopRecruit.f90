@@ -124,7 +124,6 @@ module Recruit_Mod
     integer, PRIVATE :: num_grids
     character(2), PRIVATE :: domain_name
     real(dp), PRIVATE :: domain_area_sqm
-    real(dp), PRIVATE :: grid_area_sqm
 
     integer, PRIVATE :: recr_start_year ! historical data interpolated at start
     integer, PRIVATE :: recr_stop_year ! historical data interpolated at stop
@@ -144,21 +143,18 @@ module Recruit_Mod
     !!             MA MidAtlantic or 
     !!             GB GeorgesBank
     !! @param[in] dom_area the total area in square meters, sets domain_area_sqm
-    !! @param[in] element_area the area of one grid in square meters, sets domain_area_sqm
     !! @param[in] is_random_rec
     !! @param[in] num_sz_classes
     !! @param[in] L_inf_mu asymptotic size, average
     !! @param[in] K_mu Brody growth coefficient K, average
     !! @param[in] shell_length_mm Shell height in millimeters
     !==================================================================================================================
-    subroutine Set_Recruitment(recruit, n_grids, dom_name, dom_area, element_area, &
-        &                      is_random_rec, L_inf_mu, K_mu, shell_length_mm)
+    subroutine Set_Recruitment(recruit, n_grids, dom_name, dom_area, is_random_rec, L_inf_mu, K_mu, shell_length_mm)
         use globals
         type(Recruitment_Class), intent(inout) :: recruit(*)
         integer, intent(in) :: n_grids
         character(2), intent(in) :: dom_name
         real(dp), intent(in) :: dom_area
-        real(dp), intent(in) :: element_area
         logical, intent(in) :: is_random_rec
         real(dp), intent(in) :: L_inf_mu(*)
         real(dp), intent(in) :: K_mu(*)
@@ -182,7 +178,6 @@ module Recruit_Mod
         num_grids = n_grids
         domain_name = dom_name
         domain_area_sqm = dom_area
-        grid_area_sqm = element_area
 
         !-------------------------------------------------------------------------
         ! This next section is effectively setting

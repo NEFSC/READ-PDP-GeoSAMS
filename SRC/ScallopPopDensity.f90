@@ -271,23 +271,25 @@ PROGRAM ScallopPopDensity
     integer ts_per_year
     real(dp) delta_time
     integer num_years
-    !integer num_monte_carlo_iter
+    integer year
     character(72) file_name
 
-    type(Data_Vector_Class):: grid
-    real(dp) element_area, domain_area
-    integer num_grids
+    real(dp) domain_area
+    integer num_grids, ts
 
+    real(dp) :: shell_length_mm(num_size_classes)
+
+
+    type(Data_Point_Class), allocatable :: grid(:)
     type(Growth_Class), allocatable :: growth(:)
     type(Mortality_Class), allocatable :: mortality(:)
     type(Recruitment_Class), allocatable :: recruit(:)
 
     real(dp), allocatable :: state(:, :)
     real(dp), allocatable :: state_at_time_step(:,:)
-    real(dp), allocatable :: shell_length_mm(:)
     real(dp), allocatable :: weight_grams(:,:)
-    real(dp), allocatable :: fishing_effort(:) ! rate of fishing mortality TODO units?
-    real(dp), allocatable :: mid_year_sample(:,:)
+    real(dp), allocatable :: fishing_effort(:) ! rate of fishing mortality
+    ! real(dp), allocatable :: mid_year_sample(:,:)
 
     character(130) :: stateFileName, arg
 
@@ -309,7 +311,7 @@ PROGRAM ScallopPopDensity
 
     ! time parameters
     num_years = stop_year - start_year + 1
-    num_time_steps = num_years * ts_per_year
+    num_time_steps = num_years * ts_per_year + 1 ! +1 to capture last data from last step
     delta_time = 1._dp / dfloat(ts_per_year)
 
     ! Force correct region
@@ -334,68 +336,70 @@ PROGRAM ScallopPopDensity
     write(*,*) '========================================================'
 
     ! allow for maximum expected number of grids
+    allocate(grid(1:num_dimensions))
     allocate(growth(1:num_dimensions), mortality(1:num_dimensions), recruit(1:num_dimensions) )
-    allocate(shell_length_mm(1:num_size_classes))
-    allocate(state(1:num_dimensions,1:num_size_classes), &
-    &        weight_grams(1:num_dimensions,1:num_size_classes))
-    allocate(fishing_effort(1:num_dimensions),&
-    &        mid_year_sample(1:num_dimensions, 1:num_size_classes), &
-    &        state_at_time_step(1:num_time_steps+1,1:num_size_classes))
+    allocate(state(1:num_dimensions,1:num_size_classes))
+    allocate(weight_grams(1:num_dimensions,1:num_size_classes))
 
     !==================================================================================================================
     !  - II. Instantiate modes, that is objects
     !==================================================================================================================
     call Set_Growth(use_interp, growth, grid, shell_length_mm, num_time_steps, ts_per_year, domain_name, domain_area,&
-    &              element_area, shell_len_min, shell_len_delta, file_name, state, weight_grams)
-    num_grids = grid%len
+    &              file_name, state, weight_grams, num_grids)
+
+    allocate(fishing_effort(1:num_grids))
+!    allocate(mid_year_sample(1:num_dimensions, 1:num_size_classes))
+    allocate(state_at_time_step(1:num_time_steps,1:num_size_classes))
 
     write( stateFileName,"(A,I4,A)") 'VERIFY/InitialState.csv'
     call Write_CSV(num_grids, num_size_classes, state, stateFileName, size(state,1))
 
-    call Set_Recruitment(recruit, num_grids, domain_name, domain_area, element_area,  is_rand_rec, &
+    call Set_Recruitment(recruit, num_grids, domain_name, domain_area, is_rand_rec, &
                          & growth(1:num_grids)%L_inf_mu, growth(1:num_grids)%K_mu, shell_length_mm)
-    call Set_Mortality(mortality, grid, shell_length_mm, domain_name, domain_area, element_area, num_time_steps, ts_per_year)
-    call Set_Scallop_Output( num_grids, domain_name, domain_area, element_area, start_year, stop_year, num_time_steps)
+    call Set_Mortality(mortality, grid, shell_length_mm, domain_name, domain_area, num_time_steps, ts_per_year, num_grids)
+    call Set_Scallop_Output( num_grids, domain_name, domain_area, start_year, stop_year, num_time_steps, ts_per_year)
 
     !==================================================================================================================
     !  - III. MAIN LOOP
     ! Start simulation
     !==================================================================================================================
-    !- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - 
-    !  i. Determine fishing effort
-    !- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - 
-    fishing_effort = Set_Fishing(fishing_type, start_year, state, weight_grams, mortality)
-
-    !- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - 
-    !  ii. For each grid
-    !- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - 
     write( stateFileName,"(A,I4,A)") growth_out_dir//'State', start_year, fishing_type//domain_name//'_main.csv'
-    do n = 1, num_grids
-        !- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - 
-        !  a. Compute new state
-        !- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - 
-        state_at_time_step(1:num_time_steps, 1:num_size_classes) = Time_To_Grow(growth(n), mortality(n), recruit(n), &
-        &                         state(n, 1:num_size_classes), fishing_effort(n), start_year)
-        ! get state change for last time step, i.e. t=0 to 15, save(state(t=15))
-        state_at_time_step(num_time_steps+1, 1:num_size_classes) = state(n, 1:num_size_classes)
+    year = start_year
+    do ts = 1, num_time_steps
+        !call Scallop_Output_At_Timestep(year, ts, state, weight_grams)
 
         !- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - 
-        !  b. Compute regional average
+        !  i. Determine fishing effort
         !- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - 
-        !!!call Scallop_Output_Regional_Avg(start_year, state_at_time_step, grid, n, mid_year_sample(n,:))
-        
-        !if ( (n .eq. 22 .and. domain_name .eq. 'MA') .or. (n .eq. 9 .and. domain_name .eq. 'GB')) &
-        if (n .eq. 2) then
-            call Write_CSV(num_time_steps+1, num_size_classes, state_at_time_step, stateFileName, size(state_at_time_step,1))
+        fishing_effort(1:num_grids) = Set_Fishing(fishing_type, year, ts-1, state, weight_grams, mortality, grid)
+
+        !- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - 
+        !  ii. For each grid, evaluate growth state for this time step
+        !- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - 
+        do n = 1, num_grids
+            if (n.eq.2) state_at_time_step(ts, 1:num_size_classes) = state(n, 1:num_size_classes)
+            !- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - 
+            !  a. Compute new state
+            !- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - 
+            state(n, 1:num_size_classes) = Time_To_Grow(ts, growth(n), mortality(n), recruit(n), &
+            &                         state(n, 1:num_size_classes), fishing_effort(n), year)
+        enddo ! n = 1, num_grids
+
+        !- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - 
+        !  b. Output time step data
+        !- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - 
+        ! get results of last time step
+        !call Scallop_Output_At_Timestep(year, ts, state, weight_grams)
+
+        ! finished with time_steps_year, increment year
+        if ((mod(ts, ts_per_year) .eq. 1) .and. (ts > 1))then
+            year = year + 1
         endif
-    enddo
+    enddo ! ts = 1, num_time_steps
 
-    !- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-    !  iii. ouput annual data
-    !- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-    !!!call Scallop_Output_Annual(start_year, mid_year_sample, fishing_effort, weight_grams, mortality, recruit)
-    
-    deallocate(growth, mortality, recruit, shell_length_mm, state, weight_grams, fishing_effort, mid_year_sample)
+    call Write_CSV(num_time_steps+1, num_size_classes, state_at_time_step, stateFileName, size(state_at_time_step,1))
+
+    deallocate(grid, growth, mortality, recruit, state, weight_grams, fishing_effort)!, mid_year_sample)
     call Destructor()
 END PROGRAM ScallopPopDensity
 

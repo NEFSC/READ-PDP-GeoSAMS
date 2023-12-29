@@ -16,7 +16,7 @@
 !>----------------------------------------------------------------------------------------------------------------
 module Mortality_Mod
     use globals
-    use Data_Point_Mod, only : num_dimensions
+    use Data_Point_Mod
     implicit none
 
     !> @class Mortality_Class
@@ -39,15 +39,11 @@ module Mortality_Mod
         real(dp) selectivity_open(num_size_classes)
         real(dp) selectivity_closed(num_size_classes)
         !> @public @memberof Mortality_Class
-        logical is_closed
-        !> @public @memberof Mortality_Class
         integer num_years
         !> @public @memberof Mortality_Class
         real(dp) natural_mort_adult, natural_mort_juv
         !> @public @memberof Mortality_Class
         real(dp) alpha(1:num_size_classes)
-        !> @public @memberof Mortality_Class
-        integer mgmt_area_index
         
     end type Mortality_Class
 
@@ -56,7 +52,6 @@ module Mortality_Mod
     integer, PRIVATE :: num_grids
     character(2), PRIVATE :: domain_name
     real(dp), PRIVATE :: domain_area_sqm
-    real(dp), PRIVATE :: grid_area_sqm
     integer, PRIVATE :: num_time_steps
     real(dp), PRIVATE :: delta_time
 
@@ -121,20 +116,19 @@ module Mortality_Mod
     !> @param[in] num_sz_classes Number of size classes to set private member
     !> @param[in] domain_name Name of domain being simulate, 'MA' or 'GB'
     !> @param[in] domain_area,Size of domain under consideration in square meters
-    !> @param[in] element_area, Size of grid in square meters
     !> 
     !==================================================================================================================
-    subroutine Set_Mortality(mortality, grid, shell_lengths, dom_name, dom_area, element_area, num_ts, ts_per_year)
+    subroutine Set_Mortality(mortality, grid, shell_lengths, dom_name, dom_area, num_ts, ts_per_year, ngrids)
         use Data_Point_Mod 
         implicit none
         
         type(Mortality_Class), intent(inout):: mortality(*)
-        type(Data_Vector_Class), intent(in) :: grid
+        type(Data_Point_Class), intent(in) :: grid(*)
         real(dp), intent(in):: shell_lengths(*)
         character(2), intent(in) :: dom_name
         real(dp), intent(in) :: dom_area
-        real(dp), intent(in) :: element_area
         integer, intent(in) :: num_ts, ts_per_year
+        integer, intent(in) :: ngrids
         integer yr_index, j, k, num_years, year
         real(dp) fishing_by_region(max_num_years, 4), length_0
 
@@ -160,10 +154,9 @@ module Mortality_Mod
         call Read_Configuration()
 
         !! initalize private members
-        num_grids = grid%len
+        num_grids = ngrids
         domain_name = dom_name
         domain_area_sqm = dom_area
-        grid_area_sqm = element_area
         num_time_steps = num_ts
         delta_time = 1._dp / dfloat(ts_per_year)
 
@@ -184,28 +177,23 @@ module Mortality_Mod
         !Assign Fishing pressure, selectivity parameters, and Natural Mortality from CASA model
         if (domain_name .eq. 'MA') then
             !TO DO add to params file
-            mortality(1:num_grids)%natural_mort_adult = .25D0
-            mortality(1:num_grids)%incidental = 0.05D0
-            length_0 = 65._dp
+            mortality(1:num_grids)%natural_mort_adult = ma_mort_adult
+            mortality(1:num_grids)%incidental = ma_incidental
+            length_0 = ma_length_0
         else
-            mortality(1:num_grids)%natural_mort_adult = .2D0
-            mortality(1:num_grids)%incidental = 0.1D0
-            length_0 = 70._dp
+            mortality(1:num_grids)%natural_mort_adult = gb_mort_adult
+            mortality(1:num_grids)%incidental = gb_incidental
+            length_0 = gb_length_0
         endif
-
-        mortality(1:num_grids)%is_closed = grid%posn(1:num_grids)%is_closed
-        ! not used in forecasting model - no data available from dredge survey
-        ! could be used when forecast data is interpolated to grids
-        mortality(1:num_grids)%mgmt_area_index = grid%posn(1:num_grids)%mgmt_area_index
 
         do j = 1, num_grids
             mortality(j)%natural_mortality(1:num_size_classes) = mortality(j)%natural_mort_adult
             mortality(j)%alpha(1:num_size_classes) =  &
             &    1._dp  - 1._dp / ( 1._dp + exp( - ( shell_lengths(1:num_size_classes)/10._dp - length_0 ) ) )
             
-            mortality(j)%selectivity = Ring_Size_Selectivity(shell_lengths(1:num_size_classes), mortality(j)%is_closed) 
-            mortality(j)%selectivity_open = mortality(j)%selectivity * Logic_To_Double(.NOT. mortality(j)%is_closed)
-            mortality(j)%selectivity_closed = mortality(j)%selectivity * Logic_To_Double(mortality(j)%is_closed)
+            mortality(j)%selectivity = Ring_Size_Selectivity(shell_lengths(1:num_size_classes), grid(j)%is_closed) 
+            mortality(j)%selectivity_open = mortality(j)%selectivity * Logic_To_Double(.NOT. grid(j)%is_closed)
+            mortality(j)%selectivity_closed = mortality(j)%selectivity * Logic_To_Double(grid(j)%is_closed)
 
             do k = 1, num_size_classes
                 if (domain_name .eq. 'MA') then
@@ -215,7 +203,7 @@ module Mortality_Mod
                         mortality(j)%discard(k) = ma_discard * mortality(j)%selectivity(k)
                     endif
                 else
-                    if ((shell_lengths(k) .gt. gb_cull_size_mm) .and. (mortality(j)%is_closed)) then
+                    if ((shell_lengths(k) .gt. gb_cull_size_mm) .and. (grid(j)%is_closed)) then
                         mortality(j)%discard(k) = 0.D0
                     else
                         mortality(j)%discard(k) = gb_discard * mortality(j)%selectivity(k)
@@ -235,7 +223,7 @@ module Mortality_Mod
                 mortality(1:num_grids)%fishing_effort(yr_index) = fishing_by_region(yr_index, 4)
             else ! must be GB
                 do j = 1, num_grids
-                    if (grid%posn(j)%is_closed) then
+                    if (grid(j)%is_closed) then
                         mortality(j)%fishing_effort(yr_index) = fishing_by_region(yr_index, 2)        
                     else
                         mortality(j)%fishing_effort(yr_index) = fishing_by_region(yr_index, 3)
@@ -316,42 +304,41 @@ module Mortality_Mod
     !> @param[in] mortality vector(num_grids)
     !> @results fishing mortality
     !==================================================================================================================
-    function Set_Fishing(fishing_type, year, state, weight_grams, mortality)
+    function Set_Fishing(fishing_type, year, ts, state, weight_grams, mortality, grid)
+        use Output_Mod
         implicit none
-        integer, intent(in):: year
-        real(dp), intent(in):: state(num_dimensions, *), weight_grams(num_dimensions, * )
-        type(Mortality_Class), intent(in):: mortality(*)
-        real(dp) :: Set_Fishing(num_grids)
         character(*), intent(in):: fishing_type !> < string inputs
+        integer, intent(in):: year, ts
+        ! need num_dimensions as that is how variable was allocated to get column memory access correct
+        real(dp), intent(in):: state(num_dimensions, num_size_classes), weight_grams(num_dimensions, num_size_classes )
+        type(Mortality_Class), intent(in):: mortality(*)
+        type(Data_Point_Class), intent(in) :: grid(*)
+        real(dp) :: Set_Fishing(num_grids)
         integer Mindx, loc
         real(dp) catch_open, catch_closed, total_catch
         real(dp) c_mort !constant for fishing mortality
 
-        real(dp), allocatable :: pop_number_at_size(:,:)   
-    
-        allocate(pop_number_at_size(num_grids, num_size_classes))
-
         !=============================================================
         ! these sums are over num_size_classes
         do loc = 1,num_grids
-            ! selectivity * state
-            expl_scallops_psqm_at_size(:) = mortality(loc)%selectivity(1:num_size_classes) * state(loc, 1:num_size_classes)
             ! dot_product(selectivity, state)
             expl_scallops_psqm_by_loc(loc) = & 
             &    dot_product(mortality(loc)%selectivity(1:num_size_classes), state(loc,1:num_size_classes))
+
             ! dot_product(selectivity, state) * grid_area_sqm
             expl_num_by_loc(loc) = expl_scallops_psqm_by_loc(loc) * grid_area_sqm
 
+            ! selectivity * state - at this location
+            expl_scallops_psqm_at_size(1:num_size_classes) = mortality(loc)%selectivity(:) * state(loc, :)
             ! dot_product(selectivity * state, weight)
-            expl_biomass_by_loc(loc) = dot_product(expl_scallops_psqm_at_size(:), weight_grams(loc,1:num_size_classes))
+            expl_biomass_by_loc(loc) = dot_product(expl_scallops_psqm_at_size(1:num_size_classes), &
+            &                                      weight_grams(loc,1:num_size_classes))
 
-            ! grid_area * state
-            pop_number_at_size(loc, 1:num_size_classes) = state(loc, 1:num_size_classes) * grid_area_sqm
-
+            ! Dollars_Per_SqM ultimately uses expl_scallops_psqm_at_size -> Scallops_To_Counts
             USD_per_sqm_by_loc(loc) = Dollars_Per_SqM(year, weight_grams(loc, 1:num_size_classes))
         enddo
 
-        ! now sum here over num_grids
+        ! now sum here over num_grids 
         c_mort = Fishing_Mortality() / dot_product(expl_biomass_by_loc(:), expl_num_by_loc(:) / sum(expl_num_by_loc))
 
         do loc = 1,num_grids
@@ -359,13 +346,13 @@ module Mortality_Mod
         
             ! (1._dp - exp(-F * delta_time)) * state * grid_area_sqm  * selectivity
             landings_at_size(:) = (1._dp - exp(-F_mort_by_loc(loc) * delta_time)) &
-            &    * pop_number_at_size(loc, 1:num_size_classes)&
+            &    * state(loc, 1:num_size_classes) * grid_area_sqm&
             &    * mortality(loc)%selectivity(1:num_size_classes)
             landings_at_size_open(:) = (1._dp - exp(-F_mort_by_loc(loc)  * delta_time)) &
-            &    * pop_number_at_size(loc, 1:num_size_classes)&
+            &    * state(loc, 1:num_size_classes) * grid_area_sqm&
             &    * mortality(loc)%selectivity_open(1:num_size_classes)
             landings_at_size_closed(:) = (1._dp - exp(-F_mort_by_loc(loc)  * delta_time)) &
-            &    * pop_number_at_size(loc, 1:num_size_classes)&
+            &    * state(loc, 1:num_size_classes) * grid_area_sqm&
             &    * mortality(loc)%selectivity_closed(1:num_size_classes)
         
             ! (1._dp - exp(-F * delta_time))
@@ -390,10 +377,10 @@ module Mortality_Mod
 
         select case (fishing_type(1:3))
             case('USD')
-                Set_Fishing (1:num_grids) = Set_Fishing_Effort_Weight_USD(mortality(1:num_grids)%is_closed, &
+                Set_Fishing (1:num_grids) = Set_Fishing_Effort_Weight_USD(grid(1:num_grids)%is_closed, &
                 &                           total_catch, catch_open, catch_closed)
             case('BMS')
-                Set_Fishing(1:num_grids) = Set_Fishing_Effort_Weight_BMS(mortality(1:num_grids)%is_closed, &
+                Set_Fishing(1:num_grids) = Set_Fishing_Effort_Weight_BMS(grid(1:num_grids)%is_closed, &
                 &                           total_catch, catch_open, catch_closed)
             case('CAS')
                 Mindx = minloc( abs(mortality(1)%year(1:mortality(1)%num_years) - year ), 1)
@@ -404,13 +391,16 @@ module Mortality_Mod
                 write( * ,  * )'Unkown fishing fishing_type:', fishing_type, &
                 &    '.  Using spatially constant fishing_effort from CASA model'
         end select
+
+        ! Report current timestep results
+        call Scallop_Output_At_Timestep(year, ts, state, weight_grams, landings_by_num)
+
         !enforce no fishing on Closed Area 2 North
         if (domain_name(1:2).eq.'GB') then
             do loc = 1, num_grids
-                if (mortality(loc)%mgmt_area_index.eq.6) Set_Fishing(loc) = 0.D0
+                if (grid(loc)%mgmt_area_index.eq.6) Set_Fishing(loc) = 0.D0
             enddo
         endif
-        deallocate(pop_number_at_size)
 
         return
     endfunction Set_Fishing
@@ -418,7 +408,7 @@ module Mortality_Mod
     !==================================================================================================================
     !> @fn Dollars_Per_SqM
     !> @public @memberof Mortality_Class
-    !> @brief Compute value of scallop population.
+    !> @brief Compute value of scallop population at a specific grid location
     !>
     !> Value is based on population structure. 
     !> The population is sorted into size count bucket classes U10, 10-20, 20-30, 30+ 

@@ -209,7 +209,7 @@ integer function Load_Grid(grid, domain_name)
     use globals
     use Data_Point_Mod
     implicit none
-    type(Data_Vector_Class), intent(inout) :: grid
+    type(Data_Point_Class), intent(inout) :: grid(*)
     character(2), intent(in) :: domain_name
     integer n, io, num_grids
     character(72) input_str,file_name
@@ -224,31 +224,30 @@ integer function Load_Grid(grid, domain_name)
      n=n+1
      ! merged <domain_name>xyzLatLon and ManagementArea<domain_name>
      !read(input_str,*) x(n),y(n),z(n),lat(n),lon(n),management_region(n)
-     read(input_str,*) grid%posn(n)%x, grid%posn(n)%y, &
-     &                 grid%posn(n)%z, grid%posn(n)%lat, grid%posn(n)%lon, grid%posn(n)%mgmt_area_index
+     read(input_str,*) grid(n)%x, grid(n)%y, &
+     &                 grid(n)%z, grid(n)%lat, grid(n)%lon, grid(n)%mgmt_area_index
     end do
     close(63)
     num_grids=n
     write(*,*) 'READ ', n, 'LINE(S)'
 
     if (domain_name .eq. 'GB')then
-        grid%posn(1:num_grids)%is_closed = .TRUE.
+        grid(1:num_grids)%is_closed = .TRUE.
         do n=1,num_grids
-            if( any ((/grid%posn(n)%mgmt_area_index.eq.8, grid%posn(n)%mgmt_area_index.eq.5,&
-            &           grid%posn(n)%mgmt_area_index.eq.10 /)))then
-                grid%posn(n)%is_closed = .FALSE.
+            if( any ((/grid(n)%mgmt_area_index.eq.8, grid(n)%mgmt_area_index.eq.5,&
+            &           grid(n)%mgmt_area_index.eq.10 /)))then
+                grid(n)%is_closed = .FALSE.
             endif
         enddo
     else
-        grid%posn(1:num_grids)%is_closed = .FALSE.
+        grid(1:num_grids)%is_closed = .FALSE.
         do n=1,num_grids
-            if( any ((/ grid%posn(n)%mgmt_area_index.eq.3, grid%posn(n)%mgmt_area_index.eq.4,&
-            &           grid%posn(n)%mgmt_area_index.eq.5, grid%posn(n)%mgmt_area_index.eq.7 /)))then
-                grid%posn(n)%is_closed = .TRUE.
+            if( any ((/ grid(n)%mgmt_area_index.eq.3, grid(n)%mgmt_area_index.eq.4,&
+            &           grid(n)%mgmt_area_index.eq.5, grid(n)%mgmt_area_index.eq.7 /)))then
+                grid(n)%is_closed = .TRUE.
             endif
         enddo
     endif
-    grid%len = num_grids
     Load_Grid = num_grids
 
     return
