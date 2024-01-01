@@ -891,17 +891,20 @@ module Mortality_Mod
         enddo
 
         ! CSV files (number of timestep by number of grids)
-        call Write_CSV(1, num_grids, abundance,           output_dir//'Abundance_psqm_'//domain_name//'.csv',  1, (ts .ne. 0))
-        call Write_CSV(1, num_grids, abundance*grid_area_sqm, output_dir//'Abundance_'//domain_name//'.csv',  1, (ts .ne. 0))
+        call Write_CSV(1, num_grids, abundance,           output_dir//'Abundance_psqm_'//domain_name//'.csv',    1, (ts .ne. 0))
+        call Write_CSV(1, num_grids, abundance*grid_area_sqm, output_dir//'Abundance_'//domain_name//'.csv',     1, (ts .ne. 0))
         call Write_CSV(1, num_grids, bms,                 output_dir//'BMS_mtpsqm_'//domain_name//'.csv',        1, (ts .ne. 0))
+        call Write_CSV(1, num_grids, bms*grid_area_sqm,   output_dir//'BMS_mt_'//domain_name//'.csv',            1, (ts .ne. 0))
         call Write_CSV(1, num_grids, landings_by_num,     output_dir//'NumLandings'//domain_name//'.csv',1, (ts .ne. 0))
-        call Write_CSV(1, num_grids, landings_wgt_grams(1:num_grids)/grams_per_metric_ton, &
-        &                                                 output_dir//'WgtLandings_mt'//domain_name//'.csv',1, (ts .ne. 0))
+        call Write_CSV(1, num_grids, expl_biomass_by_loc(1:num_grids)*grid_area_sqm/grams_per_metric_ton,&
+        &                                                  output_dir//'ExplBMS_mt_'//domain_name//'.csv',    1, (ts .ne. 0))
         call Write_CSV(1, num_grids, expl_biomass_by_loc(1:num_grids)/grams_per_metric_ton,&
         &                                                  output_dir//'ExplBMS_mtpsqm_'//domain_name//'.csv',    1, (ts .ne. 0))
-        call Write_CSV(1, num_grids, set_fishing_by_loc,  output_dir//'FishingEffort'//domain_name//'.csv',1, (ts .ne. 0))
-        call Write_CSV(1, num_grids, F_mort_by_loc,       output_dir//'FishingMort'//domain_name//'.csv',  1, (ts .ne. 0))
+        call Write_CSV(1, num_grids, set_fishing_by_loc,  output_dir//'FishingEffort'//domain_name//'.csv',       1, (ts .ne. 0))
+        call Write_CSV(1, num_grids, F_mort_by_loc,       output_dir//'FishingMort'//domain_name//'.csv',         1, (ts .ne. 0))
         call Write_CSV(1, num_grids, USD_per_sqm_by_loc*grid_area_sqm,  output_dir//'USD_psqm_'//domain_name//'.csv',1, (ts .ne. 0))
+        call Write_CSV(1, num_grids, landings_wgt_grams(1:num_grids)/grams_per_metric_ton, &
+        &                                                 output_dir//'WgtLandings_mt'//domain_name//'.csv',1, (ts .ne. 0))
                     
         deallocate(abundance)
         deallocate(bms)
