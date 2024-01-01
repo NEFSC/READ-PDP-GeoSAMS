@@ -383,36 +383,14 @@ endsubroutine Write_Scalar_Field
 !--------------------------------------------------------------------------------------------------
 ! Keston Smith (IBSS corp) June-July 2021
 !--------------------------------------------------------------------------------------------------
-subroutine Write_CSV(n,m,f,file_name,ndim)
+subroutine Write_CSV(n,m,f,file_name,ndim, append)
     use globals
     implicit none
     integer, intent(in):: n,m,ndim
     real(dp), intent(in):: f(ndim,*)
     character(*), intent(in)::file_name
-    integer  k
-    character(100) buf,fmtstr
-    k=m-1
-    write(buf,'(I6)')k
-    !
-    ! format for exponential format
-    !
-    fmtstr='('//trim(adjustl(buf))//'(ES14.7 : ", ") (ES14.7 : ))'
-    !fmtstr='('//trim(adjustl(buf))//'(E : ", ") (E : ))'
-    open(write_dev,file=file_name)
-    do k=1,n
-     !write(write_dev,trim(fmtstr)) f(k,1:m)
-     write(write_dev,fmtstr) f(k,1:m)
-         enddo
-    close(write_dev)
-endsubroutine Write_CSV
-
-subroutine Write_CSV_Append(n,m,f,file_name,ndim)
-    use globals
-    implicit none
-    integer, intent(in):: n,m,ndim
-    real(dp), intent(in):: f(ndim,*)
-    character(*), intent(in)::file_name
-    integer  k
+    logical, intent(in) :: append
+    integer k
     character(100) buf,fmtstr
     character(1) cr
 
@@ -421,14 +399,18 @@ subroutine Write_CSV_Append(n,m,f,file_name,ndim)
     !
     ! format for exponential format
     !
-    fmtstr='('//trim(adjustl(buf))//'(ES14.7 : ", ") (ES14.7 : ))'//NEW_LINE(cr)
-    open(write_dev,file=file_name, status="old", position="append", action="write")
-
+    if (append) then
+      fmtstr='('//trim(adjustl(buf))//'(ES14.7 : ", ") (ES14.7 : ))'//NEW_LINE(cr)
+      open(69,file=file_name, status="old", position="append", action="write")
+    else
+      fmtstr='('//trim(adjustl(buf))//'(ES14.7 : ", ") (ES14.7 : ))'
+      open(69,file=file_name)
+    endif
     do k=1,n
-        write(write_dev,fmtstr) f(k,1:m)
+        write(69,fmtstr) f(k,1:m)
     enddo
-    close(write_dev)
-endsubroutine Write_CSV_Append
+    close(69)
+endsubroutine Write_CSV
 
 !--------------------------------------------------------------------------------------------------
 !--------------------------------------------------------------------------------------------------

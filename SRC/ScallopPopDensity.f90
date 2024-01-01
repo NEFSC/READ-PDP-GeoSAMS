@@ -256,7 +256,6 @@ PROGRAM ScallopPopDensity
     use Data_Point_Mod
     use Recruit_Mod
     use Mortality_Mod
-    use Output_Mod
 
     implicit none
 
@@ -292,6 +291,7 @@ PROGRAM ScallopPopDensity
     ! real(dp), allocatable :: mid_year_sample(:,:)
 
     character(130) :: stateFileName, arg
+    integer pct_comp
 
     call get_command_argument(1, arg)
     file_name = config_dir//trim(arg)
@@ -348,16 +348,14 @@ PROGRAM ScallopPopDensity
     &              file_name, state, weight_grams, num_grids)
 
     allocate(fishing_effort(1:num_grids))
-!    allocate(mid_year_sample(1:num_dimensions, 1:num_size_classes))
     allocate(state_at_time_step(1:num_time_steps,1:num_size_classes))
 
     write( stateFileName,"(A,I4,A)") 'VERIFY/InitialState.csv'
-    call Write_CSV(num_grids, num_size_classes, state, stateFileName, size(state,1))
+    call Write_CSV(num_grids, num_size_classes, state, stateFileName, size(state,1), .FALSE. )
 
     call Set_Recruitment(recruit, num_grids, domain_name, domain_area, is_rand_rec, &
                          & growth(1:num_grids)%L_inf_mu, growth(1:num_grids)%K_mu, shell_length_mm)
     call Set_Mortality(mortality, grid, shell_length_mm, domain_name, domain_area, num_time_steps, ts_per_year, num_grids)
-    call Set_Scallop_Output( num_grids, domain_name, domain_area, start_year, stop_year, num_time_steps, ts_per_year)
 
     !==================================================================================================================
     !  - III. MAIN LOOP
@@ -366,8 +364,6 @@ PROGRAM ScallopPopDensity
     write( stateFileName,"(A,I4,A)") growth_out_dir//'State', start_year, fishing_type//domain_name//'_main.csv'
     year = start_year
     do ts = 1, num_time_steps
-        !call Scallop_Output_At_Timestep(year, ts, state, weight_grams)
-
         !- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - 
         !  i. Determine fishing effort
         !- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - 
@@ -395,9 +391,13 @@ PROGRAM ScallopPopDensity
         if ((mod(ts, ts_per_year) .eq. 1) .and. (ts > 1))then
             year = year + 1
         endif
+
+        pct_comp = 100* ts * num_grids/(num_time_steps*num_grids)
+        if (mod(pct_comp, 10) .eq. 0) write(*,*) term_yel, '% comp', pct_comp, term_blk
+
     enddo ! ts = 1, num_time_steps
 
-    call Write_CSV(num_time_steps+1, num_size_classes, state_at_time_step, stateFileName, size(state_at_time_step,1))
+    call Write_CSV(num_time_steps+1, num_size_classes, state_at_time_step, stateFileName, size(state_at_time_step,1), .FALSE.)
 
     deallocate(grid, growth, mortality, recruit, state, weight_grams, fishing_effort)!, mid_year_sample)
     call Destructor()

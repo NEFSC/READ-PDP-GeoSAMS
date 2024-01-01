@@ -44,7 +44,6 @@ module Mortality_Mod
         real(dp) natural_mort_adult, natural_mort_juv
         !> @public @memberof Mortality_Class
         real(dp) alpha(1:num_size_classes)
-        
     end type Mortality_Class
 
     ! @private @memberof Mortality_Class
@@ -89,6 +88,7 @@ module Mortality_Mod
     real(dp), PRIVATE :: landings_at_size(num_size_classes)
     real(dp), PRIVATE :: landings_at_size_open(num_size_classes)
     real(dp), PRIVATE :: landings_at_size_closed(num_size_classes)
+
 
     CONTAINS
 
@@ -305,7 +305,6 @@ module Mortality_Mod
     !> @results fishing mortality
     !==================================================================================================================
     function Set_Fishing(fishing_type, year, ts, state, weight_grams, mortality, grid)
-        use Output_Mod
         implicit none
         character(*), intent(in):: fishing_type !> < string inputs
         integer, intent(in):: year, ts
@@ -392,15 +391,15 @@ module Mortality_Mod
                 &    '.  Using spatially constant fishing_effort from CASA model'
         end select
 
-        ! Report current timestep results
-        call Scallop_Output_At_Timestep(year, ts, state, weight_grams, landings_by_num)
-
         !enforce no fishing on Closed Area 2 North
         if (domain_name(1:2).eq.'GB') then
             do loc = 1, num_grids
                 if (grid(loc)%mgmt_area_index.eq.6) Set_Fishing(loc) = 0.D0
             enddo
         endif
+
+        ! Report current timestep results
+        call Mortality_Write_At_Timestep(year, ts, state, weight_grams, mortality, Set_Fishing(:))
 
         return
     endfunction Set_Fishing
@@ -826,6 +825,89 @@ module Mortality_Mod
         return
     end subroutine Read_Configuration
     
+    !==================================================================================================================
+    !> @public @memberof Mortality_Class
+    !>
+    !> Initializes growth for startup
+    !>
+    !==================================================================================================================
+    subroutine Mortality_Write_At_Timestep(year, ts, state, weight_grams, mortality, set_fishing_by_loc)
+        integer, intent(in) :: year
+        integer, intent(in) :: ts
+        real(dp), intent(in) :: state(num_dimensions, num_size_classes)
+        real(dp), intent(in) :: weight_grams(num_dimensions, num_size_classes)
+        type(Mortality_Class), intent(in):: mortality(*)
+        real(dp), intent(in) :: set_fishing_by_loc(*)
+
+        integer loc
+        character(20) buf
+        character(5) gbuf
+        real(dp) :: M(num_size_classes)
+        real(dp), allocatable :: abundance(:)
+        real(dp), allocatable :: bms(:)
+
+        allocate(abundance(num_grids))
+        allocate(bms(num_grids))
+
+       ! write entire state for all grids in separate time stamp files
+        write(buf,'(A8,I4,A1,I0.3)') '_AtTime_',year, '_', ts
+        call Write_CSV(num_grids, num_size_classes, state, &
+        &            output_dir//'State'//domain_name//trim(buf)//'.csv',size(state,1), .FALSE.)
+
+        do loc = 1, num_grids
+            !=======================================================================================
+            ! CSV files at grid # over time: for each grid;  (number of timesteps by number of size classes)
+            !=======================================================================================
+
+            write(gbuf,'(I0.5)') loc
+            call Write_CSV(1, num_size_classes, state(loc,1:num_size_classes), &
+            &    output_dir//'State'//domain_name//'_AtGrid-'//gbuf//'_BySizeOverTime.csv', 1, (ts .ne. 0))
+
+            ! Compute overall mortality
+            M(1:num_size_classes) = mortality(loc)%natural_mortality(1:num_size_classes) &
+            & + set_fishing_by_loc(loc) * ( mortality(loc)%selectivity(1:num_size_classes) &
+            & + mortality(loc)%incidental + mortality(loc)%discard(1:num_size_classes) )
+            call Write_CSV(1, num_size_classes, M(1:num_size_classes), &
+            &    output_dir//'TotalMort'//domain_name//'_AtGrid-'//gbuf//'_BySizeOverTime.csv', 1, (ts .ne. 0))
+
+            !=======================================================================================
+
+
+            abundance(loc) = sum(state(loc,1:num_size_classes))                                  ! scallops per sq meter
+            bms(loc) = dot_product(state(loc,1:num_size_classes), &                              ! metric tons per sq meter
+            &                      weight_grams(loc,1:num_size_classes) / grams_per_metric_ton)
+
+            ! Fslct(loc,1:num_size_classes) = mortality(loc)%selectivity(1:num_size_classes)
+            ! ExplBMS(loc) = sum( mortality(loc)%selectivity(1:num_size_classes) * samp(loc,1:num_size_classes) &
+            ! &            * weight_grams(loc,1:num_size_classes)/(10.**6) )
+            ! StateCapt(loc) = sum(samp(loc,1:num_size_classes) * mortality(loc)%selectivity(1:num_size_classes))
+            ! mortality(loc)%natural_mortality(1:num_size_classes) = &
+            ! &           Compute_Natural_Mortality(recruit(loc)%max_rec_ind, mortality(loc), samp(loc,1:num_size_classes))
+            ! NatMort(loc,1:num_size_classes) = mortality(loc)%natural_mortality(1:num_size_classes)
+            ! FishMort(loc,1:num_size_classes) = fishing_effort(loc) * mortality(loc)%selectivity(1:num_size_classes)
+            ! call Scallops_To_Counts(weight_grams(loc,1:num_size_classes), cnts(loc,1), cnts(loc,2), cnts(loc,3), cnts(loc,4))
+            ! Dollars_Per_SqMeter(loc) = Dollars_Per_SqM(year, weight_grams(loc,1:num_size_classes))
+
+        enddo
+
+        ! CSV files (number of timestep by number of grids)
+        call Write_CSV(1, num_grids, abundance,           output_dir//'Abundance_psqm_'//domain_name//'.csv',  1, (ts .ne. 0))
+        call Write_CSV(1, num_grids, abundance*grid_area_sqm, output_dir//'Abundance_'//domain_name//'.csv',  1, (ts .ne. 0))
+        call Write_CSV(1, num_grids, bms,                 output_dir//'BMS_mtpsqm_'//domain_name//'.csv',        1, (ts .ne. 0))
+        call Write_CSV(1, num_grids, landings_by_num,     output_dir//'NumLandings'//domain_name//'.csv',1, (ts .ne. 0))
+        call Write_CSV(1, num_grids, landings_wgt_grams(1:num_grids)/grams_per_metric_ton, &
+        &                                                 output_dir//'WgtLandings_mt'//domain_name//'.csv',1, (ts .ne. 0))
+        call Write_CSV(1, num_grids, expl_biomass_by_loc(1:num_grids)/grams_per_metric_ton,&
+        &                                                  output_dir//'ExplBMS_mtpsqm_'//domain_name//'.csv',    1, (ts .ne. 0))
+        call Write_CSV(1, num_grids, set_fishing_by_loc,  output_dir//'FishingEffort'//domain_name//'.csv',1, (ts .ne. 0))
+        call Write_CSV(1, num_grids, F_mort_by_loc,       output_dir//'FishingMort'//domain_name//'.csv',  1, (ts .ne. 0))
+        call Write_CSV(1, num_grids, USD_per_sqm_by_loc*grid_area_sqm,  output_dir//'USD_psqm_'//domain_name//'.csv',1, (ts .ne. 0))
+                    
+        deallocate(abundance)
+        deallocate(bms)
+        return
+    endsubroutine Mortality_Write_At_Timestep
+
 
 end module Mortality_Mod
    

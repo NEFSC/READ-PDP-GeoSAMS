@@ -239,7 +239,8 @@ MODULE Growth_Mod
             weight_grams(n,1:num_size_classes) =  Shell_to_Weight(shell_lengths(1:num_size_classes), &
             &                grid(n)%is_closed, grid(n)%z, grid(n)%lat, grid(n)%mgmt_area_index )
         enddo
-        call Write_CSV(num_grids, num_size_classes, weight_grams, growth_out_dir//'WeightShellHeight.csv', size(weight_grams,1))
+        call Write_CSV(num_grids, num_size_classes, weight_grams, growth_out_dir//'WeightShellHeight.csv', &
+        &    size(weight_grams,1), .FALSE.)
 
         allocate(Gpar(1:num_grids, 1:growth_param_size))
         ! Compute Growth Parameters, L_inf_mu, K_mu, L_inf_sd, K_sd based on depth, latitude, and if grid is closed
@@ -267,7 +268,7 @@ MODULE Growth_Mod
         Gpar(1:num_grids,2) = growth(1:num_grids)%L_inf_sd
         Gpar(1:num_grids,3) = growth(1:num_grids)%K_mu
         Gpar(1:num_grids,4) = growth(1:num_grids)%K_sd
-        call Write_CSV(num_grids, growth_param_size, Gpar, growth_out_dir//'GrowthParOut.csv', size(Gpar,1))
+        call Write_CSV(num_grids, growth_param_size, Gpar, growth_out_dir//'GrowthParOut.csv', size(Gpar,1), .FALSE.)
         deallocate(Gpar)
 
         if (use_interp) then
@@ -373,7 +374,8 @@ MODULE Growth_Mod
 
        ! output transition matrix
         file_name = growth_out_dir//'Growth.csv'
-        call Write_CSV(num_size_classes, num_size_classes, Gen_Size_Trans_Matrix, file_name, size(Gen_Size_Trans_Matrix,1))
+        call Write_CSV(num_size_classes, num_size_classes, Gen_Size_Trans_Matrix, file_name, &
+        &     size(Gen_Size_Trans_Matrix,1), .FALSE.)
 
         return
     end function Gen_Size_Trans_Matrix
@@ -859,7 +861,9 @@ MODULE Growth_Mod
         ! find location of current year
         Rindx = minloc( abs(recruit%year(1:recruit%n_year) - year), 1)
         Rec(1:num_size_classes) = 0.D0
-        Rec(1:recruit%max_rec_ind) = recruit%recruitment(Rindx)/float(recruit%max_rec_ind)
+        ! TODO can recruitment take on negative values????
+        !!!!Rec(1:recruit%max_rec_ind) = recruit%recruitment(Rindx)/float(recruit%max_rec_ind)
+        Rec(1:recruit%max_rec_ind) = abs(recruit%recruitment(Rindx)/float(recruit%max_rec_ind))
 
         t = dfloat(ts) * delta_time
 
