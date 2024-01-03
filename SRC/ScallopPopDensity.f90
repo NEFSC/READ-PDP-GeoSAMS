@@ -270,7 +270,7 @@ PROGRAM ScallopPopDensity
     real(dp) delta_time
     integer num_years
     integer year
-    character(72) file_name
+    character(fname_len) file_name
 
     real(dp) domain_area
     integer num_grids, ts
@@ -289,7 +289,7 @@ PROGRAM ScallopPopDensity
     real(dp), allocatable :: fishing_effort(:) ! rate of fishing mortality
     ! real(dp), allocatable :: mid_year_sample(:,:)
 
-    character(130) :: stateFileName, arg
+    character(fname_len) :: stateFileName, arg
     integer pct_comp
 
     call get_command_argument(1, arg)
@@ -416,14 +416,15 @@ subroutine Read_Startup_Config(domain_name, file_name, start_year, stop_year, fi
     use Grid_Manager_Mod, only : Special_Set_Config_File_Name => Set_Config_File_Name, Set_Init_Cond_File_Name
 
     implicit none
-    integer, intent(out) :: start_year, stop_year, time_steps_per_year ! , num_monte_carlo_iter
-    integer j, k, io
-    character(85) tag
-    character(15) value
-    character(72),intent(in):: file_name
     character(2),intent(out):: domain_name
+    character(*),intent(in):: file_name
     character(3),intent(out):: fishing_type
-    character(72) input_string
+    integer, intent(out) :: start_year, stop_year, time_steps_per_year ! , num_monte_carlo_iter
+
+    integer j, k, io
+    character(line_len) input_string
+    character(tag_len) tag
+    character(value_len) value
 
     open(read_dev,file=file_name)
     do

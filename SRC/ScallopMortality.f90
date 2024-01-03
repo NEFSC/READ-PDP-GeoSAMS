@@ -47,7 +47,7 @@ module Mortality_Mod
     end type Mortality_Class
 
     ! @private @memberof Mortality_Class
-    character(72), PRIVATE :: config_file_name
+    character(fname_len), PRIVATE :: config_file_name
     integer, PRIVATE :: num_grids
     character(2), PRIVATE :: domain_name
     real(dp), PRIVATE :: domain_area_sqm
@@ -55,6 +55,7 @@ module Mortality_Mod
     real(dp), PRIVATE :: delta_time
 
     ! configuration parameters
+    real(dp), PRIVATE :: fishing_mort
     real(dp), PRIVATE :: ma_cull_size_mm
     real(dp), PRIVATE :: ma_discard
     real(dp), PRIVATE :: gb_cull_size_mm
@@ -337,7 +338,7 @@ module Mortality_Mod
         enddo
 
         ! now sum here over num_grids 
-        c_mort = Fishing_Mortality() / dot_product(expl_biomass_by_loc(:), expl_num_by_loc(:) / sum(expl_num_by_loc))
+        c_mort = Set_Fishing_Mortality() / dot_product(expl_biomass_by_loc(:), expl_num_by_loc(:) / sum(expl_num_by_loc))
 
         do loc = 1,num_grids
             F_mort_by_loc(loc) = c_mort * expl_biomass_by_loc(loc)
@@ -711,9 +712,16 @@ module Mortality_Mod
     !> Computes Fishing Mortality
     !>
     !==================================================================================================================
-    elemental real(dp) function Fishing_Mortality()
-        Fishing_Mortality = 0.4_dp
-    endfunction Fishing_Mortality
+    elemental real(dp) function Set_Fishing_Mortality()
+        Set_Fishing_Mortality = fishing_mort ! default value
+    !   two vectors
+    !       saVector : vector of special area indexes that are being managed.
+    !       fmVector : corresponding vector of fishing mortalities
+    !   if saIdx>0 then
+    !       find area index in FM array, index = FINDLOC( saVector, saIdx)
+    !       if not 0 then 
+    !           Set_Fishing_Mortality = fmVector(index)
+    endfunction Set_Fishing_Mortality
 
     !-----------------------------------------------------------------------------------------------
     !! @public @memberof Mortality_Class
@@ -735,12 +743,12 @@ module Mortality_Mod
     !> Reads a configuration file, 'config_file_name.cfg', to set data parameters for Mortality
     !>
     !-----------------------------------------------------------------------
-    subroutine Read_Configuration() !,num_monte_carlo_iter)
+    subroutine Read_Configuration()
     
         implicit none
-        character(100) input_string
-        character(85) tag
-        character(15) value
+        character(line_len) input_string
+        character(tag_len) tag
+        character(value_len) value
         integer j, k, io
 
         write(*,*) ' READING IN ', config_file_name
@@ -755,10 +763,13 @@ module Mortality_Mod
                 tag = trim(adjustl(input_string(1:j-1)))
                 ! explicitly ignore inline comment
                 k = scan(input_string,"#",back=.true.)
-                if (k .EQ. 0) k = len(input_string)
+                if (k .EQ. 0) k = len(input_string) + 1
                 value =  trim(adjustl(input_string(j+1:k-1)))
 
                 select case(tag)
+                case ('Fishing Mortality')
+                    read(value, *) fishing_mort
+
                 case ('MA Cull size')
                     read(value, *) ma_cull_size_mm
 

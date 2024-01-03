@@ -60,11 +60,18 @@ real(dp) lat(max_sides)
 integer n_sides
 end type LonLatVector
 
+type FishingMortVector
+    integer year
+    integer n_areas
+    integer area_list(max_num_areas)
+    real(dp) area_fish_mort(max_num_areas)
+endtype FishingMortVector
+
 type(LonLatVector), PRIVATE :: area(max_num_areas)
 integer, PRIVATE :: num_areas
 integer, PRIVATE :: num_grids
-character(100), PRIVATE :: config_file_name
-character(100), PRIVATE :: init_cond_file_name
+character(fname_len), PRIVATE :: config_file_name
+character(fname_len), PRIVATE :: init_cond_file_name
 
 
 CONTAINS
@@ -145,7 +152,7 @@ integer function Load_Grid_State(grid, state)
     type(Grid_Data_Class), intent(inout) :: grid(*)
     real(dp), intent(out):: state(1:num_dimensions, 1:num_size_classes)
 
-    character(2000) input_str
+    character(csv_line_len) input_str
     integer n, io, is_closed
 
     real(dp) year ! used as place holder when reading file_name
@@ -216,10 +223,6 @@ subroutine Load_Area_Coordinates()
                 j = index(sub_str,',')
                 sub_str = sub_str(j+1:)
             enddo
-
-            write(*,*) area(n)%lon(1:edge_lon)
-            write(*,*) area(n)%lat(1:edge_lat)
-            write(*,*)
 
             if (edge_lon .ne. edge_lat) then
                 write(*,*) term_red, 'INVALID SPECIAL AREA FILE: at set ', n, term_blk

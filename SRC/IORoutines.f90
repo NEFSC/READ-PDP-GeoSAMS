@@ -20,10 +20,10 @@ subroutine Read_Input(domain_name, init_cond_file_name, start_year, stop_year, f
     implicit none
     integer, intent(out) :: start_year, stop_year, time_steps_per_year ! , num_monte_carlo_iter
     integer j,io  !,k
-    character(72),intent(out):: init_cond_file_name
+    character(fname_len),intent(out):: init_cond_file_name
     character(2),intent(out):: domain_name
     character(3),intent(out):: fishing_type
-    character(72) :: input_string
+    character(input_str_len) :: input_string
 
     open(read_dev,file=sim_input_fname)
     do
@@ -88,7 +88,7 @@ subroutine Read_Recruit_Input(RecStartYD,RecStopYD,RandomStartYear,NRecruitField
     implicit none
     real(dp), intent(out) :: RecStartYD,RecStopYD
     integer, intent(out) :: RandomStartYear,NRecruitFields
-    character(72) :: input_string
+    character(input_str_len) :: input_string
     integer io,j
 
     open(read_dev,file=sim_input_fname)
@@ -131,7 +131,7 @@ subroutine Read_Output_Flags(nperc,P,IsStateOut,IsAbundanceOut,IsFOut,IsBMSOut,I
     integer j,io,k
     real(dp),intent(out):: P(*)
     integer,intent(out):: nperc
-    character(72) :: input_string
+    character(input_str_len) :: input_string
     logical,intent(out) ::  IsStateOut,IsAbundanceOut,IsFOut,IsBMSOut,IsExplBMSOut,IsCashOut,IsRecOut
 
     k=0;
@@ -223,7 +223,7 @@ subroutine Load_Data(x,y,z,f,vector_len,file_name)
     character (*), intent(in)::  file_name
     real(dp) year
     integer n,io
-    character(72) input_str
+    character(input_str_len) input_str
 
     !file_name='recruitsOBS.csv'
     open(read_dev,file=file_name,status='old')
@@ -266,7 +266,7 @@ subroutine Read_Scalar_Field(file_name, M, vector_len)
     real(dp), intent(out):: M(*)
     character(*), intent(in)::file_name
     integer n,io
-    character(72) input_str
+    character(input_str_len) input_str
 
     !PRINT '(A,A,A,A)', term_blu, ' READING FILE: ', file_name, term_blk
 
@@ -333,7 +333,7 @@ subroutine Write_CSV(n,m,f,file_name,ndim, append)
     character(*), intent(in)::file_name
     logical, intent(in) :: append
     integer k
-    character(100) buf,fmtstr
+    character(fname_len) buf,fmtstr
     character(1) cr
 
     k=m-1
@@ -373,7 +373,7 @@ subroutine Write_CSV_H(n,m,f,file_name,ndim,header)
     real(dp), intent(in):: f(ndim,*)
     character(*), intent(in)::file_name,header
     integer  k
-    character(100) buf,fmtstr
+    character(fname_len) buf,fmtstr
     k=m-1
     write(buf,'(I6)')k
     !

@@ -289,7 +289,7 @@ MODULE Growth_Mod
         real(dp), intent(in):: shell_lengths(*)
         real(dp), intent(in) :: K_mu, K_sd, L_inf_mu, L_inf_sd
         character(*), intent(in) :: method
-        character(72) file_name
+        character(fname_len) file_name
         real(dp)  :: Gen_Size_Trans_Matrix(1:num_size_classes, 1:num_size_classes)
 
         select case (method)

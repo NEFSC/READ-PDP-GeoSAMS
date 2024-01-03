@@ -120,7 +120,7 @@ module Recruit_Mod
     end type Recruitment_Class
 
     ! @private @memberof Recruit_Mod
-    character(72), PRIVATE :: config_file_name
+    character(fname_len), PRIVATE :: config_file_name
     integer, PRIVATE :: num_grids
     character(2), PRIVATE :: domain_name
     real(dp), PRIVATE :: domain_area_sqm
@@ -304,10 +304,10 @@ module Recruit_Mod
     subroutine Read_Configuration() !,num_monte_carlo_iter)
     
         implicit none
-        character(100) input_string
+        character(line_len) input_string
+        character(tag_len) tag
+        character(value_len) value
         integer j, k, io
-        character(85) tag
-        character(15) value
 
         write(*,*) ' READING IN ', config_file_name
 
@@ -322,7 +322,7 @@ module Recruit_Mod
                 tag = trim(adjustl(input_string(1:j-1)))
                 ! explicitly ignore inline comment
                 k = scan(input_string,"#",back=.true.)
-                if (k .EQ. 0) k = len(input_string)
+                if (k .EQ. 0) k = len(input_string)+1
                 value =  trim(adjustl(input_string(j+1:k-1)))
 
                 select case (tag)
