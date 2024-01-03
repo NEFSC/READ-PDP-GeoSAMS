@@ -16,7 +16,7 @@
 !>----------------------------------------------------------------------------------------------------------------
 module Mortality_Mod
     use globals
-    use Data_Point_Mod
+    use Grid_Manager_Mod, only : Grid_Data_Class
     implicit none
 
     !> @class Mortality_Class
@@ -119,11 +119,10 @@ module Mortality_Mod
     !> 
     !==================================================================================================================
     subroutine Set_Mortality(mortality, grid, shell_lengths, dom_name, dom_area, num_ts, ts_per_year, ngrids)
-        use Data_Point_Mod 
         implicit none
         
         type(Mortality_Class), intent(inout):: mortality(*)
-        type(Data_Point_Class), intent(in) :: grid(*)
+        type(Grid_Data_Class), intent(in) :: grid(*)
         real(dp), intent(in):: shell_lengths(*)
         character(2), intent(in) :: dom_name
         real(dp), intent(in) :: dom_area
@@ -311,7 +310,7 @@ module Mortality_Mod
         ! need num_dimensions as that is how variable was allocated to get column memory access correct
         real(dp), intent(in):: state(num_dimensions, num_size_classes), weight_grams(num_dimensions, num_size_classes )
         type(Mortality_Class), intent(in):: mortality(*)
-        type(Data_Point_Class), intent(in) :: grid(*)
+        type(Grid_Data_Class), intent(in) :: grid(*)
         real(dp) :: Set_Fishing(num_grids)
         integer Mindx, loc
         real(dp) catch_open, catch_closed, total_catch
@@ -390,13 +389,6 @@ module Mortality_Mod
                 write( * ,  * )'Unkown fishing fishing_type:', fishing_type, &
                 &    '.  Using spatially constant fishing_effort from CASA model'
         end select
-
-        !enforce no fishing on Closed Area 2 North
-        if (domain_name(1:2).eq.'GB') then
-            do loc = 1, num_grids
-                if (grid(loc)%mgmt_area_index.eq.6) Set_Fishing(loc) = 0.D0
-            enddo
-        endif
 
         ! Report current timestep results
         call Mortality_Write_At_Timestep(year, ts, state, weight_grams, mortality, Set_Fishing(:))
@@ -732,7 +724,7 @@ module Mortality_Mod
     !-----------------------------------------------------------------------------------------------
     subroutine Set_Config_File_Name(fname)
         character(*), intent(in) :: fname
-        config_file_name = fname
+        config_file_name = config_dir//fname
     endsubroutine Set_Config_File_Name
 
     !-----------------------------------------------------------------------
@@ -751,9 +743,9 @@ module Mortality_Mod
         character(15) value
         integer j, k, io
 
-        write(*,*) ' READING IN ', config_dir//config_file_name
+        write(*,*) ' READING IN ', config_file_name
 
-        open(read_dev,file=config_dir//config_file_name)
+        open(read_dev,file=config_file_name)
         do
             input_string=""
             read(read_dev,'(a)',iostat=io) input_string
@@ -911,6 +903,4 @@ module Mortality_Mod
         return
     endsubroutine Mortality_Write_At_Timestep
 
-
 end module Mortality_Mod
-   

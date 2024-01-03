@@ -125,23 +125,15 @@
 !>----------------------------------------------------------------------------------------------------------------
 MODULE Growth_Mod
     use globals
-    use Data_Point_Mod
+    use Grid_Manager_Mod
     implicit none
-
-    interface
-        integer function Load_Grid(g, d)
-            use Data_Point_Mod
-            type(Data_Point_Class), intent(inout) :: g(*)
-            character(2), intent(in) :: d
-        endfunction
-    endinterface
 
     integer, parameter :: growth_param_size = 4
 
     !> @class Growth_Class
     !> 
     !> Subroutines that determine expected growth of scallops
-        type Growth_Class
+    type Growth_Class
         !> @public @memberof Growth_Class
         !> Asymptotic size mean
         real(dp) L_inf_mu 
@@ -187,22 +179,20 @@ MODULE Growth_Mod
     !> @param[in,out] weight_grams Computed combined scallop weight
     !> 
     !==================================================================================================================
-    subroutine Set_Growth(use_interp, growth, grid, shell_lengths, num_ts, ts_per_year, dom_name, dom_area, &
-        &                 file_name, state, weight_grams, ngrids)
-        logical, intent(in) :: use_interp
+    subroutine Set_Growth(growth, grid, shell_lengths, num_ts, ts_per_year, dom_name, dom_area, &
+        &                 state, weight_grams, ngrids)
         type(Growth_Class), intent(inout) :: growth(*)
-        type(Data_Point_Class), intent(inout) :: grid(*)
+        type(Grid_Data_Class), intent(in) :: grid(*)
         real(dp), intent(inout) :: shell_lengths(*)
         integer, intent(in) :: num_ts
         integer, intent(in) :: ts_per_year
         character(2), intent(in) :: dom_name
         real(dp), intent(out) :: dom_area
-        character(*), intent(in) :: file_name
-        ! state actual first dimension. Recall that fortran stores by column first.
-        ! second dimension as this is constant
-        real(dp), intent(out):: state(1:num_dimensions, 1:num_size_classes)
+        ! need allocated first dimension. Recall that fortran stores by column first.
+        ! second dimension provided for clarity, as this is constant
+        real(dp), intent(inout):: state(1:num_dimensions, 1:num_size_classes)
         real(dp), intent(inout) :: weight_grams(1:num_dimensions, 1:num_size_classes)
-        integer, intent(out) :: ngrids
+        integer, intent(in) :: ngrids
     
         integer n, j
         real(dp), allocatable :: Gpar(:,:)
@@ -212,18 +202,6 @@ MODULE Growth_Mod
         num_time_steps = num_ts
         delta_time = 1._dp / dfloat(ts_per_year)
         time_steps_year = ts_per_year
-
-        ! Load Grid. 
-        if (use_interp) then
-            ! Loads grid data based on TBD, use to interpolate the survey data by overlaying onto this grid
-            ! Grid is defined by: Grids/[MA|GB]xyzLatLon.csv
-            ngrids = Load_Grid(grid, domain_name)
-        else
-            ! read in grid and state from file_name
-            PRINT *, term_yel,'NO INTERP: using ', file_name,term_blk
-            ngrids = Load_Grid_State(grid, state, file_name)
-        endif
-        ! set private variable
         num_grids = ngrids
 
         dom_area = float(num_grids) * grid_area_sqm
@@ -233,11 +211,13 @@ MODULE Growth_Mod
         
         write(*,*) '========================================================'
 
-        ! Compute Shell Lengths (mm) and conversion to Meat Weight (g)
+        ! Compute Shell Lengths (mm) 
         shell_lengths(1:num_size_classes) = Set_Shell_Lengths(dfloat(shell_len_min), dfloat(shell_len_delta))
+        ! And conversion to Meat Weight (g)
+        ! Needs grid information to establish closed|open, depth, and latitude
         do n = 1, num_grids
             weight_grams(n,1:num_size_classes) =  Shell_to_Weight(shell_lengths(1:num_size_classes), &
-            &                grid(n)%is_closed, grid(n)%z, grid(n)%lat, grid(n)%mgmt_area_index )
+            &                grid(n)%is_closed, grid(n)%z, grid(n)%lat)
         enddo
         call Write_CSV(num_grids, num_size_classes, weight_grams, growth_out_dir//'WeightShellHeight.csv', &
         &    size(weight_grams,1), .FALSE.)
@@ -248,7 +228,7 @@ MODULE Growth_Mod
             do n=1,num_grids
                 call Get_Growth_GB(grid(n)%z, grid(n)%lat, grid(n)%is_closed, &
                 &                  growth(n)%L_inf_mu, growth(n)%K_mu,&
-                &                  growth(n)%L_inf_sd, growth(n)%K_sd, grid(n)%mgmt_area_index)
+                &                  growth(n)%L_inf_sd, growth(n)%K_sd)
                 ! Compute Growth Transition Matrix
                 growth(n)%G = Gen_Size_Trans_Matrix(growth(n)%L_inf_mu, growth(n)%L_inf_sd, &
                 &                              growth(n)%K_mu, growth(n)%K_sd, shell_lengths, 'AppxC')
@@ -271,62 +251,10 @@ MODULE Growth_Mod
         call Write_CSV(num_grids, growth_param_size, Gpar, growth_out_dir//'GrowthParOut.csv', size(Gpar,1), .FALSE.)
         deallocate(Gpar)
 
-        if (use_interp) then
-            ! Reads data from file_name
-            ! Establishes state from which growth simulation begins as a f(growth(n)%L_inf_mu, length)
-            call Set_Current_State(file_name, state, shell_lengths, growth)
-        else
-            ! already read in state via Load_Grid_State, truncate larger size classes.
-            do n=1,num_grids
-                do j=num_size_classes,2,-1
-                    if( (shell_lengths(j) .gt. growth(n)%L_inf_mu) .and. (state(n,j) .gt. 0.D0) )then
-                        ! lump scallops into smaller class
-                        state(n,j-1) = state(n,j-1) + state(n,j)
-                        state(n,j) = 0.D0
-                    endif
-                enddo
-            enddo
-        endif
-
-        return 
-    end subroutine Set_Growth
-
-    !==================================================================================================================
-    !> @fn Set_Current_State
-    !> @public @memberof Growth_Class
-    !>
-    !> Sets the current state of scallop density based on data in file_name
-    !> 
-    !> @param[in] file_name The name of the file to read input conditions
-    !> @param[in] length The length, or size, of the shell, in mm
-    !> @param[in] start_year The year that the simulation starts estimating scallop growth
-    !> @param[in] growth Expected??? scallop growth
-    !> @returns Current scallop state, in scallops per square meter
-    !==================================================================================================================
-    subroutine Set_Current_State(file_name, state, length, growth)
-        use globals
-        
-        implicit none
-        character(*), intent(in) :: file_name
-        real(dp), intent(inout) :: state(1:num_dimensions, 1:num_size_classes) 
-        type(Growth_Class), intent(in):: growth(*)
-        real(dp), intent(in):: length(*)
-        integer n, j, num_rows, num_cols
-
-        num_rows = num_grids
-        num_cols = num_size_classes
-        
-        call Read_CSV(num_rows, num_cols, file_name, state, size(state,1))
-        PRINT *, term_blu
-        PRINT '(A,A)', ' READ FROM FILE: ', file_name
-        PRINT '(A,I6)', ' LENGTH = ', num_rows
-        PRINT '(A,I5)', ' NUMBER OF SCALLOP SIZE CLASSES: ', num_size_classes
-        PRINT *, term_blk
-
-        if (num_rows > num_grids) num_rows = num_grids
-        do n=1,num_rows
+        ! truncate state larger size classes based on L_inf_mu
+        do n=1,num_grids
             do j=num_size_classes,2,-1
-                if( (length(j) .gt. growth(n)%L_inf_mu) .and. (state(n,j) .gt. 0.D0) )then
+                if( (shell_lengths(j) .gt. growth(n)%L_inf_mu) .and. (state(n,j) .gt. 0.D0) )then
                     ! lump scallops into smaller class
                     state(n,j-1) = state(n,j-1) + state(n,j)
                     state(n,j) = 0.D0
@@ -334,8 +262,8 @@ MODULE Growth_Mod
             enddo
         enddo
 
-        return
-    endsubroutine Set_Current_State
+        return 
+    end subroutine Set_Growth
 
     !==================================================================================================================
     !> @fn Gen_Size_Trans_Matrix
@@ -421,38 +349,31 @@ MODULE Growth_Mod
     !> @param[out] K_sd standard deviation von Bertlanaffy asymptotic growth parameter
     !> @param[in] area_index index to indicate management area
     !==================================================================================================================
-    subroutine Get_Growth_GB(depth, lat, is_closed, L_inf_mu, K_mu, L_inf_sd, K_sd, area_index)
+    subroutine Get_Growth_GB(depth, lat, is_closed, L_inf_mu, K_mu, L_inf_sd, K_sd)
         real(dp), intent(in) :: depth, lat
         logical, intent(in) :: is_closed
         real(dp), intent(out) :: L_inf_mu, K_mu
         real(dp), intent(out) :: L_inf_sd, K_sd
-        integer, intent(in) :: area_index
 
         real(dp) fixed_coef(6), random_eff(3)
         real(dp) depth_norm, latitude, intercept, slope, random_intercept, random_slope,randomCov
         real(dp) mean_start_shell_length, mean_depth, mean_lat, mean_ring2
 
         parameter(mean_start_shell_length = 94.73,  mean_depth = 72.89,  mean_lat = 41.04,  mean_ring2 = 109.576)
-        if (area_index .eq. 11) then
-            !Peter Pan region Linfity = 110.3 K = 0.423
-            L_inf_mu = 110.3D0
-            K_mu = 0.423D0
-        else
-            fixed_coef = (/ -34.96, 57.415, -8.51, -17.65, 0.9076, 3.741/)  !fixed effects coef
-            ! intercept, slope, coef of depth, latitude, closed/open for intercept term
-            random_eff = (/ 81.05, 51.38, -60.53 /)  !random effects, intercept, slope, cov
-            depth_norm = depth / mean_depth
-            latitude = lat/mean_lat
-            intercept = fixed_coef(1) + fixed_coef(3) * depth_norm + fixed_coef(4)*latitude + fixed_coef(5) &
-            &    * Logic_To_Double(is_closed) + mean_ring2
-            slope = ( fixed_coef(2) + fixed_coef(6)* depth_norm ) / mean_start_shell_length
-            random_intercept = random_eff(1)
-            random_slope = random_eff(2) / mean_start_shell_length**2
-            randomCov = random_eff(3) / mean_start_shell_length
+        fixed_coef = (/ -34.96, 57.415, -8.51, -17.65, 0.9076, 3.741/)  !fixed effects coef
+        ! intercept, slope, coef of depth, latitude, closed/open for intercept term
+        random_eff = (/ 81.05, 51.38, -60.53 /)  !random effects, intercept, slope, cov
+        depth_norm = depth / mean_depth
+        latitude = lat/mean_lat
+        intercept = fixed_coef(1) + fixed_coef(3) * depth_norm + fixed_coef(4)*latitude + fixed_coef(5) &
+        &    * Logic_To_Double(is_closed) + mean_ring2
+        slope = ( fixed_coef(2) + fixed_coef(6)* depth_norm ) / mean_start_shell_length
+        random_intercept = random_eff(1)
+        random_slope = random_eff(2) / mean_start_shell_length**2
+        randomCov = random_eff(3) / mean_start_shell_length
 
-            L_inf_mu = (intercept/(1.-slope)) + (intercept * random_slope / (1. - slope) + randomCov) / (1. - slope**2)
-            K_mu = -log(slope) + random_slope/2. / slope**2
-        endif
+        L_inf_mu = (intercept/(1.-slope)) + (intercept * random_slope / (1. - slope) + randomCov) / (1. - slope**2)
+        K_mu = -log(slope) + random_slope/2. / slope**2
 
         L_inf_sd = 10.8D0
         K_sd = .045D0
@@ -931,22 +852,17 @@ MODULE Growth_Mod
     !> @param[in] ispp Logic to indiate is Peter Pan???
     !> @returns weight in grams
     !==================================================================================================================
-    elemental real(dp) function Shell_to_Weight(shell_length_mm, is_closed, depth, latitude, mgmt_idx)
+    elemental real(dp) function Shell_to_Weight(shell_length_mm, is_closed, depth, latitude)
         use globals
         implicit none
         real(dp) , intent(in) :: shell_length_mm, depth, latitude
         logical , intent(in) :: is_closed
-        integer, intent(in) ::  mgmt_idx
 
         !mm to grams
         if(domain_name.eq.'GB')then
             !for GB scallops, open covariate is 1 in the former groundfish closed areas or access areas and 0 in the open areas (includes NLS-EXT and CAII-EXT)
-            if(mgmt_idx .eq. 11) then
-                Shell_to_Weight = exp(-11.84 + 3.167 * log(shell_length_mm)) !for peterpan 
-            else
-                Shell_to_Weight = exp(-6.69 + 2.878 * log(shell_length_mm) + (-0.0073 * depth) + (-0.073 * latitude) &
-                &                + (1.28 - 0.25 * log(shell_length_mm)) * Logic_To_Double(is_closed))
-            endif
+            Shell_to_Weight = exp(-6.69 + 2.878 * log(shell_length_mm) + (-0.0073 * depth) + (-0.073 * latitude) &
+            &                + (1.28 - 0.25 * log(shell_length_mm)) * Logic_To_Double(is_closed))
         else
             ! Shell_to_Weight = exp(-9.48 + 2.51 * log(shell_length_mm) - 0.1743 - 0.059094 + (-0.0033 * depth) &
             ! &      + 0.021 * latitude + (-0.031 * Logic_To_Double(is_closed)) + 0.00525 * (log(shell_length_mm) * 21.) &
@@ -957,51 +873,4 @@ MODULE Growth_Mod
         return
     endfunction Shell_to_Weight
 
-    !==================================================================================================================
-    !> @fn Load_Grid_State
-    !> @public @memberof Growth_Class
-    !>
-    !> This function is used to set the grid parameters and the initial state to start the simulation. 
-    !>
-    !> It does so by reading the CSV file at file_name. This file has been generated by the TrawlData5mm.m 
-    !> Matlab script. The format is for each grid in a row, the columns are
-    !> Decimal Year, UTM X, UTM Y, Latitude, Longitude, UTM Z, Grid Is Closed, Followed by Scallop Density in Count/m^2
-    !> sorted by shell length 30 to 150 mm in 5mm increments for 25 columns
-    !>
-    !> @param[in, out] grid Holds position information 
-    !> @param[out] state Holds the initial state at various location specified by grid
-    !> @param[in] file_name CSV name to be read in
-    !>
-    !==================================================================================================================
-    integer function Load_Grid_State(grid, state, file_name)
-        type(Data_Point_Class), intent(inout) :: grid(*)
-        real(dp), intent(out):: state(1:num_dimensions, 1:num_size_classes)
-        character(*), intent(in) :: file_name
-
-        character(2000) input_str
-        integer n, io, is_closed
-
-        real(dp) year ! used as place holder when reading file_name
-
-        PRINT *, 'OPENING ', file_name
-
-        open(63, file=file_name, status='old')
-        n = 0
-        do
-            read(63,'(a)',iostat=io) input_str
-            if (io.lt.0) exit
-            n=n+1
-            read(input_str,*) year, grid(n)%x, grid(n)%y, grid(n)%lat, grid(n)%lon, grid(n)%z, &
-            &               is_closed, state(n,1:num_size_classes)
-            grid(n)%is_closed = (is_closed > 0)
-            grid(n)%mgmt_area_index = 0
-        end do
-        close(63)
-        write(*,*) term_blu, 'READ ', n, 'LINE(S)', term_blk
-
-        Load_Grid_State = n
-
-    endfunction Load_Grid_State
-    
-    
 END MODULE Growth_Mod

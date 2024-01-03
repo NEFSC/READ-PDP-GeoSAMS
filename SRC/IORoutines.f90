@@ -194,64 +194,6 @@ endsubroutine Read_Output_Flags
 !-----------------------------------User Subroutines-----------------------------------------------
 !XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX
 
-!> 
-!! function Load_Grid()
-!! load grid coordinates and bathymetric depth from CSV file with 5 columns
-!! representing an x coordinate, y, bathymetric depth (z), latitude, and
-!! longitude.
-!! @author Keston Smith (IBSS corp) June-July 2021
-!!
-!! @param[in,out] grid Map of how management area is subdivided
-!! @param[in] domain_name Area being managed
-!!
-!! TODO: At present lon variables are not used. 
-integer function Load_Grid(grid, domain_name)
-    use globals
-    use Data_Point_Mod
-    implicit none
-    type(Data_Point_Class), intent(inout) :: grid(*)
-    character(2), intent(in) :: domain_name
-    integer n, io, num_grids
-    character(72) input_str,file_name
-    write(*,*) 'Domain Name: ', domain_name
-    file_name='Grids/'//domain_name//'xyzLatLon.csv'
-    write(*,*)'reading grid file: ',trim(file_name)
-    open(63,file=trim(file_name),status='old')
-    n=0
-    do
-     read(63,'(a)',iostat=io) input_str
-     if (io.lt.0) exit
-     n=n+1
-     ! merged <domain_name>xyzLatLon and ManagementArea<domain_name>
-     !read(input_str,*) x(n),y(n),z(n),lat(n),lon(n),management_region(n)
-     read(input_str,*) grid(n)%x, grid(n)%y, &
-     &                 grid(n)%z, grid(n)%lat, grid(n)%lon, grid(n)%mgmt_area_index
-    end do
-    close(63)
-    num_grids=n
-    write(*,*) 'READ ', n, 'LINE(S)'
-
-    if (domain_name .eq. 'GB')then
-        grid(1:num_grids)%is_closed = .TRUE.
-        do n=1,num_grids
-            if( any ((/grid(n)%mgmt_area_index.eq.8, grid(n)%mgmt_area_index.eq.5,&
-            &           grid(n)%mgmt_area_index.eq.10 /)))then
-                grid(n)%is_closed = .FALSE.
-            endif
-        enddo
-    else
-        grid(1:num_grids)%is_closed = .FALSE.
-        do n=1,num_grids
-            if( any ((/ grid(n)%mgmt_area_index.eq.3, grid(n)%mgmt_area_index.eq.4,&
-            &           grid(n)%mgmt_area_index.eq.5, grid(n)%mgmt_area_index.eq.7 /)))then
-                grid(n)%is_closed = .TRUE.
-            endif
-        enddo
-    endif
-    Load_Grid = num_grids
-
-    return
-endfunction Load_Grid
 !-----------------------------------------------------------------------
 !-----------------------------------------------------------------------
 

@@ -291,7 +291,7 @@ module Recruit_Mod
     !-----------------------------------------------------------------------------------------------
     subroutine Set_Config_File_Name(fname)
         character(*), intent(in) :: fname
-        config_file_name = fname
+        config_file_name = config_dir//fname
     endsubroutine Set_Config_File_Name
 
     !-----------------------------------------------------------------------
@@ -309,9 +309,9 @@ module Recruit_Mod
         character(85) tag
         character(15) value
 
-        write(*,*) ' READING IN ', config_dir//config_file_name
+        write(*,*) ' READING IN ', config_file_name
 
-        open(read_dev,file=config_dir//config_file_name)
+        open(read_dev,file = config_file_name)
         do
             input_string=""
             read(read_dev,'(a)',iostat=io) input_string

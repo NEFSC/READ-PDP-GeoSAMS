@@ -253,7 +253,7 @@ PROGRAM ScallopPopDensity
 
     use globals
     use Growth_Mod
-    use Data_Point_Mod
+    use Grid_Manager_Mod
     use Recruit_Mod
     use Mortality_Mod
 
@@ -264,7 +264,6 @@ PROGRAM ScallopPopDensity
     character(2) domain_name
     integer start_year, stop_year
     logical is_rand_rec
-    logical use_interp
     character(3) fishing_type      !> Fishing can be USD,  BMS,  or,  CAS
     integer num_time_steps
     integer ts_per_year
@@ -279,7 +278,7 @@ PROGRAM ScallopPopDensity
     real(dp) :: shell_length_mm(num_size_classes)
 
 
-    type(Data_Point_Class), allocatable :: grid(:)
+    type(Grid_Data_Class), allocatable :: grid(:)
     type(Growth_Class), allocatable :: growth(:)
     type(Mortality_Class), allocatable :: mortality(:)
     type(Recruitment_Class), allocatable :: recruit(:)
@@ -300,14 +299,11 @@ PROGRAM ScallopPopDensity
         stop
     endif
     write (*,*) term_blu, file_name, term_blk
-  
 
     !==================================================================================================================
     !  - I. Read Configuration file 'Scallop.inp'
     !==================================================================================================================
     call Read_Startup_Config(domain_name, file_name, start_year, stop_year, fishing_type, ts_per_year)
-    n = index(file_name, '/') - 1
-    use_interp = (file_name(1:n) == 'InitialCondition')
 
     ! time parameters
     num_years = stop_year - start_year + 1
@@ -315,13 +311,8 @@ PROGRAM ScallopPopDensity
     delta_time = 1._dp / dfloat(ts_per_year)
 
     ! Force correct region
-    ! InitialCondition/SimMA2000/InitialCondition.csv
     ! Data/bin5mm2005MA.csv
-    if (use_interp) then
-        file_name(21:22) = domain_name
-    else
-        file_name(16:17) = domain_name
-    endif
+    file_name(16:17) = domain_name
 
     is_rand_rec = .FALSE.
 
@@ -342,16 +333,14 @@ PROGRAM ScallopPopDensity
     allocate(weight_grams(1:num_dimensions,1:num_size_classes))
 
     !==================================================================================================================
-    !  - II. Instantiate modes, that is objects
+    !  - II. Instantiate mods, that is objects
     !==================================================================================================================
-    call Set_Growth(use_interp, growth, grid, shell_length_mm, num_time_steps, ts_per_year, domain_name, domain_area,&
-    &              file_name, state, weight_grams, num_grids)
+    call Set_Grid_Manager(state, grid, num_grids)
+    call Set_Growth(growth, grid, shell_length_mm, num_time_steps, ts_per_year, domain_name, domain_area,&
+    &              state, weight_grams, num_grids)
 
     allocate(fishing_effort(1:num_grids))
     allocate(state_at_time_step(1:num_time_steps,1:num_size_classes))
-
-    write( stateFileName,"(A,I4,A)") 'VERIFY/InitialState.csv'
-    call Write_CSV(num_grids, num_size_classes, state, stateFileName, size(state,1), .FALSE. )
 
     call Set_Recruitment(recruit, num_grids, domain_name, domain_area, is_rand_rec, &
                          & growth(1:num_grids)%L_inf_mu, growth(1:num_grids)%K_mu, shell_length_mm)
@@ -424,17 +413,17 @@ subroutine Read_Startup_Config(domain_name, file_name, start_year, stop_year, fi
     use globals
     use Mortality_Mod, only : Mortality_Set_Config_File_Name => Set_Config_File_Name
     use Recruit_Mod, only : Recruit_Set_Config_File_Name => Set_Config_File_Name
+    use Grid_Manager_Mod, only : Special_Set_Config_File_Name => Set_Config_File_Name, Set_Init_Cond_File_Name
 
     implicit none
     integer, intent(out) :: start_year, stop_year, time_steps_per_year ! , num_monte_carlo_iter
     integer j, k, io
     character(85) tag
     character(15) value
-    character(72),intent(inout):: file_name
+    character(72),intent(in):: file_name
     character(2),intent(out):: domain_name
     character(3),intent(out):: fishing_type
     character(72) input_string
-    character(72) init_cond_fname
 
     open(read_dev,file=file_name)
     do
@@ -458,10 +447,6 @@ subroutine Read_Startup_Config(domain_name, file_name, start_year, stop_year, fi
                     write(*,*) term_red, ' **** INVALID DOMAIN NAME: ', domain_name, term_blk
                     stop
                 endif
-            case('Initial Conditions')
-                j = scan(input_string,"=",back=.true.)
-                init_cond_fname=trim(adjustl(input_string(j+1:)))
-                write(*,*)'Initial Conditions File Name =',init_cond_fname
             case('Beginning Year')
                 j = scan(input_string,"=",back=.true.)
                 read( input_string(j+1:),* )start_year
@@ -478,6 +463,10 @@ subroutine Read_Startup_Config(domain_name, file_name, start_year, stop_year, fi
                     write(*,*) term_red, ' **** INVALID FISHING TYPE: ', fishing_type, term_blk
                     stop
                 endif
+            case('Initial Conditions')
+                j = scan(input_string,"=",back=.true.)
+                input_string=trim(adjustl(input_string(j+1:)))
+                call Set_Init_Cond_File_Name(input_string)
             case('Mortality Config File')
                 j = scan(input_string,"=",back=.true.)
                 input_string = trim(adjustl(input_string(j+1:)))
@@ -486,6 +475,10 @@ subroutine Read_Startup_Config(domain_name, file_name, start_year, stop_year, fi
                 j = scan(input_string,"=",back=.true.)
                 input_string = trim(adjustl(input_string(j+1:)))
                 call Recruit_Set_Config_File_Name(input_string)
+            case('Special Area Config File')
+                j = scan(input_string,"=",back=.true.)
+                input_string = trim(adjustl(input_string(j+1:)))
+                call Special_Set_Config_File_Name(input_string)
             case default
                 write(*,*) term_red, 'Unrecognized line in ',file_name
                 write(*,*) 'Unknown Line-> ',input_string, term_blk
@@ -493,7 +486,6 @@ subroutine Read_Startup_Config(domain_name, file_name, start_year, stop_year, fi
             end select
         endif
     end do
-    file_name = init_cond_fname
     close(read_dev)
     return
 end subroutine Read_Startup_Config
