@@ -220,9 +220,9 @@ module Recruit_Mod
         enddo
         recruit(1:num_grids)%n_year = year_index
         !-------------------------------------------------------------------------
-        write(*,'(A,I3,A,F10.7)') ' Year Index = ',year_index,'  Recruitment is ', recruit(1)%recruitment(year_index)
+
         year_index = 0
-        do year = 1979,2025
+        do year = recr_start_year,recr_all_rand_stop
             year_index = year_index + 1
             write(buf,'(I6)')year
             tmp(1:num_grids) = recruit(1:num_grids)%Recruitment(year_index)
