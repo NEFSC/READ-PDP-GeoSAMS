@@ -291,8 +291,18 @@ module Recruit_Mod
     !-----------------------------------------------------------------------------------------------
     subroutine Set_Config_File_Name(fname)
         character(*), intent(in) :: fname
+        logical exists
+
         config_file_name = config_dir//fname
-    endsubroutine Set_Config_File_Name
+        inquire(file=config_file_name, exist=exists)
+
+        if (exists) then
+            PRINT *, term_blu, trim(config_file_name), ' FOUND', term_blk
+        else
+            PRINT *, term_red, trim(config_file_name), ' NOT FOUND', term_blk
+            stop
+        endif
+        endsubroutine Set_Config_File_Name
 
     !-----------------------------------------------------------------------
     !! @public @memberof Recruitment_Class
@@ -309,7 +319,7 @@ module Recruit_Mod
         character(value_len) value
         integer j, k, io
 
-        write(*,*) ' READING IN ', config_file_name
+        write(*,*) 'READING IN ', config_file_name
 
         open(read_dev,file = config_file_name)
         do

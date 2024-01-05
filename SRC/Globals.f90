@@ -5,7 +5,6 @@ module globals
     integer, parameter :: dp = selected_real_kind(15, 307)
     integer, parameter :: qp = selected_real_kind(33, 4931)
 
-    integer, parameter :: num_dimensions = 12000
     integer, parameter :: shell_len_max = 150
     integer, parameter :: shell_len_min = 30
     integer, parameter :: shell_len_delta = 5

@@ -61,6 +61,7 @@ type(FishingMortVector), PRIVATE :: fmort_list(max_num_years)
 ! if a fmort_list file exists then use data, otherwise use_spec_access_data is false
 logical, PRIVATE :: use_spec_access_data
 integer, PRIVATE :: num_in_list
+integer, PRIVATE :: max_num_grids
 integer, PRIVATE :: num_grids
 integer, PRIVATE :: num_areas
 character(2), PRIVATE :: domain_name
@@ -135,7 +136,7 @@ endsubroutine Destructor
 !> @param[in] domain_area,Size of domain under consideration in square meters
 !> 
 !==================================================================================================================
-subroutine Set_Mortality(mortality, grid, shell_lengths, dom_name, dom_area, num_ts, ts_per_year, ngrids, nareas)
+subroutine Set_Mortality(mortality, grid, shell_lengths, dom_name, dom_area, num_ts, ts_per_year, ngrids, max_ngrids, nareas)
     implicit none
     
     type(Mortality_Class), intent(inout):: mortality(*)
@@ -145,11 +146,13 @@ subroutine Set_Mortality(mortality, grid, shell_lengths, dom_name, dom_area, num
     real(dp), intent(in) :: dom_area
     integer, intent(in) :: num_ts, ts_per_year
     integer, intent(in) :: ngrids
+    integer, intent(in) :: max_ngrids
     integer, intent(in) :: nareas
     integer yr_index, j, k, num_years, year
     real(dp) fishing_by_region(max_num_years, 4), length_0
 
     !! initalize private members
+    max_num_grids = max_ngrids
     num_grids = ngrids
     num_areas = nareas
     domain_name = dom_name
@@ -393,8 +396,8 @@ function Set_Fishing(fishing_type, year, ts, state, weight_grams, mortality, gri
     implicit none
     character(*), intent(in):: fishing_type !> < string inputs
     integer, intent(in):: year, ts
-    ! need num_dimensions as that is how variable was allocated to get column memory access correct
-    real(dp), intent(in):: state(num_dimensions, num_size_classes), weight_grams(num_dimensions, num_size_classes )
+    ! need max_num_grids as that is how variable was allocated to get column memory access correct
+    real(dp), intent(in):: state(max_num_grids, num_size_classes), weight_grams(num_grids, num_size_classes )
     type(Mortality_Class), intent(in):: mortality(*)
     type(Grid_Data_Class), intent(in) :: grid(*)
     real(dp) :: Set_Fishing(num_grids)
@@ -856,7 +859,17 @@ endfunction Set_Fishing_Mortality
 !-----------------------------------------------------------------------------------------------
 subroutine Set_Config_File_Name(fname)
     character(*), intent(in) :: fname
+    logical exists
+
     config_file_name = config_dir//fname
+    inquire(file=config_file_name, exist=exists)
+
+    if (exists) then
+        PRINT *, term_blu, trim(config_file_name), ' FOUND', term_blk
+    else
+        PRINT *, term_red, trim(config_file_name), ' NOT FOUND', term_blk
+        stop
+    endif
 endsubroutine Set_Config_File_Name
 
 subroutine Set_Fishing_Mort_File_Name(fname)
@@ -870,7 +883,7 @@ subroutine Set_Fishing_Mort_File_Name(fname)
         inquire(file=fishing_mort_fname, exist=exists)
 
         if (exists) then
-            PRINT *, term_blu, fishing_mort_fname, term_blk
+            PRINT *, term_blu, trim(fishing_mort_fname), ' FOUND', term_blk
         else
             PRINT *, term_red, trim(fishing_mort_fname), ' NOT FOUND', term_blk
             stop
@@ -985,8 +998,10 @@ end subroutine Read_Configuration
 subroutine Mortality_Write_At_Timestep(year, ts, state, weight_grams, mortality, set_fishing_by_loc)
     integer, intent(in) :: year
     integer, intent(in) :: ts
-    real(dp), intent(in) :: state(num_dimensions, num_size_classes)
-    real(dp), intent(in) :: weight_grams(num_dimensions, num_size_classes)
+    ! state is allocated before the number of grids is known
+    real(dp), intent(in) :: state(max_num_grids, num_size_classes)
+    ! weight_grams is allocated once the number of grids is known
+    real(dp), intent(in) :: weight_grams(num_grids, num_size_classes)
     type(Mortality_Class), intent(in):: mortality(*)
     real(dp), intent(in) :: set_fishing_by_loc(*)
 

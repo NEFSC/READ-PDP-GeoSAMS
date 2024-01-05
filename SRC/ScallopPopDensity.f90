@@ -4,14 +4,18 @@ PROGRAM ScallopPopDensity
 !!
 !! @section ms1 Initialize Simulation Parameters
 !! @subsection ms1p1 Read Input
-!!  - Domain Name = MA or GB
-!!  - Beging Year = YYYY
-!!  - Ending Year = YYYY
-!!  - Fishing type = USD, BMS, or CAS
-!!  - Time steps per Year = 52
-!!  - Initial Conditions File, population density in #/m^2 umber of grids by number of size classes
-!!    File Name = Data/bin5mm2000MA.csv this data is pulled from dredge survey data in OriginalData/dredgetowbysize7917.csv
-!!    or InitialCondition/InitialCondition.txt this data has been interpolated to lay over existing grid positions
+!! Values are read in from file name given on command line, e.g. ScallopPopDensity.exe @b Scallop.cfg
+!!  - Maximum Number of Grids: Largest number of grids expected by intialization files
+!!  - Domain Name: MA or GB
+!!  - Beging Year: Four digit year, YYYY
+!!  - Ending Year: Four digit year, YYYY
+!!  - Fishing type: One of USD, BMS, or CAS
+!!  - Time steps per Year: number of time steps each year
+!!
+!! The following are used to name configuration files used by other modules
+!!  - Mortality Config File
+!!  - Recruit Config File
+!!  - Grid Manager Config File
 !!
 !! @subsection ms1p2 Instantiate Growth Module
 !! The simulation then instantiates parameters that define how growth occurs
@@ -126,7 +130,8 @@ PROGRAM ScallopPopDensity
 !!
 !! @subsubsection ms1p4p2 Compute Fishing Effort
 !!
-!! Fishing effort is defined by year and region from past history @a Data/FYrGBcGBoMA.csv
+!! This Fishing Effort is used by a CAS simulation. Fishing effort is defined by year and region 
+!! from past history @a Data/FYrGBcGBoMA.csv
 !! 
 !! <table>
 !! <caption id="multi_row">Fishing Effort</caption>
@@ -135,75 +140,17 @@ PROGRAM ScallopPopDensity
 !! </table>
 !!
 !! @section ms2 Main Loop
-!! For each year\n
-!! @subsection ms2p1 Determine Selectivity
+!! 
+!! @subsection ms2p1 For each time step
 !!
-!! @f[
-!! Selectivity = \frac{1}{ 1 + e^{ a - b * length}}
-!! @f]
-!! where a, b are dependent on year and domain.\n
-!! @a Discard is set at 20% of selectivity \n
-!! Unless shell length is > 90 mm 
-!! (or 100mm and is_closed for GB) \n
-!! in which case discard is 0.0
-!!
-!! @subsection ms2p2 Set Fishing Effort
+!! @subsubsection mss2p1p1 Set Fishing Effort
 !! Here there is defined a fishing effort that is independent of mortality. 
 !! Whereas the mortality fishing effort is a function of region and historical data, 
 !! this fishing effort is a function of cost, biomass or as a spatial constant within region. 
-!! For example, the following is by cost.
 !!
-!! @subsubsection ms2p2p1 Determine Total Catch, or Landings
-!! Data is based on actual landings in @a Data/Landings_75-19nh.csv, years 1975 to 2019
-!! 
-!! <table>
-!! <caption id="multi_row">Total Catch</caption>
-!! <tr><th>Year<th>GB Closed<th>GB Open<th>MA
-!! <tr><td>2000<td>2346.47<td>2697.53<td>9351
-!! <tr><td>2001<td>507<td>4501<td>15703
-!! </table>
+!! @subsubsection mss2p1p2 For each grid
 !!
-!! @subsubsection ms2p2p2 US Dollars
-!!
-!! @paragraph ms2p2p2p1 Determine viable scallops per square meter
-!! scallopsPerSqm = selectivity * state
-!! 
-!! @paragraph ms2p2p2p2 Convert weight in grams to pounds per scallop and sort by weight 
-!! - > 0.1 lbs  into cnt10
-!! - <= 0.1 and > 0.02 lbs into cnt20
-!! - <= 0.2 and > 0.03333 lbs into cnt30
-!! - <= 0.03333 into cnt30plus
-!!
-!! @paragraph ms2p2p2p3 Scallop Price
-!!
-!! Data is read from @a Data/ScallopPrice.csv, years 1998 to 2021
-!! <table>
-!! <caption id="multi_row">Scallop Price</caption>
-!! <tr><th>Year<th>Cnt10<th>Cnt10-20<th>Cnt20-30<th>Cnt30+
-!! <tr><td>2000<td>6.8548<td>5.30293<td>4.66137<td>5.05687
-!! <tr><td>2001<td>5.82235<td>3.78224<td>3.54774<td>3.60425
-!! </table>
-!! - Compute Price per Pound
-!!
-!! @f{eqnarray*}{
-!! USDperPound   &=& cnt10 * scallopPrice(1) \\
-!!           &+& cnt10to20 * scallopPrice(2)\\
-!!           &+& cnt20to30 * scallopPrice(3)\\
-!!           &+& cnt30plus * scallopPrice(4)
-!! @f}
-!! - Determine total weight of scallops in pounds\n
-!!   totalWeightLBS(1:num_grids)  = sum(scallopsPerSqm(1:num_grids)  * weightGrams(1:num_grids)  / gramsPerPound)
-!!
-!! - Compute worth in dollars\n
-!!   TotalDollars(1:num_grids)  = USDperPound(1:num_grids)  * gridAreaSqm * totalWeightLBS(1:num_grids) 
-!! 
-!! @subsubsection ms2p2p3	Fishing Effort by Weight
-!! - Fishing Effort by Weight in USD(1:num_grids)  = (TotalCatch / TotalDollars(1:num_grids) ) * USDperPound(1:num_grids) 
-!!
-!! @subsection ms2p3 For Each Grid
-!! At each time step @f$\delta_t@f$
-!!
-!! @subsubsection ms2p3p1 Compute natural mortality
+!! @paragraph mss2p1p2p1 Compute natural mortality
 !! Determine the number of scallops in millions, S, given the current state
 !! @f[
 !! S = state * domainArea
@@ -231,21 +178,21 @@ PROGRAM ScallopPopDensity
 !! M_{nat} = \alpha * M_{juv} + (1-\alpha) M_{adult}
 !! @f]
 !! 
-!! @subsubsection ms2p3p2 Adjust population state based on von Bertalanffy growth
+!! @paragraph mss2p1p2p2 Adjust population state based on von Bertalanffy growth
 !! @f[
 !! \vec{S} = \left| G \right| \times \vec{S} 
 !! @f]
 !!
-!! @subsubsection ms2p3p3 Compute increase in population due to recruitment, R
+!! @paragraph mss2p1p2p3 Compute increase in population due to recruitment, R
 !! If within recruitment period, i.e. Jan 1st to April 10th
 !! @f[
 !! \vec{S} = \vec{S} + \delta_t\frac{\vec{R}}{RecruitDuration}
 !! @f]
-!! @subsubsection ms2p3p4 Compute Overall Mortality
+!! @paragraph mss2p1p2p4 Compute Overall Mortality
 !! @f[
 !! \vec{M} = \vec{M}_{nat} + Fishing *( \vec{M}_{selectivity} + \vec{M}_{incidental} + \vec{M}_{discard})
 !! @f]
-!! @subsubsection ms2p3p5 Compute effect of mortality to arrive at new state
+!! @paragraph mss2p1p2p5 Compute effect of mortality to arrive at new state
 !! @f[
 !! \vec{S}_{t+1} = \vec{S}_t * (1- \delta_t * \vec{M})
 !! @f]
@@ -260,7 +207,9 @@ use Mortality_Mod
 implicit none
 
 integer n !> loop count
+logical exists
 
+integer max_num_grids
 character(2) domain_name
 integer start_year, stop_year
 logical is_rand_rec
@@ -284,12 +233,11 @@ type(Mortality_Class), allocatable :: mortality(:)
 type(Recruitment_Class), allocatable :: recruit(:)
 
 real(dp), allocatable :: state(:, :)
-real(dp), allocatable :: state_at_time_step(:,:)
 real(dp), allocatable :: weight_grams(:,:)
 real(dp), allocatable :: fishing_effort(:) ! rate of fishing mortality
 ! real(dp), allocatable :: mid_year_sample(:,:)
 
-character(fname_len) :: stateFileName, arg
+character(fname_len) :: arg
 integer pct_comp
 
 call get_command_argument(1, arg)
@@ -298,12 +246,19 @@ if (len_trim(file_name) == 0) then
     write(*,*) term_red, 'No configuration file', term_blk
     stop
 endif
-write (*,*) term_blu, file_name, term_blk
+inquire(file=file_name, exist=exists)
+
+if (exists) then
+    PRINT *, term_blu, trim(file_name), ' FOUND', term_blk
+else
+    PRINT *, term_red, trim(file_name), ' NOT FOUND', term_blk
+    stop
+endif
 
 !==================================================================================================================
 !  - I. Read Configuration file 'Scallop.inp'
 !==================================================================================================================
-call Read_Startup_Config(domain_name, file_name, start_year, stop_year, fishing_type, ts_per_year)
+call Read_Startup_Config(max_num_grids, domain_name, file_name, start_year, stop_year, fishing_type, ts_per_year)
 
 ! time parameters
 num_years = stop_year - start_year + 1
@@ -317,41 +272,41 @@ file_name(16:17) = domain_name
 is_rand_rec = .FALSE.
 
 write(*,*) '========================================================'
-write(*,'(A,A6)') ' Domain:         ', domain_name
-write(*,'(A,I6)') ' Start Year:     ', start_year
-write(*,'(A,I6)') ' Stop Year:      ', stop_year
+write(*,'(A,I6)') ' Max Expected #grids ', max_num_grids
+write(*,'(A,A6)') ' Domain:             ', domain_name
+write(*,'(A,I6)') ' Start Year:         ', start_year
+write(*,'(A,I6)') ' Stop Year:          ', stop_year
 write(*,'(A,L6)') ' Random''d Recruit:  ', is_rand_rec
-write(*,'(A,A6)') ' Fishing Type:   ', fishing_type
+write(*,'(A,A6)') ' Fishing Type:       ', fishing_type
 write(*,'(A,I6,A,F7.4)') ' Time steps/year:', ts_per_year, ' delta ', delta_time
 write(*,'(A,I6,A,F7.4)') ' Total number time steps:', num_time_steps
 write(*,*) '========================================================'
 
 ! allow for maximum expected number of grids
-allocate(grid(1:num_dimensions))
-allocate(growth(1:num_dimensions), mortality(1:num_dimensions), recruit(1:num_dimensions) )
-allocate(state(1:num_dimensions,1:num_size_classes))
-allocate(weight_grams(1:num_dimensions,1:num_size_classes))
+allocate(grid(1:max_num_grids))
+allocate(state(1:max_num_grids,1:num_size_classes))
 
 !==================================================================================================================
 !  - II. Instantiate mods, that is objects
 !==================================================================================================================
-call Set_Grid_Manager(state, grid, num_grids, num_areas)
-call Set_Growth(growth, grid, shell_length_mm, num_time_steps, ts_per_year, domain_name, domain_area,&
-&              state, weight_grams, num_grids)
+call Set_Grid_Manager(max_num_grids, state, grid, num_grids, num_areas)
 
+! number of grids known, allocated remaining data
+allocate(growth(1:num_grids), mortality(1:num_grids), recruit(1:num_grids) )
+allocate(weight_grams(1:num_grids,1:num_size_classes))
 allocate(fishing_effort(1:num_grids))
-allocate(state_at_time_step(1:num_time_steps,1:num_size_classes))
 
+call Set_Growth(growth, grid, shell_length_mm, num_time_steps, ts_per_year, domain_name, domain_area,&
+&              state, weight_grams, num_grids, max_num_grids)
 call Set_Recruitment(recruit, num_grids, domain_name, domain_area, is_rand_rec, &
 &                    growth(1:num_grids)%L_inf_mu, growth(1:num_grids)%K_mu, shell_length_mm)
 call Set_Mortality(mortality, grid, shell_length_mm, domain_name, domain_area, num_time_steps, &
-&                    ts_per_year, num_grids, num_areas)
+&                    ts_per_year, num_grids, max_num_grids, num_areas)
 
 !==================================================================================================================
 !  - III. MAIN LOOP
 ! Start simulation
 !==================================================================================================================
-write( stateFileName,"(A,I4,A)") growth_out_dir//'State', start_year, fishing_type//domain_name//'_main.csv'
 year = start_year
 do ts = 1, num_time_steps
     !- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - 
@@ -363,7 +318,6 @@ do ts = 1, num_time_steps
     !  ii. For each grid, evaluate growth state for this time step
     !- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - 
     do n = 1, num_grids
-        if (n.eq.2) state_at_time_step(ts, 1:num_size_classes) = state(n, 1:num_size_classes)
         !- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - 
         !  a. Compute new state
         !- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - 
@@ -387,9 +341,7 @@ do ts = 1, num_time_steps
 
 enddo ! ts = 1, num_time_steps
 
-call Write_CSV(num_time_steps+1, num_size_classes, state_at_time_step, stateFileName, size(state_at_time_step,1), .FALSE.)
-
-deallocate(grid, growth, mortality, recruit, state, weight_grams, fishing_effort)!, mid_year_sample)
+deallocate(grid, growth, mortality, recruit, state, weight_grams, fishing_effort)
 call Destructor()
 END PROGRAM ScallopPopDensity
 
@@ -410,13 +362,14 @@ END PROGRAM ScallopPopDensity
 !! @param[out] time_steps_per_year Number of times steps to evaluate growth
 !! @param[out] num_monte_carlo_iter Number of iterations for Monte Carlo simulation
 !-----------------------------------------------------------------------
-subroutine Read_Startup_Config(domain_name, file_name, start_year, stop_year, fishing_type,time_steps_per_year)
+subroutine Read_Startup_Config(max_num_grids, domain_name, file_name, start_year, stop_year, fishing_type,time_steps_per_year)
     use globals
     use Mortality_Mod, only : Mortality_Set_Config_File_Name => Set_Config_File_Name
     use Recruit_Mod, only : Recruit_Set_Config_File_Name => Set_Config_File_Name
     use Grid_Manager_Mod, only : GridMgr_Set_Config_File_Name => Set_Config_File_Name
 
     implicit none
+    integer, intent(out) :: max_num_grids
     character(2),intent(out):: domain_name
     character(*),intent(in):: file_name
     character(3),intent(out):: fishing_type
@@ -449,15 +402,19 @@ subroutine Read_Startup_Config(domain_name, file_name, start_year, stop_year, fi
                     write(*,*) term_red, ' **** INVALID DOMAIN NAME: ', domain_name, term_blk
                     stop
                 endif
+
             case('Beginning Year')
                 j = scan(input_string,"=",back=.true.)
                 read( input_string(j+1:),* )start_year
+
             case('Ending Year')
                 j = scan(input_string,"=",back=.true.)
                 read( input_string(j+1:),* )stop_year
+
             case('Time steps per Year')
                 j = scan(input_string,"=",back=.true.)
                 read( input_string(j+1:),* )time_steps_per_year
+
             case('Fishing')
                 j = scan(input_string,"=",back=.true.)
                 fishing_type=trim(adjustl(input_string(j+1:)))
@@ -465,18 +422,26 @@ subroutine Read_Startup_Config(domain_name, file_name, start_year, stop_year, fi
                     write(*,*) term_red, ' **** INVALID FISHING TYPE: ', fishing_type, term_blk
                     stop
                 endif
+
             case('Grid Manager Config File')
                 j = scan(input_string,"=",back=.true.)
                 input_string = trim(adjustl(input_string(j+1:)))
                 call GridMgr_Set_Config_File_Name(input_string)
+
             case('Mortality Config File')
                 j = scan(input_string,"=",back=.true.)
                 input_string = trim(adjustl(input_string(j+1:)))
                 call Mortality_Set_Config_File_Name(input_string)
+
             case('Recruit Config File')
                 j = scan(input_string,"=",back=.true.)
                 input_string = trim(adjustl(input_string(j+1:)))
                 call Recruit_Set_Config_File_Name(input_string)
+
+            case('Max Number of Grids')
+                j = scan(input_string,"=",back=.true.)
+                read( input_string(j+1:),* ) max_num_grids
+
             case default
                 write(*,*) term_red, 'Unrecognized line in ',file_name
                 write(*,*) 'Unknown Line-> ',input_string, term_blk

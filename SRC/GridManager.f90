@@ -99,6 +99,7 @@ integer n_sides
 end type LonLatVector
 
 type(LonLatVector), PRIVATE :: area(max_num_areas)
+integer, PRIVATE :: max_num_grids
 integer, PRIVATE :: num_areas
 integer, PRIVATE :: num_grids
 logical, PRIVATE :: use_spec_access_data
@@ -114,14 +115,18 @@ CONTAINS
 !> Initializes growth for startup
 !>
 !==================================================================================================================
-subroutine Set_Grid_Manager(state, grid, ngrids, nareas)
-    real(dp), intent(out):: state(1:num_dimensions, 1:num_size_classes)
+subroutine Set_Grid_Manager(max_ngrids, state, grid, ngrids, nareas)
+    integer, intent(in) :: max_ngrids
+    real(dp), intent(out):: state(1:max_ngrids, 1:num_size_classes)
     type(Grid_Data_Class), intent(out) :: grid(*)
     integer, intent(out) :: ngrids
     integer, intent(out) :: nareas
 
     integer n, j
     character(fname_len) fname
+
+    ! set private variables, needed by private methods
+    max_num_grids = max_ngrids
 
     ! Used to verify grid in special access area
     fname = 'Results\GridLoc.txt'
@@ -163,8 +168,17 @@ endsubroutine Set_Grid_Manager
 !-----------------------------------------------------------------------------------------------
 subroutine Set_Config_File_Name(fname)
     character(*), intent(in) :: fname
+    logical exists
+
     config_file_name = config_dir//fname
-    PRINT *, term_blu, config_file_name, term_blk
+    inquire(file=config_file_name, exist=exists)
+
+    if (exists) then
+        PRINT *, term_blu, trim(config_file_name), ' FOUND', term_blk
+    else
+        PRINT *, term_red, trim(config_file_name), ' NOT FOUND', term_blk
+        stop
+    endif
 endsubroutine Set_Config_File_Name
 
 !-----------------------------------------------------------------------------------------------
@@ -176,8 +190,17 @@ endsubroutine Set_Config_File_Name
 !-----------------------------------------------------------------------------------------------
 subroutine Set_Init_Cond_File_Name(fname)
     character(*), intent(in) :: fname
+    logical exists
+
     init_cond_fname = fname
-    PRINT *, term_blu,init_cond_fname,term_blk
+    inquire(file=init_cond_fname, exist=exists)
+
+    if (exists) then
+        PRINT *, term_blu, trim(init_cond_fname), ' FOUND', term_blk
+    else
+        PRINT *, term_red, trim(init_cond_fname), ' NOT FOUND', term_blk
+        stop
+    endif
 endsubroutine Set_Init_Cond_File_Name
 
 !-----------------------------------------------------------------------------------------------
@@ -209,7 +232,7 @@ subroutine Set_Special_Access_File_Name(fname)
         inquire(file=special_accesss_fname, exist=exists)
 
         if (exists) then
-            PRINT *, term_blu, special_accesss_fname, term_blk
+            PRINT *, term_blu, trim(special_accesss_fname), ' FOUND', term_blk
         else
             PRINT *, term_red, trim(special_accesss_fname), ' NOT FOUND', term_blk
             stop
@@ -233,7 +256,7 @@ subroutine Read_Configuration()
     character(value_len) value
     integer j, k, io
 
-    write(*,*) ' READING IN ', config_file_name
+    write(*,*) 'READING IN ', config_file_name
 
     open(read_dev,file=config_file_name)
     do
@@ -287,7 +310,7 @@ end subroutine Read_Configuration
 !==================================================================================================================
 integer function Load_Grid_State(grid, state)
     type(Grid_Data_Class), intent(inout) :: grid(*)
-    real(dp), intent(out):: state(1:num_dimensions, 1:num_size_classes)
+    real(dp), intent(out):: state(1:max_num_grids, 1:num_size_classes)
 
     character(csv_line_len) input_str
     integer n, io, is_closed
@@ -302,13 +325,17 @@ integer function Load_Grid_State(grid, state)
         read(63,'(a)',iostat=io) input_str
         if (io.lt.0) exit
         n=n+1
+        if (n>max_num_grids) then
+            write(*,'(A,A, I5, A, I5)') term_red, 'MAX NUMBER OF GRIDS EXCEEDED, AT ', n, ' EXPECTED ', max_num_grids
+            write(*,*) 'CHANGE "Max Number of Grids" IN CONFIGURATION FILE', term_blk
+        end if
         read(input_str,*) year, grid(n)%x, grid(n)%y, grid(n)%lat, grid(n)%lon, grid(n)%z, &
         &               is_closed, state(n,1:num_size_classes)
         grid(n)%is_closed = (is_closed > 0)
         grid(n)%special_access_index = 0
     end do
     close(63)
-    write(*,*) term_blu, 'READ ', n, 'LINE(S)', term_blk
+    write(*,*) term_blu, 'READ ', n, 'GRIDS', term_blk
 
     Load_Grid_State = n
 
@@ -325,6 +352,7 @@ integer function Load_Area_Coordinates()
 
     if (.not. use_spec_access_data) then
         write(*,*) term_yel, 'NO SPECIAL ACCESS DATA, USING DEFAULT VALUES FOR FISH MORTALITY', term_blk
+        Load_Area_Coordinates = 0
         return
     endif
 

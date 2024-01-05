@@ -152,6 +152,7 @@ MODULE Growth_Mod
     end type Growth_Class
 
     ! @private @memberof Growth_Mod
+    integer, PRIVATE :: max_num_grids
     integer, PRIVATE :: num_grids
     character(2), PRIVATE :: domain_name
     real(dp), PRIVATE :: domain_area_sqm
@@ -180,7 +181,7 @@ MODULE Growth_Mod
     !> 
     !==================================================================================================================
     subroutine Set_Growth(growth, grid, shell_lengths, num_ts, ts_per_year, dom_name, dom_area, &
-        &                 state, weight_grams, ngrids)
+        &                 state, weight_grams, ngrids, max_ngrids)
         type(Growth_Class), intent(inout) :: growth(*)
         type(Grid_Data_Class), intent(in) :: grid(*)
         real(dp), intent(inout) :: shell_lengths(*)
@@ -190,14 +191,16 @@ MODULE Growth_Mod
         real(dp), intent(out) :: dom_area
         ! need allocated first dimension. Recall that fortran stores by column first.
         ! second dimension provided for clarity, as this is constant
-        real(dp), intent(inout):: state(1:num_dimensions, 1:num_size_classes)
-        real(dp), intent(inout) :: weight_grams(1:num_dimensions, 1:num_size_classes)
         integer, intent(in) :: ngrids
+        integer, intent(in) :: max_ngrids
+        real(dp), intent(inout):: state(1:max_ngrids, 1:num_size_classes)
+        real(dp), intent(inout) :: weight_grams(1:ngrids, 1:num_size_classes)
     
         integer n, j
         real(dp), allocatable :: Gpar(:,:)
 
         ! initalize private members
+        max_num_grids = max_ngrids
         domain_name = dom_name
         num_time_steps = num_ts
         delta_time = 1._dp / dfloat(ts_per_year)
