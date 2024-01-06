@@ -16,7 +16,7 @@
 !>----------------------------------------------------------------------------------------------------------------
 module Mortality_Mod
 use globals
-use Grid_Manager_Mod, only : Grid_Data_Class, Get_Use_Spec_Access_Data
+use Grid_Manager_Mod, only : Grid_Data_Class
 implicit none
 
 !> @class Mortality_Class
@@ -272,7 +272,7 @@ subroutine Load_Fishing_Mortalities()
     integer j, k, n, io
 
     if (.not. use_spec_access_data) then
-        write(*,*) term_yel, 'SPEC ACCESS FISHING MORT NOT IN USE', term_blk
+        write(*,*) term_yel, 'SPECIAL ACCESS FISHING MORT NOT IN USE', term_blk
         return
     endif
 
@@ -876,7 +876,7 @@ subroutine Set_Fishing_Mort_File_Name(fname)
     character(*), intent(in) :: fname
     logical exists
 
-    use_spec_access_data =  ((fname(1:4) .ne. 'NONE') .and. Get_Use_Spec_Access_Data())
+    use_spec_access_data =  ((fname(1:4) .ne. 'NONE') .and. (num_areas .ne. 0))
 
     if (use_spec_access_data) then
         fishing_mort_fname = config_dir//fname
@@ -888,6 +888,9 @@ subroutine Set_Fishing_Mort_File_Name(fname)
             PRINT *, term_red, trim(fishing_mort_fname), ' NOT FOUND', term_blk
             stop
         endif
+    else
+        if (num_areas > 0) write(*,*) term_yel, 'YEARLY FISHING MORTALITY DATA FILE SET TO ', term_blk, '"NONE"',  &
+        &                     term_yel, ' USING DEFAULT VALUES FOR FISH MORTALITY', term_blk
     endif
 endsubroutine Set_Fishing_Mort_File_Name
 

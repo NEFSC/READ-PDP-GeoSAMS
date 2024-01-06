@@ -1,6 +1,6 @@
-# This file contains the vertices for special area polygons, which are entered
+# This file contains the vertices for special area polygons which are entered
 # as a vector of longitude coordinates followed by a vector of latitude coordinates.
-# The length of each vector must be the same, i.e. same number values not characters
+# The length of each vector must be the same that is same number of comma separated values not characters
 # Lines starting with # are ignored.
 # c2
 -67.333333,-66.155556,-67.333333

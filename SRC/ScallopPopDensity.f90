@@ -337,7 +337,7 @@ do ts = 1, num_time_steps
     endif
 
     pct_comp = 100* ts * num_grids/(num_time_steps*num_grids)
-    if (mod(pct_comp, 10) .eq. 0) write(*,*) term_yel, '% comp', pct_comp, term_blk
+    if (mod(pct_comp, 10) .eq. 0) write(*,*) term_grn, '% comp', pct_comp, term_blk
 
 enddo ! ts = 1, num_time_steps
 

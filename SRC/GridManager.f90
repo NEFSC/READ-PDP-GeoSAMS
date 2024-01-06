@@ -40,10 +40,7 @@
 !> @subsection p3p2p2 Set_Init_Cond_File_Name
 !> Sets @a init_cond_fname for @a @b Load_Grid_State
 !>
-!> @subsection p3p2p3 Get_Use_Spec_Access_Data
-!> Sets @a special_accesss_fname for @a @b Load_Area_Coordinates
-!>
-!> @subsection p3p2p4 Set_Special_Access_File_Name
+!> @subsection p3p2p3 Set_Special_Access_File_Name
 !> @section p3p3 Point In Polygon
 !> The Point_In_Polygon_Vector method is used to find if a point is in a polygon. The @a @b Grid_Manager also supports 
 !> polygon data representation as an array of LonLatPoint points vial @a @b Point_In_Polygon_Points or as a 
@@ -205,16 +202,6 @@ endsubroutine Set_Init_Cond_File_Name
 
 !-----------------------------------------------------------------------------------------------
 !> @public @memberof GridManager
-!> Provide addess to other modules to determine if special access data is available
-!> That is if not special access coordinates are provided then area fishing mortalities
-!> are meaningless
-!-----------------------------------------------------------------------------------------------
-logical function Get_Use_Spec_Access_Data()
-    Get_Use_Spec_Access_Data = use_spec_access_data
-endfunction Get_Use_Spec_Access_Data
-
-!-----------------------------------------------------------------------------------------------
-!> @public @memberof GridManager
 !> Used during instantiation to set the name of the file to special access coordinates
 !> @brief Read Input File
 !> 
@@ -237,6 +224,9 @@ subroutine Set_Special_Access_File_Name(fname)
             PRINT *, term_red, trim(special_accesss_fname), ' NOT FOUND', term_blk
             stop
         endif
+    else
+        write(*,*) term_yel, 'SPECIAL ACCESS DATA FILE SET TO ', term_blk, '"NONE"',  &
+        &                     term_yel, ' USING DEFAULT VALUES FOR FISH MORTALITY', term_blk
     endif
 endsubroutine Set_Special_Access_File_Name
 
@@ -351,8 +341,8 @@ integer function Load_Area_Coordinates()
     integer edge_lon, edge_lat, j
 
     if (.not. use_spec_access_data) then
-        write(*,*) term_yel, 'NO SPECIAL ACCESS DATA, USING DEFAULT VALUES FOR FISH MORTALITY', term_blk
         Load_Area_Coordinates = 0
+        write(*,*) term_blu, '                0 AREAS', term_blk
         return
     endif
 
