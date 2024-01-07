@@ -16,7 +16,7 @@
 !>----------------------------------------------------------------------------------------------------------------
 module Mortality_Mod
 use globals
-use Grid_Manager_Mod, only : Grid_Data_Class
+use Grid_Manager_Mod, only : Grid_Data_Class, Get_Num_Of_Areas
 implicit none
 
 !> @class Mortality_Class
@@ -136,7 +136,7 @@ endsubroutine Destructor
 !> @param[in] domain_area,Size of domain under consideration in square meters
 !> 
 !==================================================================================================================
-subroutine Set_Mortality(mortality, grid, shell_lengths, dom_name, dom_area, num_ts, ts_per_year, ngrids, max_ngrids, nareas)
+subroutine Set_Mortality(mortality, grid, shell_lengths, dom_name, dom_area, num_ts, ts_per_year, ngrids, max_ngrids)
     implicit none
     
     type(Mortality_Class), intent(inout):: mortality(*)
@@ -147,14 +147,13 @@ subroutine Set_Mortality(mortality, grid, shell_lengths, dom_name, dom_area, num
     integer, intent(in) :: num_ts, ts_per_year
     integer, intent(in) :: ngrids
     integer, intent(in) :: max_ngrids
-    integer, intent(in) :: nareas
     integer yr_index, j, k, num_years, year
     real(dp) fishing_by_region(max_num_years, 4), length_0
 
     !! initalize private members
     max_num_grids = max_ngrids
     num_grids = ngrids
-    num_areas = nareas
+    num_areas = Get_Num_Of_Areas()
     domain_name = dom_name
     domain_area_sqm = dom_area
     num_time_steps = num_ts
@@ -197,11 +196,7 @@ subroutine Set_Mortality(mortality, grid, shell_lengths, dom_name, dom_area, num
     allocate(landings_wgt_grams(num_grids))
     allocate(landings_wgt_grams_open(num_grids))
     allocate(landings_wgt_grams_closed(num_grids))
-    !
-    ! Load parameters for fishing selectivity
-    !(1+exp(.1*(shell_lengths-70))).^-1)
 
-    !Assign Fishing pressure, selectivity parameters, and Natural Mortality from CASA model
     if (domain_name .eq. 'MA') then
         !TO DO add to params file
         mortality(1:num_grids)%natural_mort_adult = ma_mort_adult
@@ -215,6 +210,9 @@ subroutine Set_Mortality(mortality, grid, shell_lengths, dom_name, dom_area, num
 
     do j = 1, num_grids
         mortality(j)%natural_mortality(1:num_size_classes) = mortality(j)%natural_mort_adult
+
+        ! Load parameters for fishing selectivity 
+        ! alpha = (1+exp(.1*(shell_lengths-70))).^-1)
         mortality(j)%alpha(1:num_size_classes) =  &
         &    1._dp  - 1._dp / ( 1._dp + exp( - ( shell_lengths(1:num_size_classes)/10._dp - length_0 ) ) )
         
@@ -266,6 +264,10 @@ endsubroutine Set_Mortality
 
 !==================================================================================================================
 !> @public @memberof Grid_Manager_Mod
+!> Open file given by fishing_mort_fname. Reads in the year and number of entries in the list. 
+!> If the number of entries exceeds the number of areas loaded by the GridManager then show the error and stop.
+!> Otherwise reads in the
+!> vectors for area list indices and for fishing mortality
 !==================================================================================================================
 subroutine Load_Fishing_Mortalities()
     character(csv_line_len) input_str, sub_str
@@ -304,19 +306,8 @@ subroutine Load_Fishing_Mortalities()
             j = index(sub_str,',')
             sub_str = sub_str(j+1:)
 
-            ! read in area list
-            do k = 1, fmort_list(n)%n_areas
-                read(sub_str,*) fmort_list(n)%area_list(k)
-                j = index(sub_str,',')
-                sub_str = sub_str(j+1:)
-            enddo
-
-            ! read in fishing mortalities
-            do k = 1, fmort_list(n)%n_areas
-                read(sub_str,*) fmort_list(n)%area_fish_mort(k)
-                j = index(sub_str,',')
-                sub_str = sub_str(j+1:)
-            enddo
+            k = fmort_list(n)%n_areas
+            read(sub_str,*) fmort_list(n)%area_list(1:k), fmort_list(n)%area_fish_mort(1:k)
         endif
     enddo
     close(63)
@@ -978,9 +969,7 @@ subroutine Read_Configuration()
                 read(value, *) gb_length_0
 
             case('Fishing Mortality File')
-                j = scan(input_string,"=",back=.true.)
-                input_string=trim(adjustl(input_string(j+1:)))
-                call Set_Fishing_Mort_File_Name(input_string)
+                call Set_Fishing_Mort_File_Name(trim(adjustl(value)))
 
                 case default
                 write(*,*) term_red, 'Unrecognized line in ',config_file_name

@@ -212,7 +212,6 @@ logical exists
 integer max_num_grids
 character(2) domain_name
 integer start_year, stop_year
-logical is_rand_rec
 character(3) fishing_type      !> Fishing can be USD,  BMS,  or,  CAS
 integer num_time_steps
 integer ts_per_year
@@ -223,7 +222,6 @@ character(fname_len) file_name
 
 real(dp) domain_area
 integer num_grids, ts
-integer num_areas
 
 real(dp) :: shell_length_mm(num_size_classes)
 
@@ -269,14 +267,11 @@ delta_time = 1._dp / dfloat(ts_per_year)
 ! Data/bin5mm2005MA.csv
 file_name(16:17) = domain_name
 
-is_rand_rec = .FALSE.
-
 write(*,*) '========================================================'
 write(*,'(A,I6)') ' Max Expected #grids ', max_num_grids
 write(*,'(A,A6)') ' Domain:             ', domain_name
 write(*,'(A,I6)') ' Start Year:         ', start_year
 write(*,'(A,I6)') ' Stop Year:          ', stop_year
-write(*,'(A,L6)') ' Random''d Recruit:  ', is_rand_rec
 write(*,'(A,A6)') ' Fishing Type:       ', fishing_type
 write(*,'(A,I6,A,F7.4)') ' Time steps/year:', ts_per_year, ' delta ', delta_time
 write(*,'(A,I6,A,F7.4)') ' Total number time steps:', num_time_steps
@@ -289,7 +284,7 @@ allocate(state(1:max_num_grids,1:num_size_classes))
 !==================================================================================================================
 !  - II. Instantiate mods, that is objects
 !==================================================================================================================
-call Set_Grid_Manager(max_num_grids, state, grid, num_grids, num_areas)
+call Set_Grid_Manager(max_num_grids, state, grid, num_grids)
 
 ! number of grids known, allocated remaining data
 allocate(growth(1:num_grids), mortality(1:num_grids), recruit(1:num_grids) )
@@ -298,10 +293,10 @@ allocate(fishing_effort(1:num_grids))
 
 call Set_Growth(growth, grid, shell_length_mm, num_time_steps, ts_per_year, domain_name, domain_area,&
 &              state, weight_grams, num_grids, max_num_grids)
-call Set_Recruitment(recruit, num_grids, domain_name, domain_area, is_rand_rec, &
+call Set_Recruitment(recruit, num_grids, domain_name, domain_area, &
 &                    growth(1:num_grids)%L_inf_mu, growth(1:num_grids)%K_mu, shell_length_mm)
 call Set_Mortality(mortality, grid, shell_length_mm, domain_name, domain_area, num_time_steps, &
-&                    ts_per_year, num_grids, max_num_grids, num_areas)
+&                    ts_per_year, num_grids, max_num_grids)
 
 !==================================================================================================================
 !  - III. MAIN LOOP
@@ -396,51 +391,39 @@ subroutine Read_Startup_Config(max_num_grids, domain_name, file_name, start_year
 
             select case (tag)
             case('Domain Name')
-                j = scan(input_string,"=",back=.true.)
-                domain_name=trim(adjustl(input_string(j+1:)))
+                domain_name = trim(adjustl(value))
                 if (.not. ( any ((/ domain_name.eq.'MA', domain_name.eq.'GB'/)) )) then
                     write(*,*) term_red, ' **** INVALID DOMAIN NAME: ', domain_name, term_blk
                     stop
                 endif
 
             case('Beginning Year')
-                j = scan(input_string,"=",back=.true.)
-                read( input_string(j+1:),* )start_year
+                read(value,*) start_year
 
             case('Ending Year')
-                j = scan(input_string,"=",back=.true.)
-                read( input_string(j+1:),* )stop_year
+                read(value,*) stop_year
 
             case('Time steps per Year')
-                j = scan(input_string,"=",back=.true.)
-                read( input_string(j+1:),* )time_steps_per_year
+                read(value,*) time_steps_per_year
 
             case('Fishing')
-                j = scan(input_string,"=",back=.true.)
-                fishing_type=trim(adjustl(input_string(j+1:)))
+                fishing_type = trim(adjustl(value))
                 if (.not. ( any ((/ fishing_type.eq.'USD', fishing_type.eq.'BMS', fishing_type.eq.'CAS'/)) )) then
                     write(*,*) term_red, ' **** INVALID FISHING TYPE: ', fishing_type, term_blk
                     stop
                 endif
 
             case('Grid Manager Config File')
-                j = scan(input_string,"=",back=.true.)
-                input_string = trim(adjustl(input_string(j+1:)))
-                call GridMgr_Set_Config_File_Name(input_string)
+                call GridMgr_Set_Config_File_Name(trim(adjustl(value)))
 
             case('Mortality Config File')
-                j = scan(input_string,"=",back=.true.)
-                input_string = trim(adjustl(input_string(j+1:)))
-                call Mortality_Set_Config_File_Name(input_string)
+                call Mortality_Set_Config_File_Name(trim(adjustl(value)))
 
             case('Recruit Config File')
-                j = scan(input_string,"=",back=.true.)
-                input_string = trim(adjustl(input_string(j+1:)))
-                call Recruit_Set_Config_File_Name(input_string)
+                call Recruit_Set_Config_File_Name(trim(adjustl(value)))
 
             case('Max Number of Grids')
-                j = scan(input_string,"=",back=.true.)
-                read( input_string(j+1:),* ) max_num_grids
+                read(value,*) max_num_grids
 
             case default
                 write(*,*) term_red, 'Unrecognized line in ',file_name

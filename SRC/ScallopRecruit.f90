@@ -125,6 +125,7 @@ module Recruit_Mod
     character(2), PRIVATE :: domain_name
     real(dp), PRIVATE :: domain_area_sqm
 
+    logical, PRIVATE :: is_random_rec
     integer, PRIVATE :: recr_start_year ! historical data interpolated at start
     integer, PRIVATE :: recr_stop_year ! historical data interpolated at stop
     integer, PRIVATE :: recr_all_rand_stop ! all random recruitment, start year is recr_stop_year + 1
@@ -143,19 +144,17 @@ module Recruit_Mod
     !!             MA MidAtlantic or 
     !!             GB GeorgesBank
     !! @param[in] dom_area the total area in square meters, sets domain_area_sqm
-    !! @param[in] is_random_rec
     !! @param[in] num_sz_classes
     !! @param[in] L_inf_mu asymptotic size, average
     !! @param[in] K_mu Brody growth coefficient K, average
     !! @param[in] shell_length_mm Shell height in millimeters
     !==================================================================================================================
-    subroutine Set_Recruitment(recruit, n_grids, dom_name, dom_area, is_random_rec, L_inf_mu, K_mu, shell_length_mm)
+    subroutine Set_Recruitment(recruit, n_grids, dom_name, dom_area, L_inf_mu, K_mu, shell_length_mm)
         use globals
         type(Recruitment_Class), intent(inout) :: recruit(*)
         integer, intent(in) :: n_grids
         character(2), intent(in) :: dom_name
         real(dp), intent(in) :: dom_area
-        logical, intent(in) :: is_random_rec
         real(dp), intent(in) :: L_inf_mu(*)
         real(dp), intent(in) :: K_mu(*)
         real(dp), intent(in) :: shell_length_mm(*)
@@ -311,7 +310,7 @@ module Recruit_Mod
     !> 
     !> Reads a configuration file, 'config_file_name.cfg', to set data parameters for Recruitment
     !-----------------------------------------------------------------------
-    subroutine Read_Configuration() !,num_monte_carlo_iter)
+    subroutine Read_Configuration()
     
         implicit none
         character(line_len) input_string
@@ -337,27 +336,25 @@ module Recruit_Mod
 
                 select case (tag)
                 case('Start Year')
-                    j = scan(input_string,"=",back=.true.)
                     read(value, *) recr_start_year
 
                 case('Stop Year')
-                    j = scan(input_string,"=",back=.true.)
                     read(value, *)recr_stop_year
 
                 case('All Random Stop Year')
-                    j = scan(input_string,"=",back=.true.)
                     read(value, *)recr_all_rand_stop
 
                 case('Start Period')
-                    j = scan(input_string,"=",back=.true.)
                     read(value, *) recr_period_start
                     recr_period_start = recr_period_start / 365._dp
 
                 case('Stop Period')
-                    j = scan(input_string,"=",back=.true.)
                     read(value, *) recr_period_stop
                     recr_period_stop = recr_period_stop / 365._dp
 
+                case('Is Random Recruitment')
+                    is_random_rec = (value(1:1) .eq. 'T')
+    
                 case default
                     write(*,*) term_red, 'Unrecognized line in ',config_file_name
                     write(*,*) 'Unknown Line-> ',input_string, term_blk

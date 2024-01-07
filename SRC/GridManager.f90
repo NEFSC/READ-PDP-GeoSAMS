@@ -112,12 +112,11 @@ CONTAINS
 !> Initializes growth for startup
 !>
 !==================================================================================================================
-subroutine Set_Grid_Manager(max_ngrids, state, grid, ngrids, nareas)
+subroutine Set_Grid_Manager(max_ngrids, state, grid, ngrids)
     integer, intent(in) :: max_ngrids
     real(dp), intent(out):: state(1:max_ngrids, 1:num_size_classes)
     type(Grid_Data_Class), intent(out) :: grid(*)
     integer, intent(out) :: ngrids
-    integer, intent(out) :: nareas
 
     integer n, j
     character(fname_len) fname
@@ -138,9 +137,9 @@ subroutine Set_Grid_Manager(max_ngrids, state, grid, ngrids, nareas)
     ! set private variable
     num_grids = ngrids
 
-    nareas = Load_Area_Coordinates()
+    num_areas = Load_Area_Coordinates()
     write(*,*) '========================================================'
-    write(*,'(A,I7)') ' Number of Areas: ', nareas
+    write(*,'(A,I7)') ' Number of Areas: ', num_areas
     write(*,*) '========================================================'
 
 
@@ -232,6 +231,14 @@ endsubroutine Set_Special_Access_File_Name
 
 !-----------------------------------------------------------------------
 !> @public @memberof GridManager
+!> Get'r function for private member num_areas
+!-----------------------------------------------------------------------
+integer function Get_Num_Of_Areas()
+    Get_Num_Of_Areas = num_areas
+endfunction
+
+!-----------------------------------------------------------------------
+!> @public @memberof GridManager
 !> Read_Configuration
 !> @brief Read Input File
 !> 
@@ -263,14 +270,10 @@ subroutine Read_Configuration()
 
             select case(tag)
             case('Initial Conditions')
-                j = scan(input_string,"=",back=.true.)
-                input_string=trim(adjustl(input_string(j+1:)))
-                call Set_Init_Cond_File_Name(input_string)
+                call Set_Init_Cond_File_Name(trim(adjustl(value)))
 
             case('Special Access Config File')
-                j = scan(input_string,"=",back=.true.)
-                input_string = trim(adjustl(input_string(j+1:)))
-                call Set_Special_Access_File_Name(input_string)
+                call Set_Special_Access_File_Name(trim(adjustl(value)))
 
             case default
                 write(*,*) term_red, 'Unrecognized line in ',config_file_name
