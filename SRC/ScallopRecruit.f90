@@ -125,7 +125,7 @@ module Recruit_Mod
     character(2), PRIVATE :: domain_name
     real(dp), PRIVATE :: domain_area_sqm
 
-    logical, PRIVATE :: is_random_rec
+    logical, PRIVATE :: use_random_rec
     integer, PRIVATE :: recr_start_year ! historical data interpolated at start
     integer, PRIVATE :: recr_stop_year ! historical data interpolated at stop
     integer, PRIVATE :: recr_all_rand_stop ! all random recruitment, start year is recr_stop_year + 1
@@ -187,14 +187,14 @@ module Recruit_Mod
         !       rec_start = 1/365, or January 1st
         !       rec_stop = 100/365, or April 10 
         !-------------------------------------------------------------------------
-        write(*,*)'Is random Rec',is_random_rec
+        write(*,*)'Is random Rec',use_random_rec
         year_index = 0
         do year = recr_start_year, recr_stop_year
             year_index = year_index + 1
             write(buf,'(I6)')year
-            if (is_random_rec) then
+            if (use_random_rec) then
                 ! TODO replace magic number 100
-                tmp = Random_Recruits(year, year, 100, is_random_rec)
+                tmp = Random_Recruits(year, year, 100, use_random_rec)
             else
                 call Read_Scalar_Field(rec_input_dir//'Sim'//domain_name//trim(adjustl(buf))//'/KrigingEstimate.txt',tmp, num_grids)
             endif
@@ -352,12 +352,13 @@ module Recruit_Mod
                     read(value, *) recr_period_stop
                     recr_period_stop = recr_period_stop / 365._dp
 
-                case('Is Random Recruitment')
-                    is_random_rec = (value(1:1) .eq. 'T')
+                case('Use Random Recruitment')
+                    use_random_rec = (value(1:1) .eq. 'T')
     
                 case default
                     write(*,*) term_red, 'Unrecognized line in ',config_file_name
                     write(*,*) 'Unknown Line-> ',input_string, term_blk
+                    stop
                 end select
             endif
         end do
