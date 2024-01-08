@@ -226,14 +226,13 @@ integer num_grids, ts
 real(dp) :: shell_length_mm(num_size_classes)
 
 type(Grid_Data_Class), allocatable :: grid(:)
+real(dp), allocatable :: state(:, :)
+
 type(Growth_Class), allocatable :: growth(:)
 type(Mortality_Class), allocatable :: mortality(:)
 type(Recruitment_Class), allocatable :: recruit(:)
-
-real(dp), allocatable :: state(:, :)
 real(dp), allocatable :: weight_grams(:,:)
 real(dp), allocatable :: fishing_effort(:) ! rate of fishing mortality
-! real(dp), allocatable :: mid_year_sample(:,:)
 
 character(fname_len) :: arg
 integer pct_comp

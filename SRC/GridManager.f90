@@ -1,7 +1,7 @@
 !---------------------------------------------------------------------------------------------------------------------
 !> @page page4 Grid Manager Mod
 !>
-!> @section p4p1 Grid Manager
+!> @section p4p1 Grid Manager Class
 !> @subsection p4p1p1 Brief
 !> The Grid Manager is responsible for setting up the grid by reading in each grid's coordinates from the
 !> @a @b Initial_Conditions file named by the @a @b Grid_Manager_Config_File in Scallop.cfg.
@@ -114,7 +114,7 @@ CONTAINS
 !==================================================================================================================
 subroutine Set_Grid_Manager(max_ngrids, state, grid, ngrids)
     integer, intent(in) :: max_ngrids
-    real(dp), intent(out):: state(1:max_ngrids, 1:num_size_classes)
+real(dp), intent(out):: state(1:max_ngrids, 1:num_size_classes)
     type(Grid_Data_Class), intent(out) :: grid(*)
     integer, intent(out) :: ngrids
 
@@ -142,7 +142,6 @@ subroutine Set_Grid_Manager(max_ngrids, state, grid, ngrids)
     write(*,'(A,I7)') ' Number of Areas: ', num_areas
     write(*,*) '========================================================'
 
-
     do n = 1, num_grids
         ! Check if any grids are in a special access
         j = Is_Grid_In_Special_Access(grid(n)%lon, grid(n)%lat)
@@ -151,7 +150,7 @@ subroutine Set_Grid_Manager(max_ngrids, state, grid, ngrids)
             write(70,*) 'Found grid', n, 'in area', j, ' IS CLOSED: ', grid(n)%is_closed
         endif
     enddo
-    
+
     close(70)
 endsubroutine Set_Grid_Manager
 
@@ -301,7 +300,7 @@ end subroutine Read_Configuration
 !>
 !==================================================================================================================
 integer function Load_Grid_State(grid, state)
-    type(Grid_Data_Class), intent(inout) :: grid(*)
+    type(Grid_Data_Class), intent(out) :: grid(*)
     real(dp), intent(out):: state(1:max_num_grids, 1:num_size_classes)
 
     character(csv_line_len) input_str
