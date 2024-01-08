@@ -1,17 +1,42 @@
 !>----------------------------------------------------------------------------------------------------------------
 !> @page page3 Mortality_Mod
 !>
-!> @section Msec1 Mortality Class
+!> @section p3p1 Mortality Class
+!> The methods in this class are used to determine the selectiviy and discard of the scallops based on shell
+!> length and location.
 !>
-!> Scallop mortality is caused by both natural and man-made means, i.e. fishing.
-!>  - For MA, natural mortality is determined to be 25%
-!>  - For GB, it is at 20%
+!> @subsection p3p1p1 Set_Mortality
+!> Instantiates private members for this class. 
+!>   - Reads in its configuration parameters and stores to private members.
+!>   - Loads Fishing Mortalities, if enabled by GridManager
+!>   - Sets up a repository for key values to allow offline analysis
+!>   - Loads historical data for Fishing Effort
+!>   - Set selectivity as computed by Ring_Size_Selectivity based on shell length and grid location
 !>
-!> @subsection Msubsec1 Ring_Size_Selectivity
+!> @subsection p3p1p2 Read_Configuration
+!> Opens the configuration file specified in the simulation configuration file and as set by @a Set_Config_File_Name
+!>
+!> @subsection p3p1p3 Load_Fishing_Mortalities
+!> Opens the configuration file specified in the Mortality configuration file and as set by @a Set_Fishing_Mortality
+!> 
+!> @subsection p3p1p4 Ring_Size_Selectivity
 !> Assign size class fishing selectivity based on increasing logistic function
 !> @f[
 !> Selectivity = \frac{1}{ 1 + e^{ a - b * length_{shell}}}
 !> @f]
+!>
+!> @subsection p3p1p5 Set_Fishing
+!> @subsection p3p1p6 Dollars_Per_SqM
+!> @subsection p3p1p7 Scallops_To_Counts
+!> @subsection p3p1p8 Set_Fishing_Effort_Weight_USD
+!> @subsection p3p1p9 Set_Fishing_Effort_Weight_BMS
+!> @subsection p3p1p10 Get_Total_Catch DEPRECATED
+!> @subsection p3p1p11 Compute_Natural_Mortality
+!> @subsection p3p1p12 Set_Fishing_Mortality
+!> @subsection p3p1p13 Set_Config_File_Name
+!> @subsection p3p1p14 Set_Fishing_Mort_File_Name
+!> @subsection p3p1p15 Mortality_Write_At_Timestep
+!> @subsection p3p1p16 Set_Discard
 !>
 !>----------------------------------------------------------------------------------------------------------------
 module Mortality_Mod
@@ -23,40 +48,40 @@ implicit none
 !! 
 !! Subroutines that determine expected mortality of scallops
 type Mortality_Class
-    !> @public @memberof Mortality_Class
+    !! @public @memberof Mortality_Class
     !! Attrition due to natural mortality
     real(dp) natural_mortality(num_size_classes)
-    !> @public @memberof Mortality_Class
+    !! @public @memberof Mortality_Class
     real(dp) incidental
-    !> @public @memberof Mortality_Class
+    !! @public @memberof Mortality_Class
     real(dp) discard(num_size_classes)
-    !> @public @memberof Mortality_Class
+    !! @public @memberof Mortality_Class
     real(dp) fishing_effort(max_num_years)
-    !> @public @memberof Mortality_Class
+    !! @public @memberof Mortality_Class
     integer year(max_num_years)
-    !> @public @memberof Mortality_Class
+    !! @public @memberof Mortality_Class
     real(dp) selectivity(num_size_classes)
     real(dp) selectivity_open(num_size_classes)
     real(dp) selectivity_closed(num_size_classes)
-    !> @public @memberof Mortality_Class
+    !! @public @memberof Mortality_Class
     integer num_years
-    !> @public @memberof Mortality_Class
+    !! @public @memberof Mortality_Class
     real(dp) natural_mort_adult, natural_mort_juv
-    !> @public @memberof Mortality_Class
+    !! @public @memberof Mortality_Class
     real(dp) alpha(1:num_size_classes)
 end type Mortality_Class
 
-type FishingMortVector
+type FishingMortality
     integer year
     integer n_areas
     integer area_list(max_num_areas)
     real(dp) area_fish_mort(max_num_areas)
-endtype FishingMortVector
+endtype FishingMortality
 
 ! @private @memberof Mortality_Class
 character(fname_len), PRIVATE :: config_file_name
 character(fname_len), PRIVATE :: fishing_mort_fname
-type(FishingMortVector), PRIVATE :: fmort_list(max_num_years)
+type(FishingMortality), PRIVATE :: fmort_list(max_num_years)
 
 ! if a fmort_list file exists then use data, otherwise use_spec_access_data is false
 logical, PRIVATE :: use_spec_access_data
@@ -109,6 +134,9 @@ real(dp), PRIVATE :: landings_at_size_closed(num_size_classes)
 
 CONTAINS
 
+!==================================================================================================================
+!! @public @memberof Mortality_Class
+!==================================================================================================================
 subroutine Destructor()
     deallocate(expl_biomass_by_loc)
     deallocate(USD_per_sqm_by_loc)
@@ -124,10 +152,7 @@ subroutine Destructor()
 endsubroutine Destructor
 
 !==================================================================================================================
-!> @public @memberof Mortality_Class
-!>
-!> Initializes mortality for startup
-!>
+!! @public @memberof Mortality_Class
 !> @param[in,out] mortality Parameters that identify how the scallop should reaches mortality
 !> @param[in] grid Vector that identifies the geospatial locations under simulation
 !> @param[in] shell_lengths Vector of the size, or length, of scallops
@@ -147,8 +172,10 @@ subroutine Set_Mortality(mortality, grid, shell_lengths, dom_name, dom_area, num
     integer, intent(in) :: num_ts, ts_per_year
     integer, intent(in) :: ngrids
     integer, intent(in) :: max_ngrids
-    integer yr_index, j, k, num_years, year
+    integer yr_index, j, num_years, year
     real(dp) fishing_by_region(max_num_years, 4), length_0
+    real(dp) cull_size, discard
+    logical this_grid_is_closed
 
     !! initalize private members
     max_num_grids = max_ngrids
@@ -198,7 +225,7 @@ subroutine Set_Mortality(mortality, grid, shell_lengths, dom_name, dom_area, num
     allocate(landings_wgt_grams_closed(num_grids))
 
     if (domain_name .eq. 'MA') then
-        !TO DO add to params file
+        !TO DO natural_mort_adult seems to be a constant, does each grid need its own value?
         mortality(1:num_grids)%natural_mort_adult = ma_mort_adult
         mortality(1:num_grids)%incidental = ma_incidental
         length_0 = ma_length_0
@@ -210,7 +237,6 @@ subroutine Set_Mortality(mortality, grid, shell_lengths, dom_name, dom_area, num
 
     do j = 1, num_grids
         mortality(j)%natural_mortality(1:num_size_classes) = mortality(j)%natural_mort_adult
-
         ! Load parameters for fishing selectivity 
         ! alpha = (1+exp(.1*(shell_lengths-70))).^-1)
         mortality(j)%alpha(1:num_size_classes) =  &
@@ -220,22 +246,18 @@ subroutine Set_Mortality(mortality, grid, shell_lengths, dom_name, dom_area, num
         mortality(j)%selectivity_open = mortality(j)%selectivity * Logic_To_Double(.NOT. grid(j)%is_closed)
         mortality(j)%selectivity_closed = mortality(j)%selectivity * Logic_To_Double(grid(j)%is_closed)
 
-        do k = 1, num_size_classes
-            if (domain_name .eq. 'MA') then
-                if(shell_lengths(k) .gt. ma_cull_size_mm) then
-                    mortality(j)%discard(k) = 0.D0
-                else
-                    mortality(j)%discard(k) = ma_discard * mortality(j)%selectivity(k)
-                endif
-            else
-                if ((shell_lengths(k) .gt. gb_cull_size_mm) .and. (grid(j)%is_closed)) then
-                    mortality(j)%discard(k) = 0.D0
-                else
-                    mortality(j)%discard(k) = gb_discard * mortality(j)%selectivity(k)
-                endif
-            endif
-        enddo
-    enddo
+        if (domain_name .eq. 'MA') then
+            cull_size = ma_cull_size_mm
+            discard = ma_discard
+            this_grid_is_closed = .TRUE. ! always set discard to 0 if greater than cull size
+        else
+            cull_size = gb_cull_size_mm
+            discard = gb_discard
+            this_grid_is_closed = (grid(j)%is_closed)
+        endif
+        mortality(j)%discard(1:num_size_classes) = Set_Discard(shell_lengths(1:num_size_classes), &
+        &             mortality(j)%selectivity(1:num_size_classes), cull_size, discard, this_grid_is_closed)
+    enddo  ! num_grids
 
     call Read_CSV(num_years, 4, 'Data/FYrGBcGBoMA.csv', fishing_by_region, size(fishing_by_region,1))
     yr_index = 0
@@ -263,7 +285,7 @@ return
 endsubroutine Set_Mortality
 
 !==================================================================================================================
-!> @public @memberof Grid_Manager_Mod
+!! @public @memberof Mortality_Class
 !> Open file given by fishing_mort_fname. Reads in the year and number of entries in the list. 
 !> If the number of entries exceeds the number of areas loaded by the GridManager then show the error and stop.
 !> Otherwise reads in the
@@ -317,8 +339,7 @@ subroutine Load_Fishing_Mortalities()
 endsubroutine Load_Fishing_Mortalities
 
 !==================================================================================================================
-!> @fn Ring_Size_Selectivity
-!> @public @memberof Mortality_Class
+!! @public @memberof Mortality_Class
 !>
 !> Purpose: Assign size class fishing selectivity based on increasing logistic function
 !> @f[
@@ -367,8 +388,7 @@ elemental function Ring_Size_Selectivity(shell_length, is_closed)
 endfunction Ring_Size_Selectivity
 
 !==================================================================================================================
-!> @fn Set_Fishing
-!> @public @memberof Mortality_Class
+!! @public @memberof Mortality_Class
 !>
 !> Determines a real value of mortality due to fishing given a fishing type
 !>
@@ -480,8 +500,7 @@ function Set_Fishing(fishing_type, year, ts, state, weight_grams, mortality, gri
 endfunction Set_Fishing
 
 !==================================================================================================================
-!> @fn Dollars_Per_SqM
-!> @public @memberof Mortality_Class
+!! @public @memberof Mortality_Class
 !> @brief Compute value of scallop population at a specific grid location
 !>
 !> Value is based on population structure. 
@@ -524,7 +543,7 @@ real(dp) function Dollars_Per_SqM(year, meat_weight_grams)
 endfunction Dollars_Per_SqM
 
 !==================================================================================================================
-!> @public @memberof Mortality_Class
+!! @public @memberof Mortality_Class
 !> Purpose: Convert Scallop density by shell height and meat wieght to count data.  The count data 
 !> are divided into 
 !> cnt10- 10 or less scallops per pound.
@@ -569,8 +588,7 @@ endsubroutine Scallops_To_Counts
 ! Fishing contributes to Mortality due to fishing
 !---------------------------------------------------------------------------------------------------
 !==================================================================================================================
-!> @fn Set_Fishing_Effort_Weight_USD
-!> @public @memberof Mortality_Class
+!! @public @memberof Mortality_Class
 !> Purpose: Set proportional rate of fishing mortality, fishing_effort, based on monetary value of catch. The at each grid
 !> point scallops are sorted into size bins U10.10-20, 20-30, 30+.  The price for each size class is loaded 
 !> for the year and the monetary value of scallops is determined at each grid point.  Fishing effort is 
@@ -616,8 +634,7 @@ return
 endfunction Set_Fishing_Effort_Weight_USD
 
 !==================================================================================================================
-!> @fn Set_Fishing_Effort_Weight_BMS
-!> @public @memberof Mortality_Class
+!! @public @memberof Mortality_Class
 !> Purpose: Set proportional rate of fishing mortality, fishing_effort, based on weight of catch. The at each grid
 !> point scallops are sorted into size bins U10.10-20, 20-30, 30+.  The price for each size class is loaded 
 !> for the year and the monatary value of scallops is determined at each grid point.  Fishing effort is 
@@ -674,54 +691,8 @@ function Set_Fishing_Effort_Weight_BMS(is_closed, catch, catch_open, catch_close
     return
 endfunction Set_Fishing_Effort_Weight_BMS
 
-
 !==================================================================================================================
-!> @public @memberof Mortality_Class
-!> Computes the total catch for both open and closed areas.
-!>
-!> @param[in] year
-!>
-!> @param[out] total_catch_closed
-!> @param[out] total_catch_open
-!==================================================================================================================
-subroutine Get_Total_Catch(year,total_catch_closed,total_catch_open)
-    implicit none
-    integer num_years_max
-    parameter (num_years_max=50)
-    integer, intent(in):: year 
-    real(dp), intent(out):: total_catch_open,total_catch_closed
-    real(dp), save ::  M(num_years_max,4)
-    logical, save :: first_call = .true.
-    integer, save :: yr_indx = 1
-    integer, save :: num_years = num_years_max
-
-    if (first_call) then
-        !regional landings in metric tons
-        call Read_CSV(num_years,4,'Data/Landings_75-19nh.csv',M,size(M,1))
-        first_call = .false.
-    endif
-    
-    do while (floor(M(yr_indx,1)).lt.year )
-        yr_indx = yr_indx + 1
-    enddo
-    if(yr_indx.gt.num_years) yr_indx = num_years
-    select case (domain_name)
-        case('GB')
-            total_catch_closed = M(yr_indx,2)
-            total_catch_open = M(yr_indx,3)
-        case('MA')
-            total_catch_closed = 0.D0
-            total_catch_open = M(yr_indx,4)
-        case default
-            write(*,*)'Unkown domain name', domain_name
-    end select
-    
-    return
-endsubroutine Get_Total_Catch
-
-!==================================================================================================================
-!> @public @memberof Mortality_Class
-!> @fn Compute_Natural_Mortality
+!! @public @memberof Mortality_Class
 !>
 !> Computes the total number of scallops, <b>S</b>, in millions. 
 !> Then recomputes juvenile mortality as a function of S.
@@ -789,8 +760,7 @@ function Compute_Natural_Mortality(max_rec_ind, mortality, state)
 endfunction Compute_Natural_Mortality
 
 !==================================================================================================================
-!> @public @memberof Mortality_Class
-!> @fn Compute_Natural_Mortality
+!! @public @memberof Mortality_Class
 !> Computes Fishing Mortality
 !>
 !> There is a year list for each year of interest, up to a total number of years of max_num_years
@@ -886,7 +856,7 @@ subroutine Set_Fishing_Mort_File_Name(fname)
 endsubroutine Set_Fishing_Mort_File_Name
 
 !-----------------------------------------------------------------------
-!> @public @memberof Mortality_Class
+!! @public @memberof Mortality_Class
 !> Read_Configuration
 !> @brief Read Input File
 !> 
@@ -982,7 +952,7 @@ subroutine Read_Configuration()
 end subroutine Read_Configuration
 
 !==================================================================================================================
-!> @public @memberof Mortality_Class
+!! @public @memberof Mortality_Class
 !>
 !> Initializes growth for startup
 !>
@@ -1058,5 +1028,23 @@ subroutine Mortality_Write_At_Timestep(year, ts, state, weight_grams, mortality,
     deallocate(bms)
     return
 endsubroutine Mortality_Write_At_Timestep
+
+!==================================================================================================================
+!! @public @memberof Mortality_Class
+!> Computes element of discard vector
+!> @param[in] length, vector element for shell length
+!> @parma[in] cull_size, determins shell length below which are discarded
+!> @param[in] discard, percentage of selectivity that will be discarded
+!> @param[in] selectivity, vector element that determines scallops harvested
+!==================================================================================================================
+elemental real(dp) function Set_Discard(length, selectivity, cull_size, discard, is_closed)
+    real(dp), intent(in) :: length, cull_size, discard, selectivity
+    logical, intent(in) :: is_closed
+    if ((length .gt. cull_size) .and. is_closed) then
+        Set_Discard = 0.D0
+    else
+        Set_Discard = discard * selectivity
+    endif
+endfunction Set_Discard
 
 end module Mortality_Mod

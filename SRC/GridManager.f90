@@ -1,14 +1,14 @@
 !---------------------------------------------------------------------------------------------------------------------
 !> @page page4 Grid Manager Mod
 !>
-!> @section p3p1 Grid Manager
-!> @subsection p3p1p1 Brief
+!> @section p4p1 Grid Manager
+!> @subsection p4p1p1 Brief
 !> The Grid Manager is responsible for setting up the grid by reading in each grid's coordinates from the
 !> @a @b Initial_Conditions file named by the @a @b Grid_Manager_Config_File in Scallop.cfg.
 !> 
 !> The main program instantiates a Grid Manger by calling @a Set_Grid_Manager
 !>
-!> @subsection p3p1p2 Set Grid Manager
+!> @subsection p4p1p2 Set Grid Manager
 !> This routine initializes private variables. Calls @a @b Read_Configuration that reads in the Grid Manger configuration 
 !> file as given by the main configuration and set via @a @b Set_Config_File_Name.
 !>
@@ -19,35 +19,35 @@
 !> Each grid location if then checked if it is in a special access area and identified as such by setting 
 !> @a special_access_index to the index of the corresponding access area.
 !>
-!> @subsection p3p1p3 Read_Configuration
+!> @subsection p4p1p3 Read_Configuration
 !> Reads given file name and scans each line, input string, for tag and value characters.
 !> Also determines if special access areas are desired and if not sets @a use_spec_access_data to false
 !>
-!> @subsection p3p1p4 Load_Area_Coordinates
+!> @subsection p4p1p4 Load_Area_Coordinates
 !> If @a use_spec_access_data is true then reads given file name. Scans each input line for an area longitude 
 !> vector coordinates followed by latitude vector coordinates. The length of each vector must be equal and 
 !> establishes the number of vertices, or edges i.e. @ n_sides that define the special access area.
 !> The number of such vector pairs establishes the @a num_ares defined
 !>
-!> @subsection p3p1p5 Is_Grid_In_Special_Access
+!> @subsection p4p1p5 Is_Grid_In_Special_Access
 !> This method uses a grids longitude and latitude coordinates are in a special area. It does so by using a 
 !> point in polygram algorithm. The data vector representation is used when calling @a @b Point_In_Polygon_Vector
 !>
-!> @section p3p3 Grid Manager Support Methods
-!> @subsection p3p2p1 Set_Config_File_Name
+!> @section p4p3 Grid Manager Support Methods
+!> @subsection p4p2p1 Set_Config_File_Name
 !> Sets @a config_file_name for @a @b Read_Configuration
 !>
-!> @subsection p3p2p2 Set_Init_Cond_File_Name
+!> @subsection p4p2p2 Set_Init_Cond_File_Name
 !> Sets @a init_cond_fname for @a @b Load_Grid_State
 !>
-!> @subsection p3p2p3 Set_Special_Access_File_Name
-!> @section p3p3 Point In Polygon
+!> @subsection p4p2p3 Set_Special_Access_File_Name
+!> @section p4p3 Point In Polygon
 !> The Point_In_Polygon_Vector method is used to find if a point is in a polygon. The @a @b Grid_Manager also supports 
 !> polygon data representation as an array of LonLatPoint points vial @a @b Point_In_Polygon_Points or as a 
 !> n by 2, 2-dimensional array, where n is a maximum of @a max_sides edges.
-!> @subsection p3p3p1 Point_In_Polygon_Points
-!> @subsection p3p3p2 Point_In_Polygon_Array
-!> @subsection p3p3p3 Point_In_Polygon_Vector
+!> @subsection p4p3p1 Point_In_Polygon_Points
+!> @subsection p4p3p2 Point_In_Polygon_Array
+!> @subsection p4p3p3 Point_In_Polygon_Vector
 !>
 !---------------------------------------------------------------------------------------------------------------------
 
@@ -57,25 +57,25 @@ implicit none
 
 !> @class Grid_Data_Class
 type Grid_Data_Class
-    !> @public @memberof Grid_Data_Class
+    !! @public @memberof Grid_Data_Class
     !! UTM Easting
     real(dp) x
-    !> @public @memberof Grid_Data_Class
+    !! @public @memberof Grid_Data_Class
     !! UTM Northing
     real(dp) y
-    !> @public @memberof Grid_Data_Class
+    !! @public @memberof Grid_Data_Class
     !! Longitude
     real(dp) lon
-    !> @public @memberof Grid_Data_Class
+    !! @public @memberof Grid_Data_Class
     !! Latitude
     real(dp) lat
-    !> @public @memberof Grid_Data_Class
+    !! @public @memberof Grid_Data_Class
     !! bathymetric depth at (x,y)
     real(dp) z
-    !> @public @memberof Grid_Data_Class
+    !! @public @memberof Grid_Data_Class
     !! Indicates if grid is closed for fishing
     logical is_closed
-    !> @public @memberof Grid_Data_Class
+    !! @public @memberof Grid_Data_Class
     !! Indexed special access
     integer special_access_index
 end type Grid_Data_Class
@@ -107,7 +107,7 @@ character(fname_len), PRIVATE :: special_accesss_fname
 CONTAINS
 
 !==================================================================================================================
-!> @public @memberof GridManager
+!! @public @memberof GridManager
 !>
 !> Initializes growth for startup
 !>
@@ -151,12 +151,12 @@ subroutine Set_Grid_Manager(max_ngrids, state, grid, ngrids)
             write(70,*) 'Found grid', n, 'in area', j, ' IS CLOSED: ', grid(n)%is_closed
         endif
     enddo
-
+    
     close(70)
 endsubroutine Set_Grid_Manager
 
 !-----------------------------------------------------------------------------------------------
-!> @public @memberof GridManager
+!! @public @memberof GridManager
 !> Used during instantiation to set the name of the file to read to for configuration parameters
 !> @brief Read Input File
 !> 
@@ -178,7 +178,7 @@ subroutine Set_Config_File_Name(fname)
 endsubroutine Set_Config_File_Name
 
 !-----------------------------------------------------------------------------------------------
-!> @public @memberof GridManager
+!! @public @memberof GridManager
 !> Used during instantiation to set the name of the file to read to for grid locations, state
 !> @brief Read Input File
 !> 
@@ -200,7 +200,7 @@ subroutine Set_Init_Cond_File_Name(fname)
 endsubroutine Set_Init_Cond_File_Name
 
 !-----------------------------------------------------------------------------------------------
-!> @public @memberof GridManager
+!! @public @memberof GridManager
 !> Used during instantiation to set the name of the file to special access coordinates
 !> @brief Read Input File
 !> 
@@ -230,7 +230,7 @@ subroutine Set_Special_Access_File_Name(fname)
 endsubroutine Set_Special_Access_File_Name
 
 !-----------------------------------------------------------------------
-!> @public @memberof GridManager
+!! @public @memberof GridManager
 !> Get'r function for private member num_areas
 !-----------------------------------------------------------------------
 integer function Get_Num_Of_Areas()
@@ -238,7 +238,7 @@ integer function Get_Num_Of_Areas()
 endfunction
 
 !-----------------------------------------------------------------------
-!> @public @memberof GridManager
+!! @public @memberof GridManager
 !> Read_Configuration
 !> @brief Read Input File
 !> 
@@ -286,8 +286,7 @@ subroutine Read_Configuration()
 end subroutine Read_Configuration
 
 !==================================================================================================================
-!> @fn Load_Grid_State
-!> @public @memberof Grid_Manager_Mod
+!! @public @memberof Grid_Manager_Mod
 !>
 !> This function is used to set the grid parameters and the initial state to start the simulation. 
 !>
@@ -335,7 +334,7 @@ integer function Load_Grid_State(grid, state)
 endfunction Load_Grid_State
 
 !==================================================================================================================
-!> @public @memberof Grid_Manager_Mod
+!! @public @memberof Grid_Manager_Mod
 !==================================================================================================================
 integer function Load_Area_Coordinates()
     ! 10 edges time 12 characters, SXX.XXXXXX, plus padding
@@ -401,7 +400,7 @@ integer function Load_Area_Coordinates()
 endfunction
 
 !==================================================================================================================
-!> @public @memberof Grid_Manager_Mod
+!! @public @memberof Grid_Manager_Mod
 !==================================================================================================================
 integer function Is_Grid_In_Special_Access(lon, lat)
     real(dp), intent(in) :: lon, lat
@@ -420,8 +419,7 @@ integer function Is_Grid_In_Special_Access(lon, lat)
 endfunction Is_Grid_In_Special_Access
 
 !==================================================================================================================
-!> @fn Load_Grid_State
-!> @public @memberof Grid_Manager_Mod
+!! @public @memberof Grid_Manager_Mod
 !> @param poly Array of LonLatPoint coordinates that define polygram,
 !> @param point LonLatPoint coordinate of point we wish to determine if inside polygram
 !> @param nodes the number of corners, edges, that define the polygon
@@ -440,8 +438,7 @@ logical function Point_In_Polygon_Points(poly, point, nodes)
 endfunction Point_In_Polygon_Points
 
 !==================================================================================================================
-!> @fn Load_Grid_State
-!> @public @memberof Grid_Manager_Mod
+!! @public @memberof Grid_Manager_Mod
 !> @param poly Array of x,y coordinates that define polygram,
 !> @param point x,y coordinate of point we wish to determine if inside polygram
 !> @param nodes the number of corners, edges, that define the polygon
@@ -460,8 +457,7 @@ logical function Point_In_Polygon_Array(poly, point, nodes)
 endfunction Point_In_Polygon_Array
 
 !==================================================================================================================
-!> @fn Load_Grid_State
-!> @public @memberof Grid_Manager_Mod
+!! @public @memberof Grid_Manager_Mod
 !>
 !> First of all, notice that each iteration considers two adjacent points and the target point. 
 !> Then the if statement evaluates two conditions:

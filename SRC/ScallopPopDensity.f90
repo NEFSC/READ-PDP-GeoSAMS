@@ -341,21 +341,21 @@ call Destructor()
 END PROGRAM ScallopPopDensity
 
 !-----------------------------------------------------------------------
-!> Read_Startup_Config
-!! @brief Read Input File
-!! 
-!! Reads a configuration file, 'Scallop.inp', to set data parameters for simulation
-!!
-!! 
-!! @param[out] domain_name can be either 
-!!             MA MidAtlantic or 
-!!             GB GeorgesBank
-!! @param[out] init_cond_file_name File name that contains intial simulation conditions
-!! @param[out] start_year Starting year for simulation read from config file
-!! @param[out] stop_year  End year for simulation read from config file
-!! @param[out] fishing_type Fishing can be USD, BMS, or, CAS
-!! @param[out] time_steps_per_year Number of times steps to evaluate growth
-!! @param[out] num_monte_carlo_iter Number of iterations for Monte Carlo simulation
+!! Read_Startup_Config
+!> @brief Read Input File
+!> 
+!> Reads a configuration file, 'Scallop.inp', to set data parameters for simulation
+!>
+!> 
+!> @param[out] domain_name can be either 
+!>             MA MidAtlantic or 
+!>             GB GeorgesBank
+!> @param[out] init_cond_file_name File name that contains intial simulation conditions
+!> @param[out] start_year Starting year for simulation read from config file
+!> @param[out] stop_year  End year for simulation read from config file
+!> @param[out] fishing_type Fishing can be USD, BMS, or, CAS
+!> @param[out] time_steps_per_year Number of times steps to evaluate growth
+!> @param[out] num_monte_carlo_iter Number of iterations for Monte Carlo simulation
 !-----------------------------------------------------------------------
 subroutine Read_Startup_Config(max_num_grids, domain_name, file_name, start_year, stop_year, fishing_type,time_steps_per_year)
     use globals
