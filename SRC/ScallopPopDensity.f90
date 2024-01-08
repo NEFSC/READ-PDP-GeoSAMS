@@ -319,12 +319,6 @@ do ts = 1, num_time_steps
         &                         state(n, 1:num_size_classes), fishing_effort(n), year)
     enddo ! n = 1, num_grids
 
-    !- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - 
-    !  b. Output time step data
-    !- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - 
-    ! get results of last time step
-    !call Scallop_Output_At_Timestep(year, ts, state, weight_grams)
-
     ! finished with time_steps_year, increment year
     if ((mod(ts, ts_per_year) .eq. 1) .and. (ts > 1))then
         year = year + 1

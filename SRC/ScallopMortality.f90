@@ -438,10 +438,10 @@ function Set_Fishing(fishing_type, year, ts, state, weight_grams, mortality, gri
     enddo
 
     ! now sum here over num_grids 
-    divisor = 1._dp / dot_product(expl_biomass_by_loc(:), expl_num_by_loc(:) / sum(expl_num_by_loc))
+    divisor = dot_product(expl_biomass_by_loc(:), expl_num_by_loc(:) / sum(expl_num_by_loc))
 
     do loc = 1,num_grids
-        c_mort = Set_Fishing_Mortality(grid(loc), year) * divisor
+        c_mort = Set_Fishing_Mortality(grid(loc), year) / divisor
         F_mort_by_loc(loc) = c_mort * expl_biomass_by_loc(loc)
         F_mort_by_loc_raw(loc) = Set_Fishing_Mortality(grid(loc), year)
     
