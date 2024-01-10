@@ -83,6 +83,7 @@ writecsv(M,flnm,['%g, %g, %g, %g, %e'],header);
 %best,
 %han
 clear
+isOctave = (exist('OCTAVE_VERSION', 'builtin') ~= 0);
 TowSqFt=6076.12*8
 MpSqft=.3048^2;
 T2M2=1/(MpSqft*TowSqFt)
