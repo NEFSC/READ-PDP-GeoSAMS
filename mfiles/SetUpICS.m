@@ -9,17 +9,25 @@ if ~exist(['InitialCondition' filesep 'Sim',Dom,int2str(yr)], 'dir')
   mkdir(['InitialCondition' filesep 'Sim',Dom,int2str(yr)])
 end
 
+isOctave = (exist('OCTAVE_VERSION', 'builtin') ~= 0);
+if isOctave
+  F=csvreadK(['Data/bin5mm',int2str(yr),Dom,'.csv']);
+  lat=F(:,4);lon=F(:,5);
 
-%F=csvreadK(['Data/bin5mm',int2str(yr),Dom,'.csv']);
-F = readtable(['Data/bin5mm',int2str(yr),Dom,'.csv'],"FileType","text");
-lat=table2array(F(:,4));lon=table2array(F(:,5));
+else
+  F = readtable(['Data/bin5mm',int2str(yr),Dom,'.csv'],"FileType","text");
+  lat=table2array(F(:,4));lon=table2array(F(:,5));
+end
 if strcmp(Dom,'MA')
   j=find(lon<-70.5);
 else
   j=find(lon>-70.5);
 end
-F1=table2array(F(j,:));
-
+if isOctave
+  F1=F(j,:);
+else
+  F1=table2array(F(j,:));
+end
 F=F1;
 
 [~,j]=sort(F(:,4));
