@@ -18,3 +18,4 @@ docs/latex/
 docs/*.docx
 VERIFY/
 InitiaCondition/*.txt
+*.code-workspace
