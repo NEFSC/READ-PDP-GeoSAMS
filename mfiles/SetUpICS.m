@@ -45,7 +45,7 @@ G=zeros(nn,25);
 % F0 = LumpDataDx (F,1000.);
 
 
-lat=F(:,4);lon=F(:,5);z=F(:,5);
+lat=F(:,4);lon=F(:,5);z=F(:,6);
 x=F(:,2);y=F(:,3);
 DecYr=F(:,1);
 
@@ -55,7 +55,7 @@ j=find(zp>250);
 zp(j)=250;
 l=3:.5:15; 
 %F=F(:,5:end);
-F=F(:,7:end);
+F=F(:,8:end);
 close all 
 if strcmp(Dom,'MA')
     Gs = shaperead('ShapeFiles/MAB_Estimation_Areas_2019_UTM18_PDT.shp');
@@ -72,7 +72,7 @@ if strcmp(Dom,'MA')
  end
 
  
-for k=1:length(l)
+for k=1:length(l)-2
 
   if k>2 
     R=(F(:,k-2)+F(:,k-1)+F(:,k)+F(:,k+1)+F(:,k+2))/5;
