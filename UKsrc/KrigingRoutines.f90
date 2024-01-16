@@ -9,18 +9,18 @@ subroutine distance(p,q,Dh,Dz,nndim)
 !
 ! Purpose: Computes distance between two vectors of points
 ! Inputs:
-! 	nn	(integer) number of spatial points in vectors x0,y0 
-!	x0	(real*8)  length nn vector of x coordinates (m)
-!	y0	(real*8)  length nn  vector of y coordinates (m)
-!	z0	(real*8)  length nn  vector of bathymetric depth at (x,y)
+!     nn    (integer) number of spatial points in vectors x0,y0 
+!    x0    (real(kind(1.0D0)))  length nn vector of x coordinates (m)
+!    y0    (real(kind(1.0D0)))  length nn  vector of y coordinates (m)
+!    z0    (real(kind(1.0D0)))  length nn  vector of bathymetric depth at (x,y)
 !
-! 	mm	(integer) number of spatial points in vectors x0,y0 
-!	x1	(real*8)  length mm  vector of x coordinates (m)
-!	y1	(real*8)  length mm vector of y coordinates (m)
-!	z1	(real*8)  length mm vector of bathymetric depth at (x,y)
+!     mm    (integer) number of spatial points in vectors x0,y0 
+!    x1    (real(kind(1.0D0)))  length mm  vector of x coordinates (m)
+!    y1    (real(kind(1.0D0)))  length mm vector of y coordinates (m)
+!    z1    (real(kind(1.0D0)))  length mm vector of bathymetric depth at (x,y)
 !
 ! outputs:
-!	D	(real*8)  Size (nn x mm) matrix of distances between point pairs (x0,y0),(x1,y1)
+!    D    (real(kind(1.0D0)))  Size (nn x mm) matrix of distances between point pairs (x0,y0),(x1,y1)
 ! Keston Smith (IBSS corp) June-July 2021
 !--------------------------------------------------------------------------------------------------
 use DpointMod
@@ -28,8 +28,8 @@ implicit none
 type(Dpoint):: p
 type(Dpoint):: q
 integer, intent(in)    :: nndim
-real*8, intent(out)   :: Dh(nndim,*),Dz(nndim,*)
-integer	j,k
+real(kind(1.0D0)), intent(out)   :: Dh(nndim,*),Dz(nndim,*)
+integer    j
 
 do j=1,p%n
   Dh(j,1:q%n)= sqrt( (p%x(j) - q%x(1:q%n) )**2 + ( p%y(j)-q%y(1:q%n) )**2 )
@@ -44,33 +44,33 @@ subroutine variogram(nn,mm,Dh,Dz,G,ndim,par)
 !
 !Purpose: Computes a variogram (G) given distances between points (D).
 ! Inputs:
-! 	nn	(integer) number of rows in D, Gamma
-! 	mm      (integer) number of columns in D, Gamma
-!	D	(real*8)  Size (nn x mm) matrix distance between point pairs
+!     nn    (integer) number of rows in D, Gamma
+!     mm      (integer) number of columns in D, Gamma
+!    D    (real(kind(1.0D0)))  Size (nn x mm) matrix distance between point pairs
 !
 ! Outputs:
-!	G	(real*8)  Size (nn x mm) variogram matrix for point pairs represented in D
+!    G    (real(kind(1.0D0)))  Size (nn x mm) variogram matrix for point pairs represented in D
 !
 ! Internal:
-!	c	(real*8)  Variogram parameter c+c0 = shelf
-!	c0	(real*8)  Variogram parameter nugget
-!	alpha	(real*8)  Variogram length scale parameter
-!	form	(charecter*72) functional form of variogram
+!    c    (real(kind(1.0D0)))  Variogram parameter c+c0 = shelf
+!    c0    (real(kind(1.0D0)))  Variogram parameter nugget
+!    alpha    (real(kind(1.0D0)))  Variogram length scale parameter
+!    form    (charecter*72) functional form of variogram
 !The above should be read in an input file but are written as constants for now
-!	
+!    
 ! Keston Smith (IBSS corp) June-July 2021
 !--------------------------------------------------------------------------------------------------
 use KrigMod
 implicit none
 type(KrigPar):: par
 integer, intent(in)    :: nn,mm,ndim
-real*8, intent(in)    :: Dh(ndim,*),Dz(ndim,*)
-real*8, intent(out)   :: G(ndim,*)
+real(kind(1.0D0)), intent(in)    :: Dh(ndim,*),Dz(ndim,*)
+real(kind(1.0D0)), intent(out)   :: G(ndim,*)
 integer j,k,error
-real*8 c,c0,alpha,Wz
-real*8 kap
-character*72 form
-real, allocatable:: D(:,:)
+real(kind(1.0D0)) c,c0,alpha,Wz
+real(kind(1.0D0)) kap
+character(72) form
+real(kind(1.0D0)), allocatable:: D(:,:)
 
 allocate( D(1:nn,1:mm) ) 
 
@@ -125,25 +125,25 @@ end
 !--------------------------------------------------------------------------------------------------
 
 !--------------------------------------------------------------------------------------------------
-subroutine variogramF(nn,mm,Dh,Dz,G,ndim,f,par)
+subroutine variogramF(nn,Dh,Dz,G,ndim,f,par)
 !subroutine variogram(nn,mm,D,G,ndim)
 !
 !Purpose: Computes a variogram (G) given distances between points (D).
 ! Inputs:
-! 	nn	(integer) number of rows in D, Gamma
-! 	mm      (integer) number of columns in D, Gamma
-!	D	(real*8)  Size (nn x mm) matrix distance between point pairs
+!     nn    (integer) number of rows in D, Gamma
+!     mm      (integer) number of columns in D, Gamma
+!    D    (real(kind(1.0D0)))  Size (nn x mm) matrix distance between point pairs
 !
 ! Outputs:
-!	G	(real*8)  Size (nn x mm) variogram matrix for point pairs represented in D
+!    G    (real(kind(1.0D0)))  Size (nn x mm) variogram matrix for point pairs represented in D
 !
 ! Internal:
-!	c	(real*8)  Variogram parameter c+c0 = shelf
-!	c0	(real*8)  Variogram parameter nugget
-!	alpha	(real*8)  Variogram length scale parameter
-!	form	(charecter*72) functional form of variogram
+!    c    (real(kind(1.0D0)))  Variogram parameter c+c0 = shelf
+!    c0    (real(kind(1.0D0)))  Variogram parameter nugget
+!    alpha    (real(kind(1.0D0)))  Variogram length scale parameter
+!    form    (charecter*72) functional form of variogram
 !The above should be read in an input file but are written as constants for now
-!	
+!    
 ! Keston Smith (IBSS corp) June-July 2021
 !--------------------------------------------------------------------------------------------------
 use KrigMod
@@ -153,14 +153,13 @@ type(KrigPar):: parTmp
 
 integer  NIntVD,NPS
 parameter(NIntVD=31,NPS=30)
-integer, intent(in)    :: nn,mm,ndim
-real*8, intent(in)    :: Dh(ndim,*),Dz(ndim,*),f(*)
-real*8, intent(out)   :: G(ndim,*)
-real*8 DintV(NIntVD),DintVm(NIntVD), SIntV(NIntVD)
-real*8 Pind(NPS),alphaR(NPS),c0R(NPS),cR(NPS),WzR
-integer j,k,n,m,nc,NIntV,nz,error
-real*8 c,c0,alpha,kap,dx,cost,costmin,Wz
-character*72 form,flnm
+integer, intent(in)    :: nn,ndim
+real(kind(1.0D0)), intent(in)    :: Dh(ndim,*),Dz(ndim,*),f(*)
+real(kind(1.0D0)), intent(out)   :: G(ndim,*)
+real(kind(1.0D0)) DintV(NIntVD),DintVm(NIntVD), SIntV(NIntVD)
+real(kind(1.0D0)) Pind(NPS),alphaR(NPS),c0R(NPS),cR(NPS),WzR
+integer j,k,n,m,nc,NIntV
+real(kind(1.0D0)) dx,cost,costmin,Wz
 
 parTmp%form=par%form
 ! Set up interval and average square of residual for variogram estimation
@@ -257,12 +256,12 @@ subroutine spatial_function(p,F,nf,nndim,nlsf)
 ! Purpose: Computes value of spatial functions at x,y.
 ! Inputs:
 !   p (Dpoint) - Spatial points to evaluate functions at
-! 	nndim	(integer) leading dimension of F
+!     nndim    (integer) leading dimension of F
 !   nlsf (NLSF) vector of nonlinear spatial functions defined
 !
 ! outputs:
-!	F	(real*8)  Size (nn x nf) matrix containg values of spatial functions at points (x,y)
-!	nf	(integer) number of spatial functions (be carefull allocating F)
+!    F    (real(kind(1.0D0)))  Size (nn x nf) matrix containg values of spatial functions at points (x,y)
+!    nf    (integer) number of spatial functions (be carefull allocating F)
 ! Keston Smith (IBSS corp) June-July 2021
 !--------------------------------------------------------------------------------------------------
 use DpointMod
@@ -272,10 +271,9 @@ type(Dpoint):: p
 type(NLSFpar), intent(in):: nlsf(*)
 integer, intent(in)    :: nndim
 integer, intent(out)   :: nf
-real*8, intent(out)   :: F(nndim,*)
-real*8 s(nndim), fpc(nndim)
+real(kind(1.0D0)), intent(out)   :: F(nndim,*)
+real(kind(1.0D0)) s(nndim), fpc(nndim)
 integer nn,j,k
-character*72 flnm
 
 nf=nlsf(1)%nsf+1
 ! flag for initial call
@@ -297,33 +295,29 @@ end subroutine
 !--------------------------------------------------------------------------------------------------
 
 !--------------------------------------------------------------------------------------------------
-subroutine spatial_function_lin(p,F,nf,nndim,nlsf)
+subroutine spatial_function_lin(p,F,nf,nndim)
 !subroutine spatial_function_lin(p,F,nf,ndim,nlsf)
 !
 ! Purpose: Computes value of spatial functions at p%x(1:p%n),p%y(1:p%n).  This is left as an example
 ! subroutine for users to define their own spatial_function subroutine. 
 ! Inputs:
 !   p (Dpoint) - Spatial points to evaluate functions at
-! 	nndim	(integer) leading dimension of F
+!     nndim    (integer) leading dimension of F
 !   nlsf (NLSF) Dummy variable.
 !
 ! outputs:
-!	F	(real*8)  Size (nn x nf) matrix containg values of spatial functions at points (x,y)
-!	nf	(integer) number of spatial functions (be carefull allocating F)
+!    F    (real(kind(1.0D0)))  Size (nn x nf) matrix containg values of spatial functions at points (x,y)
+!    nf    (integer) number of spatial functions (be carefull allocating F)
 ! Keston Smith (IBSS corp) June-July 2021
 !--------------------------------------------------------------------------------------------------
 use DpointMod
 use NLSFMod
 implicit none
 type(Dpoint):: p
-type(NLSFpar), intent(in):: nlsf(*)
 integer, intent(in)    :: nndim
 integer, intent(out)   :: nf
-real*8, intent(out)   :: F(nndim,*)
-real*8 x(nndim),y(nndim),z(nndim),fo(nndim),beta
-real*8, allocatable   :: DH(:,:),Dz(:,:),KSF(:,:)
-real*8 lambdaH(10),lambdaZ(10)
-integer n,nn,no,j
+real(kind(1.0D0)), intent(out)   :: F(nndim,*)
+integer nn
 
 nf=4
 ! flag for initial call

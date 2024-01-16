@@ -20,7 +20,7 @@ type(Dpoint):: p
 integer j,io,k,n,nn
 logical, intent(in):: InitialCallFlag
 logical UseGreedyFit
-character*72 :: InputStr
+character(72) :: InputStr
 
 
 open(69,file='UK.inp')
@@ -133,11 +133,11 @@ use NLSFMod
 
 implicit none
 integer j,n,no,nn,nsf,k,IsReset,nsflim
-real*8 mu,rms0
+real(kind(1.0D0)) mu,rms0
 type(Dpoint):: obs
 type(Dpoint):: grid
 type(NLSFPar)::nlsf(*)
-real*8, allocatable :: r(:),fpc(:),residuals(:,:),rms(:)
+real(kind(1.0D0)), allocatable :: r(:),fpc(:),residuals(:,:),rms(:)
 integer, allocatable:: RankIndx(:)
 
 no=obs%n
@@ -243,8 +243,8 @@ use NLSFMod
 implicit none
 type(Dpoint):: p
 type(NLSFPar)::nlsf
-real*8, intent(out)::  f(*)
-real*8, allocatable :: x(:)
+real(kind(1.0D0)), intent(out)::  f(*)
+real(kind(1.0D0)), allocatable :: x(:)
 integer nn,j
 nn=p%n
 
@@ -292,7 +292,7 @@ use DpointMod
 use NLSFMod
 implicit none
 type(NLSFPar)::nlsf
-real*8, intent(out)::  p
+real(kind(1.0D0)), intent(out)::  p
 real pi
 pi=4.*ATAN(1.0D0)
 !if(nlsf%form(1:8).eq.'Gaussian')p = 3.D0 * sqrt(pi/2.D0) / nlsf%lambda**3
@@ -315,12 +315,12 @@ implicit none
 type(Dpoint):: g
 type(Dpoint):: obs
 type(NLSFPar)::nlsf
-real*8, intent(in):: y(*),f(*)
-real*8, intent(inout):: r(*)
+real(kind(1.0D0)), intent(in):: y(*),f(*)
+real(kind(1.0D0)), intent(inout):: r(*)
 
-real*8  alpha,beta,ErrMin,Err,x0hat,lambdahat,SP,SPF,RMS
+real(kind(1.0D0))  alpha,beta,ErrMin,Err,x0hat,lambdahat,SP,SPF,RMS
 integer j,k,np,nn,ng,nx0,nlambda
-real*8, allocatable :: s(:),p(:),x0(:),lambda(:),lpr(:),pg(:)
+real(kind(1.0D0)), allocatable :: s(:),p(:),x0(:),lambda(:),lpr(:),pg(:)
 
 nn=obs%n
 ng=g%n
@@ -383,11 +383,11 @@ use NLSFMod
 
 implicit none
 integer j,n,no,nn,nsf,k,jBest,notyet,nfi,nsflim
-real*8 rmsMin
+real(kind(1.0D0)) rmsMin
 type(Dpoint):: obs
 type(Dpoint):: grid
 type(NLSFPar)::nlsf(*)
-real*8, allocatable :: r(:),fpc(:),residuals(:,:),rms(:),res(:)
+real(kind(1.0D0)), allocatable :: r(:),fpc(:),residuals(:,:),rms(:),res(:)
 integer, allocatable :: isfit(:),RankIndx(:)
 type(NLSFPar), allocatable ::nlsfTmp(:)
 

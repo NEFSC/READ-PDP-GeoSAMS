@@ -14,14 +14,14 @@ subroutine ReadInput(DomainName,obsfile,climfile,NRand,IsLogT,IsHiLimit,fmax,IsM
 use KrigMod
 implicit none
 type(KrigPar), intent(out):: par
-integer j,io,k
+integer j,io
 integer, intent(out):: NRand
-character*72,intent(out):: obsfile,climfile
+character(72),intent(out):: obsfile,climfile
 character(2),intent(out):: DomainName
 !logical, intent(out) :: IsLogT,IsHiLimit,IsMatchMean
 logical IsLogT,IsHiLimit,IsMatchMean,IsClimEst
-character*72 :: InputStr
-real*8,intent(out)::  fmax,alpha
+character(72) :: InputStr
+real(kind(1.0D0)),intent(out)::  fmax,alpha
 IsClimEst=.false.
 IsHiLimit=.false.
 open(69,file='UK.inp')
@@ -93,15 +93,15 @@ subroutine loadgrid(x,y,z,lat,lon,nn,E,ne,ManagementRegion,DomainName)
 ! longitude.
 !
 ! Inputs: 
-!	none
+!    none
 !
 ! Outputs:
-!	x	(real*8) x-coordinate of data
-!	y	(real*8) y-coordinate of data
-!	z	(real*8) bathymetric depth at (x,y)
-!	lat	(real*8) latitude at (x,y)
-!	lon	(real*8) longitude at (x,y)
-!	nn	(integer)length of x,y,z,lat,lon (number of data points)
+!    x    (real(kind(1.0D0))) x-coordinate of data
+!    y    (real(kind(1.0D0))) y-coordinate of data
+!    z    (real(kind(1.0D0))) bathymetric depth at (x,y)
+!    lat    (real(kind(1.0D0))) latitude at (x,y)
+!    lon    (real(kind(1.0D0))) longitude at (x,y)
+!    nn    (integer)length of x,y,z,lat,lon (number of data points)
 !
 ! Note: At present lat and lon variabels are not used. 
 !-----------------------------------------------------------------------
@@ -109,10 +109,10 @@ subroutine loadgrid(x,y,z,lat,lon,nn,E,ne,ManagementRegion,DomainName)
 !-----------------------------------------------------------------------
 
 implicit none
-real*8 lat(*),lon(*),x(*),y(*),z(*)
+real(kind(1.0D0)) lat(*),lon(*),x(*),y(*),z(*)
 integer n,nn,ne,io,ManagementRegion(*),E(4,*)
-character*72 input_str,flnm
-character*2 DomainName
+character(72) input_str,flnm
+character(2) DomainName
 flnm='Grids/'//DomainName//'xyzLatLon.csv'
 write(*,*)'grid file: ',trim(flnm)
 open(63,file=trim(flnm),status='old')
@@ -163,26 +163,26 @@ subroutine loaddata(x,y,z,f,nn,flnm)
 ! coordinate, bathymetric depth (z), and a scaller field f.
 !
 ! Inputs: 
-!	none
+!    none
 !
 ! Outputs:
-!	x	(real*8) x-coordinate of data
-!	y	(real*8) y-coordinate of data
-!	z	(real*8) bathymetric depth at (x,y)
-!	f	(real*8) scalar data at (x,y)
-!	nn	(integer)length of x,y, and z (number of data points)
+!    x    (real(kind(1.0D0))) x-coordinate of data
+!    y    (real(kind(1.0D0))) y-coordinate of data
+!    z    (real(kind(1.0D0))) bathymetric depth at (x,y)
+!    f    (real(kind(1.0D0))) scalar data at (x,y)
+!    nn    (integer)length of x,y, and z (number of data points)
 !
 ! Keston Smith (IBSS corp) June-July 2021
 !-----------------------------------------------------------------------
 
 
 implicit none
-real*8, intent(out):: x(*),y(*),z(*),f(*)
+real(kind(1.0D0)), intent(out):: x(*),y(*),z(*),f(*)
 integer, intent(out):: nn
 character (*), intent(in)::  flnm
-real*8 year
-integer	n,io
-character*72 input_str
+real(kind(1.0D0)) year
+integer    n,io
+character(72) input_str
 
 !flnm='recruitsOBS.csv'
 open(63,file=flnm,status='old')
@@ -212,20 +212,20 @@ subroutine readsf(flnm, M, nn)
 !subroutine readsf(flnm, M, nn)
 !Purpose: Read real valued scaler field, M, from file flnm.
 ! Inputs:
-! 	flnm (charecter*72)	number of rows in D, Gamma
+!     flnm (charecter*72)    number of rows in D, Gamma
 ! Outputs:
-! 	M    (real*8)       length nn vector of values
-!	nn   (integer)	    length of M
+!     M    (real(kind(1.0D0)))       length nn vector of values
+!    nn   (integer)        length of M
 !-----------------------------------------------------------------------
 ! Keston Smith (IBSS corp) June-July 2021
 !-----------------------------------------------------------------------
 
 implicit none
 integer, intent(inout):: nn
-real*8, intent(out):: M(*)
+real(kind(1.0D0)), intent(out):: M(*)
 character (*), intent(in)::flnm
 integer n,io
-character*72 input_str
+character(72) input_str
 write(*,*)'readsf flnm=',flnm
 open(63,file=trim(flnm),status='old')
 n=0
@@ -248,20 +248,20 @@ subroutine write_scalar_fields(nn,nsim,f,flnm,ndim)
 !subroutine scalar_fields(nn,nsim,f,flnm,ndim)
 ! Purpose: Write columns of a matrrix (f) to a series of text files in exponential format.
 ! Inputs:
-! 	nn	(integer) number of rows in f 
-! 	nsim(integer) number of columns in f
-!	f	(real*8) values to write to text file
-!	flnm(character*72) filename to write f to in csv format
+!     nn    (integer) number of rows in f 
+!     nsim(integer) number of columns in f
+!    f    (real(kind(1.0D0))) values to write to text file
+!    flnm(character(72)) filename to write f to in csv format
 !   ndim(integer) leading dimension of f
 !--------------------------------------------------------------------------------------------------
 ! Keston Smith (IBSS corp) June-July 2021
 !--------------------------------------------------------------------------------------------------
 implicit none
 integer, intent(in):: nn,nsim,ndim
-real*8, intent(in):: f(ndim,*)
+real(kind(1.0D0)), intent(in):: f(ndim,*)
 character (*), intent(in):: flnm
 integer k,n
-character*72 buf,flnm2
+character(72) buf,flnm2
 !--------------------------------------------------------------------------------------------------
 if (nsim.gt.1)then
     do k=1,nsim
@@ -287,15 +287,15 @@ subroutine WriteScalarField(nn,f,flnm)
 !subroutine WriteScalarField(nn,f,flnm)
 ! Purpose: Write columns of a matrrix (f) to a series of text files in exponential format.
 ! Inputs:
-! 	nn	(integer) number of rows in f 
-!	f	(real*8) values to write to text file
-!	flnm(character*72) filename to write f to in csv format
+!     nn    (integer) number of rows in f 
+!    f    (real(kind(1.0D0))) values to write to text file
+!    flnm(character(72)) filename to write f to in csv format
 !--------------------------------------------------------------------------------------------------
 ! Keston Smith (IBSS corp) June-July 2021
 !--------------------------------------------------------------------------------------------------
 implicit none
 integer, intent(in):: nn
-real*8, intent(in):: f(*)
+real(kind(1.0D0)), intent(in):: f(*)
 character (*), intent(in):: flnm
 integer n
 !--------------------------------------------------------------------------------------------------
@@ -312,20 +312,20 @@ subroutine write_csv(n,m,f,flnm,ndim)
 !subroutine write_csv(n,m,f,flnm,ndim)
 ! Purpose: Write values of a matrrix (f) to a csv file in exponential format.
 ! Inputs:
-! 	n	(integer) number of rows in f 
-! 	m	(integer) number of columns in f
-!	f	(real*8) values to write to csv file
-!	flnm	(character*72) filename to write f to in csv format
+!     n    (integer) number of rows in f 
+!     m    (integer) number of columns in f
+!    f    (real(kind(1.0D0))) values to write to csv file
+!    flnm    (character(72)) filename to write f to in csv format
 !--------------------------------------------------------------------------------------------------
 ! Keston Smith (IBSS corp) June-July 2021
 !--------------------------------------------------------------------------------------------------
 
 implicit none
 integer, intent(in):: n,m,ndim
-real*8, intent(in):: f(ndim,*)
+real(kind(1.0D0)), intent(in):: f(ndim,*)
 character(*), intent(in)::flnm
 integer k
-character*100 buf,fmtstr
+character(100) buf,fmtstr
 
 k=m-1
 write(buf,'(I6)')k

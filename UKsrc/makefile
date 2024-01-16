@@ -6,7 +6,7 @@
 OBJ_DIR = ./obj
 MOD_DIR = ./mod
 FC = gfortran
-FFLAGS = -g 
+FFLAGS = -g -Wall -std=f95 -fall-intrinsics
 # -O3  -mcmodel=medium -funroll-all-loops -ffast-math -msse -msse2 -m3dnow -m64
  # -g debug
 #-O3  -mcmodel=medium -funroll-all-loops -ffast-math -msse -msse2 -m3dnow -m64
@@ -22,10 +22,10 @@ endif
 EXEC = UK
 
 #-fno-autom
-ifneq ($(OS), Windows_NT)
-atic -fcheck=all -fcheck-array-temporaries -Wall
-endif
-#-fno-automatic
+# ifneq ($(OS), Windows_NT)
+# atic -fcheck=all -fcheck-array-temporaries -Wall
+# endif
+# #-fno-automatic
 # -fcheck=all -fcheck-array-temporaries-fno-automatic -fmax-stack-var-size=100000 
 #FFLAGS = -O3  -mcmodel=medium -funroll-all-loops -ffast-math -msse -msse2 -m3dnow -m64
 

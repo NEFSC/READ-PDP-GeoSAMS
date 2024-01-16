@@ -22,16 +22,16 @@ module DpointMod
 integer NDim
 parameter(nDim=12000)
  type Dpoint
-    real*8 x(NDim)
-    real*8 y(NDim)
-    real*8 z(nDim)
-    real*8 f(nDim)
-    real*8 lat(NDim)
-    real*8 lon(NDim)
+    real(kind(1.0D0)) x(NDim)
+    real(kind(1.0D0)) y(NDim)
+    real(kind(1.0D0)) z(nDim)
+    real(kind(1.0D0)) f(nDim)
+    real(kind(1.0D0)) lat(NDim)
+    real(kind(1.0D0)) lon(NDim)
     integer n,ne
     integer E(4,nDim)
     integer ManagementRegion(nDim)
-    character*2 region(nDim)
+    character(2) region(nDim)
  end type Dpoint
 end module
 
@@ -41,11 +41,11 @@ end module
 
 module KrigMod              
  type KrigPar
-    real*8 alpha
-    real*8 c0
-    real*8 c
-     real*8 Wz
-      character*72 form
+    real(kind(1.0D0)) alpha
+    real(kind(1.0D0)) c0
+    real(kind(1.0D0)) c
+     real(kind(1.0D0)) Wz
+      character(72) form
  end type KrigPar
 end module
 
@@ -55,13 +55,13 @@ end module
 
 module NLSFMod             
  type NLSFPar
-    real*8 lambda, x0
-    real*8 lambdaMin,lambdaMax
-    real*8 x0Min,x0Max
-    real*8 xRange(2)
-    real*8 rms
-    character*12 form
-    character*3 d
+    real(kind(1.0D0)) lambda, x0
+    real(kind(1.0D0)) lambdaMin,lambdaMax
+    real(kind(1.0D0)) x0Min,x0Max
+    real(kind(1.0D0)) xRange(2)
+    real(kind(1.0D0)) rms
+    character(12) form
+    character(3) d
     integer nsf,PreCFnum,IsTrunkateRange,UseGreedyFit,nsflim
 
 end type NLSFPar
@@ -76,23 +76,23 @@ use KrigMod
 use NLSFMod
 implicit none
 
-real*8     atmp,btmp,muY,muZ,NRandomField
-real*8,    allocatable :: beta(:),Cbeta(:,:),eps(:),Ceps(:,:),Cr(:,:),F(:,:),r(:),trndOBS(:),resOBS(:)
-real*8,    allocatable :: Dh(:,:),Dz(:,:),gamma(:,:),Veps(:),VSpFn(:),CbetaF(:,:),Fg(:,:)
-real*8,    allocatable :: ClimEst(:),ClimEstObs(:),trend(:),Vtotal(:),fRaw(:),logmu(:)
-real*8, allocatable :: RandomField(:,:)
+real(kind(1.0D0))  atmp,btmp
+real(kind(1.0D0)), allocatable :: beta(:),Cbeta(:,:),eps(:),Ceps(:,:),Cr(:,:),F(:,:),r(:),trndOBS(:),resOBS(:)
+real(kind(1.0D0)), allocatable :: Dh(:,:),Dz(:,:),gamma(:,:),Veps(:),VSpFn(:),CbetaF(:,:),Fg(:,:)
+real(kind(1.0D0)), allocatable :: ClimEst(:),ClimEstObs(:),trend(:),Vtotal(:),logmu(:)
+real(kind(1.0D0)), allocatable :: RandomField(:,:)
 integer      nn,nf,no,SimType,j,nits
-real*8     tmp(1,1),fmax,A,DomainAverage,SF,EnsMu,EnsSTD,adj
+real(kind(1.0D0))     tmp(1,1),fmax,A,DomainAverage,SF
 ! variables for nonlinear fitting
-integer np,nsf,n,nsflim,NRand,k,ncla
+integer nsf,NRand,ncla
 logical IsClimEst,IsHiLimit,IsMatchMean,IsLogT
-character*72 gridfile, obsfile,climfile,flnm
-character*2 DomainName
+character(72) obsfile,climfile
+character(2) DomainName
 type(Dpoint):: grid
 type(Dpoint):: obs
 type(KrigPar):: par
 type(NLSFPar), allocatable ::nlsf(:)
-real*8 alpha
+real(kind(1.0D0)) alpha
 par%form='spherical'
 IsLogT=.true.
 IsHiLimit=.true.
@@ -216,7 +216,7 @@ enddo
  call distance(obs,obs,Dh,Dz,no)
  nits=1
  do j=1,nits
-  call variogramF(no,no,Dh,Dz,Gamma,no,r,par)
+  call variogramF(no,Dh,Dz,Gamma,no,r,par)
   open(63,file='KRIGpar.txt')
   write(63,*)par%c, par%c0, par%alpha, par%Wz
   close(63)
@@ -271,14 +271,14 @@ implicit none
 type(Dpoint),intent(inout) :: grid
 type(NLSFPar),intent(in)::nlsf(*)
                                     
-character*2 DomainName
+character(2) DomainName
 integer, intent(in) :: nn,nf,Nrand
-real*8, intent(in) :: eps(*),beta(*),Cbeta(nf,*),ClimEst(*),fmax,SF,A,DomainAverage,alpha
-real*8, intent(inout) :: Ceps(nn,*)
+real(kind(1.0D0)), intent(in) :: eps(*),beta(*),Cbeta(nf,*),ClimEst(*),fmax,SF,A,DomainAverage,alpha
+real(kind(1.0D0)), intent(inout) :: Ceps(nn,*)
 logical,intent(in) ::IsLogT,IsClimEst,IsMatchMean,IsHiLimit
 integer j,k,n
-real*8 trend(nn),V(nn),Fg(nn,nf),MuY,EnsMu,EnsSTD,logf(nn),adj,RandomField(nn,Nrand)
-character*72 buf
+real(kind(1.0D0)) trend(nn),V(nn),Fg(nn,nf),MuY,EnsMu,EnsSTD,logf(nn),adj,RandomField(nn,Nrand)
+character(72) buf
 write(*,*)'output fmax,SF,A=',fmax,SF,A
 do n=1,nn
  V(n)=Ceps(n,n)
@@ -360,10 +360,10 @@ subroutine limitz(n,f,z,fpeak,Domain)
 !----------------------------------------------------------------------------------------
 
 integer, intent(in) :: n
-real*8, intent(in) :: z(*),fpeak
-real*8, intent(inout) :: f(*)
-character*2, intent(in):: Domain
-real*8 a,w,zc,fmax 
+real(kind(1.0D0)), intent(in) :: z(*),fpeak
+real(kind(1.0D0)), intent(inout) :: f(*)
+character(2), intent(in):: Domain
+real(kind(1.0D0)) a,w,zc,fmax 
 integer j,kappa
 
 if(Domain(1:2).eq.'MA')then
@@ -381,7 +381,7 @@ if(Domain(1:2).eq.'GB')then
 endif
 
 do j=1,n
-    f(j)=max( f(j) , 0. )
+    f(j)=max( f(j) , 0.D0 )
     fmax= fpeak*(a +   exp(- ( (z(j)-zc)/w )**kappa ))
     f(j)=min( f(j) , fmax )
 enddo    
@@ -407,12 +407,12 @@ subroutine InterpFromGrid(g,f,obs,fInterp)
 use DpointMod
 type(Dpoint):: g
 type(Dpoint):: obs
-real*8, intent(out) :: fInterp(*)
-real*8, intent(in) :: f(*)
-integer nn,no,n,ne,j,k
-real*8,    allocatable:: Dist(:),xe(:),ye(:)
-real*8 W(4),De(4),SmallDist
-integer*4 ke(4)
+real(kind(1.0D0)), intent(out) :: fInterp(*)
+real(kind(1.0D0)), intent(in) :: f(*)
+integer nn,no,ne,j,k
+real(kind(1.0D0)),    allocatable:: Dist(:),xe(:),ye(:)
+real(kind(1.0D0)) W(4),De(4),SmallDist
+integer ke(4)
 nn=g%n
 ne=g%ne
 no=obs%n
@@ -465,10 +465,10 @@ subroutine GetDomainAverage(obs,g,DomainAverage)
 use DpointMod
 type(Dpoint):: g
 type(Dpoint):: obs
-real*8, intent(out) :: DomainAverage
-integer nn,no,Nregion,k,rn,n
-real*8 dx,dy
-real*8,    allocatable:: RegionalAverage(:),D(:),RegionArea(:)
+real(kind(1.0D0)), intent(out) :: DomainAverage
+integer nn,no,Nregion,k,rn
+real(kind(1.0D0)) dx,dy
+real(kind(1.0D0)),    allocatable:: RegionalAverage(:),D(:),RegionArea(:)
 integer, allocatable:: ObsInRegion(:)
 nn=g%n
 no=obs%n
@@ -512,22 +512,22 @@ subroutine UK_GLS(g,obs,nf,par,beta,Cbeta,eps,CepsG,nlsf)
 ! is to simulate random fields consistent with the observations, spatial functions, and variogram.  
 ! 
 !  Inputs:
-!     x    (real*8) length nn vector of x-coordinates of grid  
-!     y    (real*8) length nn vector of y-coordinates for grid  
-!     z    (real*8) length nn vector of bathymetric depth at (x,y)  
+!     x    (real(kind(1.0D0))) length nn vector of x-coordinates of grid  
+!     y    (real(kind(1.0D0))) length nn vector of y-coordinates for grid  
+!     z    (real(kind(1.0D0))) length nn vector of bathymetric depth at (x,y)  
 !     nn    (integer) number of points in grid
-!     xo    (real*8) length no vector of x-coordinates of data  
-!     yo    (real*8) length no vector of y-coordinates for data  
-!     zo    (real*8) length no vector of bathymetric depth at data point (xo,yo)  
-!     fo    (real*8) length no vector of observations at (xo,yo)  
+!     xo    (real(kind(1.0D0))) length no vector of x-coordinates of data  
+!     yo    (real(kind(1.0D0))) length no vector of y-coordinates for data  
+!     zo    (real(kind(1.0D0))) length no vector of bathymetric depth at data point (xo,yo)  
+!     fo    (real(kind(1.0D0))) length no vector of observations at (xo,yo)  
 !     n0    (integer) number of points in grid
 !
 !  Outputs:
-!    f    (real*8) UK estimate (linear in observations, fo) of the field
-!    beta    (real*8) length nf vector, best estimate of spatial function coefficients
-!    Cbeta    (real*8) (nf x nf) covariance matrix for the estimates of beta
-!    eps    (real*8) length nn vector, best estimate of residual process
-!    CepsPost(real*8) (nn x nn) covariance matrix for residual esimate (the spatially 
+!    f    (real(kind(1.0D0))) UK estimate (linear in observations, fo) of the field
+!    beta    (real(kind(1.0D0))) length nf vector, best estimate of spatial function coefficients
+!    Cbeta    (real(kind(1.0D0))) (nf x nf) covariance matrix for the estimates of beta
+!    eps    (real(kind(1.0D0))) length nn vector, best estimate of residual process
+!    CepsPost(real(kind(1.0D0))) (nn x nn) covariance matrix for residual esimate (the spatially 
 !               coorelated random field component).
 !
 ! Derivation for the UK algorithm and relation to generalized least squares estimation can be 
@@ -546,17 +546,17 @@ type(KrigPar):: par
 type(NLSFPar):: nlsf(*)
 
 integer,    intent(inout):: nf
-real*8,    intent(out):: beta(*),Cbeta(nf,nf),eps(*),CepsG(g%n,g%n)
+real(kind(1.0D0)),    intent(out):: beta(*),Cbeta(nf,nf),eps(*),CepsG(g%n,g%n)
 
-real*8,    allocatable:: Dh(:,:),Dz(:,:),W(:,:),gamma(:,:),Fs(:,:),FsT(:,:)
-real*8,    allocatable:: D0h(:,:),D0z(:,:),gamma0(:,:),Fs0(:,:),Fs0T(:,:)
-real*8,    allocatable:: R(:,:),V(:,:)
-real*8,    allocatable:: CbetaInv(:,:),Ceps(:,:),Cinv(:,:)
-real*8,    allocatable:: DGh(:,:),DGz(:,:), C0(:,:), gammaG(:,:)
-real*8,    allocatable:: Mtmp(:,:),Vtmp(:),Vtmp2(:),Gtmp(:,:),ftrnd(:)
+real(kind(1.0D0)),    allocatable:: Dh(:,:),Dz(:,:),W(:,:),gamma(:,:),Fs(:,:),FsT(:,:)
+real(kind(1.0D0)),    allocatable:: D0h(:,:),D0z(:,:),gamma0(:,:),Fs0(:,:),Fs0T(:,:)
+real(kind(1.0D0)),    allocatable:: R(:,:),V(:,:)
+real(kind(1.0D0)),    allocatable:: CbetaInv(:,:),Ceps(:,:),Cinv(:,:)
+real(kind(1.0D0)),    allocatable:: DGh(:,:),DGz(:,:), C0(:,:), gammaG(:,:)
+real(kind(1.0D0)),    allocatable:: Mtmp(:,:),Vtmp(:),Vtmp2(:),Gtmp(:,:),ftrnd(:)
 integer,    allocatable:: ipiv(:)
 
-real*8     Vinf(1,1),Dinf(1,1),atmp,btmp
+real(kind(1.0D0))     Vinf(1,1),Dinf(1,1),atmp,btmp
 integer     j,k,info,nopnf,error,nn,no
 nn=g%n
 no=obs%n
@@ -702,18 +702,19 @@ end
 
 !--------------------------------------------------------------------------------------------------
 !subroutine UK_RandomField(x,y,z,nn,nf,beta,Cbeta,eps,Ceps,Nsim)
-subroutine UK_RandomField(g,nf,beta,Cbeta,eps,Ceps,Nsim,nlsf,IsLogT,mu,A,SF,fmin,fmax,z,logmu)
+!subroutine UK_RandomField(g,nf,beta,Cbeta,eps,Ceps,Nsim,nlsf,IsLogT,mu,A,SF,fmin,fmax,z,logmu)
+subroutine UK_RandomField(g,nf,beta,Cbeta,eps,Ceps,Nsim,nlsf,IsLogT,mu,A,SF,fmax,z)
 ! Purpose: Simulate independent random fields under the assumptions of a Universal Kriging model.
 ! 
 !  Inputs:
-!     x    (real*8) length nn vector of x-coordinates of grid  
-!     y    (real*8) length nn vector of y-coordinates for grid  
-!     z    (real*8) length nn vector of bathymetric depth at (x,y)  
+!     x    (real(kind(1.0D0))) length nn vector of x-coordinates of grid  
+!     y    (real(kind(1.0D0))) length nn vector of y-coordinates for grid  
+!     z    (real(kind(1.0D0))) length nn vector of bathymetric depth at (x,y)  
 !     nn    (integer) number of points in grid
-!    beta    (real*8) length nf vector estimate of spatial function coefficients
-!    Cbeta   (real*8) (nf x nf) covariance matrix for estimate beta
-!    eps    (real*8) length nn vector estimate of noise field
-!    Ceps    (real*8) (nn x nn) spatial covariance matrix of residual from linear fit of spatial 
+!    beta    (real(kind(1.0D0))) length nf vector estimate of spatial function coefficients
+!    Cbeta   (real(kind(1.0D0))) (nf x nf) covariance matrix for estimate beta
+!    eps    (real(kind(1.0D0))) length nn vector estimate of noise field
+!    Ceps    (real(kind(1.0D0))) (nn x nn) spatial covariance matrix of residual from linear fit of spatial 
 !                   functions
 !    Nsim    (integer) number of random fields to simulate
 !
@@ -732,18 +733,17 @@ use NLSFMod
 implicit none
 type(Dpoint):: g
 type(NLSFpar):: nlsf(*)
-real*8,    intent(in)    :: beta(*),Cbeta(nf,*),eps(*),Ceps(g%n,*),mu(*),A,SF,fmin,fmax,z(*),logmu(*)
+integer,    intent(inout)    :: nf
+real(kind(1.0D0)),    intent(in)    :: beta(*),Cbeta(nf,*),eps(*),Ceps(g%n,*),mu(*),A,SF,fmax,z(*)
 integer,    intent(in)    :: Nsim
 logical,    intent(in)    :: IsLogT
-integer,    intent(inout)    :: nf
 
-real*8,    allocatable    :: F(:,:)
-real*8,    allocatable    :: BetaRF(:,:),RFtrend(:,:),RFtotal(:,:),RFeps(:,:),EnsMu(:),&
+real(kind(1.0D0)),    allocatable    :: F(:,:)
+real(kind(1.0D0)),    allocatable    :: BetaRF(:,:),RFtrend(:,:),RFtotal(:,:),RFeps(:,:),EnsMu(:),&
 trend(:),Ctrend(:,:)
 
-real*8     atmp,btmp,adj
-character*72     flnm
-integer     j,k,n
+real(kind(1.0D0))     atmp,btmp,adj
+integer     k,n
 n=g%n
 allocate(F(1:n,1:nf))
 allocate(BetaRF(1:nf,1:Nsim),RFtrend(1:n,1:NSim),RFtotal(1:n,1:NSim),RFeps(1:n,1:NSim),&
@@ -826,7 +826,7 @@ subroutine IndStdNRV(n,m,R)
 !     n    (integer) number of rows in R
 !     m       (integer) number of columns in R
 !  Outputs:
-!    R    (real*8)  Size (nn x mm) matrix of independent standard 
+!    R    (real(kind(1.0D0)))  Size (nn x mm) matrix of independent standard 
 !                normal random variables
 !
 ! The algorithm uses the Box Muller transformation to compute independent 
@@ -841,11 +841,10 @@ subroutine IndStdNRV(n,m,R)
 !--------------------------------------------------------------------------------------------------
 
 implicit none
-real*8,    intent(out)::R(n,*)
-integer,    intent(in)::n,m    
-real*8,    allocatable:: U1(:,:),U2(:,:)
-real*8     pi
-integer     k,j
+integer,    intent(in)::n,m
+real(kind(1.0D0)),    intent(out)::R(n,*)
+real(kind(1.0D0)),    allocatable:: U1(:,:),U2(:,:)
+real(kind(1.0D0))     pi
 allocate( U1(1:n,1:m), U2(1:n,1:m) )
 pi=4.*ATAN(1.0D0)
 call random_number(U1)
@@ -867,11 +866,11 @@ subroutine RandomSampleF(nndim,nn,Nsample,mu,C,X)
 !     nndim    (integer) Leading dimentsion of C and X
 !    nn    (integer) Length of mu / dimension of random variable
 !    Nsample (integer) Number of Samples to draw from N(mu,C)
-!    mu    (real*8)  Length nn vector, mean of the distribution
-!    C    (real*8)  Size (nn x nn) Covariance matrix of the distribution
+!    mu    (real(kind(1.0D0)))  Length nn vector, mean of the distribution
+!    C    (real(kind(1.0D0)))  Size (nn x nn) Covariance matrix of the distribution
 !
 ! Outputs:
-!    X       (real*8)  Size (nn x Nsample) independent random samples drawn from N(mu,C)
+!    X       (real(kind(1.0D0)))  Size (nn x Nsample) independent random samples drawn from N(mu,C)
 !
 ! Requires: LAPACK and BLAS libraries for Cholesky factorization of C and matrix
 ! vector multiplication.
@@ -881,10 +880,10 @@ subroutine RandomSampleF(nndim,nn,Nsample,mu,C,X)
 
 implicit none
 integer,     intent(in) :: nndim,nn,Nsample
-real*8,     intent(in) :: mu(*),C(nndim,*)
-real*8,     intent(out)::X(nn,*)
-real*8,    allocatable::R(:,:),S(:,:)
-real*8     atmp,btmp
+real(kind(1.0D0)),     intent(in) :: mu(*),C(nndim,*)
+real(kind(1.0D0)),     intent(out)::X(nn,*)
+real(kind(1.0D0)),    allocatable::R(:,:),S(:,:)
+real(kind(1.0D0))     atmp,btmp
 integer     j,k,info
 allocate( R(1:nn,1:Nsample), S(1:nn,1:nn))
 !
@@ -936,15 +935,15 @@ subroutine UK_prior(g,nf,par,beta,Cbeta,eps,Ceps)
 ! model.
 !
 ! Inputs: 
-!    g    (real*8) Data point structure defining interpolation points 
+!    g    (real(kind(1.0D0))) Data point structure defining interpolation points 
 !    nf    (integer) number of spatial functions
 !   par variogram parameter structure
 !
 ! Outputs:
-!   beta(real*8) mean of spatial function coefficients
-!   Cbeta(real*8) covariance of spatial function coefficients
-!   eps(real*8) mean of residual
-!   Ceps(real*8) covariance of residual
+!   beta(real(kind(1.0D0))) mean of spatial function coefficients
+!   Cbeta(real(kind(1.0D0))) covariance of spatial function coefficients
+!   eps(real(kind(1.0D0))) mean of residual
+!   Ceps(real(kind(1.0D0))) covariance of residual
 ! Keston Smith (IBSS corp) June-July 2021
 ! need to fix dimensioning (1/10/2022)!
 !-----------------------------------------------------------------------
@@ -954,12 +953,12 @@ implicit none
 type(Dpoint):: g
 type(KrigPar):: par
 integer,    intent(in):: nf
-real*8,    intent(out):: beta(*), Cbeta(nf,*), eps(*), Ceps(nn,*) 
+real(kind(1.0D0)),    intent(out):: beta(*), Cbeta(nf,*), eps(*), Ceps(g%n,*) 
 
-real*8,    allocatable:: Dh(:,:), Dz(:,:),gamma(:,:)
+real(kind(1.0D0)),    allocatable:: Dh(:,:), Dz(:,:),gamma(:,:)
 
-real*8     Vinf(1,1),Dinf(1,1),atmp,btmp
-integer     j,k,error,nn
+real(kind(1.0D0))     Vinf(1,1),Dinf(1,1)
+integer     error,nn
 nn=g%n
 allocate( Dh(1:nn,1:nn), Dz(1:nn,1:nn),gamma(1:nn,1:nn), stat=error )
 !
@@ -976,11 +975,11 @@ eps(1:nn)=0.
 !
 beta(1:nf)=0.
 Cbeta(1:nf,1:nf)=0.
-beta(1:4)=[ 52.399839511692335, 1.0935428391808943E-004,-3.1615155809229245E-003, 1.2116283255694471E-002 ]
-Cbeta(1,1:4)=[270.60028747602928, 1.5366756312328578E-003, 7.9881962338312195E-003,-6.0292972962538195E-002]
-Cbeta(2,1:4)=[1.5366756312270658E-003, 1.7247639913097469E-005, 1.3324610875859451E-006,-2.3045855632454535E-007]
-Cbeta(3,1:4)=[7.9881962338509589E-003, 1.3324610875862412E-006, 5.5464689237415081E-006,-2.4207894889311469E-006]
-Cbeta(4,1:4)=[-6.0292972962540783E-002,-2.3045855632585232E-007,-2.4207894889268253E-006, 1.3517389449680424E-005]
+beta(1:4)=  (/ 52.399839511692335, 1.0935428391808943E-004,-3.1615155809229245E-003, 1.2116283255694471E-002  /)
+Cbeta(1,1:4)= (/270.60028747602928, 1.5366756312328578E-003, 7.9881962338312195E-003,-6.0292972962538195E-002 /)
+Cbeta(2,1:4)= (/1.5366756312270658E-003, 1.7247639913097469E-005, 1.3324610875859451E-006,-2.3045855632454535E-007 /)
+Cbeta(3,1:4)= (/7.9881962338509589E-003, 1.3324610875862412E-006, 5.5464689237415081E-006,-2.4207894889311469E-006 /)
+Cbeta(4,1:4)= (/-6.0292972962540783E-002,-2.3045855632585232E-007,-2.4207894889268253E-006, 1.3517389449680424E-005 /)
 
 deallocate( Dh, Dz, gamma,stat=error )
 
@@ -998,30 +997,29 @@ subroutine GLS(y,F,C,n,m,beta,Cbeta,r)
 ! epsilon~N(0,C). Return optimal beta, covariance of Beta and residual
 ! 
 !  Inputs:
-!   y   (real*8) length n vector to fit
-!     F    (real*8) size n x m matrix of j=1:m functions evaluated at points k=1:n    
-!     C    (real*8) size n x n covariance matrix for epsilon
+!   y   (real(kind(1.0D0))) length n vector to fit
+!     F    (real(kind(1.0D0))) size n x m matrix of j=1:m functions evaluated at points k=1:n    
+!     C    (real(kind(1.0D0))) size n x n covariance matrix for epsilon
 !   n   (integer) number of points to fit
 !   m   (integer) number of functions in fit
 !  Outputs:
-!     beta(real*8) length m vector of optimal coefficients
-!     Cbeta(real*8) size m x m covariance matrix for beta
-!     r    (real*8) length nn vector of residuals r = y - F * beta
+!     beta(real(kind(1.0D0))) length m vector of optimal coefficients
+!     Cbeta(real(kind(1.0D0))) size m x m covariance matrix for beta
+!     r    (real(kind(1.0D0))) length nn vector of residuals r = y - F * beta
 !
 !--------------------------------------------------------------------------------------------------
 ! Keston Smith (IBSS corp) June-July 2021
 !--------------------------------------------------------------------------------------------------
 implicit none
 integer,    intent(in):: n,m
-real*8,    intent(in):: y(*),F(n,*),C(n,*)
-real*8,    intent(out):: beta(*),Cbeta(m,m),r(*)
+real(kind(1.0D0)),    intent(in):: y(*),F(n,*),C(n,*)
+real(kind(1.0D0)),    intent(out):: beta(*),Cbeta(m,m),r(*)
 
-real*8,    allocatable:: Cinv(:,:),CbetaInv(:,:),Vtmp(:),Vtmp2(:),Mtmp(:,:),ytr(:)
+real(kind(1.0D0)),    allocatable:: Cinv(:,:),CbetaInv(:,:),Vtmp(:),Vtmp2(:),Mtmp(:,:),ytr(:)
 integer,    allocatable:: ipiv(:)
 
-real*8     atmp,btmp
-integer     j,k,info,nopnf,error
-character*72 flnm
+real(kind(1.0D0))     atmp,btmp
+integer     j,info,error
 
 allocate( Cinv(1:n,1:n),CbetaInv(1:m,1:m),ytr(1:n),Mtmp(1:n,1:m),Vtmp(1:n),Vtmp2(1:m) ) 
 allocate( ipiv(1:n),stat=error)
@@ -1094,9 +1092,9 @@ subroutine SLR(y,x,n,alpha,beta,p)
 !Simple Least Squares
 implicit none
 integer,    intent(in):: n
-real*8,    intent(in):: y(*),x(*)
-real*8,    intent(out):: p(*),alpha,beta
-real*8 Sxy,Sx,Sy,Sx2
+real(kind(1.0D0)),    intent(in):: y(*),x(*)
+real(kind(1.0D0)),    intent(out):: p(*),alpha,beta
+real(kind(1.0D0)) Sxy,Sx,Sy,Sx2
 Sxy=sum(x(1:n)*y(1:n))
 Sx=sum(x(1:n))
 Sy=sum(y(1:n))
