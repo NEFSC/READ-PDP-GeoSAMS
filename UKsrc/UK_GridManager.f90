@@ -28,15 +28,15 @@ CONTAINS
 !> longitude.
 !>
 !> Inputs: 
-!>    none
+!> - none
 !>
 !> Outputs:
-!>    x    (real(dp)) x-coordinate of data
-!>    y    (real(dp)) y-coordinate of data
-!>    z    (real(dp)) bathymetric depth at (x, y)
-!>    lat    (real(dp)) latitude at (x, y)
-!>    lon    (real(dp)) longitude at (x, y)
-!>    nn    (integer)length of x, y, z, lat, lon (number of data points)
+!> -   x    (real(dp)) x-coordinate of data
+!> -   y    (real(dp)) y-coordinate of data
+!> -   z    (real(dp)) bathymetric depth at (x, y)
+!> -   lat    (real(dp)) latitude at (x, y)
+!> -   lon    (real(dp)) longitude at (x, y)
+!> -   nn    (integer)length of x, y, z, lat, lon (number of data points)
 !>
 !> Note: At present lat and lon variabels are not used. 
 !>
@@ -91,14 +91,14 @@ end subroutine
 !> coordinate, bathymetric depth (z), and a scaller field f.
 !>
 !> Inputs: 
-!>    none
+!> -   none
 !>
 !> Outputs:
-!>    x    (real(dp)) x-coordinate of data
-!>    y    (real(dp)) y-coordinate of data
-!>    z    (real(dp)) bathymetric depth at (x, y)
-!>    f    (real(dp)) scalar data at (x, y)
-!>    nn    (integer)length of x, y, and z (number of data points)
+!> -   x    (real(dp)) x-coordinate of data
+!> -   y    (real(dp)) y-coordinate of data
+!> -   z    (real(dp)) bathymetric depth at (x, y)
+!> -   f    (real(dp)) scalar data at (x, y)
+!> -   nn    (integer)length of x, y, and z (number of data points)
 !>
 !> @author Keston Smith (IBSS corp) June-July 2021
 !-----------------------------------------------------------------------
@@ -120,8 +120,6 @@ do
     if (io.lt.0) exit
     n = n + 1
     read(input_str,*) year, x(n), y(n), z(n), f(n)
-    ! write(*,*)n, year, x(n), y(n), z(n), f(n)
-    ! read(input_str,*)  x(n), y(n), z(n), f(n)
 end do
 close(63)
 nn = n
@@ -131,13 +129,14 @@ end subroutine
 !----------------------------------------------------------------------------------------
 !> Purpose:  Localized linear interpolate data from a field, f, on the nodes of grid g 
 !> with square elements, g%E to points described in obs.
+!>
 !> inputs: 
-!>   g (Grid_Data_Class)      - grid with square elements - see Main Program
-!>   obs(Grid_Data_Class)     - observation points to be interpolated to
-!>   f [g%n]         - vector of values on nodes of grid
+!> -  g (Grid_Data_Class)      - grid with square elements - see Main Program
+!> -  obs(Grid_Data_Class)     - observation points to be interpolated to
+!> -  f [g%n]         - vector of values on nodes of grid
 !>
 !> output:
-!>   fInterp [obs%n] - vector of values interpolated from field onto onto points obs%x, obs%y
+!> -  fInterp [obs%n] - vector of values interpolated from field onto onto points obs%x, obs%y
 !>
 !> @author Keston Smith 2022
 !>
@@ -187,11 +186,11 @@ end subroutine
 !> This is here to match stratified sampling in the CASA model etc.
 !>
 !> inputs:
-!>   obs (Grid_Data_Class) -  obs%f - values for which spatial average is computed
-!>   g (Grid_Data_Class) -    grid with nodes assigned to regions g%ManagementRegion to compute 
+!> -  obs (Grid_Data_Class) -  obs%f - values for which spatial average is computed
+!> -  g (Grid_Data_Class) -    grid with nodes assigned to regions g%ManagementRegion to compute 
 !>                   local averages within
 !> output:
-!>   domain_avg (real) - regional area weighted average of obs%f across grid 
+!> -  domain_avg (real) - regional area weighted average of obs%f across grid 
 !>
 !> @author Keston Smith 2022
 !----------------------------------------------------------------------------------------

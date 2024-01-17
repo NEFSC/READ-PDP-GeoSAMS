@@ -25,17 +25,23 @@ CONTAINS
 
 !--------------------------------------------------------------------------------------------------
 !> Define non linear spatial functions(NLSF) and paramater search range.
+!>
 !> The file "UK.inp" contains a set of lines of the form
-!> "Function 1, dim=z, shape=Logistic, precon=0 "
-!> "Function 2, dim=z, shape=Gaussian, precon=0 "
-!> "Function 3, dim=x, shape=Logistic, precon=1 "
-!> these define spatial functions for setting the spatial trend in the universal kriging algorithm. 
+!> - "Function 1, dim=z, shape=Logistic, precon=0 "
+!> - "Function 2, dim=z, shape=Gaussian, precon=0 "
+!> - "Function 3, dim=x, shape=Logistic, precon=1 "
+!>
+!> These define spatial functions for setting the spatial trend in the universal kriging algorithm. 
+!>
 !> The precon=0 term means that the function is not multiplied by another function.
 !> "Function 3, dim=x, shape=Logistic, precon=1 " indicates that the third function is multiplied by
 !> the first function.  This is true for fitting the nonlinear parameters of function 3 hence 
 !> the parameters of function 1 must be fit before the parameters of function 3.
-!> The function is called twice from the main program.  In the first call 
+!>
+!> The function is called twice from the main program.  In the first call
+!>
 !> InitiialCallFlag= T and the number of nonlinear spatial functions is returned.
+!>
 !> In the second call InitiialCallFlag= F and all of the functions are defined.
 !> with precon=0 the nonlinear paraters function is fit in a least
 !--------------------------------------------------------------------------------------------------
@@ -137,16 +143,16 @@ endsubroutine
 !> obs.
 !>
 !> inputs:
-!>       obs: GridManagerMod(see UniversalKriging.f90) Defines observations to be fit. 
-!>       IsReset: (integer) if IsReset=0 the residual from the preceeding function is fit.
-!>                          if IsReset=1 each function is fit to observations.
+!> - obs: GridManagerMod(see UniversalKriging.f90) Defines observations to be fit. 
+!> - IsReset: (integer) if IsReset=0 the residual from the preceeding function is fit. 
+!>   if IsReset=1 each function is fit to observations.
 !>
 !> inputs/output:
-!>       nlsf: Nonlinear spatial function(see UniversalKriging.f90). Defines a vector of nonlinear 
-!>             spatial functions. On return nlsf(1:nsf)%x0 and nlsf(1:nsf)%lambda are specified.
+!>  - nlsf: Nonlinear spatial function(see UniversalKriging.f90). Defines a vector of nonlinear 
+!>          spatial functions. On return nlsf(1:nsf)%x0 and nlsf(1:nsf)%lambda are specified.
 !>
 !> outputs: 
-!>       f: p%nn length vector of values of nlsf at points defined in p.
+!>  - f: p%nn length vector of values of nlsf at points defined in p.
 !>
 !> @author keston Smith (IBSS corp) 2022
 !--------------------------------------------------------------------------------------------------
@@ -240,12 +246,11 @@ endsubroutine
 !> returned in vector f.
 !>
 !> inputs:
-!>       p: GridManagerMod(see UniversalKriging.f90) Defines spatial point grid/field 
-!>       nlsf: Nonlinear spatial function(see UniversalKriging.f90) Defines a nonlinear spatial 
-!>             function 
+!> - p: GridManagerMod(see UniversalKriging.f90) Defines spatial point grid/field 
+!> - nlsf: Nonlinear spatial function(see UniversalKriging.f90) Defines a nonlinear spatial function 
 !>
 !> outputs: 
-!>       f: p%nn length vector of values of nlsf at points defined in p.
+!> - f: p%nn length vector of values of nlsf at points defined in p.
 !> @author keston Smith (IBSS corp) 2022
 !--------------------------------------------------------------------------------------------------
 subroutine NLSFunc (p,nlsf,f)
@@ -294,10 +299,10 @@ endsubroutine
 !> i.e.: integral (d2 f /d x2)^2 from -inf to inf = smoothness penalty -> p
 !> see: SageScriptSmoothing.s for derivation
 !> input
-!>       nlsf: Nonlinear spatial function(see UniversalKriging.f90)
+!> - nlsf: Nonlinear spatial function(see UniversalKriging.f90)
 !>
 !> output
-!>       p: smoothness penalty  
+!> - p: smoothness penalty  
 !>
 !>
 !> @author keston Smith (IBSS corp) 2022
@@ -314,23 +319,23 @@ endsubroutine
 
 !--------------------------------------------------------------------------------------------------
 !> Purpose: Fit nonlinear parameters nlsf%x0 and nlsf%lambda to observations at nn points defined in 
-!> obs with values y.  f is a function defined at the observation points. The penalty function is 
-!>           sum_i (a+b*nlsf%g_i(x0,lambda)*f_i - y_i)**2 
+!> obs with values y.  f is a function defined at the observation points. The penalty function is \n
+!>           sum_i (a+b*nlsf%g_i(x0,lambda)*f_i - y_i)**2 \n
 !> where a and b are estimated using simple linear regresion for each nonlinear parameter pair x_0,
 !> lambda.  The minimization is done with a brute force search over np=500 equally spaced values 
 !> between (nlsf%x0Min and nlsf%x0Max) and (nlsf%x0Min and  nlsf%x0Max) respectivly.
 !>
 !> inputs:
-!>       obs: GridManagerMod(see UniversalKriging.f90) Defines spatial observation points
-!>       y: vector of observation values
-!>       f: vector of function values (a preconditioning function) at obs.
+!> - obs: GridManagerMod(see UniversalKriging.f90) Defines spatial observation points
+!> - y: vector of observation values
+!> - f: vector of function values (a preconditioning function) at obs.
 !>
 !> input/output
-!>       nlsf: Nonlinear spatial function(see UniversalKriging.f90) Defines a nonlinear spatial 
+!> - nlsf: Nonlinear spatial function(see UniversalKriging.f90) Defines a nonlinear spatial 
 !>             function. On exit optimal values of x_0 and lambda are specified 
 !>
 !> outputs: 
-!>       r: residual, r_i=y_i - nlsf(x_i |x0,lambda) where i=1..# of observations.
+!> - r: residual, r_i=y_i - nlsf(x_i |x0,lambda) where i=1..# of observations.
 !>
 !> @author keston Smith (IBSS corp) 2022
 !--------------------------------------------------------------------------------------------------
@@ -405,14 +410,14 @@ endsubroutine
 !> Functions are (nescerailly) fit to the remaining residual after fitting the preceeding functions.
 !>
 !> inputs:
-!>       obs: GridManagerMod(see UniversalKriging.f90) Defines observations to be fit. 
+!> - obs: GridManagerMod(see UniversalKriging.f90) Defines observations to be fit. 
 !>
 !> inputs/output:
-!>       nlsf: Nonlinear spatial function(see UniversalKriging.f90). Defines a vector of nonlinear 
-!>             spatial functions. On return nlsf(1:nsf)%x0 and nlsf(1:nsf)%lambda are specified.
+!> - nlsf: Nonlinear spatial function(see UniversalKriging.f90). Defines a vector of nonlinear 
+!>         spatial functions. On return nlsf(1:nsf)%x0 and nlsf(1:nsf)%lambda are specified.
 !>
 !> outputs: 
-!>       f: p%nn length vector of values of nlsf at points defined in p.
+!> - f: p%nn length vector of values of nlsf at points defined in p.
 !>
 !> @author keston Smith (IBSS corp) 2022
 !--------------------------------------------------------------------------------------------------

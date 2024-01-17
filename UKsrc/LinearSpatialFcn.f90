@@ -13,16 +13,16 @@ CONTAINS
 !> epsilon~N(0, C). Return optimal beta, covariance of Beta and residual
 !> 
 !>  Inputs:
-!>   y   (real(dp)) length n vector to fit
-!>     F    (real(dp)) size n x m matrix of j=1:m functions evaluated at points k=1:n    
-!>     C    (real(dp)) size n x n covariance matrix for epsilon
-!>   n   (integer) number of points to fit
-!>   m   (integer) number of functions in fit
-!>  Outputs:
-!>     beta(real(dp)) length m vector of optimal coefficients
-!>     Cbeta(real(dp)) size m x m covariance matrix for beta
-!>     r    (real(dp)) length nn vector of residuals r = y - F * beta
+!>  - y   (real(dp)) length n vector to fit
+!>  - F    (real(dp)) size n x m matrix of j=1:m functions evaluated at points k=1:n    
+!>  - C    (real(dp)) size n x n covariance matrix for epsilon
+!>  - n   (integer) number of points to fit
+!>  - m   (integer) number of functions in fit
 !>
+!>  Outputs:
+!>  -   beta  (real(dp)) length m vector of optimal coefficients
+!>  -   Cbeta (real(dp)) size m x m covariance matrix for beta
+!>  -   r     (real(dp)) length nn vector of residuals r = y - F * beta
 !>
 !> @author Keston Smith (IBSS corp) June-July 2021
 !--------------------------------------------------------------------------------------------------
@@ -78,7 +78,6 @@ call dgemv('N', n, m, atmp, F, n, beta,  1, btmp, ytr, 1)
 r(1:n)=y(1:n)-ytr(1:n)
 
 call write_scalar_fields(n, 1, y, 'obs.txt', n)
-!call write_scalar_fields(n, 1, ytr, 'ytr.txt', n)
 
 deallocate( ipiv, stat=error)
 deallocate(  Cinv, CbetaInv, ytr, Mtmp, Vtmp, Vtmp2, stat=error )
@@ -91,15 +90,14 @@ end subroutine
 !> minimize sum_{j=1:n}  ( y(j) - alpha + beta * x(j) )**2 over alpha and beta
 !>
 !> Inputs:
-!>   y (real) [n]
-!>   x (real) [n]
-!>   n (integer)
+!>  - y (real) [n]
+!>  - x (real) [n]
+!>  - n (integer)
 !>
 !> Outputs:
-!>   alpha (real)
-!>   beta (real)
-!>   p (real) [n] p(1:n) = alpha + beta * x(1:n) 
-!>   
+!>  - alpha (real)
+!>  - beta (real)
+!>  - p (real) [n] p(1:n) = alpha + beta * x(1:n) 
 !>
 !> @author Keston Smith (IBSS corp) June-July 2021
 !--------------------------------------------------------------------------------------------------
@@ -125,13 +123,13 @@ end subroutine
 !> dredge survey data from 1979 to 2018.
 !>
 !> inputs: 
-!>   n - length of vectors f and z
-!>   z - [nn] bathymetric depth
-!>   fpeak - highest observed value of recruitment
-!>   Domain - 'MA', Mid Atlantic or 'GB' Georges Bank
+!>  - n      length of vectors f and z
+!>  - z      [nn] bathymetric depth
+!>  - fpeak  highest observed value of recruitment
+!>  - Domain 'MA', Mid Atlantic or 'GB' Georges Bank
 !>
 !> input/output
-!>   f - [n] recruitment observations from the same year.
+!>  - f [n] recruitment observations from the same year.
 !> @author Keston Smith 2022
 !----------------------------------------------------------------------------------------
 subroutine limitz(n, f, z, fpeak, Domain)

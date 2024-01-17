@@ -19,7 +19,7 @@ integer j,io
 integer, intent(out):: NRand
 character(72),intent(out):: obsfile,climfile
 character(2),intent(out):: DomainName
-!logical, intent(out) :: IsLogT,IsHiLimit,IsMatchMean
+
 logical IsLogT,IsHiLimit,IsMatchMean,IsClimEst
 character(72) :: InputStr
 real(dp),intent(out)::  fmax,alpha
@@ -83,23 +83,15 @@ close(69)
 return
 end
 
-!XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX
-!-----------------------------------User Subroutines-----------------------------------------------
-!XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX
-
-!XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX
-!---------------------------------Input/Output Subroutines-----------------------------------------
-!XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX
 !-----------------------------------------------------------------------
-!subroutine readsf(flnm, M, nn)
-!Purpose: Read real valued scaler field, M, from file flnm.
-! Inputs:
-!     flnm (charecter*72)    number of rows in D, Gamma
-! Outputs:
-!     M    (real(dp))       length nn vector of values
-!    nn   (integer)        length of M
-!-----------------------------------------------------------------------
-! Keston Smith (IBSS corp) June-July 2021
+!>Purpose: Read real valued scaler field, M, from file flnm.
+!> Inputs:
+!> -    flnm (charecter*72)    number of rows in D, Gamma
+!> Outputs:
+!> -    M    (real(dp))       length nn vector of values
+!. -   nn   (integer)        length of M
+!>
+!> @author  Keston Smith (IBSS corp) June-July 2021
 !-----------------------------------------------------------------------
 subroutine readsf(flnm, M, nn)
 use globals
@@ -127,16 +119,15 @@ end
 
 
 !--------------------------------------------------------------------------------------------------
-!subroutine scalar_fields(nn,nsim,f,flnm,nndim)
-! Purpose: Write columns of a matrrix (f) to a series of text files in exponential format.
-! Inputs:
-!     nn    (integer) number of rows in f 
-!     nsim(integer) number of columns in f
-!    f    (real(dp)) values to write to text file
-!    flnm(character(72)) filename to write f to in csv format
-!   nndim(integer) leading dimension of f
-!--------------------------------------------------------------------------------------------------
-! Keston Smith (IBSS corp) June-July 2021
+!> Purpose: Write columns of a matrrix (f) to a series of text files in exponential format.
+!> Inputs:
+!> -    nn    (integer) number of rows in f 
+!> -    nsim(integer) number of columns in f
+!> -   f    (real(dp)) values to write to text file
+!> -   flnm(character(72)) filename to write f to in csv format
+!> -  nndim(integer) leading dimension of f
+!>
+!> @author  Keston Smith (IBSS corp) June-July 2021
 !--------------------------------------------------------------------------------------------------
 subroutine write_scalar_fields(nn,nsim,f,flnm,nndim)
 use globals
@@ -167,14 +158,13 @@ implicit none
 end subroutine
 
 !--------------------------------------------------------------------------------------------------
-!subroutine WriteScalarField(nn,f,flnm)
-! Purpose: Write columns of a matrrix (f) to a series of text files in exponential format.
-! Inputs:
-!     nn    (integer) number of rows in f 
-!    f    (real(dp)) values to write to text file
-!    flnm(character(72)) filename to write f to in csv format
-!--------------------------------------------------------------------------------------------------
-! Keston Smith (IBSS corp) June-July 2021
+!> Purpose: Write columns of a matrrix (f) to a series of text files in exponential format.
+!> Inputs:
+!> -  nn    (integer) number of rows in f 
+!> -   f    (real(dp)) values to write to text file
+!> -  flnm  (character(72)) filename to write f to in csv format
+!>
+!> @author  Keston Smith (IBSS corp) June-July 2021
 !--------------------------------------------------------------------------------------------------
 subroutine WriteScalarField(nn,f,flnm)
     use globals
@@ -192,15 +182,14 @@ subroutine WriteScalarField(nn,f,flnm)
 end subroutine
 
 !--------------------------------------------------------------------------------------------------
-!subroutine write_csv(n,m,f,flnm,nndim)
-! Purpose: Write values of a matrrix (f) to a csv file in exponential format.
-! Inputs:
-!     n    (integer) number of rows in f 
-!     m    (integer) number of columns in f
-!    f    (real(dp)) values to write to csv file
-!    flnm    (character(72)) filename to write f to in csv format
-!--------------------------------------------------------------------------------------------------
-! Keston Smith (IBSS corp) June-July 2021
+!> Purpose: Write values of a matrrix (f) to a csv file in exponential format.
+!> Inputs:
+!> -    n    (integer) number of rows in f 
+!> -    m    (integer) number of columns in f
+!> -   f    (real(dp)) values to write to csv file
+!> -   flnm    (character(72)) filename to write f to in csv format
+!>
+!> @author Keston Smith (IBSS corp) June-July 2021
 !--------------------------------------------------------------------------------------------------
 subroutine write_csv(n,m,f,flnm,nndim)
 use globals
@@ -227,7 +216,3 @@ implicit none
     close(63)
 
 end subroutine
-
-!XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX
-!-----------------------------End Input/Output Subroutines-----------------------------------------
-!XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX

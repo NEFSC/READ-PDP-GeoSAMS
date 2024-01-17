@@ -27,25 +27,24 @@ CONTAINS
 !>
 !> Purpose: Computes distance between two vectors of points
 !> Inputs:
-!>     nn    (integer) number of spatial points in vectors x0,y0 
-!>    x0    (real(dp))  length nn vector of x coordinates (m)
-!>    y0    (real(dp))  length nn  vector of y coordinates (m)
-!>    z0    (real(dp))  length nn  vector of bathymetric depth at (x,y)
+!>   @param[in]  nn    (integer) number of spatial points in vectors x0,y0 
+!>   @param[in] x0    (real(dp))  length nn vector of x coordinates (m)
+!>   @param[in] y0    (real(dp))  length nn  vector of y coordinates (m)
+!>   @param[in] z0    (real(dp))  length nn  vector of bathymetric depth at (x,y)
 !>
-!>     mm    (integer) number of spatial points in vectors x0,y0 
-!>    x1    (real(dp))  length mm  vector of x coordinates (m)
-!>    y1    (real(dp))  length mm vector of y coordinates (m)
-!>    z1    (real(dp))  length mm vector of bathymetric depth at (x,y)
+!>   @param[in]  mm    (integer) number of spatial points in vectors x0,y0 
+!>   @param[in] x1    (real(dp))  length mm  vector of x coordinates (m)
+!>   @param[in] y1    (real(dp))  length mm vector of y coordinates (m)
+!>   @param[in] z1    (real(dp))  length mm vector of bathymetric depth at (x,y)
 !>
-!> outputs:
-!>    D    (real(dp))  Size (nn x mm) matrix of distances between point pairs (x0,y0),(x1,y1)
+!>   @param[out] D    (real(dp))  Size (nn x mm) matrix of distances between point pairs (x0,y0),(x1,y1)
 !> @author Keston Smith (IBSS corp) June-July 2021
 !--------------------------------------------------------------------------------------------------
-subroutine distance(p,q,Dh,Dz,nndim)
+subroutine distance(p,q,Dh,Dz,n_dim)
     type(Grid_Data_Class):: p
     type(Grid_Data_Class):: q
-    integer, intent(in)    :: nndim
-    real(dp), intent(out)   :: Dh(nndim,*),Dz(nndim,*)
+    integer, intent(in)  :: n_dim
+    real(dp), intent(out) :: Dh(n_dim,*),Dz(n_dim,*)
     integer    j
 
     do j=1,p%n
@@ -56,29 +55,28 @@ end subroutine
 
 !--------------------------------------------------------------------------------------------------
 !>
-!>Purpose: Computes a variogram (G) given distances between points (D).
-!> Inputs:
-!>     nn    (integer) number of rows in D, Gamma
-!>     mm      (integer) number of columns in D, Gamma
-!>    D    (real(dp))  Size (nn x mm) matrix distance between point pairs
+!> Purpose: Computes a variogram (G) given distances between points (D).
+!> 
+!> @param[in] nn    (integer) number of rows in D, Gamma
+!> @param[in] mm    (integer) number of columns in D, Gamma
+!> @param[in] D     (real(dp))  Size (nn x mm) matrix distance between point pairs
 !>
-!> Outputs:
-!>    G    (real(dp))  Size (nn x mm) variogram matrix for point pairs represented in D
+!> @param[out] G     (real(dp))  Size (nn x mm) variogram matrix for point pairs represented in D
 !>
-!> Internal:
-!>    c    (real(dp))  Variogram parameter c+c0 = shelf
-!>    c0    (real(dp))  Variogram parameter nugget
-!>    alpha    (real(dp))  Variogram length scale parameter
-!>    form    (charecter*72) functional form of variogram
-!>The above should be read in an input file but are written as constants for now
+!> Internal:\n
+!>  - c     (real(dp))  Variogram parameter c+c0 = shelf\n
+!>  - c0    (real(dp))  Variogram parameter nugget\n
+!>  - alpha (real(dp))  Variogram length scale parameter\n
+!>  - form  (charecter*72) functional form of variogram\n
+!> The above should be read in an input file but are written as constants for now
 !>    
 !> @author Keston Smith (IBSS corp) June-July 2021
 !--------------------------------------------------------------------------------------------------
-subroutine variogram(nn,mm,Dh,Dz,G,ndim,par)
+subroutine variogram(nn,mm,Dh,Dz,G,n_dim,par)
 type(KrigPar):: par
-integer, intent(in)    :: nn,mm,ndim
-real(dp), intent(in)    :: Dh(ndim,*),Dz(ndim,*)
-real(dp), intent(out)   :: G(ndim,*)
+integer, intent(in)    :: nn,mm,n_dim
+real(dp), intent(in)    :: Dh(n_dim,*),Dz(n_dim,*)
+real(dp), intent(out)   :: G(n_dim,*)
 integer j,k,error
 real(dp) c,c0,alpha,Wz
 real(dp) kap
@@ -87,10 +85,10 @@ real(dp), allocatable:: D(:,:)
 
 allocate( D(1:nn,1:mm) ) 
 
-c0 =  par%c0
-c =  par%c
-alpha =  par%alpha
-Wz =  par%Wz
+c0 = par%c0
+c = par%c
+alpha = par%alpha
+Wz = par%Wz
 form=par%form
 D(1:nn,1:mm)=sqrt( Dh(1:nn,1:mm)**2 + ( Wz * Dz(1:nn,1:mm) ) **2 )
 if (trim(form).eq.'spherical')then
@@ -138,32 +136,24 @@ endsubroutine
 
 !--------------------------------------------------------------------------------------------------
 !> Purpose: Computes a variogram (G) given distances between points (D).
-!>  Inputs:
-!>      nn    (integer) number of rows in D, Gamma
-!>      mm      (integer) number of columns in D, Gamma
-!>     D    (real(dp))  Size (nn x mm) matrix distance between point pairs
+!>
+!> @param[in]  nn    (integer) number of rows in D, Gamma
+!> @param[in]  mm    (integer) number of columns in D, Gamma
+!> @param[in]  Dh, Dz     (real(dp))  Size (nn x mm) matrix distance between point pairs
 !> 
-!>  Outputs:
-!>     G    (real(dp))  Size (nn x mm) variogram matrix for point pairs represented in D
+!> @param[out] G     (real(dp))  Size (nn x mm) variogram matrix for point pairs represented in D
 !> 
-!>  Internal:
-!>     c    (real(dp))  Variogram parameter c+c0 = shelf
-!>     c0    (real(dp))  Variogram parameter nugget
-!>     alpha    (real(dp))  Variogram length scale parameter
-!>     form    (charecter*72) functional form of variogram
-!> The above should be read in an input file but are written as constants for now
-!>     
 !> @author Keston Smith (IBSS corp) June-July 2021
 !--------------------------------------------------------------------------------------------------
-subroutine variogramF(nn,Dh,Dz,G,ndim,f,par)
-type(KrigPar):: par
+subroutine variogramF(nn,Dh,Dz,G,n_dim,f,par)
+type(KrigPar), intent(inout) :: par
 type(KrigPar):: parTmp
 
 integer  NIntVD,NPS
 parameter(NIntVD=31,NPS=30)
-integer, intent(in)    :: nn,ndim
-real(dp), intent(in)    :: Dh(ndim,*),Dz(ndim,*),f(*)
-real(dp), intent(out)   :: G(ndim,*)
+integer, intent(in)  :: nn,n_dim
+real(dp), intent(in) :: Dh(n_dim,*),Dz(n_dim,*),f(*)
+real(dp), intent(out):: G(n_dim,*)
 real(dp) DintV(NIntVD),DintVm(NIntVD), SIntV(NIntVD)
 real(dp) Pind(NPS),alphaR(NPS),c0R(NPS),cR(NPS),WzR
 integer j,k,n,m,nc,NIntV
@@ -185,11 +175,9 @@ do k=1,NPS
 enddo
 
 costmin=huge(1.)
-!alphaR(1:NPS)=Pind(1:NPS)*100000.D0
 alphaR(1:NPS)=Pind(1:NPS)*100000.D0
 ! WzR,Wz -  These variables were used to allow anisotropy in the kriging covariance.
-! they are not used here.
-!WzR(1:NPS)=(Pind(1:NPS)-1./float(NPS))*10000.D0
+! they are not used here. WzR(1:NPS)=(Pind(1:NPS)-1./float(NPS))*10000.D0
 WzR=0.D0
 
 NIntV=NIntVD
@@ -216,7 +204,6 @@ NIntV=NIntV-1
 !if(nz.eq.1)then ! set bounds with isotropic distance
 cR(1:NPS)=Pind(1:NPS)*maxval(SIntV(1:NIntV))
 if(minval(SIntV(1:NIntV)).gt.0.)then
-    ! c0R(1:NPS)=Pind(1:NPS)*minval(SIntV(1:NIntV))
     c0R(1:NPS)=Pind(1:NPS)*minval(SIntV(1:NIntV))
 else
     c0R(1:NPS)=Pind(1:NPS)*cR(1)
@@ -249,7 +236,6 @@ call write_scalar_fields(NintV,1,DIntVm,'DIntV.txt',NintV)
 call write_scalar_fields(NintV,1,SIntV,'SIntV.txt',NintV)
 
 write(*,*)'Bounds alpha:[', alphaR(1),par%alpha,alphaR(NPS),']'
-!write(*,*)'Bounds Wz:[',WzR(1),par%Wz,WzR(NPS),']'
 write(*,*)'Bounds c0:[', c0R(1),par%c0,c0R(NPS),']'
 write(*,*)'Bounds c:[',cR(1),par%c,cR(NPS),']'
 call variogram(nn, nn, Dh,Dz, G, nn, par)
@@ -259,27 +245,27 @@ endsubroutine
 !--------------------------------------------------------------------------------------------------
 !> Purpose: Computes value of spatial functions at x,y.
 !> Inputs:
-!>   p (Grid_Data_Class) - Spatial points to evaluate functions at
-!>     nndim    (integer) leading dimension of F
-!>   nlsf (NLSF) vector of nonlinear spatial functions defined
+!> @param[in]  p      (Grid_Data_Class) - Spatial points to evaluate functions at
+!> @param[in]  n_dim (integer) leading dimension of F
+!> @param[in]  nlsf  (NLSF) vector of nonlinear spatial functions defined
 !>
 !> outputs:
-!>    F    (real(dp))  Size (nn x nf) matrix containg values of spatial functions at points (x,y)
-!>    nf    (integer) number of spatial functions (be carefull allocating F)
+!> @param[out] F    (real(dp))  Size (nn x nf) matrix containg values of spatial functions at points (x,y)
+!> @param[out] nf   (integer) number of spatial functions (be carefull allocating F)
 !> @author Keston Smith (IBSS corp) June-July 2021
 !--------------------------------------------------------------------------------------------------
-subroutine spatial_function(p,F,nf,nndim,nlsf)
+subroutine spatial_function(p,F,nf,n_dim,nlsf)
 type(Grid_Data_Class):: p
 type(NLSFpar), intent(in):: nlsf(*)
-integer, intent(in)    :: nndim
+integer, intent(in)    :: n_dim
 integer, intent(out)   :: nf
-real(dp), intent(out)   :: F(nndim,*)
-real(dp) s(nndim), fpc(nndim)
+real(dp), intent(out)   :: F(n_dim,*)
+real(dp) s(n_dim), fpc(n_dim)
 integer nn,j,k
 
 nf=nlsf(1)%nsf+1
 ! flag for initial call
-if (nndim.eq.1) return
+if (n_dim.eq.1) return
 nn=p%n
 F(1:nn,1)=1.
 do j=1,nlsf(1)%nsf
@@ -296,30 +282,26 @@ call write_csv(nn,nf,F,'SpatialFunctions.csv',nn)
 end subroutine
 
 !--------------------------------------------------------------------------------------------------
-!subroutine spatial_function_lin(p,F,nf,ndim,nlsf)
-!
-! Purpose: Computes value of spatial functions at p%x(1:p%n),p%y(1:p%n).  This is left as an example
-! subroutine for users to define their own spatial_function subroutine. 
-! Inputs:
-!   p (Grid_Data_Class) - Spatial points to evaluate functions at
-!     nndim    (integer) leading dimension of F
-!   nlsf (NLSF) Dummy variable.
-!
-! outputs:
-!    F    (real(dp))  Size (nn x nf) matrix containg values of spatial functions at points (x,y)
-!    nf    (integer) number of spatial functions (be carefull allocating F)
-! @author Keston Smith (IBSS corp) June-July 2021
+!> Purpose: Computes value of spatial functions at p%x(1:p%n),p%y(1:p%n).  This is left as an example
+!> subroutine for users to define their own spatial_function subroutine. 
+!> 
+!> @param[in] p     (Grid_Data_Class) - Spatial points at which to evaluate functions
+!> @param[in] n_dim (integer) leading dimension of F  
+!> 
+!> @param[out] F    (real(dp))  Size (nn x nf) matrix containg values of spatial functions at points (x,y)
+!> @param[out] nf   (integer) number of spatial functions (be carefull allocating F)
+!> @author Keston Smith (IBSS corp) June-July 2021
 !--------------------------------------------------------------------------------------------------
-subroutine spatial_function_lin(p,F,nf,nndim)
+subroutine spatial_function_lin(p,F,nf,n_dim)
 type(Grid_Data_Class):: p
-integer, intent(in)    :: nndim
+integer, intent(in)    :: n_dim
 integer, intent(out)   :: nf
-real(dp), intent(out)   :: F(nndim,*)
+real(dp), intent(out)   :: F(n_dim,*)
 integer nn
 
 nf=4
 ! flag for initial call
-if (nndim.eq.1) return
+if (n_dim.eq.1) return
 nn=p%n
 
 F(1:nn,1)=1.
@@ -336,23 +318,22 @@ end subroutine
 !> is to simulate random fields consistent with the observations, spatial functions, and variogram.  
 !> 
 !>  Inputs:
-!>     x    (real(dp)) length nn vector of x-coordinates of grid  
-!>     y    (real(dp)) length nn vector of y-coordinates for grid  
-!>     z    (real(dp)) length nn vector of bathymetric depth at (x, y)  
-!>     nn    (integer) number of points in grid
-!>     xo    (real(dp)) length no vector of x-coordinates of data  
-!>     yo    (real(dp)) length no vector of y-coordinates for data  
-!>     zo    (real(dp)) length no vector of bathymetric depth at data point (xo, yo)  
-!>     fo    (real(dp)) length no vector of observations at (xo, yo)  
-!>     n0    (integer) number of points in grid
+!>   -  x    (real(dp)) length nn vector of x-coordinates of grid  
+!>   -  y    (real(dp)) length nn vector of y-coordinates for grid  
+!>   -  z    (real(dp)) length nn vector of bathymetric depth at (x, y)  
+!>   -  nn    (integer) number of points in grid
+!>   -  xo    (real(dp)) length no vector of x-coordinates of data  
+!>   -  yo    (real(dp)) length no vector of y-coordinates for data  
+!>   -  zo    (real(dp)) length no vector of bathymetric depth at data point (xo, yo)  
+!>   -  fo    (real(dp)) length no vector of observations at (xo, yo)  
+!>   -  n0    (integer) number of points in grid
 !>
 !>  Outputs:
-!>    f    (real(dp)) UK estimate (linear in observations, fo) of the field
-!>    beta    (real(dp)) length nf vector, best estimate of spatial function coefficients
-!>    Cbeta    (real(dp)) (nf x nf) covariance matrix for the estimates of beta
-!>    eps    (real(dp)) length nn vector, best estimate of residual process
-!>    CepsPost(real(dp)) (nn x nn) covariance matrix for residual esimate (the spatially 
-!>               coorelated random field component).
+!>   - f     (real(dp)) UK estimate (linear in observations, fo) of the field
+!>   - beta  (real(dp)) length nf vector, best estimate of spatial function coefficients
+!>   - Cbeta (real(dp)) (nf x nf) covariance matrix for the estimates of beta
+!>   - eps   (real(dp)) length nn vector, best estimate of residual process
+!>   - CepsPost(real(dp)) (nn x nn) covariance matrix for residual esimate (the spatially coorelated random field component).
 !>
 !> Derivation for the UK algorithm and relation to generalized least squares estimation can be 
 !> found in the book: N. Cressie (1993). Statistics for spatial data. Wiley, New York, 1993.
@@ -453,7 +434,7 @@ do j=1, no
 enddo
 call dgesv(no, no, Ceps, no, IPIV, Cinv, no, info)
 !
-! cov(beta_gls) =  inv (F' Cinv F )
+! cov(beta_gls) = inv (F' Cinv F )
 !
 call dgemm('N', 'N', no, nf, no, atmp, Cinv, no, Fs,   no, btmp, Mtmp,    no )
 call dgemm('T', 'N', nf, nf, no, atmp,  Fs, no, Mtmp , no, btmp, CbetaInv, nf )
@@ -470,12 +451,6 @@ write(*,*)'UK_GLS (b) dgesv info=', info
 Vtmp(1:no)=matmul(Cinv(1:no, 1:no), obs%f(1:no))
 Vtmp2(1:nf)=matmul(transpose(Fs(1:no, 1:nf)), Vtmp(1:no))
 beta(1:nf)=matmul(Cbeta(1:nf, 1:nf), Vtmp2(1:nf))
-!call dgemv('N', no, no, atmp, Cinv, no, obs%f, 1,  btmp, Vtmp, 1)!Vtmp=C^{-1} y
-!write(*,*)'UK_GLS (b) dgesv info=', info
-!call dgemv('T', no, nf, atmp, Fs,  no, Vtmp, 1, btmp, Vtmp2, 1)!Vtmp2= F^T C^{-1} y
-!write(*,*)'UK_GLS (c) dgesv info=', info
-!call dgemv('N', nf, nf, atmp, Cbeta, nf, Vtmp2, 1, btmp, Beta, 1)!beta=Cbeta F^t C^{-1} y
-!write(*,*)'UK_GLS (d) dgesv info=', info
 !
 ! Posterior covariance for residual
 !
@@ -522,22 +497,22 @@ end subroutine
 !> Purpose: Simulate independent random fields under the assumptions of a Universal Kriging model.
 !> 
 !>  Inputs:
-!>     x    (real(dp)) length nn vector of x-coordinates of grid  
-!>     y    (real(dp)) length nn vector of y-coordinates for grid  
-!>     z    (real(dp)) length nn vector of bathymetric depth at (x, y)  
-!>     nn    (integer) number of points in grid
-!>    beta    (real(dp)) length nf vector estimate of spatial function coefficients
-!>    Cbeta   (real(dp)) (nf x nf) covariance matrix for estimate beta
-!>    eps    (real(dp)) length nn vector estimate of noise field
-!>    Ceps    (real(dp)) (nn x nn) spatial covariance matrix of residual from linear fit of spatial 
-!>                   functions
+!>   - x     (real(dp)) length nn vector of x-coordinates of grid  
+!>   - y     (real(dp)) length nn vector of y-coordinates for grid  
+!>   - z     (real(dp)) length nn vector of bathymetric depth at (x, y)  
+!>   - nn    (integer) number of points in grid
+!>   - beta  (real(dp)) length nf vector estimate of spatial function coefficients
+!>   - Cbeta (real(dp)) (nf x nf) covariance matrix for estimate beta
+!>   - eps   (real(dp)) length nn vector estimate of noise field
+!>   - Ceps  (real(dp)) (nn x nn) spatial covariance matrix of residual from linear fit of spatial functions
 !>    Nsim    (integer) number of random fields to simulate
 !>
 !>  Outputs:
-!>    none    currently random fields are written to files 'totalRF.csv', 'trendRF.csv', and
-!>        'noiseRF.csv' as (nn x Nsim) matricies in which each column represents an 
-!>        independent random field. 'trend' is the component related to the spatial functions, 
-!>        'noise' the component related to the residual, and 'total' their sum.
+!>   - none    
+!>  Currently random fields are written to files 'totalRF.csv', 'trendRF.csv', and noiseRF.csv' 
+!>  as (nn x Nsim) matricies in which each column represents an independent random field. '
+!>  trend' is the component related to the spatial functions, 'noise' the component related 
+!>  to the residual, and 'total' their sum.
 !>
 !> The independence of the trend component and spatially correlated noise component is assumed.
 !>
@@ -569,32 +544,22 @@ btmp=0.
 call RandomSampleF(n, n, Nsim, eps(1:n), Ceps, RFeps)
 
 call spatial_function(g, F, nf, g%n, nlsf)
-!Ctrend(1:n, 1:n)=matmul( F(1:n, 1:nf) , matmul(Cbeta(1:nf, 1:nf), transpose(F(1:n, 1:nf)) ) )
 trend(1:n)=matmul(F(1:n, 1:nf), beta(1:nf))
-!call RandomSampleF(n, n, Nsim, trend, Ctrend, RFtrend)
 
 call RandomSampleF(nf, nf, Nsim, beta(1:nf), Cbeta, BetaRF)
-!call dgemm('N', 'N', g%n, Nsim, nf, atmp, F, g%n, BetaRF, nf, btmp, RFtrend, g%n)
 RFtrend(1:n, 1:Nsim)=matmul(F(1:n, 1:nf), BetaRF(1:nf, 1:Nsim))
 
 RFtotal(1:n, 1:NSim)=RFtrend(1:n, 1:NSim)+RFeps(1:n, 1:NSim)
-!do k=1, n
-!    RFtotal(k, 1:NSim)=logmu(k)+RFtrend(k, 1:NSim)+RFeps(k, 1:NSim)
-!enddo
 
 if(IsLogT)then
     RFtrend(1:n, 1:NSim) = SF * exp(RFtrend(1:n, 1:NSim)) - A  
-    RFeps(1:n, 1:NSim) =   SF * exp(RFeps(1:n, 1:NSim))   - A 
+    RFeps(1:n, 1:NSim) = SF * exp(RFeps(1:n, 1:NSim))   - A 
 endif
 
 !-----------------------------------------------------------
 !enforce ensemble mean in trend
 trend(1:n)=matmul(F(1:n, 1:nf), beta(1:nf))
 if(IsLogT)trend(1:n) = SF * exp(trend(1:n)) - A  
-!do k=1, n
-!    EnsMu(k)=sum( RFtrend(k, 1:Nsim) )/float(Nsim)
-!    RFtrend(k, 1:Nsim)=trend(k)*RFtrend(k, 1:Nsim)/EnsMu(k)
-!enddo
 !-----------------------------------------------------------
 
 do k=1, n
@@ -609,8 +574,6 @@ open(69, FILE='RandomFieldSF.txt')
 !adjust ensemble ensemble mean to match kriging estimate 
 do k=1, n
     EnsMu(k)=sum( RFtotal(k, 1:Nsim) )/float(Nsim)
-!    RFtotal(k, 1:Nsim) = RFtotal(k, 1:Nsim) + mu(k)  - EnsMu(k)
-!    RFtotal(k, 1:Nsim) = RFtotal(k, 1:Nsim)*(mu(k)+A) / (EnsMu(k)+A)
     adj=min( (mu(k)+A) / (EnsMu(k)+A), 1.D0)
     RFtotal(k, 1:Nsim) = RFtotal(k, 1:Nsim)*adj
     call limitz(Nsim, RFtotal(k, 1:Nsim), z(k)+0.*RFtotal(k, 1:Nsim), fmax, 'MA')
@@ -633,15 +596,15 @@ end subroutine
 !> model.
 !>
 !> Inputs: 
-!>    g    (real(dp)) Data point structure defining interpolation points 
-!>    nf    (integer) number of spatial functions
-!>   par variogram parameter structure
+!>  - g   (real(dp)) Data point structure defining interpolation points 
+!>  - nf  (integer) number of spatial functions
+!>  - par variogram parameter structure
 !>
 !> Outputs:
-!>   beta(real(dp)) mean of spatial function coefficients
-!>   Cbeta(real(dp)) covariance of spatial function coefficients
-!>   eps(real(dp)) mean of residual
-!>   Ceps(real(dp)) covariance of residual
+!>  - beta(real(dp))  mean of spatial function coefficients
+!>  - Cbeta(real(dp)) covariance of spatial function coefficients
+!>  - eps(real(dp))   mean of residual
+!>  - Ceps(real(dp))  covariance of residual
 !> @author Keston Smith (IBSS corp) June-July 2021
 !> @todo need to fix dimensioning (1/10/2022)!
 !-----------------------------------------------------------------------
@@ -671,7 +634,7 @@ eps(1:nn)=0.
 !
 beta(1:nf)=0.
 Cbeta(1:nf, 1:nf)=0.
-beta(1:4)=  (/ 52.399839511692335, 1.0935428391808943E-004, -3.1615155809229245E-003, 1.2116283255694471E-002  /)
+beta(1:4)= (/ 52.399839511692335, 1.0935428391808943E-004, -3.1615155809229245E-003, 1.2116283255694471E-002  /)
 Cbeta(1, 1:4)= (/270.60028747602928, 1.5366756312328578E-003, 7.9881962338312195E-003, -6.0292972962538195E-002 /)
 Cbeta(2, 1:4)= (/1.5366756312270658E-003, 1.7247639913097469E-005, 1.3324610875859451E-006, -2.3045855632454535E-007 /)
 Cbeta(3, 1:4)= (/7.9881962338509589E-003, 1.3324610875862412E-006, 5.5464689237415081E-006, -2.4207894889311469E-006 /)
