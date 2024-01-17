@@ -18,7 +18,7 @@
 !-----------------------------------------------------------------------
 
 ! Define a data point with position (x,y), bathymetric depth z(x,y) and scalar field value f(x,y)
-module DpointMod              
+module GridManagerMod              
 integer     NDim
 parameter(nDim=12000)
  type Dpoint
@@ -53,7 +53,7 @@ end module
 ! Non Linear Spatial Function parameters
 
 
-module NLSFMod             
+module NonLinearSpatialFcnMod             
  type NLSFPar
     real(kind(1.0D0)) lambda, x0
     real(kind(1.0D0)) lambdaMin,lambdaMax
@@ -71,9 +71,9 @@ program UKsimulation
 !
 ! Performs Universal Kriging with posterior sampling.  The functions are 
 !
-use DpointMod
+use GridManagerMod
 use KrigMod
-use NLSFMod
+use NonLinearSpatialFcnMod
 implicit none
 
 real(kind(1.0D0))     atmp,btmp,muY,muZ,NRandomField
@@ -245,8 +245,8 @@ end
 subroutine OutputUK(nn,nf,Nrand,grid,nlsf,beta,eps,Ceps,Cbeta,ClimEst,fmax,SF,A,DomainAverage,&
                     IsLogT,IsClimEst,IsMatchMean,IsHiLimit,DomainName)
 
-use DpointMod
-use NLSFMod
+use GridManagerMod
+use NonLinearSpatialFcnMod
 implicit none
 
 type(Dpoint),intent(inout) :: grid
@@ -373,7 +373,7 @@ end
 subroutine InterpFromGrid(g,f,obs,fInterp)
 !Interpolate data from a field, f, on the nodes of grid g with square elements, g%E to 
 ! points described in obs.
-use DpointMod
+use GridManagerMod
 type(Dpoint):: g
 type(Dpoint):: obs
 real(kind(1.0D0)), intent(out) :: fInterp(*)
@@ -418,7 +418,7 @@ end
 
 subroutine GetDomainAverage(obs,g,DomainAverage)
 !compute spatial average of values in obs%f, by averaging across regions in g%region 
-use DpointMod
+use GridManagerMod
 type(Dpoint):: g
 type(Dpoint):: obs
 real(kind(1.0D0)), intent(out) :: DomainAverage
@@ -491,9 +491,9 @@ subroutine UK_GLS(g,obs,nf,par,beta,Cbeta,eps,CepsG,nlsf)
 !--------------------------------------------------------------------------------------------------
 ! Keston Smith (IBSS corp) June-July 2021
 !--------------------------------------------------------------------------------------------------
-use DpointMod
+use GridManagerMod
 use KrigMod
-use NLSFMod
+use NonLinearSpatialFcnMod
 
 implicit none
 type(Dpoint):: g
@@ -684,8 +684,8 @@ subroutine UK_RandomField(g,nf,beta,Cbeta,eps,Ceps,Nsim,nlsf,IsLogT,mu,A,SF,fmin
 !--------------------------------------------------------------------------------------------------
 ! Keston Smith (IBSS corp) June-July 2021
 !--------------------------------------------------------------------------------------------------
-use DpointMod
-use NLSFMod
+use GridManagerMod
+use NonLinearSpatialFcnMod
 implicit none
 type(Dpoint):: g
 type(NLSFpar):: nlsf(*)
@@ -910,7 +910,7 @@ subroutine UK_prior(g,nf,par,beta,Cbeta,eps,Ceps)
 ! Keston Smith (IBSS corp) June-July 2021
 ! need to fix dimensioning (1/10/2022)!
 !-----------------------------------------------------------------------
-use DpointMod
+use GridManagerMod
 use KrigMod
 implicit none
 type(Dpoint):: g

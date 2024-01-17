@@ -1,27 +1,51 @@
+!--------------------------------------------------------------------------------------------------
+!> @page page2 Non Linear Spatial Functions
+!>
+!--------------------------------------------------------------------------------------------------
 
-subroutine DefineNLSFunctions(nlsf,p,InitialCallFlag)
-!subroutine DefineNLSFunctions(nlsf,p,InitialCallFlag)
-! Define non linear spatial functions(NLSF) and paramater search range.
-! The file "UK.inp" contains a set of lines of the form
-! "Function 1, dim=z, shape=Logistic, precon=0 "
-! "Function 2, dim=z, shape=Gaussian, precon=0 "
-! "Function 7, dim=x, shape=Logistic, precon=1 "
-! these define spatial functions for setting the spatial trend in the universal kriging 
-! algorithm. The precon=0 term 
-! The function is called twice from the main program.  In the first call 
-! InitiialCallFlag= T and the number of nonlinear spatial functions is returned.
-! In the second call InitiialCallFlag= F and all of the functions are defined.
-! with precon=0 the nonlinear paraters function is fit in a least
-use NLSFMod
-use DpointMod
+module NonLinearSpatialFcnMod
+use globals
+use GridManagerMod
+use LinearSpatialFcnMod
 implicit none
+
+type NLSFPar
+    real(dp) lambda, x0
+    real(dp) lambdaMin,lambdaMax
+    real(dp) x0Min,x0Max
+    real(dp) xRange(2)
+    real(dp) rms
+    character(12) form
+    character(3) d
+    integer nsf,PreCFnum,IsTrunkateRange,UseGreedyFit,nsflim
+
+end type NLSFPar
+
+CONTAINS
+
+!--------------------------------------------------------------------------------------------------
+!> Define non linear spatial functions(NLSF) and paramater search range.
+!> The file "UK.inp" contains a set of lines of the form
+!> "Function 1, dim=z, shape=Logistic, precon=0 "
+!> "Function 2, dim=z, shape=Gaussian, precon=0 "
+!> "Function 3, dim=x, shape=Logistic, precon=1 "
+!> these define spatial functions for setting the spatial trend in the universal kriging algorithm. 
+!> The precon=0 term means that the function is not multiplied by another function.
+!> "Function 3, dim=x, shape=Logistic, precon=1 " indicates that the third function is multiplied by
+!> the first function.  This is true for fitting the nonlinear parameters of function 3 hence 
+!> the parameters of function 1 must be fit before the parameters of function 3.
+!> The function is called twice from the main program.  In the first call 
+!> InitiialCallFlag= T and the number of nonlinear spatial functions is returned.
+!> In the second call InitiialCallFlag= F and all of the functions are defined.
+!> with precon=0 the nonlinear paraters function is fit in a least
+!--------------------------------------------------------------------------------------------------
+subroutine DefineNLSFunctions(nlsf,p,InitialCallFlag)
 type(NLSFPar)::nlsf(*)
-type(Dpoint):: p
-integer j,io,k,n,nn
+type(Grid_Data_Class):: p
+integer j,io,n,nn
 logical, intent(in):: InitialCallFlag
 logical UseGreedyFit
 character(72) :: InputStr
-
 
 open(69,file='UK.inp')
 n=0
@@ -66,7 +90,6 @@ do
     if(InputStr(1:1).eq.'G')then
         j = index(InputStr,"=",back=.true.)
         read( Inputstr(j+1:),* )UseGreedyFit
-        
     endif
  end do
 close(69)
@@ -107,41 +130,37 @@ do n=1,nlsf(1)%nsf
     nlsf(n)%xRange(2)=nlsf(n)%x0Max
 enddo
 return
-end
+endsubroutine
 
-subroutine FitNLSFunctions(obs,grid,nlsf,IsReset)
-! subroutine FitNLSFunctions(obs,grid,nlsf,IsReset)
-! Purpose: Performs a brute force least squares fit of nonlinear spatial function parameters to data points in 
-! obs.
 !--------------------------------------------------------------------------------------------------
-! Purpose: Evaluates nonlinear spatial function with parameters x0 ad lambda at points in p. Values 
-! returned in vector f.
-!
-! inputs:
-!       obs: DpointMod(see UniversalKriging.f90) Defines observations to be fit. 
-! inputs/output:
-!       nlsf: Nonlinear spatial function(see UniversalKriging.f90). Defines a vector of nonlinear 
-!             spatial functions. On return nlsf(1:nsf)%x0 and nlsf(1:nsf)%lambda are specified.
-!!
-! outputs: 
-!       f: p%nn length vector of values of nlsf at points defined in p.
-
-! history:  Written by keston Smith (IBSS corp) 2022
+!> Purpose: Performs a brute force least squares fit of nonlinear spatial function parameters to data points in 
+!> obs.
+!>
+!> inputs:
+!>       obs: GridManagerMod(see UniversalKriging.f90) Defines observations to be fit. 
+!>       IsReset: (integer) if IsReset=0 the residual from the preceeding function is fit.
+!>                          if IsReset=1 each function is fit to observations.
+!>
+!> inputs/output:
+!>       nlsf: Nonlinear spatial function(see UniversalKriging.f90). Defines a vector of nonlinear 
+!>             spatial functions. On return nlsf(1:nsf)%x0 and nlsf(1:nsf)%lambda are specified.
+!>
+!> outputs: 
+!>       f: p%nn length vector of values of nlsf at points defined in p.
+!>
+!> @author keston Smith (IBSS corp) 2022
 !--------------------------------------------------------------------------------------------------
-use DpointMod
-use NLSFMod
+subroutine FitNLSFunctions(obs,nlsf,IsReset)
 
 implicit none
-integer j,n,no,nn,nsf,k,IsReset,nsflim
-real(kind(1.0D0)) mu,rms0
-type(Dpoint):: obs
-type(Dpoint):: grid
+integer j,no,nn,nsf,k,IsReset,nsflim
+real(dp) mu,rms0
+type(Grid_Data_Class):: obs
 type(NLSFPar)::nlsf(*)
-real(kind(1.0D0)), allocatable :: r(:),fpc(:),residuals(:,:),rms(:)
+real(dp), allocatable :: r(:),fpc(:),residuals(:,:),rms(:)
 integer, allocatable:: RankIndx(:)
 
 no=obs%n
-nn=grid%n
 nsf=nlsf(1)%nsf
 nsflim=nlsf(1)%nsflim
 write(*,*)'FNLSF',no,nn,nsf
@@ -163,7 +182,7 @@ do j=1,nsf
         write(*,*) 'Preconditiong',k,j
         call NLSFunc (obs,nlsf(k),fpc)
     endif
-    call FitNLSFunc(obs,grid,nlsf(j),r,fpc,r)
+    call FitNLSFunc(obs,nlsf(j),r,fpc,r)
     nlsf(j)%rms=sqrt( sum( r(1:no)**2 )/float(no) )
     rms(j)=nlsf(j)%rms
     residuals(1:no,j)=r(1:no)
@@ -194,9 +213,7 @@ if(IsReset.eq.1)then
     rms0=sqrt(sum( ( obs%f(1:no)-mu  )**2)/float(no))
     j=1
     call write_csv(no,nsf,residuals,'residuals0.csv',no)
-    !do while(  ( nlsf(j+1)%rms-nlsf(j)%rms .gt. nlsf(1)%rms/(10.**4) ).and.(j.lt.nsf-1)  )
-    !do while( ( nlsf(j)%rms .lt. .75*rms0 +.25*nlsf(1)%rms ).and.(j.lt.nsf)  )
-    do while( ( nlsf(j)%rms .lt. .9*rms0 +.1*nlsf(1)%rms ) .and. (j+1.lt.nsf) )! & .and.     ( sum(  (residuals(1:no,j+1)-residuals(1:no,j))**2 )/float(no) .gt. 0.001     )   )
+    do while( ( nlsf(j)%rms .lt. .9*rms0 +.1*nlsf(1)%rms ) .and. (j+1.lt.nsf) )
         j=j+1
         write(*,*)'delta rms:',nlsf(j)%rms, rms0, nlsf(1)%rms, .9*rms0 +.1*nlsf(1)%rms,&
         sum(  (residuals(1:no,j+1)-residuals(1:no,j))**2 )/float(no) 
@@ -216,35 +233,26 @@ endif
 
 deallocate(r,fpc,residuals,rms)
 return
-end
-!----------------------------------------------------------------------------------------
+endsubroutine
 
+!--------------------------------------------------------------------------------------------------
+!> Purpose: Evaluates nonlinear spatial function with parameters x0 ad lambda at points in p. Values 
+!> returned in vector f.
+!>
+!> inputs:
+!>       p: GridManagerMod(see UniversalKriging.f90) Defines spatial point grid/field 
+!>       nlsf: Nonlinear spatial function(see UniversalKriging.f90) Defines a nonlinear spatial 
+!>             function 
+!>
+!> outputs: 
+!>       f: p%nn length vector of values of nlsf at points defined in p.
+!> @author keston Smith (IBSS corp) 2022
+!--------------------------------------------------------------------------------------------------
 subroutine NLSFunc (p,nlsf,f)
-!subroutine NLSFunc (p,nlsf,f)
-!Evaluates nonlinear spatial function at points in p. Values returned in f
-!--------------------------------------------------------------------------------------------------
-! Purpose: Evaluates nonlinear spatial function with parameters x0 ad lambda at points in p. Values 
-! returned in vector f.
-!
-! inputs:
-!       p: DpointMod(see UniversalKriging.f90) Defines spatial point grid/field 
-!       nlsf: Nonlinear spatial function(see UniversalKriging.f90) Defines a nonlinear spatial 
-!             function 
-!!
-! outputs: 
-!       f: p%nn length vector of values of nlsf at points defined in p.
-
-! history:  Written by keston Smith (IBSS corp) 2022
-!--------------------------------------------------------------------------------------------------
-implicit none
-!
-use DpointMod
-use NLSFMod
-implicit none
-type(Dpoint):: p
+type(Grid_Data_Class):: p
 type(NLSFPar)::nlsf
-real(kind(1.0D0)), intent(out)::  f(*)
-real(kind(1.0D0)), allocatable :: x(:)
+real(dp), intent(out)::  f(*)
+real(dp), allocatable :: x(:)
 integer nn,j
 nn=p%n
 
@@ -278,63 +286,78 @@ if(nlsf%form(1:6).eq.'CosExp')f(1:nn)=cos( (x(1:nn)-nlsf%x0)/nlsf%lambda )*exp( 
 deallocate(x)
 
 return
-end
-!----------------------------------------------------------------------------------------
-!----------------------------------------------------------------------------------------
+endsubroutine
 
+!----------------------------------------------------------------------------------------
+!> Purpose: Calculate smoothing penalty for nonlinear spatial function fit.  Penalty is 
+!> based on symbolic integral from -inf to inf of the functions second derivative squared.
+!> i.e.: integral (d2 f /d x2)^2 from -inf to inf = smoothness penalty -> p
+!> see: SageScriptSmoothing.s for derivation
+!> input
+!>       nlsf: Nonlinear spatial function(see UniversalKriging.f90)
+!>
+!> output
+!>       p: smoothness penalty  
+!>
+!>
+!> @author keston Smith (IBSS corp) 2022
+!----------------------------------------------------------------------------------------
 subroutine NLSFuncPen (nlsf,p)
-!subroutine NLSFuncPen (nlsf,p)
-! Purpose: Calculate smoothing penalty for nonlinear spatial function fit.  Penalty is 
-! based on symbolic integral from -inf to inf of the functions second derivative squared.
-! i.e.: integral (d2 f /d x2)^2 from -inf to inf = smoothness penalty
-! see: SageScriptSmoothing.s for derivation
-use DpointMod
-use NLSFMod
-implicit none
 type(NLSFPar)::nlsf
-real(kind(1.0D0)), intent(out)::  p
-real pi
-pi=4.*ATAN(1.0D0)
-!if(nlsf%form(1:8).eq.'Gaussian')p = 3.D0 * sqrt(pi/2.D0) / nlsf%lambda**3
-!if(nlsf%form(1:8).eq.'Logistic')p = (1.D0/30.D0) / nlsf%lambda**3
-!if(nlsf%form(1:6).eq.'SinExp') p = 0.25D0*sqrt(2.D0*pi)*(10.D0-3.D0/exp(-.5D0)) / nlsf%lambda**3
-!if(nlsf%form(1:6).eq.'CosExp') p = (1.D0/32.D0)*sqrt(2.D0*pi)*(43.D0-3.D0/exp(-.5D0)) / nlsf%lambda**3
-if(nlsf%form(1:8).eq.'Gaussian')p = 3.759942411946501 / nlsf%lambda**3
-if(nlsf%form(1:8).eq.'Logistic')p = 0.033333333333333 / nlsf%lambda**3
-if(nlsf%form(1:6).eq.'SinExp')  p = 3.167022170985631 / nlsf%lambda**3
-if(nlsf%form(1:6).eq.'CosExp')  p = 2.980838179586422 / nlsf%lambda**3
+real(dp), intent(out)::  p
+if(nlsf%form(1:8).eq.'Gaussian')p = 3.D0 * sqrt(pi/2.D0) / nlsf%lambda**3
+if(nlsf%form(1:8).eq.'Logistic')p = (1.D0/30.D0) / nlsf%lambda**3
+if(nlsf%form(1:6).eq.'SinExp') p = 0.25D0*sqrt(2.D0*pi)*(10.D0-3.D0/exp(-.5D0)) / nlsf%lambda**3
+if(nlsf%form(1:6).eq.'CosExp') p = (1.D0/32.D0)*sqrt(2.D0*pi)*(43.D0-3.D0/exp(-.5D0)) / nlsf%lambda**3
 return
-end
-!----------------------------------------------------------------------------------------
-subroutine FitNLSFunc(obs,g,nlsf,y,f,r)
-   ! call FitNLSFunc(obs,grid,nlsf(j),r,fpc,r)
+endsubroutine
 
-use DpointMod
-use NLSFMod
-implicit none
-type(Dpoint):: g
-type(Dpoint):: obs
+!--------------------------------------------------------------------------------------------------
+!> Purpose: Fit nonlinear parameters nlsf%x0 and nlsf%lambda to observations at nn points defined in 
+!> obs with values y.  f is a function defined at the observation points. The penalty function is 
+!>           sum_i (a+b*nlsf%g_i(x0,lambda)*f_i - y_i)**2 
+!> where a and b are estimated using simple linear regresion for each nonlinear parameter pair x_0,
+!> lambda.  The minimization is done with a brute force search over np=500 equally spaced values 
+!> between (nlsf%x0Min and nlsf%x0Max) and (nlsf%x0Min and  nlsf%x0Max) respectivly.
+!>
+!> inputs:
+!>       obs: GridManagerMod(see UniversalKriging.f90) Defines spatial observation points
+!>       y: vector of observation values
+!>       f: vector of function values (a preconditioning function) at obs.
+!>
+!> input/output
+!>       nlsf: Nonlinear spatial function(see UniversalKriging.f90) Defines a nonlinear spatial 
+!>             function. On exit optimal values of x_0 and lambda are specified 
+!>
+!> outputs: 
+!>       r: residual, r_i=y_i - nlsf(x_i |x0,lambda) where i=1..# of observations.
+!>
+!> @author keston Smith (IBSS corp) 2022
+!--------------------------------------------------------------------------------------------------
+subroutine FitNLSFunc(obs,nlsf,y,f,r)
+
+type(Grid_Data_Class):: obs
 type(NLSFPar)::nlsf
-real(kind(1.0D0)), intent(in):: y(*),f(*)
-real(kind(1.0D0)), intent(inout):: r(*)
+real(dp), intent(in):: y(*),f(*)
+real(dp), intent(inout):: r(*)
 
-real(kind(1.0D0))  alpha,beta,ErrMin,Err,x0hat,lambdahat,SP,SPF,RMS
-integer j,k,np,nn,ng,nx0,nlambda
-real(kind(1.0D0)), allocatable :: s(:),p(:),x0(:),lambda(:),lpr(:),pg(:)
+real(dp)  alpha,beta,ErrMin,Err,x0hat,lambdahat,SP,SPF,RMS
+integer j,k,np,nn,nx0,nlambda
+real(dp), allocatable :: s(:),p(:),x0(:),lambda(:),lpr(:),pg(:)
 
 nn=obs%n
-ng=g%n
 np=500
 allocate(s(1:nn),lpr(1:nn),p(1:np),x0(1:np),lambda(1:np),pg(1:nn))
 
 do j=1,np
- p(j)=float(j-1)/float(np-1)
+    p(j)=float(j-1)/float(np-1)
 enddo
 
 !----------------------------------------------
 ! set smoothness to dominate below lambdaMin
 ! SPF: penalizes integral [d2 f /d x2 f(x)]^2
 ! set SPF=0 for no roughness penalty
+!----------------------------------------------
 RMS=sqrt( sum( r(1:nn)**2 )/float(nn) )
 nlsf%lambda=nlsf%lambdaMin
 call NLSFuncPen(nlsf,SP)
@@ -358,10 +381,10 @@ do j=1,nx0
         call NLSFuncPen(nlsf,SP) ! penalize roguhness analytic approximation
         Err=RMS+SPF*SP
         if (Err.lt.ErrMin)then
-!         write(*,*)nlsf%form,Err,RMS,SPF*SP
-         ErrMin=err
-         x0hat=x0(j)
-         lambdahat=lambda(k)
+            ! write(*,*)nlsf%form,Err,RMS,SPF*SP
+            ErrMin=err
+            x0hat=x0(j)
+            lambdahat=lambda(k)
         endif
     enddo
 enddo
@@ -374,25 +397,35 @@ r(1:nn)=y(1:nn)-lpr(1:nn)
 deallocate(s,p,x0,lambda,lpr)
 
 return
-end
+endsubroutine
 
-
-subroutine FitNLSFunctionsGreedy(obs,grid,nlsf)
-use DpointMod
-use NLSFMod
-
-implicit none
-integer j,n,no,nn,nsf,k,jBest,notyet,nfi,nsflim
-real(kind(1.0D0)) rmsMin
-type(Dpoint):: obs
-type(Dpoint):: grid
+!--------------------------------------------------------------------------------------------------
+!> Purpose: Performs a brute force least squares fit of nonlinear spatial function parameters to 
+!> data points in obs.  Functions are fit based on which function has the lowest rms misfit when fit.
+!> Functions are (nescerailly) fit to the remaining residual after fitting the preceeding functions.
+!>
+!> inputs:
+!>       obs: GridManagerMod(see UniversalKriging.f90) Defines observations to be fit. 
+!>
+!> inputs/output:
+!>       nlsf: Nonlinear spatial function(see UniversalKriging.f90). Defines a vector of nonlinear 
+!>             spatial functions. On return nlsf(1:nsf)%x0 and nlsf(1:nsf)%lambda are specified.
+!>
+!> outputs: 
+!>       f: p%nn length vector of values of nlsf at points defined in p.
+!>
+!> @author keston Smith (IBSS corp) 2022
+!--------------------------------------------------------------------------------------------------
+subroutine FitNLSFunctionsGreedy(obs,nlsf)
+integer j,no,nn,nsf,k,jBest,notyet,nfi,nsflim
+real(dp) rmsMin
+type(Grid_Data_Class):: obs
 type(NLSFPar)::nlsf(*)
-real(kind(1.0D0)), allocatable :: r(:),fpc(:),residuals(:,:),rms(:),res(:)
+real(dp), allocatable :: r(:),fpc(:),residuals(:,:),rms(:),res(:)
 integer, allocatable :: isfit(:),RankIndx(:)
 type(NLSFPar), allocatable ::nlsfTmp(:)
 
 no=obs%n
-nn=grid%n
 nsf=nlsf(1)%nsf
 nsflim=nlsf(1)%nsflim
 write(*,*)'FNLSF',no,nn,nsf
@@ -420,7 +453,7 @@ do while(sum(isfit(1:nsf)).lt.nsflim)
                 endif
             endif
             if(notyet.eq.0)then
-                call FitNLSFunc(obs,grid,nlsf(j),r,fpc,res)
+                call FitNLSFunc(obs,nlsf(j),r,fpc,res)
                 nlsf(j)%rms=sqrt( sum( res(1:no)**2 )/float(no) )
                 residuals(1:no,j)=res(1:no)
                 rms(j)=sqrt( sum( res(1:no)**2  )/float(no) )
@@ -429,6 +462,7 @@ do while(sum(isfit(1:nsf)).lt.nsflim)
             rms(j)=huge(1.D0)
         endif
     enddo
+
     rmsMin=huge(1.D0)
     do j=1,nsf
      if (rms(j).lt.rmsMin)then
@@ -438,7 +472,7 @@ do while(sum(isfit(1:nsf)).lt.nsflim)
     enddo
     isfit(Jbest)=1
     
-    call FitNLSFunc(obs,grid,nlsf(Jbest),r,fpc,res)
+    call FitNLSFunc(obs,nlsf(Jbest),r,fpc,res)
     nfi=nfi+1
     RankIndx(nfi)=Jbest
     r(1:no)=res(1:no)
@@ -456,5 +490,6 @@ write(*,*)'function rank:',RankIndx(1:nsf)
 nlsf(1:nsf)=nlsf(RankIndx(1:nsf))
 deallocate(r,fpc,residuals,rms,res,nlsfTmp)
 return
-end
-!----------------------------------------------------------------------------------------
+endsubroutine
+
+endmodule

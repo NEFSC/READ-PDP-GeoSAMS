@@ -16,6 +16,8 @@ docs/html/
 docs/rtf/
 docs/latex/
 docs/*.docx
+docsUK
+docsSIM
 VERIFY/
 InitiaCondition/*.txt
 *.code-workspace

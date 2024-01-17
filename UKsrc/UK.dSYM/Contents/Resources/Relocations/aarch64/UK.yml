@@ -8,8 +8,8 @@ relocations:
   - { offsetInCU: 0x23F, offset: 0x23F, size: 0x8, addend: 0x0, symName: ___dpointmod_MOD___vtab_dpointmod_Dpoint, symObjAddr: 0x11600, symBinAddr: 0x100024000, symSize: 0x0 }
   - { offsetInCU: 0x2C2, offset: 0x2C2, size: 0x8, addend: 0x0, symName: ___krigmod_MOD___def_init_krigmod_Krigpar, symObjAddr: 0xE4D90, symBinAddr: 0x1000F11F0, symSize: 0x0 }
   - { offsetInCU: 0x352, offset: 0x352, size: 0x8, addend: 0x0, symName: ___krigmod_MOD___vtab_krigmod_Krigpar, symObjAddr: 0x11638, symBinAddr: 0x100024038, symSize: 0x0 }
-  - { offsetInCU: 0x46E, offset: 0x46E, size: 0x8, addend: 0x0, symName: ___nlsfmod_MOD___def_init_nlsfmod_Nlsfpar, symObjAddr: 0xE4DF8, symBinAddr: 0x1000F1258, symSize: 0x0 }
-  - { offsetInCU: 0x4FE, offset: 0x4FE, size: 0x8, addend: 0x0, symName: ___nlsfmod_MOD___vtab_nlsfmod_Nlsfpar, symObjAddr: 0x11670, symBinAddr: 0x100024070, symSize: 0x0 }
+  - { offsetInCU: 0x46E, offset: 0x46E, size: 0x8, addend: 0x0, symName: ___NonLinearSpatialFcnMod_MOD___def_init_NonLinearSpatialFcnMod_Nlsfpar, symObjAddr: 0xE4DF8, symBinAddr: 0x1000F1258, symSize: 0x0 }
+  - { offsetInCU: 0x4FE, offset: 0x4FE, size: 0x8, addend: 0x0, symName: ___NonLinearSpatialFcnMod_MOD___vtab_NonLinearSpatialFcnMod_Nlsfpar, symObjAddr: 0x11670, symBinAddr: 0x100024070, symSize: 0x0 }
   - { offsetInCU: 0x4F7, offset: 0x4F7, size: 0x8, addend: 0x0, symName: _interpfromgrid_, symObjAddr: 0x9F0, symBinAddr: 0x1000029E0, symSize: 0xD38 }
   - { offsetInCU: 0x4FF, offset: 0x4FF, size: 0x8, addend: 0x0, symName: _outputuk_, symObjAddr: 0x1728, symBinAddr: 0x100003718, symSize: 0x1A40 }
   - { offsetInCU: 0x628, offset: 0x628, size: 0x8, addend: 0x0, symName: _outputuk_, symObjAddr: 0x1728, symBinAddr: 0x100003718, symSize: 0x1A40 }
@@ -38,10 +38,10 @@ relocations:
   - { offsetInCU: 0x1CFD, offset: 0x1CFD, size: 0x8, addend: 0x0, symName: _interpfromgrid_, symObjAddr: 0x9F0, symBinAddr: 0x1000029E0, symSize: 0xD38 }
   - { offsetInCU: 0x1E36, offset: 0x1E36, size: 0x8, addend: 0x0, symName: _limitz_, symObjAddr: 0xB4, symBinAddr: 0x1000020A4, symSize: 0x1AC }
   - { offsetInCU: 0x1E3E, offset: 0x1E3E, size: 0x8, addend: 0x0, symName: _randomsamplef_, symObjAddr: 0x260, symBinAddr: 0x100002250, symSize: 0x790 }
-  - { offsetInCU: 0x1F4B, offset: 0x1F4B, size: 0x8, addend: 0x0, symName: ___nlsfmod_MOD___copy_nlsfmod_Nlsfpar, symObjAddr: 0x78, symBinAddr: 0x100002068, symSize: 0x3C }
+  - { offsetInCU: 0x1F4B, offset: 0x1F4B, size: 0x8, addend: 0x0, symName: ___NonLinearSpatialFcnMod_MOD___copy_NonLinearSpatialFcnMod_Nlsfpar, symObjAddr: 0x78, symBinAddr: 0x100002068, symSize: 0x3C }
   - { offsetInCU: 0x1F53, offset: 0x1F53, size: 0x8, addend: 0x0, symName: _limitz_, symObjAddr: 0xB4, symBinAddr: 0x1000020A4, symSize: 0x1AC }
   - { offsetInCU: 0x1F8D, offset: 0x1F8D, size: 0x8, addend: 0x0, symName: ___krigmod_MOD___copy_krigmod_Krigpar, symObjAddr: 0x3C, symBinAddr: 0x10000202C, symSize: 0x3C }
-  - { offsetInCU: 0x1F95, offset: 0x1F95, size: 0x8, addend: 0x0, symName: ___nlsfmod_MOD___copy_nlsfmod_Nlsfpar, symObjAddr: 0x78, symBinAddr: 0x100002068, symSize: 0x3C }
+  - { offsetInCU: 0x1F95, offset: 0x1F95, size: 0x8, addend: 0x0, symName: ___NonLinearSpatialFcnMod_MOD___copy_NonLinearSpatialFcnMod_Nlsfpar, symObjAddr: 0x78, symBinAddr: 0x100002068, symSize: 0x3C }
   - { offsetInCU: 0x1FD3, offset: 0x1FD3, size: 0x8, addend: 0x0, symName: ___dpointmod_MOD___copy_dpointmod_Dpoint, symObjAddr: 0x0, symBinAddr: 0x100001FF0, symSize: 0x3C }
   - { offsetInCU: 0x1FDB, offset: 0x1FDB, size: 0x8, addend: 0x0, symName: ___krigmod_MOD___copy_krigmod_Krigpar, symObjAddr: 0x3C, symBinAddr: 0x10000202C, symSize: 0x3C }
   - { offsetInCU: 0x104, offset: 0x20D5, size: 0x8, addend: 0x0, symName: _fitnlsfunc_, symObjAddr: 0x0, symBinAddr: 0x1000135F0, symSize: 0xFF4 }
