@@ -1,6 +1,7 @@
 !--------------------------------------------------------------------------------------------------
 !> @page page3 Linear Spatial Functions
 !>
+!> @authors Keston Smith, Tom Callaghan IBSS (2024)
 !--------------------------------------------------------------------------------------------------
 module LinearSpatialFcnMod
 use globals

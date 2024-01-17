@@ -1,16 +1,15 @@
 
+!--------------------------------------------------------------------------------------------------
+!> Purpose: Read parameter values, flags, etc. from a ascii text input file:"UK.inp".  Parameters etc. 
+!> to be read from UK.inp are identified by the first letter of the line.  Values are read from the 
+!> line to the right of an "=" character. Logical variables are read from 'T','F'.
+!>
+!> outputs: 
+!>       all variables
+!>
+!> @author keston Smith (IBSS corp) 2022
+!--------------------------------------------------------------------------------------------------
 subroutine ReadInput(DomainName,obsfile,climfile,NRand,IsLogT,IsHiLimit,fmax,IsMatchMean,IsClimEst,par,alpha)
-!subroutine ReadInput(DomainName,obsfile,climfile,NRand,IsLogT,IsHiLimit,fmax,IsMatchMean,IsClimEst,par)
-!--------------------------------------------------------------------------------------------------
-! Purpose: Read parameter values, flags, etc. from a ascii text input file:"UK.inp".  Parameters etc. 
-! to be read from UK.inp are identified by the first letter of the line.  Values are read from the 
-! line to the right of an "=" character. Logical variables are read from 'T','F'.
-!
-! outputs: 
-!       all variables
-!
-! history:  Written by keston Smith (IBSS corp) 2022
-!--------------------------------------------------------------------------------------------------
 use globals
 use KrigMod
 implicit none
@@ -84,7 +83,7 @@ return
 end
 
 !-----------------------------------------------------------------------
-!>Purpose: Read real valued scaler field, M, from file flnm.
+!> Purpose: Read real valued scaler field, M, from file flnm.
 !> Inputs:
 !> -    flnm (charecter*72)    number of rows in D, Gamma
 !> Outputs:

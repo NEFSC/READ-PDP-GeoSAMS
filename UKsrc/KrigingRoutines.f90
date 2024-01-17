@@ -4,6 +4,8 @@
 !> Define Kriging parameter structure with length scale alpha, 
 !> sill value c and nugget value c0. Kringing form is 'spherical',
 !> 'exponential', 'gaussian' or 'matern'
+!>
+!> @authors Keston Smith, Tom Callaghan IBSS (2024)
 !--------------------------------------------------------------------------------------------------
 module KrigMod
 
