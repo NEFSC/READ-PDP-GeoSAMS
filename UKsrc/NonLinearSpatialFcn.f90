@@ -348,7 +348,7 @@ type(NLSFPar)::nlsf
 real(dp), intent(in):: y(*),f(*)
 real(dp), intent(inout):: r(*)
 
-real(dp)  alpha,beta,ErrMin,Err,x0hat,lambdahat,SP,SPF,RMS
+real(dp)  alpha,beta,ErrMin,Err,x0hat,lambdahat,smoothness_penalty,SPF,RMS
 integer j,k,np,nn,nx0,nlambda
 real(dp), allocatable :: s(:),p(:),x0(:),lambda(:),lpr(:),pg(:)
 
@@ -367,8 +367,8 @@ enddo
 !----------------------------------------------
 RMS=sqrt( sum( r(1:nn)**2 )/float(nn) )
 nlsf%lambda=nlsf%lambdaMin
-call NLSFuncPen(nlsf,SP)
-SPF=RMS/SP
+call NLSFuncPen(nlsf,smoothness_penalty)
+SPF=RMS/smoothness_penalty
 x0(1:np)=nlsf%x0Min + ( nlsf%x0Max - nlsf%x0Min )*p(1:np)
 lambda(1:np)=nlsf%lambdaMin + (nlsf%lambdaMax-nlsf%lambdaMin)*p(1:np)
 !----------------------------------------------
@@ -385,10 +385,10 @@ do j=1,nx0
         call NLSFunc(obs,nlsf,s)
         call SLR(y,s(1:nn)*f(1:nn),nn,alpha,beta,lpr)
         RMS=sqrt( sum( (y(1:nn)-lpr(1:nn))**2 )/float(nn) )
-        call NLSFuncPen(nlsf,SP) ! penalize roguhness analytic approximation
-        Err=RMS+SPF*SP
+        call NLSFuncPen(nlsf,smoothness_penalty) ! penalize roguhness analytic approximation
+        Err=RMS+SPF*smoothness_penalty
         if (Err.lt.ErrMin)then
-            ! write(*,*)nlsf%form,Err,RMS,SPF*SP
+            ! write(*,*)nlsf%form,Err,RMS,SPF*smoothness_penalty
             ErrMin=err
             x0hat=x0(j)
             lambdahat=lambda(k)
