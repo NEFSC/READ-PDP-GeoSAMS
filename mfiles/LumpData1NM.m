@@ -10,6 +10,6 @@ function Fout = LumpData1NM (Fin);
       Fout(n,:)=mean(Fin(j,:));
      else
       Fout(n,:)=Fin(j,:);
-     endif
-  endfor
-endfunction
+    end
+  end
+end

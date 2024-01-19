@@ -1,5 +1,5 @@
 
-function Fout = LumpDataDx (Fin,dx);
+function Fout = LumpDataDx (Fin,dx)
   %dx=1852;
   z=Fin(:,2)+i*Fin(:,3);
   zf=floor(z/dx);
@@ -8,8 +8,8 @@ function Fout = LumpDataDx (Fin,dx);
     j=find(zf==zu(n));
     if length(j)>1,
       Fout(n,:)=mean(Fin(j,:));
-     else
+    else
       Fout(n,:)=Fin(j,:);
-     endif
-  endfor
-endfunction
+    end
+  end
+end

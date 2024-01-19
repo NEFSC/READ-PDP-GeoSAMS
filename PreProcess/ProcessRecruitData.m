@@ -112,7 +112,7 @@ end
 G = shaperead('ShapeFiles/Shellfish_Strata.shp');
 IsRock=zeros(size(lat));
 for k=1:NRS
-  [k,RSI(k),NRS]
+  [k,RSI(k),NRS];
   lonStrat=G(RSI(k)).X;
   latStrat=G(RSI(k)).Y;
   for n=1:N
@@ -131,7 +131,7 @@ RecA(j0)=Rec(j0)/Detect;
 RecA(j1)=Rec(j1)/DetectRS;
 M=[DecYr(:),lat(:),lon(:),Depth(:),Rec(:),IsRock(:),RecA(:)];
 j=find(~isnan(sum(M')));M=M(j,:);
-flnm='Data/RecruitsRockStrataAdjustment.csv'
+flnm='Data/RecruitsRockStrataAdjustment.csv';
 header='"decmal year", "latitude", "longitude", "bottom depth(m)","recruits per sq m raw","Is Rock Strata","recruits per sq m adjusted"';
 writecsv(M,flnm,['%g, %g, %g, %g, %e, %i ,%e' ],header);
 
@@ -150,79 +150,123 @@ for k=1:NRS
   latStrat=G(RSI(k)).Y;
   plot(lonStrat,latStrat,'r');
 end
-daspect([1,cos(mean(lat)*pi/180)]);
+if isOctave % Octave did not need 3rd term
+  daspect([1,cos(mean(lat)*pi/180)]);
+else
+  daspect([1,cos(mean(lat)*pi/180), 1]);
+end
 print -djpeg RockStrata.jpg
 %XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX
 
 clear
-flnm='Data/RecruitsRockStrataAdjustment.csv'
-F=csvreadK(flnm);
-DecYr=F(:,1);
-lat=F(:,2);
-lon=F(:,3);
-Depth=F(:,4);
-rec=F(:,7);
+isOctave = (exist('OCTAVE_VERSION', 'builtin') ~= 0);
+flnm='Data/RecruitsRockStrataAdjustment.csv';
+if isOctave
+  F=csvreadK(flnm);
+  DecYr=F(:,1);
+  lat=F(:,2);
+  lon=F(:,3);
+  Depth=F(:,4);
+  rec=F(:,7);
+else
+  F=readtable(flnm,"FileType","text");
+  DecYr=table2array(F(:,1));
+  lat=table2array(F(:,2));
+  lon=table2array(F(:,3));
+  Depth=table2array(F(:,4));
+  rec=table2array(F(:,7));
+end
 jMA=find(lon<-70.5);
 jGB=find(lon>-70.5);
 [xMA,yMA]=ll2utm(lat,lon,18);
 [xGB,yGB]=ll2utm(lat,lon,19);
 
 M=[DecYr(jMA),xMA(jMA),yMA(jMA),Depth(jMA),rec(jMA)];
-flnm='Data/RecruitsMA.csv'
+flnm='Data/RecruitsMA.csv';
 header='"decmal year", "x utm", "y utm", "bottom depth(m)","recruits per sq m"';
-writecsv(M,flnm,['%g, %f, %f, %f, %e'],header);
+writecsv(M,flnm,'%g, %f, %f, %f, %e',header);
 
 M=[DecYr(jGB),xGB(jGB),yGB(jGB),Depth(jGB),rec(jGB)];
-flnm='Data/RecruitsGB.csv'
+flnm='Data/RecruitsGB.csv';
 header='"decmal year", "x utm", "y utm", "bottom depth(m)","recruits per sq m"';
-writecsv(M,flnm,['%g, %f, %f, %f, %e'],header);
+writecsv(M,flnm,'%g, %f, %f, %f, %e',header);
 %XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX
 clear
-flnm='Data/RecruitsMA.csv'
-F=csvreadK(flnm);
-DecYr=F(:,1);
+isOctave = (exist('OCTAVE_VERSION', 'builtin') ~= 0);
+flnm='Data/RecruitsMA.csv';
+if isOctave
+  F=csvreadK(flnm);
+  DecYr=F(:,1);
+else
+  F=readtable(flnm,"FileType","text");
+  DecYr=table2array(F(:,1));
+end
 %for yr=1979:2018
-yearMin = min(floor(DecYr))
-yearMax = max(floor(DecYr))
+yearMin = min(floor(DecYr));
+yearMax = max(floor(DecYr));
 for yr=yearMin:yearMax % no data for 2018
   j=find(floor(DecYr)==yr);
-  M=F(j,:);
+  if isOctave
+    M=F(j,:);
+  else
+    M=table2array(F(j,:));
+  end
   G = LumpDataDx (M,1000.);
-  flnm=['Data/Recruits',int2str(yr),'MA.csv']
+  flnm=['Data/Recruits',int2str(yr),'MA.csv'];
   header='"decmal year", "x utm", "y utm", "bottom depth(m)","recruits per sq m"';
-  writecsv(G,flnm,['%g, %f, %f, %f, %e'],header);
+  writecsv(G,flnm,'%g, %f, %f, %f, %e',header);
 end
 
 
 %XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX
 clear
-flnm='Data/RecruitsGB.csv'
-F=csvreadK(flnm);
-DecYr=F(:,1);
+isOctave = (exist('OCTAVE_VERSION', 'builtin') ~= 0);
+flnm='Data/RecruitsGB.csv';
+if isOctave
+  F=csvreadK(flnm);
+  DecYr=F(:,1);
+else
+  F=readtable(flnm,"FileType","text");
+  DecYr=table2array(F(:,1));
+end
 %for yr=1979:2019
-yearMin = min(floor(DecYr))
-yearMax = max(floor(DecYr))
+yearMin = min(floor(DecYr));
+yearMax = max(floor(DecYr));
 for yr=yearMin:yearMax % no data for 2018,2019
   j=find(floor(DecYr)==yr);
-  M=F(j,:);
+  if isOctave
+    M=F(j,:);
+  else
+    M=table2array(F(j,:));
+  end
   G = LumpDataDx (M,1000.);
-  flnm=['Data/Recruits',int2str(yr),'GB.csv']
+  flnm=['Data/Recruits',int2str(yr),'GB.csv'];
   header='"decmal year", "x utm", "y utm", "bottom depth(m)","recruits per sq m"';
-  writecsv(G,flnm,['%g, %f, %f, %f, %e'],header);
+  writecsv(G,flnm,'%g, %f, %f, %f, %e',header);
 end
 
 %XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX
 clear
-flnm='Data/RecruitsMA.csv'
-F=csvreadK(flnm);
+isOctave = (exist('OCTAVE_VERSION', 'builtin') ~= 0);
+flnm='Data/RecruitsMA.csv';
+if isOctave
+  F=csvreadK(flnm);
+else
+  F=table2array(readtable(flnm,"FileType","text"));
+end
 Fout = LumpData1NM(F);
-flnm='Data/RecruitsMALump1NM.csv'
+flnm='Data/RecruitsMALump1NM.csv';
 header='"decmal year", "x utm", "y utm", "bottom depth(m)","recruits per sq m"';
 writecsv(Fout,flnm,['%g, %f, %f, %f, %e'],header);
 %XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX
 clear
-flnm='Data/RecruitsGB.csv'
-F=csvreadK(flnm);
+isOctave = (exist('OCTAVE_VERSION', 'builtin') ~= 0);
+flnm='Data/RecruitsGB.csv';
+if isOctave
+  F=csvreadK(flnm);
+else
+  F=table2array(readtable(flnm,"FileType","text"));
+end
 Fout = LumpData1NM(F);
 flnm='Data/RecruitsGBLump1NM.csv'
 header='"decmal year", "x utm", "y utm", "bottom depth(m)","recruits per sq m"';
