@@ -2,9 +2,9 @@
 !> @page page6 Common Parameters
 !>
 !>
-!> @authors Tom Callaghan (IBSS) 2024
 !--------------------------------------------------------------------------------------------------
-! 
+! Tom Callaghan (IBSS) 2024
+!--------------------------------------------------------------------------------------------------
 module globals
     implicit none
     integer, parameter :: sp = selected_real_kind(6, 37)

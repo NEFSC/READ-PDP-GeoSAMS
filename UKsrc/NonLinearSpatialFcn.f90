@@ -2,7 +2,8 @@
 !> @page page2 Non Linear Spatial Functions
 !>
 !>
-!> @authors Keston Smith, Tom Callaghan (IBSS) 2024
+!--------------------------------------------------------------------------------------------------
+! Keston Smith, Tom Callaghan (IBSS) 2024
 !--------------------------------------------------------------------------------------------------
 
 module NonLinearSpatialFcnMod

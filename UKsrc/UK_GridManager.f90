@@ -2,7 +2,8 @@
 !> @page page5 Grid Manager
 !>
 !>
-!> @authors Keston Smith, Tom Callaghan (IBSS) 2024
+!--------------------------------------------------------------------------------------------------
+! Keston Smith, Tom Callaghan (IBSS) 2024
 !--------------------------------------------------------------------------------------------------
 module GridManagerMod
 use globals

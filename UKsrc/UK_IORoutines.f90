@@ -7,7 +7,8 @@
 !> outputs: 
 !>       all variables
 !>
-!> @author keston Smith (IBSS corp) 2022
+!--------------------------------------------------------------------------------------------------
+! Keston Smith (IBSS) 2022
 !--------------------------------------------------------------------------------------------------
 subroutine ReadInput(DomainName,obsfile,climfile,NRand,IsLogT,IsHiLimit,fmax,IsMatchMean,IsClimEst,par,alpha)
 use globals
