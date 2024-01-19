@@ -113,45 +113,48 @@ CONTAINS
 !>
 !==================================================================================================================
 subroutine Set_Grid_Manager(max_ngrids, state, grid, ngrids)
-    integer, intent(in) :: max_ngrids
+integer, intent(in) :: max_ngrids
 real(dp), intent(out):: state(1:max_ngrids, 1:num_size_classes)
-    type(Grid_Data_Class), intent(out) :: grid(*)
-    integer, intent(out) :: ngrids
+type(Grid_Data_Class), intent(out) :: grid(*)
+integer, intent(out) :: ngrids
 
-    integer n, j
-    character(fname_len) fname
+integer n, j
+character(fname_len) fname
 
-    ! set private variables, needed by private methods
-    max_num_grids = max_ngrids
+! set private variables, needed by private methods
+max_num_grids = max_ngrids
 
-    ! Used to verify grid in special access area
-    fname = 'Results\GridLoc.txt'
-    open(70, file=trim(fname))
+! Used to verify grid in special access area
+fname = 'Results\SurveyLoc.txt'
+open(70, file=trim(fname))
 
-    call Read_Configuration()
+call Read_Configuration()
 
-    ! Load Grid. 
-    ! read in grid and state from file_name
-    ngrids = Load_Grid_State(grid, state)
+! Load Grid. 
+! read in grid and state from file_name
+ngrids = Load_Grid_State(grid, state)
 
-    ! set private variable
-    num_grids = ngrids
+! set private variable
+num_grids = ngrids
 
-    num_areas = Load_Area_Coordinates()
-    write(*,*) '========================================================'
-    write(*,'(A,I7)') ' Number of Areas: ', num_areas
-    write(*,*) '========================================================'
+num_areas = Load_Area_Coordinates()
+write(*,*) '========================================================'
+write(*,'(A,I7)') ' Number of Areas: ', num_areas
+write(*,*) '========================================================'
 
-    do n = 1, num_grids
-        ! Check if any grids are in a special access
-        j = Is_Grid_In_Special_Access(grid(n)%lon, grid(n)%lat)
-        if (j > 0) then
-            grid(n)%special_access_index = j
-            write(70,*) 'Found grid', n, 'in area', j, ' IS CLOSED: ', grid(n)%is_closed
-        endif
-    enddo
+do n = 1, num_grids
+    ! Check if any grids are in a special access
+    j = Is_Grid_In_Special_Access(grid(n)%lon, grid(n)%lat)
+    if (j > 0) then
+        grid(n)%special_access_index = j
+        write(70,'(A, I4, A, F8.3, A, F8.3, A, I3)') 'Survey #', n, ' location (lat, lon) (', grid(n)%lat, ',', grid(n)%lon, &
+        &   ' ) is found in special area ', j
+    else
+        write(70,'(A, I4, A, F8.3, A, F8.3, A)') 'Survey #', n, ' location (lat, lon) (', grid(n)%lat, ',', grid(n)%lon, ' )'
+    endif
+enddo
 
-    close(70)
+close(70)
 endsubroutine Set_Grid_Manager
 
 !-----------------------------------------------------------------------------------------------

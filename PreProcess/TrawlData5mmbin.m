@@ -60,9 +60,9 @@ for d = 1:numel(size(domain))
   end
   Detect=.4;
 
-  %  standard tow length of 1 nautical mile by 8 ft, 2.5 m, wide dredge
+  %  standard tow length of 1 nautical mile by 8 ft, or 2.4384 m, wide dredge
   nautMile_m = 1852.;
-  towArea_sqm = nautMile_m * 2.5;
+  towArea_sqm = 4516.; % nautMile_m * 2.438;
   countPerSqm = 1. / (towArea_sqm * Detect);
 
   for yr=1979:2017
