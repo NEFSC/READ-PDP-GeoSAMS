@@ -115,12 +115,21 @@ real(dp), PRIVATE :: gb_mort_adult
 real(dp), PRIVATE :: gb_incidental
 real(dp), PRIVATE :: gb_length_0
 
-real(dp), PRIVATE, allocatable :: expl_biomass_by_loc(:)
-real(dp), PRIVATE, allocatable :: USD_per_sqm_by_loc(:)
-real(dp), PRIVATE, allocatable :: expl_scallops_psqm_by_loc(:)
-real(dp), PRIVATE, allocatable :: expl_num_by_loc(:)
-real(dp), PRIVATE, allocatable :: F_mort_by_loc(:)
-real(dp), PRIVATE, allocatable :: F_mort_by_loc_raw(:)
+! Used for LPUE
+real(dp), PRIVATE :: lpue_slope
+real(dp), PRIVATE :: lpue_slope2
+real(dp), PRIVATE :: lpue_intercept
+integer,  PRIVATE :: max_per_day
+real(dp), PRIVATE :: max_time_hpd
+real(dp), PRIVATE :: dredge_width_m
+real(dp), PRIVATE :: towing_speed_knots
+
+real(dp), PRIVATE, allocatable :: expl_biomass_gpsqm(:)
+real(dp), PRIVATE, allocatable :: USD_per_sqm(:)
+real(dp), PRIVATE, allocatable :: expl_scallops_psqm(:)
+real(dp), PRIVATE, allocatable :: expl_num(:)
+real(dp), PRIVATE, allocatable :: F_mort(:)
+real(dp), PRIVATE, allocatable :: F_mort_raw(:)
 real(dp), PRIVATE, allocatable :: landings_by_num(:)
 real(dp), PRIVATE, allocatable :: landings_wgt_grams(:)
 real(dp), PRIVATE, allocatable :: landings_wgt_grams_open(:)
@@ -131,19 +140,18 @@ real(dp), PRIVATE :: landings_at_size(num_size_classes)
 real(dp), PRIVATE :: landings_at_size_open(num_size_classes)
 real(dp), PRIVATE :: landings_at_size_closed(num_size_classes)
 
-
 CONTAINS
 
 !==================================================================================================================
 !! @public @memberof Mortality_Class
 !==================================================================================================================
 subroutine Destructor()
-    deallocate(expl_biomass_by_loc)
-    deallocate(USD_per_sqm_by_loc)
-    deallocate(expl_scallops_psqm_by_loc)
-    deallocate(expl_num_by_loc)
-    deallocate(F_mort_by_loc)
-    deallocate(F_mort_by_loc_raw)
+    deallocate(expl_biomass_gpsqm)
+    deallocate(USD_per_sqm)
+    deallocate(expl_scallops_psqm)
+    deallocate(expl_num)
+    deallocate(F_mort)
+    deallocate(F_mort_raw)
 
     deallocate(landings_by_num)
     deallocate(landings_wgt_grams)
@@ -211,13 +219,12 @@ subroutine Set_Mortality(mortality, grid, shell_lengths, dom_name, dom_area, num
 
     call Load_Fishing_Mortalities()
 
-
-    allocate(expl_biomass_by_loc(num_grids))
-    allocate(USD_per_sqm_by_loc(num_grids))
-    allocate(expl_scallops_psqm_by_loc(num_grids))
-    allocate(expl_num_by_loc(num_grids))
-    allocate(F_mort_by_loc(num_grids))
-    allocate(F_mort_by_loc_raw(num_grids))
+    allocate(expl_biomass_gpsqm(num_grids))
+    allocate(USD_per_sqm(num_grids))
+    allocate(expl_scallops_psqm(num_grids))
+    allocate(expl_num(num_grids))
+    allocate(F_mort(num_grids))
+    allocate(F_mort_raw(num_grids))
 
     allocate(landings_by_num(num_grids))
     allocate(landings_wgt_grams(num_grids))
@@ -421,43 +428,43 @@ function Set_Fishing(fishing_type, year, ts, state, weight_grams, mortality, gri
     ! these sums are over num_size_classes
     do loc = 1,num_grids
         ! dot_product(selectivity, state)
-        expl_scallops_psqm_by_loc(loc) = & 
+        expl_scallops_psqm(loc) = & 
         &    dot_product(mortality(loc)%selectivity(1:num_size_classes), state(loc,1:num_size_classes))
 
         ! dot_product(selectivity, state) * grid_area_sqm
-        expl_num_by_loc(loc) = expl_scallops_psqm_by_loc(loc) * grid_area_sqm
+        expl_num(loc) = expl_scallops_psqm(loc) * grid_area_sqm
 
         ! selectivity * state - at this location
         expl_scallops_psqm_at_size(1:num_size_classes) = mortality(loc)%selectivity(:) * state(loc, :)
         ! dot_product(selectivity * state, weight)
-        expl_biomass_by_loc(loc) = dot_product(expl_scallops_psqm_at_size(1:num_size_classes), &
+        expl_biomass_gpsqm(loc) = dot_product(expl_scallops_psqm_at_size(1:num_size_classes), &
         &                                      weight_grams(loc,1:num_size_classes))
 
         ! Dollars_Per_SqM ultimately uses expl_scallops_psqm_at_size -> Scallops_To_Counts
-        USD_per_sqm_by_loc(loc) = Dollars_Per_SqM(year, weight_grams(loc, 1:num_size_classes))
+        USD_per_sqm(loc) = Dollars_Per_SqM(year, weight_grams(loc, 1:num_size_classes))
     enddo
 
     ! now sum here over num_grids 
-    divisor = dot_product(expl_biomass_by_loc(:), expl_num_by_loc(:) / sum(expl_num_by_loc))
+    divisor = dot_product(expl_biomass_gpsqm(:), expl_num(:) / sum(expl_num))
 
     do loc = 1,num_grids
         c_mort = Set_Fishing_Mortality(grid(loc), year) / divisor
-        F_mort_by_loc(loc) = c_mort * expl_biomass_by_loc(loc)
-        F_mort_by_loc_raw(loc) = Set_Fishing_Mortality(grid(loc), year)
+        F_mort(loc) = c_mort * expl_biomass_gpsqm(loc)
+        F_mort_raw(loc) = Set_Fishing_Mortality(grid(loc), year)
     
         ! (1._dp - exp(-F * delta_time)) * state * grid_area_sqm  * selectivity
-        landings_at_size(:) = (1._dp - exp(-F_mort_by_loc(loc) * delta_time)) &
+        landings_at_size(:) = (1._dp - exp(-F_mort(loc) * delta_time)) &
         &    * state(loc, 1:num_size_classes) * grid_area_sqm&
         &    * mortality(loc)%selectivity(1:num_size_classes)
-        landings_at_size_open(:) = (1._dp - exp(-F_mort_by_loc(loc)  * delta_time)) &
+        landings_at_size_open(:) = (1._dp - exp(-F_mort(loc)  * delta_time)) &
         &    * state(loc, 1:num_size_classes) * grid_area_sqm&
         &    * mortality(loc)%selectivity_open(1:num_size_classes)
-        landings_at_size_closed(:) = (1._dp - exp(-F_mort_by_loc(loc)  * delta_time)) &
+        landings_at_size_closed(:) = (1._dp - exp(-F_mort(loc)  * delta_time)) &
         &    * state(loc, 1:num_size_classes) * grid_area_sqm&
         &    * mortality(loc)%selectivity_closed(1:num_size_classes)
     
         ! (1._dp - exp(-F * delta_time))
-        ! * dot_product(selectivity * state * grid_area_sqm,  weight)
+        ! * dot_product(selectivity * state * grid_area_sqm, weight)
         landings_wgt_grams(loc)        =&
         &    dot_product(landings_at_size(:),        weight_grams(loc,1:num_size_classes))
         landings_wgt_grams_open(loc)   =&
@@ -489,7 +496,7 @@ function Set_Fishing(fishing_type, year, ts, state, weight_grams, mortality, gri
         case default
             Mindx = minloc( abs(mortality(1)%year(1:mortality(1)%num_years) - year ), 1)
             Set_Fishing(1:num_grids) = mortality(1:num_grids)%fishing_effort(Mindx)!CASA Fishing
-            write( * ,  * )'Unkown fishing fishing_type:', fishing_type, &
+            write(*,*)'Unkown fishing fishing_type:', fishing_type, &
             &    '.  Using spatially constant fishing_effort from CASA model'
     end select
 
@@ -610,22 +617,22 @@ function Set_Fishing_Effort_Weight_USD(is_closed, catch, catch_open, catch_close
     real(dp) tmp
 
     if (domain_name .eq. 'MA') then
-        tmp = dot_product(USD_per_sqm_by_loc(:), expl_biomass_by_loc(:)) * grid_area_sqm
+        tmp = dot_product(USD_per_sqm(:), expl_biomass_gpsqm(:)) * grid_area_sqm
         if (tmp.eq.0) tmp = 1._dp
-        Set_Fishing_Effort_Weight_USD(:) = catch * USD_per_sqm_by_loc(:) / tmp 
+        Set_Fishing_Effort_Weight_USD(:) = catch * USD_per_sqm(:) / tmp 
     else
         do j = 1, num_grids
             if(is_closed(j)) then
-                total_dollars_closed = (dot_product(USD_per_sqm_by_loc(:) &
-                &   * Logic_To_Double(is_closed(1:num_grids)), expl_biomass_by_loc(:))) * grid_area_sqm
+                total_dollars_closed = (dot_product(USD_per_sqm(:) &
+                &   * Logic_To_Double(is_closed(1:num_grids)), expl_biomass_gpsqm(:))) * grid_area_sqm
                 if (total_dollars_closed .eq. 0.) total_dollars_closed = 1.
-                Cclosed = USD_per_sqm_by_loc(j) * catch_closed / total_dollars_closed
+                Cclosed = USD_per_sqm(j) * catch_closed / total_dollars_closed
                 Set_Fishing_Effort_Weight_USD(j) = Cclosed
             else 
-                total_dollars_open = (dot_product(USD_per_sqm_by_loc(:) &
-                &   * Logic_To_Double(.NOT. is_closed(1:num_grids)), expl_biomass_by_loc(:))) * grid_area_sqm
+                total_dollars_open = (dot_product(USD_per_sqm(:) &
+                &   * Logic_To_Double(.NOT. is_closed(1:num_grids)), expl_biomass_gpsqm(:))) * grid_area_sqm
                 if (total_dollars_open .eq. 0.) total_dollars_open = 1.
-                Copen = USD_per_sqm_by_loc(j) * catch_open / total_dollars_open
+                Copen = USD_per_sqm(j) * catch_open / total_dollars_open
                 Set_Fishing_Effort_Weight_USD(j) = Copen 
             endif
         enddo
@@ -663,27 +670,27 @@ function Set_Fishing_Effort_Weight_BMS(is_closed, catch, catch_open, catch_close
         do j = 1, num_grids
             tmp = 0;
             do n = 1, num_grids
-                if (expl_scallops_psqm_by_loc(n).eq.0.0) then
-                    tmp = tmp + expl_biomass_by_loc(n) * expl_biomass_by_loc(n)
+                if (expl_scallops_psqm(n).eq.0.0) then
+                    tmp = tmp + expl_biomass_gpsqm(n) * expl_biomass_gpsqm(n)
                 else
-                    tmp = tmp + expl_biomass_by_loc(n) * expl_biomass_by_loc(n) / expl_scallops_psqm_by_loc(n)
+                    tmp = tmp + expl_biomass_gpsqm(n) * expl_biomass_gpsqm(n) / expl_scallops_psqm(n)
                 endif
             enddo
             ! 
             Set_Fishing_Effort_Weight_BMS(j) = &
-            &   (expl_biomass_by_loc(j) * catch / expl_scallops_psqm_by_loc(j) ) / (tmp  * grid_area_sqm)
+            &   (expl_biomass_gpsqm(j) * catch / expl_scallops_psqm(j) ) / (tmp  * grid_area_sqm)
         enddo
     else
-        exp_bms_open = sum( Logic_To_Double(.NOT. is_closed(1:num_grids)) * expl_biomass_by_loc(:))
-        exp_bms_closed = sum( Logic_To_Double(is_closed(1:num_grids)) * expl_biomass_by_loc(:))
+        exp_bms_open = sum( Logic_To_Double(.NOT. is_closed(1:num_grids)) * expl_biomass_gpsqm(:))
+        exp_bms_closed = sum( Logic_To_Double(is_closed(1:num_grids)) * expl_biomass_gpsqm(:))
         if(exp_bms_open.eq.0.)exp_bms_open = 1.
         if(exp_bms_closed.eq.0.)exp_bms_closed = 1.
 
         do j = 1, num_grids
             if(.NOT. is_closed(j)) then
-                Set_Fishing_Effort_Weight_BMS(j) = catch_open * expl_biomass_by_loc(j) / (exp_bms_open * grid_area_sqm)
+                Set_Fishing_Effort_Weight_BMS(j) = catch_open * expl_biomass_gpsqm(j) / (exp_bms_open * grid_area_sqm)
             else
-                Set_Fishing_Effort_Weight_BMS(j) = catch_closed * expl_biomass_by_loc(j) / (exp_bms_closed * grid_area_sqm)
+                Set_Fishing_Effort_Weight_BMS(j) = catch_closed * expl_biomass_gpsqm(j) / (exp_bms_closed * grid_area_sqm)
             endif
         enddo
     endif
@@ -941,7 +948,28 @@ subroutine Read_Configuration()
             case('Fishing Mortality File')
                 call Set_Fishing_Mort_File_Name(trim(adjustl(value)))
 
-                case default
+            case('LPUE Slope')
+                read(value, *) lpue_slope
+
+            case('LPUE Slope2')
+                read(value, *) lpue_slope2
+
+            case('LPUE Intercept')
+                read(value, *) lpue_intercept
+
+            case('Max Per Day')
+                read(value, *) max_per_day
+
+            case('Max Time')
+                read(value, *) max_time_hpd
+
+            case('Dredge Width')
+                read(value, *) dredge_width_m
+
+            case('Towing Speed')
+                read(value, *) towing_speed_knots
+
+            case default
                 write(*,*) term_red, 'Unrecognized line in ',config_file_name
                 write(*,*) 'Unknown Line-> ',input_string, term_blk
             end select
@@ -973,9 +1001,11 @@ subroutine Mortality_Write_At_Timestep(year, ts, state, weight_grams, mortality,
     real(dp) :: M(num_size_classes)
     real(dp), allocatable :: abundance(:)
     real(dp), allocatable :: bms(:)
+    real(dp), allocatable :: lpue(:), dredge_time(:), dredge_area(:)
 
     allocate(abundance(num_grids))
     allocate(bms(num_grids))
+    allocate(lpue(num_grids), dredge_time(num_grids), dredge_area(num_grids))
 
     ! write entire state for all grids in separate time stamp files
     write(buf,'(A8,I4,A1,I0.3)') '_AtTime_',year, '_', ts
@@ -1004,8 +1034,9 @@ subroutine Mortality_Write_At_Timestep(year, ts, state, weight_grams, mortality,
         abundance(loc) = sum(state(loc,1:num_size_classes))                                  ! scallops per sq meter
         bms(loc) = dot_product(state(loc,1:num_size_classes), &                              ! metric tons per sq meter
         &                      weight_grams(loc,1:num_size_classes) / grams_per_metric_ton)
-
     enddo
+
+    call  Calc_LPUE(expl_biomass_gpsqm, expl_scallops_psqm, lpue, dredge_time, dredge_area)
 
     ! CSV files (number of timestep by number of grids)
     call Write_CSV(1, num_grids, abundance,           output_dir//'Abundance_psqm_'//domain_name//'.csv',    1, (ts .ne. 0))
@@ -1013,19 +1044,25 @@ subroutine Mortality_Write_At_Timestep(year, ts, state, weight_grams, mortality,
     call Write_CSV(1, num_grids, bms,                 output_dir//'BMS_mtpsqm_'//domain_name//'.csv',        1, (ts .ne. 0))
     call Write_CSV(1, num_grids, bms*grid_area_sqm,   output_dir//'BMS_mt_'//domain_name//'.csv',            1, (ts .ne. 0))
     call Write_CSV(1, num_grids, landings_by_num,     output_dir//'NumLandings'//domain_name//'.csv',1, (ts .ne. 0))
-    call Write_CSV(1, num_grids, expl_biomass_by_loc(1:num_grids)*grid_area_sqm/grams_per_metric_ton,&
+    call Write_CSV(1, num_grids, expl_biomass_gpsqm(1:num_grids)*grid_area_sqm/grams_per_metric_ton,&
     &                                                  output_dir//'ExplBMS_mt_'//domain_name//'.csv',    1, (ts .ne. 0))
-    call Write_CSV(1, num_grids, expl_biomass_by_loc(1:num_grids)/grams_per_metric_ton,&
+    call Write_CSV(1, num_grids, expl_biomass_gpsqm(1:num_grids)/grams_per_metric_ton,&
     &                                                 output_dir//'ExplBMS_mtpsqm_'//domain_name//'.csv',    1, (ts .ne. 0))
     call Write_CSV(1, num_grids, set_fishing_by_loc,  output_dir//'FishingEffort'//domain_name//'.csv',       1, (ts .ne. 0))
-    call Write_CSV(1, num_grids, F_mort_by_loc,       output_dir//'FishingMort'//domain_name//'.csv',         1, (ts .ne. 0))
-    call Write_CSV(1, num_grids, F_mort_by_loc_raw,   output_dir//'FishingMortRaw'//domain_name//'.csv',         1, (ts .ne. 0))
-    call Write_CSV(1, num_grids, USD_per_sqm_by_loc*grid_area_sqm,  output_dir//'USD_psqm_'//domain_name//'.csv',1, (ts .ne. 0))
+    call Write_CSV(1, num_grids, F_mort,       output_dir//'FishingMort'//domain_name//'.csv',         1, (ts .ne. 0))
+    call Write_CSV(1, num_grids, F_mort_raw,   output_dir//'FishingMortRaw'//domain_name//'.csv',         1, (ts .ne. 0))
+    call Write_CSV(1, num_grids, USD_per_sqm*grid_area_sqm,  output_dir//'USD_psqm_'//domain_name//'.csv',1, (ts .ne. 0))
     call Write_CSV(1, num_grids, landings_wgt_grams(1:num_grids)/grams_per_metric_ton, &
     &                                                 output_dir//'WgtLandings_mt'//domain_name//'.csv',1, (ts .ne. 0))
+
+    call Write_CSV(1, num_grids, lpue(1:num_grids),   output_dir//'LPUE_'//domain_name//'.csv',1, (ts .ne. 0))
+    call Write_CSV(1, num_grids, dredge_time(1:num_grids), output_dir//'DredgeTime_'//domain_name//'.csv',1, (ts .ne. 0))
+    call Write_CSV(1, num_grids, dredge_area(1:num_grids), output_dir//'DredgeArea_'//domain_name//'.csv',1, (ts .ne. 0))
+
                 
     deallocate(abundance)
     deallocate(bms)
+    deallocate(lpue, dredge_time, dredge_area)
     return
 endsubroutine Mortality_Write_At_Timestep
 
@@ -1046,5 +1083,47 @@ elemental real(dp) function Set_Discard(length, selectivity, cull_size, discard,
         Set_Discard = discard * selectivity
     endif
 endfunction Set_Discard
+
+!==================================================================================================================
+!! @public @memberof Mortality_Class
+!> Computes catch as pounds per day
+!> @parma[in]  expl_biomass          !  Expl biomass
+!> @parma[in]  expl_scallops         !  Expl Number of Scallops
+!> @param[out] lpue_ppd              !  Catch rate in pounds per day
+!> @param[out] dredge_time_hrs       !  dredge bottom time
+!> @param[out] dredge_area_sqnm      !  area swept per day
+!>
+!>  EBiomass/ENumber = ESize
+!>  Total Weight of a Tow / Number of scallops caught = mean weight of individual scallop
+!>  expl_biomass_gpsqm(grid) * 4516 / expl_scallops_psqm(grid) * 4516 = expl_weight_g
+!>                             xxxx                                     xxxx
+!>
+!==================================================================================================================
+elemental subroutine Calc_LPUE(expl_biomass, expl_scallops, lpue_ppd, dredge_time_hrs, dredge_area_sqnm)
+    real(dp), Intent(In) ::  expl_biomass          !  Expl biomass
+    real(dp), Intent(In) ::  expl_scallops         !  Expl Number of Scallops
+    real(dp), Intent(Out) :: lpue_ppd              !  Catch rate in pounds per day
+    real(dp), Intent(Out) :: dredge_time_hrs       !  dredge bottom time
+    real(dp), Intent(Out) :: dredge_area_sqnm      !  area swept per day
+    real(dp) lpue1_ppd, lpue_limit_ppd
+    real(dp) expl_weight_g, expl_biomass_gptow
+
+    if ( expl_scallops > 0._dp) then
+        expl_weight_g = expl_biomass / expl_scallops    ! mean weight of individual expl scallop
+    else
+        expl_weight_g = 0._dp
+    endif
+    expl_biomass_gptow = expl_biomass * towArea_sqm ! exploitable biomass in tow
+
+    lpue1_ppd = min(lpue_slope2 * expl_biomass_gptow, lpue_slope * expl_biomass_gptow + lpue_intercept)  !piecewise linear relationship between exploitable biomass and lpue_ppd
+    lpue_limit_ppd = max_per_day * expl_weight_g / grams_per_pound !Max weight of scallops that can be shucked in one day
+    lpue_ppd = min(lpue1_ppd, lpue_limit_ppd) !lpue_ppd is constrained by shucking limit
+    if (lpue1_ppd > 0._dp) then
+        dredge_time_hrs = max_time_hpd * lpue_ppd / lpue1_ppd  !Time dredge on bottom in hours
+    else
+        dredge_time_hrs = 0._dp
+    endif
+    dredge_area_sqnm = dredge_time_hrs * towing_speed_knots * dredge_width_m / meters_per_naut_mile  !Bottom area swept in nautical miles
+endsubroutine Calc_LPUE
 
 end module Mortality_Mod
