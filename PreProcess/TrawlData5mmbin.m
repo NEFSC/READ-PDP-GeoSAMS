@@ -70,6 +70,7 @@ for d = 1:numel(size(domain))
     X=[];
     j=and(year==yr,sc==3.);
     if isOctave
+      station_t = M(j,10);
       is_closed_t = double(M(j,17)>0);
       lat_t = M(j,18);
       lon_t = -(M(j,19));
@@ -84,6 +85,7 @@ for d = 1:numel(size(domain))
       x_t = xx(j);
       y_t = yy(j);
     else
+      station_t = M(j,10);
       is_closed_t = array2table(int8(table2array(M(j,17)>0)),'VariableNames',{'isClosed'});
       lat_t = M(j,18);
       lon_t = array2table(-table2array(M(j,19)),'VariableNames',{'lon'});
@@ -116,12 +118,12 @@ for d = 1:numel(size(domain))
         k25   = sum((M(n(k)+24:n(k)+30,30)));
         density = [(M(n(k):n(k)+23,30));k25];
         density= density * countPerSqm;
-        X=[X;DecYr_t(k,:), x_t(k,:), y_t(k,:), lat_t(k,:), lon_t(k,:), z_t(k,:), is_closed_t(k,:), transpose(density)];
+        X=[X;DecYr_t(k,:), x_t(k,:), y_t(k,:), lat_t(k,:), lon_t(k,:), z_t(k,:), is_closed_t(k,:), station_t(k,:), transpose(density)];
       else
         k25   = sum(table2array(M(n(k)+24:n(k)+30,30)));
         density = [table2array(M(n(k):n(k)+23,30));k25];
         density= rows2vars(array2table( density * countPerSqm));
-        X=[X;DecYr_t(k,:), x_t(k,:), y_t(k,:), lat_t(k,:), lon_t(k,:), z_t(k,:), is_closed_t(k,:), density(1,2:end)];
+        X=[X;DecYr_t(k,:), x_t(k,:), y_t(k,:), lat_t(k,:), lon_t(k,:), z_t(k,:), is_closed_t(k,:), station_t(k,:), density(1,2:end)];
       end  
     end
     if isOctave

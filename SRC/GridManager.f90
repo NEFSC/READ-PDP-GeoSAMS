@@ -57,26 +57,29 @@ implicit none
 
 !> @class Grid_Data_Class
 type Grid_Data_Class
-    !! @public @memberof Grid_Data_Class
-    !! UTM Easting
+    !> @public @memberof Grid_Data_Class
+    !> UTM Easting
     real(dp) x
-    !! @public @memberof Grid_Data_Class
-    !! UTM Northing
+    !> @public @memberof Grid_Data_Class
+    !> UTM Northing
     real(dp) y
-    !! @public @memberof Grid_Data_Class
-    !! Longitude
+    !> @public @memberof Grid_Data_Class
+    !> Longitude
     real(dp) lon
-    !! @public @memberof Grid_Data_Class
-    !! Latitude
+    !> @public @memberof Grid_Data_Class
+    !> Latitude
     real(dp) lat
-    !! @public @memberof Grid_Data_Class
-    !! bathymetric depth at (x,y)
+    !> @public @memberof Grid_Data_Class
+    !> bathymetric depth at (x,y)
     real(dp) z
-    !! @public @memberof Grid_Data_Class
-    !! Indicates if grid is closed for fishing
+    !> @public @memberof Grid_Data_Class
+    !> Indicates if grid is closed for fishing
     logical is_closed
-    !! @public @memberof Grid_Data_Class
-    !! Indexed special access
+    !> @public @memberof Grid_Data_Class
+    !> Number of station where survey occured
+    integer station_number
+    !> @public @memberof Grid_Data_Class
+    !> Indexed special access
     integer special_access_index
 end type Grid_Data_Class
 
@@ -107,7 +110,7 @@ character(fname_len), PRIVATE :: special_accesss_fname
 CONTAINS
 
 !==================================================================================================================
-!! @public @memberof GridManager
+!> @public @memberof GridManager
 !>
 !> Initializes growth for startup
 !>
@@ -147,10 +150,11 @@ do n = 1, num_grids
     j = Is_Grid_In_Special_Access(grid(n)%lon, grid(n)%lat)
     if (j > 0) then
         grid(n)%special_access_index = j
-        write(70,'(A, I4, A, F8.3, A, F8.3, A, I3)') 'Survey #', n, ' location (lat, lon) (', grid(n)%lat, ',', grid(n)%lon, &
-        &   ' ) is found in special area ', j
+        write(70,'(A, I4, A, I10, A, F8.3, A, F8.3, A, I3)') 'Survey #', n, ' Station #', grid(n)%station_number, &
+        &   ' location (lat, lon) (', grid(n)%lat, ',', grid(n)%lon, ' ) is found in special area ', j
     else
-        write(70,'(A, I4, A, F8.3, A, F8.3, A)') 'Survey #', n, ' location (lat, lon) (', grid(n)%lat, ',', grid(n)%lon, ' )'
+        write(70,'(A, I4, A, I10, A, F8.3, A, F8.3, A)') 'Survey #', n, ' Station #', grid(n)%station_number, &
+        &   ' location (lat, lon) (', grid(n)%lat, ',', grid(n)%lon, ' )'
     endif
 enddo
 
@@ -158,7 +162,7 @@ close(70)
 endsubroutine Set_Grid_Manager
 
 !-----------------------------------------------------------------------------------------------
-!! @public @memberof GridManager
+!> @public @memberof GridManager
 !> Used during instantiation to set the name of the file to read to for configuration parameters
 !> @brief Read Input File
 !> 
@@ -180,7 +184,7 @@ subroutine Set_Config_File_Name(fname)
 endsubroutine Set_Config_File_Name
 
 !-----------------------------------------------------------------------------------------------
-!! @public @memberof GridManager
+!> @public @memberof GridManager
 !> Used during instantiation to set the name of the file to read to for grid locations, state
 !> @brief Read Input File
 !> 
@@ -202,7 +206,7 @@ subroutine Set_Init_Cond_File_Name(fname)
 endsubroutine Set_Init_Cond_File_Name
 
 !-----------------------------------------------------------------------------------------------
-!! @public @memberof GridManager
+!> @public @memberof GridManager
 !> Used during instantiation to set the name of the file to special access coordinates
 !> @brief Read Input File
 !> 
@@ -232,7 +236,7 @@ subroutine Set_Special_Access_File_Name(fname)
 endsubroutine Set_Special_Access_File_Name
 
 !-----------------------------------------------------------------------
-!! @public @memberof GridManager
+!> @public @memberof GridManager
 !> Get'r function for private member num_areas
 !-----------------------------------------------------------------------
 integer function Get_Num_Of_Areas()
@@ -240,7 +244,7 @@ integer function Get_Num_Of_Areas()
 endfunction
 
 !-----------------------------------------------------------------------
-!! @public @memberof GridManager
+!> @public @memberof GridManager
 !> Read_Configuration
 !> @brief Read Input File
 !> 
@@ -288,7 +292,7 @@ subroutine Read_Configuration()
 end subroutine Read_Configuration
 
 !==================================================================================================================
-!! @public @memberof Grid_Manager_Mod
+!> @public @memberof Grid_Manager_Mod
 !>
 !> This function is used to set the grid parameters and the initial state to start the simulation. 
 !>
@@ -324,7 +328,7 @@ integer function Load_Grid_State(grid, state)
             write(*,*) 'CHANGE "Max Number of Grids" IN CONFIGURATION FILE', term_blk
         end if
         read(input_str,*) year, grid(n)%x, grid(n)%y, grid(n)%lat, grid(n)%lon, grid(n)%z, &
-        &               is_closed, state(n,1:num_size_classes)
+        &               is_closed, grid(n)%station_number, state(n,1:num_size_classes)
         grid(n)%is_closed = (is_closed > 0)
         grid(n)%special_access_index = 0
     end do
@@ -336,7 +340,7 @@ integer function Load_Grid_State(grid, state)
 endfunction Load_Grid_State
 
 !==================================================================================================================
-!! @public @memberof Grid_Manager_Mod
+!> @public @memberof Grid_Manager_Mod
 !==================================================================================================================
 integer function Load_Area_Coordinates()
     ! 10 edges time 12 characters, SXX.XXXXXX, plus padding
@@ -402,7 +406,7 @@ integer function Load_Area_Coordinates()
 endfunction
 
 !==================================================================================================================
-!! @public @memberof Grid_Manager_Mod
+!> @public @memberof Grid_Manager_Mod
 !==================================================================================================================
 integer function Is_Grid_In_Special_Access(lon, lat)
     real(dp), intent(in) :: lon, lat
@@ -421,7 +425,7 @@ integer function Is_Grid_In_Special_Access(lon, lat)
 endfunction Is_Grid_In_Special_Access
 
 !==================================================================================================================
-!! @public @memberof Grid_Manager_Mod
+!> @public @memberof Grid_Manager_Mod
 !> @param poly Array of LonLatPoint coordinates that define polygram,
 !> @param point LonLatPoint coordinate of point we wish to determine if inside polygram
 !> @param nodes the number of corners, edges, that define the polygon
@@ -440,7 +444,7 @@ logical function Point_In_Polygon_Points(poly, point, nodes)
 endfunction Point_In_Polygon_Points
 
 !==================================================================================================================
-!! @public @memberof Grid_Manager_Mod
+!> @public @memberof Grid_Manager_Mod
 !> @param poly Array of x,y coordinates that define polygram,
 !> @param point x,y coordinate of point we wish to determine if inside polygram
 !> @param nodes the number of corners, edges, that define the polygon
@@ -459,7 +463,7 @@ logical function Point_In_Polygon_Array(poly, point, nodes)
 endfunction Point_In_Polygon_Array
 
 !==================================================================================================================
-!! @public @memberof Grid_Manager_Mod
+!> @public @memberof Grid_Manager_Mod
 !>
 !> First of all, notice that each iteration considers two adjacent points and the target point. 
 !> Then the if statement evaluates two conditions:
