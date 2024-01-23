@@ -54,21 +54,30 @@ type(Grid_Data_Class):: p
 integer j,io,n,num_points
 logical, intent(in):: InitialCallFlag
 integer greedy_fit
-character(72) :: InputStr
+character(72) :: input_string
 integer is_truncate_range
+logical exists
 
 is_truncate_range = 1 !default
 greedy_fit = 0
 
-open(69,file='SpatialFcns.cfg')
+! Check if configuration file exists
+input_string = 'Configuration\SpatialFcns.cfg'
+inquire(file=input_string, exist=exists)
+
+if (.NOT. exists) then
+    PRINT *, term_red, input_string, ' NOT FOUND', term_blk
+    stop
+endif
+open(69,file=input_string)
 n=0
 if(InitialCallFlag)then
     ! only counting the number of defined 'Function n'
     do
-        InputStr=""
-        read(69,'(a)',iostat=io) InputStr
+        input_string=""
+        read(69,'(a)',iostat=io) input_string
         if (io.lt.0) exit
-        if(InputStr(1:1).eq.'F') n=n+1
+        if(input_string(1:1).eq.'F') n=n+1
     end do
     close(69)
     if (n .eq. 0) then
@@ -80,20 +89,20 @@ if(InitialCallFlag)then
 endif
 
 do
-    InputStr=""
-    read(69,'(a)',iostat=io) InputStr
+    input_string=""
+    read(69,'(a)',iostat=io) input_string
     if (io.lt.0) exit
 
-    select case (InputStr(1:1))
+    select case (input_string(1:1))
     case('#')
         ! Ignore comment
 
     case('F')
         n=n+1
-        j = index(InputStr,'dim=',back=.true.)
-        nlsf(n)%d= trim( adjustl( Inputstr(j+4:j+4) ) )
-        j = index(InputStr,'shape=',back=.true.)
-        select case (InputStr(j+6:j+6))
+        j = index(input_string,'dim=',back=.true.)
+        nlsf(n)%d= trim( adjustl( input_string(j+4:j+4) ) )
+        j = index(input_string,'shape=',back=.true.)
+        select case (input_string(j+6:j+6))
             case('G')
                 nlsf(n)%form='Gaussian'
             case('L')
@@ -103,19 +112,19 @@ do
             case('C')
                 nlsf(n)%form='CosExp'
             case default
-                write(*,*) 'Unrecognized function Form in SpatialFcns.inp:',InputStr
+                write(*,*) 'Unrecognized function Form in SpatialFcns.inp:',input_string
                 stop
         end select
-        j = index(InputStr,"precon=",back=.true.)
-        read( Inputstr(j+7:),* )nlsf(n)%PreCFnum
+        j = index(input_string,"precon=",back=.true.)
+        read( input_string(j+7:),* )nlsf(n)%PreCFnum
 
     case ('G')
-        j = index(InputStr,"=",back=.true.)
-        read( Inputstr(j+1:),* ) greedy_fit
+        j = index(input_string,"=",back=.true.)
+        read( input_string(j+1:),* ) greedy_fit
 
     case ('I')
-        j = index(InputStr,"=",back=.true.)
-        read( Inputstr(j+1:),* ) is_truncate_range
+        j = index(input_string,"=",back=.true.)
+        read( input_string(j+1:),* ) is_truncate_range
     endselect
  end do
 close(69)

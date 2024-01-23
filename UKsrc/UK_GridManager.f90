@@ -72,6 +72,12 @@ do n = 1, num_points
     if (io.lt.0) exit
     read(input_str,*) ManagementRegion(n)
 end do
+n = n-1
+if (n .NE. num_points) then
+    write(*,'(A,A,A,A,I6,A,A,A,I6)') term_red, trim(flnm), ' incorrect size, expected ', &
+    &  term_blk, num_points, term_red, ' read ', term_blk, n
+    stop
+endif
 close(63)
 
 flnm = 'Grids/'//DomainName//'squares.csv'

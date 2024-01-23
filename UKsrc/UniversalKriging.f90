@@ -330,7 +330,16 @@ subroutine Read_Startup_Config(DomainName, SimType, obsfile, climfile, NRand, Is
         IsClimEst=.false.
         IsHiLimit=.false.
         IsLogT = .false.
-        open(69,file='UK.inp')
+
+        ! Check if configuration file exists
+        input_string = 'Configuration\UK.inp'
+        inquire(file=input_string, exist=exists)
+        
+        if (.NOT. exists) then
+            PRINT *, term_red, input_string, ' NOT FOUND', term_blk
+            stop
+        endif
+        open(69,file=input_string)
         do
             input_string=""
             read(69,'(a)',iostat=io) input_string
