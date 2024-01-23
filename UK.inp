@@ -3,30 +3,19 @@
 # values are read after "=" sign
 # parameters are identified by the first character in the line
 Domain Name = MA
-#Input File = Data/Recruits2015MA.csv
-Input File = Data/HabCamData2015MA.csv
+Input File = Data/Recruits2005MA.csv
+#Input File = Data/HabCamData2015MA.csv
 Log Transform = T
-High Limit factor (max interp field < hlf*max(obs))= 1.5
+#(max interp field < hlf*max(obs))
+High Limit Factor = 1.5
 Match stratified mean = T
-#Climatology = Output/ClimMA/KrigingEstimate.txt
-Number of random fields = 10
-Kriging variogram form = 'spherical'
-# Specifing Non linear spatial function inputs
-Function 1, dim=z, shape=Logistic, precon=0  
-Function 2, dim=z, shape=Gaussian, precon=0  
-Function 3, dim=z, shape=SinExp,   precon=0  
-Function 4, dim=x, shape=Logistic, precon=0  
-Function 5, dim=y, shape=Logistic, precon=0  
-Function 6, dim=x, shape=Logistic, precon=1  
-Function 7, dim=y, shape=Logistic, precon=1  
-Function 8, dim=x, shape=Logistic, precon=2  
-Function 9, dim=y, shape=Logistic, precon=2  
-Function 10, dim=x, shape=Logistic, precon=3 
-Function 11, dim=y, shape=Logistic, precon=3  
-# Greedy function fit (True) takes significantly longer
-# to run as
-Greedy nonlinear parameter fit = F
+#Climatology = KrigingEstimates/SimMAClim/KrigingEstimate.txt
+Number of Random Fields = 10
+Kriging variogram form = spherical
 # Power transform interpolates f(x)^alpha 
 # generally 0< alpha < 1 but this has not been tested 
-# do not use if "Log Transform = T"!
-# Power transform parameter alpha = 1.0
+# do not use if "Log Transform = T"
+Power Transform Parameter = 1.0
+# SimType=0 !priori simulation
+#         1 !posterior simulation
+SimType = 1

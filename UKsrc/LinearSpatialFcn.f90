@@ -24,7 +24,7 @@ CONTAINS
 !>  Outputs:
 !>  -   beta  (real(dp)) length m vector of optimal coefficients
 !>  -   Cbeta (real(dp)) size m x m covariance matrix for beta
-!>  -   r     (real(dp)) length nn vector of residuals r = y - F * beta
+!>  -   r     (real(dp)) length num_points vector of residuals r = y - F * beta
 !>
 !> @author Keston Smith (IBSS corp) June-July 2021
 !--------------------------------------------------------------------------------------------------
@@ -79,7 +79,7 @@ call dgemv('N', m, m, atmp, Cbeta, m, Vtmp2, 1, btmp, Beta, 1)
 call dgemv('N', n, m, atmp, F, n, beta,  1, btmp, ytr, 1)
 r(1:n)=y(1:n)-ytr(1:n)
 
-call write_scalar_fields(n, 1, y, 'obs.txt', n)
+call Write_Vector_Scalar_Field(n, y, 'obs.txt')
 
 deallocate( ipiv, stat=error)
 deallocate(  Cinv, CbetaInv, ytr, Mtmp, Vtmp, Vtmp2, stat=error )
@@ -126,7 +126,7 @@ end subroutine
 !>
 !> inputs: 
 !>  - n      length of vectors f and z
-!>  - z      [nn] bathymetric depth
+!>  - z      [num_points] bathymetric depth
 !>  - fpeak  highest observed value of recruitment
 !>  - Domain 'MA', Mid Atlantic or 'GB' Georges Bank
 !>

@@ -19,12 +19,14 @@ DetectRS=.27;
 DetectHD=.13;
 DetectHDThreshold=2;%scallops/m^2
 
-%F=csvreadK('OrigonalData/recruitsv2KWS.csv');
+flnm = 'OriginalData/dredgetowbysize7917-1.csv';
+%flnm = 'OriginalData/recruitsv2.csv';
+%flnm = 'OriginalData/recruitsv2KWS.csv';
 if isOctave
-  F=csvreadK('OriginalData/recruitsv2.csv');
+  F=csvreadK(flnm);
   year=F(:,5);mon=F(:,6);day=F(:,7);
 else
-  F= readtable('OriginalData/recruitsv2.csv',"FileType","text");
+  F= readtable(flnm,"FileType","text");
   year=table2array(F(:,5));mon=table2array(F(:,6));day=table2array(F(:,7));
 end
 j=find(isnan(mon+day));mon(j)=6;day(j)=21;% assign missing date to summer solstice
@@ -52,10 +54,6 @@ j=find(~isnan(sum(M')));M=M(j,:);
 flnm='Data/RecruitsUnadjusted.csv'
 header='"decmal year", "latitude", "longitude", "bottom depth(m)","recruits per m^2"';
 writecsv(M,flnm,['%g, %g, %g, %g, %e'],header);
-%XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX
-
-%XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX
-
 
 
 %XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX
@@ -268,8 +266,6 @@ else
   F=table2array(readtable(flnm,"FileType","text"));
 end
 Fout = LumpData1NM(F);
-flnm='Data/RecruitsGBLump1NM.csv'
+flnm='Data/RecruitsGBLump1NM.csv';
 header='"decmal year", "x utm", "y utm", "bottom depth(m)","recruits per sq m"';
 writecsv(Fout,flnm,['%g, %f, %f, %f, %e'],header);
-%XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX
-

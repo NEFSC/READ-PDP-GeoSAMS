@@ -1,88 +1,4 @@
 
-!--------------------------------------------------------------------------------------------------
-!> Purpose: Read parameter values, flags, etc. from a ascii text input file:"UK.inp".  Parameters etc. 
-!> to be read from UK.inp are identified by the first letter of the line.  Values are read from the 
-!> line to the right of an "=" character. Logical variables are read from 'T','F'.
-!>
-!> outputs: 
-!>       all variables
-!>
-!--------------------------------------------------------------------------------------------------
-! Keston Smith (IBSS) 2022
-!--------------------------------------------------------------------------------------------------
-subroutine ReadInput(DomainName,obsfile,climfile,NRand,IsLogT,IsHiLimit,fmax,IsMatchMean,IsClimEst,par,alpha)
-use globals
-use KrigMod
-implicit none
-type(KrigPar), intent(out):: par
-integer j,io
-integer, intent(out):: NRand
-character(72),intent(out):: obsfile,climfile
-character(2),intent(out):: DomainName
-
-logical IsLogT,IsHiLimit,IsMatchMean,IsClimEst
-character(72) :: InputStr
-real(dp),intent(out)::  fmax,alpha
-IsClimEst=.false.
-IsHiLimit=.false.
-open(69,file='UK.inp')
-do
-    InputStr=""
-    read(69,'(a)',iostat=io) InputStr
-    if (io.lt.0) exit
-
-    select case (InputStr(1:1))
-        case('#')
-            !write(*,*)'Comment echo:',InputStr
-        case('D')
-            j = scan(InputStr,"=",back=.true.)
-            DomainName=trim(adjustl(Inputstr(j+1:)))
-            write(*,*)'Domain is ',DomainName
-        case('I')
-            j = scan(InputStr,"=",back=.true.)
-            obsfile=trim(adjustl(InputStr(j+1:)))
-            write(*,*)'taking point obs from ',trim(obsfile),' format should be decimal year, x, y, z, f'
-        case('L')
-            j = scan(InputStr,"=",back=.true.)
-            read(Inputstr(j+1:),*)IsLogT
-            write(*,*)'Is log transform?',IsLogT
-        case('H')
-            j = scan(InputStr,"=",back=.true.)
-            read(Inputstr(j+1:),*)fmax
-        case('P')
-            j = scan(InputStr,"=",back=.true.)
-            read(Inputstr(j+1:),*)alpha
-            IsHiLimit = .true.
-            write(*,*)'Is this the fmax you were searching for?', fmax
-        case('C')
-            j = scan(InputStr,"=",back=.true.)
-            climfile=trim(adjustl(InputStr(j+1:)))
-            write(*,*)'taking climatological background field from ',trim(climfile)
-            IsClimEst=.true.
-        case('N')
-            j = scan(InputStr,"=",back=.true.)
-            read( InputStr(j+1:),* )NRand
-        case('K')
-            j = scan(InputStr,"=",back=.true.)
-            read( InputStr(j+1:),* )par%form
-        case('M')
-            j = scan(InputStr,"=",back=.true.)
-            read( InputStr(j+1:),* )IsMatchMean
-            
-            !Match stratified mean = F
-
-        case default
-            write(*,*) 'ReadInput: Unrecognized line in UK.inp'
-            write(*,*) 'Unrecognized Line->',InputStr
-            write(*,*) 'This is probably not a problem'
-            !stop
-    end select
-
-end do
-close(69)
-return
-end
-
 !-----------------------------------------------------------------------
 !> Purpose: Read real valued scaler field, M, from file flnm.
 !> Inputs:
@@ -93,7 +9,7 @@ end
 !>
 !> @author  Keston Smith (IBSS corp) June-July 2021
 !-----------------------------------------------------------------------
-subroutine readsf(flnm, M, nn)
+subroutine Read_CSV(flnm, M, nn)
 use globals
 implicit none
 
@@ -102,7 +18,7 @@ implicit none
     character (*), intent(in)::flnm
     integer n,io
     character(72) input_str
-    write(*,*)'readsf flnm=',flnm
+    write(*,*)'Read_CSV flnm=',flnm
     open(63,file=trim(flnm),status='old')
     n=0
     do
@@ -129,7 +45,7 @@ end
 !>
 !> @author  Keston Smith (IBSS corp) June-July 2021
 !--------------------------------------------------------------------------------------------------
-subroutine write_scalar_fields(nn,nsim,f,flnm,nndim)
+subroutine Write_2D_Scalar_Field(nn,nsim,f,flnm,nndim)
 use globals
 implicit none
     
@@ -166,7 +82,7 @@ end subroutine
 !>
 !> @author  Keston Smith (IBSS corp) June-July 2021
 !--------------------------------------------------------------------------------------------------
-subroutine WriteScalarField(nn,f,flnm)
+subroutine Write_Vector_Scalar_Field(nn,f,flnm)
     use globals
     implicit none
 
@@ -182,7 +98,7 @@ subroutine WriteScalarField(nn,f,flnm)
 end subroutine
 
 !--------------------------------------------------------------------------------------------------
-!> Purpose: Write values of a matrrix (f) to a csv file in exponential format.
+!> Purpose: Write values of a matrix (f) to a csv file in exponential format.
 !> Inputs:
 !> -    n    (integer) number of rows in f 
 !> -    m    (integer) number of columns in f

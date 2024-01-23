@@ -170,7 +170,7 @@ call GetDomainAverage(obs,grid,DomainAverage)
  if(IsClimEst)then
     allocate(ClimEst(1:nn),ClimEstObs(1:no))
     write(*,*)'ClimFile=',climfile
-    call readsf(climfile, ClimEst, j)
+    call Read_CSV(climfile, ClimEst, j)
     call WriteScalarField(nn,ClimEst(1:nn),'ClimEstField.txt')
     write(*,*)'climatology: read nn=',j,'values from ',trim(ClimFile)
     if (IsLogT)ClimEst(1:nn)=log(A+ClimEst(1:nn))
