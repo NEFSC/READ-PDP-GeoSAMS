@@ -62,7 +62,7 @@ is_truncate_range = 1 !default
 greedy_fit = 0
 
 ! Check if configuration file exists
-input_string = 'Configuration\SpatialFcns.cfg'
+input_string = 'Configuration/SpatialFcns.cfg'
 inquire(file=input_string, exist=exists)
 
 if (.NOT. exists) then

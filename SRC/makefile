@@ -74,7 +74,20 @@ endif
 ifeq ("$(wildcard .\mod)", "")
 	mkdir .\mod
 endif
+# Make directories needed for ScallopPopDensity executuion
+ifeq ("$(wildcard ..\GrowthOutput)", "")
+	mkdir ..\GrowthOutput
+endif
+ifeq ("$(wildcard ..\Results)", "")
+	mkdir ..\Results
+endif
+ifeq ("$(wildcard ..\RecruitField)", "")
+	mkdir ..\RecruitField
+endif
 else
 	if [ ! -d "$(OBJ_DIR)" ]; then mkdir $(OBJ_DIR); fi
 	if [ ! -d "$(MOD_DIR)" ]; then mkdir $(MOD_DIR); fi
+	cd ..; if [ ! -d "GrowthOutput" ]; then mkdir 'GrowthOutput'; fi
+	cd ..; if [ ! -d "Results" ]; then mkdir 'Results'; fi
+	cd ..; if [ ! -d "RecruitField" ]; then mkdir 'RecruitField'; fi
 endif

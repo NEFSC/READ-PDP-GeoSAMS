@@ -124,7 +124,7 @@ real(dp), allocatable :: Dh(:,:), Dz(:,:), gamma(:,:), Veps(:), VSpFn(:), CbetaF
 real(dp), allocatable :: ClimEst(:), ClimEstObs(:), trend(:), Vtotal(:), logmu(:)
 real(dp), allocatable :: RandomField(:,:)
 integer   num_points, num_spat_fcns, num_obs_points, SimType, j, nits
-real(dp)  fmax, A, DomainAverage, SF
+real(dp)  fmax, A, domain_average, SF
 ! variables for nonlinear fitting
 integer nsf, NRand, ncla
 logical IsClimEst, IsHiLimit, IsMatchMean, IsLogT
@@ -212,7 +212,7 @@ if (SimType.eq.1) then
     allocate( gamma(1:num_obs_points, 1:num_obs_points) )
 
     fmax=fmax*maxval(obs%recr_psqm(1:num_obs_points))
-    call Get_Domain_Average(obs, grid, DomainAverage)
+    domain_average = Get_Domain_Average(obs, grid)
 
     if(IsLogT) then
         A = 1.D0 / tow_area_sqm ! 1 scallop per tow 
@@ -285,7 +285,7 @@ else
     call UK_prior(grid, num_spat_fcns, par, beta, Cbeta, eps, Ceps)
 endif
 
-call OutputUK(num_points, num_spat_fcns, Nrand, grid, nlsf, beta, eps, Ceps, Cbeta, ClimEst, fmax, SF, A, DomainAverage, &
+call OutputUK(num_points, num_spat_fcns, Nrand, grid, nlsf, beta, eps, Ceps, Cbeta, ClimEst, fmax, SF, A, domain_average, &
 &                    IsLogT, IsClimEst, IsMatchMean, IsHiLimit, DomainName, alpha)
 
 call Interpret_From_Grid(grid, grid%recr_psqm, obs, r)
@@ -332,7 +332,7 @@ subroutine Read_Startup_Config(DomainName, SimType, obsfile, climfile, NRand, Is
         IsLogT = .false.
 
         ! Check if configuration file exists
-        input_string = 'Configuration\UK.inp'
+        input_string = 'Configuration/UK.inp'
         inquire(file=input_string, exist=exists)
         
         if (.NOT. exists) then
@@ -433,7 +433,7 @@ subroutine Read_Startup_Config(DomainName, SimType, obsfile, climfile, NRand, Is
 !> "RandomFieldN.txt", where N =1:Nrand. Predictor standard deviation  is output to "KrigSTD.txt".
 !> Function coefficient 
 !---------------------------------------------------------------------------------------------------
-subroutine OutputUK(num_points, num_spat_fcns, Nrand, grid, nlsf, beta, eps, Ceps, Cbeta, ClimEst, fmax, SF, A, DomainAverage, &
+subroutine OutputUK(num_points, num_spat_fcns, Nrand, grid, nlsf, beta, eps, Ceps, Cbeta, ClimEst, fmax, SF, A, domain_average, &
     IsLogT, IsClimEst, IsMatchMean, IsHiLimit, DomainName, alpha)
 use GridManagerMod
 use NonLinearSpatialFcnMod
@@ -445,7 +445,7 @@ type(NLSFPar), intent(in)::nlsf(*)
                                     
 character(2) DomainName
 integer, intent(in) :: num_points, num_spat_fcns, Nrand
-real(dp), intent(in) :: eps(*), beta(*), Cbeta(num_spat_fcns,*), ClimEst(*), fmax, SF, A, DomainAverage, alpha
+real(dp), intent(in) :: eps(*), beta(*), Cbeta(num_spat_fcns,*), ClimEst(*), fmax, SF, A, domain_average, alpha
 real(dp), intent(inout) :: Ceps(num_points,*)
 logical, intent(in) ::IsLogT, IsClimEst, IsMatchMean, IsHiLimit
 integer j, k, n
@@ -463,7 +463,7 @@ logf(1:num_points)=grid%recr_psqm(1:num_points)
 if(IsLogT) grid%recr_psqm(1:num_points)=SF*exp( grid%recr_psqm(1:num_points) + V(1:num_points)/2. ) - A  ! adjusted inverse log(A+f)
 if(IsHiLimit)call limitz(num_points, grid%recr_psqm, grid%z, fmax, DomainName)
 MuY=sum( grid%recr_psqm(1:num_points) )/float(num_points)
-if(IsMatchMean)grid%recr_psqm(1:num_points)=DomainAverage*grid%recr_psqm(1:num_points)/MuY
+if(IsMatchMean)grid%recr_psqm(1:num_points)=domain_average*grid%recr_psqm(1:num_points)/MuY
 if(IsHiLimit)call limitz(num_points, grid%recr_psqm, grid%z, fmax, DomainName)
 call Write_Vector_Scalar_Field(num_points, grid%recr_psqm, 'KrigingEstimate.txt')
 
@@ -471,7 +471,7 @@ call spatial_function(grid, Fg, num_spat_fcns, num_points, nlsf)
 trend(1:num_points)=matmul( Fg(1:num_points, 1:num_spat_fcns), beta(1:num_spat_fcns)) 
 if(IsClimEst)trend(1:num_points)=trend(1:num_points)+ClimEst(1:num_points)
 if(IsLogT)trend(1:num_points)=SF*exp(trend(1:num_points))-A
-if(IsMatchMean)trend(1:num_points)=DomainAverage*trend(1:num_points)/MuY
+if(IsMatchMean)trend(1:num_points)=domain_average*trend(1:num_points)/MuY
 call Write_Vector_Scalar_Field(num_points, trend, 'SpatialTrend.txt')
 
 call Write_Vector_Scalar_Field(num_points, eps, 'epsilon.txt')

@@ -29,7 +29,9 @@ else
   F= readtable(flnm,"FileType","text");
   year=table2array(F(:,5));mon=table2array(F(:,6));day=table2array(F(:,7));
 end
-j=find(isnan(mon+day));mon(j)=6;day(j)=21;% assign missing date to summer solstice
+% if NAN or blank, i.e. 0
+j=find(isnan(mon));mon(j)=6;day(j)=21;% assign missing date to summer solstice
+j=find(~(mon));mon(j)=6;day(j)=21;% assign missing date to summer solstice
 
 N=length(year);
 for n=1:N

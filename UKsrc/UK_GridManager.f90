@@ -202,47 +202,46 @@ end subroutine
 !>
 !> @author Keston Smith 2022
 !----------------------------------------------------------------------------------------
-subroutine Get_Domain_Average(obs, g, domain_avg)
+real(dp) function Get_Domain_Average(obs, g)
 
-type(Grid_Data_Class):: g
-type(Grid_Data_Class):: obs
-real(dp), intent(out) :: domain_avg
+type(Grid_Data_Class), intent(in):: g
+type(Grid_Data_Class), intent(in):: obs
 integer num_points, num_survey, Nregion, k, j, rn
 real(dp) dx, dy
-real(dp), allocatable:: RegionalAverage(:), D(:), RegionArea(:)
-integer, allocatable:: ObsInRegion(:)
+real(dp), allocatable:: regional_average(:), D(:), region_area(:)
+integer, allocatable:: obs_in_region(:)
 num_points = g%num_points
 num_survey = obs%num_points
 Nregion = maxval(g%ManagementRegion(1:num_points))
-allocate(ObsInRegion(1:Nregion), RegionalAverage(1:Nregion), D(1:num_points), RegionArea(1:Nregion))
-RegionalAverage(1:Nregion) = 0.
-ObsInRegion(1:Nregion) = 0
+allocate(obs_in_region(1:Nregion), regional_average(1:Nregion), D(1:num_points), region_area(1:Nregion))
+regional_average(1:Nregion) = 0.
+obs_in_region(1:Nregion) = 0
 do j = 1, num_survey
     D(1:num_points) = (g%x(1:num_points) - obs%x(j))**2 + (g%y(1:num_points) - obs%y(j))**2
     k = minloc(D, 1)
     rn = g%ManagementRegion(k)
-    RegionalAverage(rn) = RegionalAverage(rn) + obs%recr_psqm(j)
-    ObsInRegion(rn) = ObsInRegion(rn) + 1
+    regional_average(rn) = regional_average(rn) + obs%recr_psqm(j)
+    obs_in_region(rn) = obs_in_region(rn) + 1
 enddo
 
 do k = 1, Nregion
-    if(ObsInRegion(k).gt.0)RegionalAverage(k) = RegionalAverage(k) / float(ObsInRegion(k))
+    if(obs_in_region(k).gt.0) regional_average(k) = regional_average(k) / float(obs_in_region(k))
 enddo
 
 dx = meters_per_naut_mile
 dy = meters_per_naut_mile
 do k = 1, num_points
-    RegionArea(g%ManagementRegion(k)) = RegionArea(g%ManagementRegion(k)) + dx * dy
+    region_area(g%ManagementRegion(k)) = region_area(g%ManagementRegion(k)) + dx * dy
 enddo
-domain_avg = sum(RegionalAverage(1:Nregion) * RegionArea(1:Nregion)) / sum(RegionArea(1:Nregion))
-write(*,*)'Regional Averages', RegionalAverage(1:Nregion)
+Get_Domain_Average = sum(regional_average(1:Nregion) * region_area(1:Nregion)) / sum(region_area(1:Nregion))
+write(*,*)'Regional Averages', regional_average(1:Nregion)
 write(*,*)
-write(*,*)'Regional Areas', RegionArea(1:Nregion)
+write(*,*)'Regional Areas', region_area(1:Nregion)
 write(*,*)
-write(*,*)'Nobs in region', ObsInRegion(1:Nregion)
+write(*,*)'Nobs in region', obs_in_region(1:Nregion)
 write(*,*)'Obs Average', sum(obs%recr_psqm(1:num_survey)) / float(num_survey), num_survey
-deallocate(ObsInRegion, RegionalAverage, D, RegionArea)
+deallocate(obs_in_region, regional_average, D, region_area)
 return
-end subroutine
+end function 
 
 end module GridManagerMod
