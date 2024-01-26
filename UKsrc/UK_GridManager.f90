@@ -14,7 +14,7 @@ type Grid_Data_Class
     real(dp) x(NDim)
     real(dp) y(NDim)
     real(dp) z(nDim)
-    real(dp) recr_psqm(nDim)
+    real(dp) f_psqm(nDim)
     real(dp) lat(NDim)
     real(dp) lon(NDim)
     integer num_points, num_squares
@@ -45,13 +45,15 @@ CONTAINS
 !>
 !> @author Keston Smith (IBSS corp) June-July 2021
 !>-----------------------------------------------------------------------
-subroutine Load_Grid(x, y, z, lat, lon, num_points, E, num_squares, ManagementRegion, DomainName)
+integer function Load_Grid(x, y, z, lat, lon, ManagementRegion, domain_name)
 real(dp) lat(*), lon(*), x(*), y(*), z(*)
-integer n, num_points, num_squares, io, ManagementRegion(*), E(4,*)
+integer n, io, ManagementRegion(*)
 character(72) input_str, flnm
-character(2) DomainName
+character(2) domain_name
 
-flnm = 'Grids/'//DomainName//'xyzLatLon.csv'
+flnm = 'Grids/'//domain_name//'xyzLatLonRgn.csv'
+!flnm = 'Grids/'//domain_name//'xyzLatLon.csv'
+!flnm = 'Grids/2005MAxyzLatLon.csv'
 write(*,*)'grid file: ', trim(flnm)
 open(63, file = trim(flnm), status = 'old')
 n = 0
@@ -59,41 +61,31 @@ do
     read(63, '(a)', iostat = io) input_str
     if (io.lt.0) exit
     n = n + 1
-    read(input_str,*) x(n), y(n), z(n), lat(n), lon(n)
+    read(input_str,*) x(n), y(n), z(n), lat(n), lon(n), ManagementRegion(n)
 end do
 close(63)
-num_points = n
+Load_Grid = n
 
-flnm = 'Grids/ManagementArea'//DomainName//'.txt'
-open(63, file = trim(flnm), status = 'old')
+! flnm = 'Grids/ManagementArea'//domain_name//'.txt'
+! open(63, file = trim(flnm), status = 'old')
 
-do n = 1, num_points
-    read(63, '(a)', iostat = io) input_str
-    if (io.lt.0) exit
-    read(input_str,*) ManagementRegion(n)
-end do
-n = n-1
-if (n .NE. num_points) then
-    write(*,'(A,A,A,A,I6,A,A,A,I6)') term_red, trim(flnm), ' incorrect size, expected ', &
-    &  term_blk, num_points, term_red, ' read ', term_blk, n
-    stop
-endif
-close(63)
+! do n = 1, num_points
+!     read(63, '(a)', iostat = io) input_str
+!     if (io.lt.0) exit
+!     read(input_str,*) ManagementRegion(n)
+! end do
+! n = n-1
+! if (n .NE. num_points) then
+!     write(*,'(A,A,A,A,I6,A,A,A,I6)') term_red, trim(flnm), ' incorrect size, expected ', &
+!     &  term_blk, num_points, term_red, ' read ', term_blk, n
+!     stop
+! endif
+! close(63)
 
-flnm = 'Grids/'//DomainName//'squares.csv'
-open(63, file = trim(flnm), status = 'old')
-n = 0
-do
-    read(63, '(a)', iostat = io) input_str
-    if (io.lt.0) exit
-    n = n + 1
-    read(input_str,*) E(1,n), E(2,n), E(3,n), E(4,n)
-end do
-close(63)
-num_squares = n
+! Load_Grid = num_points
 
 return
-end subroutine
+end function
 
 !-----------------------------------------------------------------------
 !> Load data from CSV file with 4 columns representing an x coordinate, y
@@ -111,10 +103,9 @@ end subroutine
 !>
 !> @author Keston Smith (IBSS corp) June-July 2021
 !-----------------------------------------------------------------------
-subroutine Load_Data(x, y, z, f, num_survey, flnm)
+integer function Load_Data(x, y, z, f, flnm)
 
 real(dp), intent(out):: x(*), y(*), z(*), f(*)
-integer, intent(out):: num_survey
 character (*), intent(in)::  flnm
 real(dp) year
 integer    n, io
@@ -130,64 +121,9 @@ do
     read(input_str,*) year, x(n), y(n), z(n), f(n)
 end do
 close(63)
-num_survey = n
+Load_Data = n
 return
-end subroutine
-
-!----------------------------------------------------------------------------------------
-!> Purpose:  Localized linear interpolate data from a field, f, on the nodes of grid g 
-!> with square elements, g%E to points described in obs.
-!>
-!> inputs: 
-!> -  g (Grid_Data_Class)      - grid with square elements - see Main Program
-!> -  obs(Grid_Data_Class)     - observation points to be interpolated to
-!> -  f [g%num_points]         - vector of values on nodes of grid
-!>
-!> output:
-!> -  fInterp [obs%num_points] - vector of values interpolated from field onto onto points obs%x, obs%y
-!>
-!> @author Keston Smith 2022
-!>
-!----------------------------------------------------------------------------------------
-subroutine Interpret_From_Grid(g, f, obs, fInterp)
-
-type(Grid_Data_Class):: g
-type(Grid_Data_Class):: obs
-real(dp), intent(out) :: fInterp(*)
-real(dp), intent(in) :: f(*)
-integer num_points, num_survey, num_squares, j, k
-real(dp), allocatable:: Dist(:), xe(:), ye(:)
-real(dp) W(4), De(4), SmallDist
-integer ke(4)
-num_points = g%num_points
-num_squares = g%num_squares
-num_survey = obs%num_points
-SmallDist = 1.D0 !meters
-write(*,*)'num_points, num_squares, num_survey', num_points, num_squares, num_survey
-allocate(Dist(1:num_squares), xe(1:num_squares), ye(1:num_squares))
-
-do k = 1, num_squares
-    ke(1:4) = g%E(1:4, k)
-    xe(k) = sum(g%x(ke(1:4))) / 4.D0
-    ye(k) = sum(g%y(ke(1:4))) / 4.D0
-enddo
-
-do j = 1, num_survey
-    Dist(1:num_squares) = (xe(1:num_squares) - obs%x(j))**2 + (ye(1:num_squares) - obs%y(j))**2
-    k = minloc(Dist(1:num_squares), 1)
-    ke(1:4) = g%E(1:4, k)
-    De(1:4) = sqrt( (g%x(ke(1:4)) - obs%x(j))**2 + (g%y(ke(1:4)) - obs%y(j))**2 )
-    if (minval(De(1:4)).gt.SmallDist)then
-        W(1:4) = 1.D0 / De(1:4)
-        fInterp(j) = sum( W(1:4) * f( ke(1:4) )  ) / sum( W(1:4) )
-    else !avoid division by 0, probably not nescesary
-        k = minloc(De, 1)
-        fInterp(j) = f( ke(k) )
-    endif
-enddo
-deallocate(Dist, xe, ye)
-return
-end subroutine
+end function
 
 !----------------------------------------------------------------------------------------
 !> compute spatial average of values in obs%recr_psqm, by averaging across regions in g%region.
@@ -220,7 +156,7 @@ do j = 1, num_survey
     D(1:num_points) = (g%x(1:num_points) - obs%x(j))**2 + (g%y(1:num_points) - obs%y(j))**2
     k = minloc(D, 1)
     rn = g%ManagementRegion(k)
-    regional_average(rn) = regional_average(rn) + obs%recr_psqm(j)
+    regional_average(rn) = regional_average(rn) + obs%f_psqm(j)
     obs_in_region(rn) = obs_in_region(rn) + 1
 enddo
 
@@ -239,7 +175,7 @@ write(*,*)
 write(*,*)'Regional Areas', region_area(1:Nregion)
 write(*,*)
 write(*,*)'Nobs in region', obs_in_region(1:Nregion)
-write(*,*)'Obs Average', sum(obs%recr_psqm(1:num_survey)) / float(num_survey), num_survey
+write(*,*)'Obs Average', sum(obs%f_psqm(1:num_survey)) / float(num_survey), num_survey
 deallocate(obs_in_region, regional_average, D, region_area)
 return
 end function 

@@ -2,7 +2,7 @@
 !> @page page1 Kriging Subroutines
 !>
 !> Define Kriging parameter structure with length scale alpha, 
-!> sill value c and nugget value c0. Kringing form is 'spherical',
+!> sill value sill and nugget value nugget. Kringing form is 'spherical',
 !> 'exponential', 'gaussian' or 'matern'
 !--------------------------------------------------------------------------------------------------
 ! Keston Smith, Tom Callaghan (IBSS) 2024
@@ -17,8 +17,8 @@ implicit none
 
 type KrigPar
     real(dp) alpha
-    real(dp) c0
-    real(dp) c
+    real(dp) nugget
+    real(dp) sill
     real(dp) Wz
     character(72) form
 end type KrigPar
@@ -33,68 +33,69 @@ CONTAINS
 !>    q: vector 2
 !>   n_dim: allocated length of vectors
 !> Outputs
-!>   Dh: distance in x-y coordinates
-!>   Dz: distance in depth
+!>   distance_horiz: distance in x-y coordinates
+!>   distance_vert: distance in depth
 !>
 !> @author Keston Smith (IBSS corp) June-July 2021
 !--------------------------------------------------------------------------------------------------
-subroutine distance(p,q,Dh,Dz,n_dim)
+subroutine Compute_Distance(p, q, distance_horiz, distance_vert,n_dim)
     type(Grid_Data_Class), intent(in) :: p
     type(Grid_Data_Class), intent(in) :: q
     integer, intent(in)  :: n_dim
-    real(dp), intent(out) :: Dh(n_dim,*),Dz(n_dim,*)
+    real(dp), intent(out) :: distance_horiz(n_dim,*), distance_vert(n_dim,*)
     integer    j
 
     do j=1,p%num_points
-        Dh(j,1:q%num_points)= sqrt( (p%x(j) - q%x(1:q%num_points) )**2 + ( p%y(j)-q%y(1:q%num_points) )**2 )
-        Dz(j,1:q%num_points)= sqrt( (p%z(j) - q%z(1:q%num_points) )**2 )
+        distance_horiz(j,1:q%num_points) = sqrt( (p%x(j) - q%x(1:q%num_points) )**2 + ( p%y(j)-q%y(1:q%num_points) )**2 )
+        distance_vert(j,1:q%num_points) = sqrt( (p%z(j) - q%z(1:q%num_points) )**2 )
     enddo
 end subroutine
 
 !--------------------------------------------------------------------------------------------------
 !>
-!> Purpose: Computes a variogram (G) given distances between points (D).
+!> Purpose: Computes a variogram (variogram) given distances between points (D).
 !> 
 !> @param[in] num_points    (integer) number of rows in D, Gamma
 !> @param[in] num_cols    (integer) number of columns in D, Gamma
 !> @param[in] D     (real(dp))  Size (num_points x num_cols) matrix distance between point pairs
 !>
-!> @param[out] G     (real(dp))  Size (num_points x num_cols) variogram matrix for point pairs represented in D
+!> @param[out] variogram     (real(dp))  Size (num_points x num_cols) variogram matrix for point pairs represented in D
 !>
 !> Internal:\n
-!>  - c     (real(dp))  Variogram parameter c+c0 = shelf\n
-!>  - c0    (real(dp))  Variogram parameter nugget\n
+!>  - sill     (real(dp))  Variogram parameter sill+nugget = shelf\n
+!>  - nugget    (real(dp))  Variogram parameter nugget\n
 !>  - alpha (real(dp))  Variogram length scale parameter\n
 !>  - form  (charecter*72) functional form of variogram\n
 !> The above should be read in an input file but are written as constants for now
 !>    
 !> @author Keston Smith (IBSS corp) June-July 2021
 !--------------------------------------------------------------------------------------------------
-subroutine variogram(num_points,num_cols,Dh,Dz,G,n_dim,par)
+subroutine Compute_Variogram(num_points,num_cols,distance_horiz,distance_vert,variogram,n_dim,par)
 type(KrigPar):: par
-integer, intent(in)    :: num_points,num_cols,n_dim
-real(dp), intent(in)    :: Dh(n_dim,*),Dz(n_dim,*)
-real(dp), intent(out)   :: G(n_dim,*)
+integer, intent(in) :: num_points,num_cols,n_dim
+real(dp), intent(in) :: distance_horiz(n_dim,*),distance_vert(n_dim,*)
+real(dp), intent(out) :: variogram(n_dim,*)
 integer j,k,error
-real(dp) c,c0,alpha,Wz
+real(dp) sill,nugget,alpha,Wz
 real(dp) kap
 character(72) form
 real(dp), allocatable:: D(:,:)
 
 allocate( D(1:num_points,1:num_cols) ) 
 
-c0 = par%c0
-c = par%c
+nugget = par%nugget
+sill = par%sill
 alpha = par%alpha
 Wz = par%Wz
 form=par%form
-D(1:num_points,1:num_cols)=sqrt( Dh(1:num_points,1:num_cols)**2 + ( Wz * Dz(1:num_points,1:num_cols) ) **2 )
+D(1:num_points,1:num_cols) = sqrt( distance_horiz(1:num_points,1:num_cols)**2 &
+&                                + (Wz * distance_vert(1:num_points,1:num_cols))**2)
 if (trim(form).eq.'spherical')then
     do j=1,num_points
         do k=1,num_cols
-            G(j,k)=c0+ c*(1.5*D(j,k)/alpha -((D(j,k)/alpha)**3)/2.)
-            if(D(j,k).gt.alpha) G(j,k)=c0+c
-            if(D(j,k).eq.0.) G(j,k)=0.
+            variogram(j,k)=nugget+ sill*(1.5*D(j,k)/alpha -((D(j,k)/alpha)**3)/2.)
+            if(D(j,k).gt.alpha) variogram(j,k)=nugget+sill
+            if(D(j,k).eq.0.) variogram(j,k)=0.
         enddo
     enddo
 endif
@@ -102,8 +103,8 @@ endif
 if (trim(form).eq.'exponential')then
     do j=1,num_points
         do k=1,num_cols
-            G(j,k)=c0+ c*(1 - exp(-D(j,k)/alpha)  )
-            if(D(j,k).eq.0.) G(j,k)=0.
+            variogram(j,k)=nugget+ sill*(1 - exp(-D(j,k)/alpha)  )
+            if(D(j,k).eq.0.) variogram(j,k)=0.
         enddo
     enddo
 endif
@@ -111,8 +112,8 @@ endif
 if (trim(form).eq.'gaussian')then
     do j=1,num_points
         do k=1,num_cols
-            G(j,k)=c0+ c*(1 - exp(-D(j,k)/alpha)**2  )
-            if(D(j,k).eq.0.) G(j,k)=0.
+            variogram(j,k)=nugget+ sill*(1 - exp(-D(j,k)/alpha)**2  )
+            if(D(j,k).eq.0.) variogram(j,k)=0.
         enddo
     enddo
 endif
@@ -121,8 +122,8 @@ if (trim(form).eq.'matern')then
     kap=.5
     do j=1,num_points
         do k=1,num_cols
-            G(j,k)=c0+ c*(1. - (1./(gamma(kap) * 2.**(kap-1) ) ) * bessel_jn(2,D(j,k)/alpha) * (D(j,k)/alpha)**kap );
-           if(D(j,k).eq.0.) G(j,k)=0.
+            variogram(j,k)=nugget+ sill*(1. - (1./(gamma(kap) * 2.**(kap-1) ) ) * bessel_jn(2,D(j,k)/alpha) * (D(j,k)/alpha)**kap );
+           if(D(j,k).eq.0.) variogram(j,k)=0.
         enddo
     enddo
 endif
@@ -133,25 +134,25 @@ return
 endsubroutine
 
 !--------------------------------------------------------------------------------------------------
-!> Purpose: Computes a variogram (G) given distances between points (D).
+!> Purpose: Computes a variogram (variogram) given distances between points (D).
 !>
 !> @param[in]  num_points    (integer) number of rows in D, Gamma
 !> @param[in]  n_dim    (integer) allocated number of rows D, Gamma
-!> @param[in]  Dh, Dz     (real(dp))  Size (num_points x num_cols) matrix distance between point pairs
+!> @param[in]  distance_horiz, distance_vert     (real(dp))  Size (num_points x num_cols) matrix distance between point pairs
 !> 
-!> @param[out] G     (real(dp))  Size (num_points x num_cols) variogram matrix for point pairs represented in D
+!> @param[out] variogram     (real(dp))  Size (num_points x num_cols) variogram matrix for point pairs represented in D
 !> 
 !> @author Keston Smith (IBSS corp) June-July 2021
 !--------------------------------------------------------------------------------------------------
-subroutine variogramF(num_points,Dh,Dz,G,n_dim,f,par)
+subroutine Compute_Empirical_Variogram(num_points,distance_horiz,distance_vert,variogram,n_dim,f,par)
 type(KrigPar), intent(inout) :: par
 type(KrigPar):: parTmp
 
 integer  NIntVD,NPS
 parameter(NIntVD=31,NPS=30)
 integer, intent(in)  :: num_points,n_dim
-real(dp), intent(in) :: Dh(n_dim,*),Dz(n_dim,*),f(*)
-real(dp), intent(out):: G(n_dim,*)
+real(dp), intent(in) :: distance_horiz(n_dim,*),distance_vert(n_dim,*),f(*)
+real(dp), intent(out):: variogram(n_dim,*)
 real(dp) DintV(NIntVD),DintVm(NIntVD), SIntV(NIntVD)
 real(dp) Pind(NPS),alphaR(NPS),c0R(NPS),cR(NPS),WzR
 integer j,k,n,m,nc,NIntV
@@ -185,7 +186,8 @@ do j=2,NIntV
     nc=0
     do n=1,num_points
         do m=1,num_points
-            if (  ( Dh(n,m)+Wz*Dz(n,m).ge.DintV(j-1) ).and.( Dh(n,m)+Wz*Dz(n,m).le.DintV(j) )  )then
+            if ((distance_horiz(n,m) + Wz * distance_vert(n,m) .ge. DintV(j-1)) &
+            &   .and. (distance_horiz(n,m) + Wz*distance_vert(n,m) .le. DintV(j))) then
                 SIntV(j-1)=SIntV(j-1)+(f(n)-f(m))**2
                 nc=nc+1
             endif
@@ -210,16 +212,16 @@ endif
 do j=1,NPS
     do k=1,NPS
         do m=1,NPS
-            parTmp%c0=c0R(j)
-            parTmp%c=cR(k)
+            parTmp%nugget=c0R(j)
+            parTmp%sill=cR(k)
             parTmp%alpha=alphaR(m)
             parTmp%Wz=WzR
-            call variogram(NintV,1,DintVm,0*DintVm,G,NintV,parTmp)
-            cost=sum( (SIntV(1:NIntV)-G(1:NIntV,1))**2 )
+            call Compute_Variogram(NintV,1,DintVm,0*DintVm,variogram,NintV,parTmp)
+            cost=sum( (SIntV(1:NIntV)-variogram(1:NIntV,1))**2 )
             if( cost.lt.costmin )then
                 costmin=cost
-                par%c0=c0R(j)
-                par%c=cR(k)
+                par%nugget=c0R(j)
+                par%sill=cR(k)
                 par%alpha=alphaR(m)
                 par%Wz=WzR
             endif
@@ -227,16 +229,16 @@ do j=1,NPS
     enddo !k
 enddo !j
 
-call variogram(NintV,1,DIntVm,0*DIntV,G,NintV,par)
+call Compute_Variogram(NintV,1,DIntVm,0*DIntV,variogram,NintV,par)
 
-call Write_2D_Scalar_Field(NintV,1,G,'GammaIntV.txt',NintV)
+call Write_2D_Scalar_Field(NintV,1,variogram,'GammaIntV.txt',NintV)
 call Write_2D_Scalar_Field(NintV,1,DIntVm,'DIntV.txt',NintV)
 call Write_2D_Scalar_Field(NintV,1,SIntV,'SIntV.txt',NintV)
 
 write(*,*)'Bounds alpha:[', alphaR(1),par%alpha,alphaR(NPS),']'
-write(*,*)'Bounds c0:[', c0R(1),par%c0,c0R(NPS),']'
-write(*,*)'Bounds c:[',cR(1),par%c,cR(NPS),']'
-call variogram(num_points, num_points, Dh,Dz, G, num_points, par)
+write(*,*)'Bounds nugget:[', c0R(1),par%nugget,c0R(NPS),']'
+write(*,*)'Bounds sill:[',cR(1),par%sill,cR(NPS),']'
+call Compute_Variogram(num_points, num_points, distance_horiz,distance_vert, variogram, num_points, par)
 
 return
 endsubroutine
@@ -252,7 +254,7 @@ endsubroutine
 !> @param[out] num_spat_fcns   (integer) number of spatial functions (be carefull allocating F)
 !> @author Keston Smith (IBSS corp) June-July 2021
 !--------------------------------------------------------------------------------------------------
-subroutine spatial_function(p,F,num_spat_fcns,n_dim,nlsf)
+subroutine Evaluate_Spatial_Function(p,F,num_spat_fcns,n_dim,nlsf)
 type(Grid_Data_Class):: p
 type(NLSFpar), intent(in):: nlsf(*)
 integer, intent(in)    :: n_dim
@@ -305,16 +307,16 @@ end subroutine
 !>
 !> @author Keston Smith (IBSS corp) June-July 2021
 !--------------------------------------------------------------------------------------------------
-subroutine UK_GLS(g, obs, num_spat_fcns, par, beta, Cbeta, eps, CepsG, nlsf)
-type(Grid_Data_Class):: g
+subroutine UK_GLS(grid, obs, num_spat_fcns, par, beta, Cbeta, eps, CepsG, nlsf)
+type(Grid_Data_Class):: grid
 type(Grid_Data_Class):: obs
 type(KrigPar):: par
 type(NLSFPar):: nlsf(*)
 
 integer,    intent(in):: num_spat_fcns
-real(dp),    intent(out):: beta(*), Cbeta(num_spat_fcns, num_spat_fcns), eps(*), CepsG(g%num_points, g%num_points)
+real(dp),    intent(out):: beta(*), Cbeta(num_spat_fcns, num_spat_fcns), eps(*), CepsG(grid%num_points, grid%num_points)
 
-real(dp),    allocatable:: Dh(:,:), Dz(:,:), W(:,:), gamma(:,:), Fs(:,:), FsT(:,:)
+real(dp),    allocatable:: distance_horiz(:,:), distance_vert(:,:), W(:,:), gamma(:,:), Fs(:,:), FsT(:,:)
 real(dp),    allocatable:: D0h(:,:), D0z(:,:), gamma0(:,:), Fs0(:,:), Fs0T(:,:)
 real(dp),    allocatable:: R(:,:), V(:,:)
 real(dp),    allocatable:: CbetaInv(:,:), Ceps(:,:), Cinv(:,:)
@@ -324,10 +326,10 @@ integer,    allocatable:: ipiv(:)
 
 real(dp)     Vinf(1, 1), Dinf(1, 1), atmp, btmp
 integer     j, k, info, nopnf, error, num_points, num_obs_points
-num_points=g%num_points
+num_points=grid%num_points
 num_obs_points=obs%num_points
 nopnf=num_obs_points+num_spat_fcns
-allocate( Dh(1:num_obs_points, 1:num_obs_points), Dz(1:num_obs_points, 1:num_obs_points),  stat=error)
+allocate( distance_horiz(1:num_obs_points, 1:num_obs_points), distance_vert(1:num_obs_points, 1:num_obs_points),  stat=error)
 allocate( W(1:num_points, 1:num_obs_points), gamma(1:num_obs_points, 1:num_obs_points), stat=error)
 allocate( Fs(1:num_obs_points, 1:num_spat_fcns), FsT(1:num_spat_fcns, 1:num_obs_points), stat=error)
 allocate( D0h(1:num_obs_points, 1:num_points), D0z(1:num_obs_points, 1:num_points), stat=error)
@@ -346,9 +348,9 @@ allocate( ftrnd(1:num_points), ipiv(1:nopnf), stat=error)
 ! Compute variogram between observation points and spatial functions at
 ! observation points
 !
-call distance(obs, obs, Dh, Dz, num_obs_points)
-call variogram(num_obs_points, num_obs_points, Dh, Dz, Gamma, num_obs_points, par)
-call spatial_function(obs, Fs, num_spat_fcns, num_obs_points, nlsf)
+call Compute_Distance(obs, obs, distance_horiz, distance_vert, num_obs_points)
+call Compute_Variogram(num_obs_points, num_obs_points, distance_horiz, distance_vert, Gamma, num_obs_points, par)
+call Evaluate_Spatial_Function(obs, Fs, num_spat_fcns, num_obs_points, nlsf)
 !
 ! Ceps <- covariance between observation points (from variogram)
 !
@@ -357,9 +359,9 @@ call spatial_function(obs, Fs, num_spat_fcns, num_obs_points, nlsf)
 ! Compute variogram between observation points and grid points and spatial
 ! functions at grid points
 !
-call distance(obs, g, D0h, D0z, num_obs_points)
-call variogram(num_obs_points, num_points, D0h, D0z, gamma0, num_obs_points, par)
-call spatial_function(g, Fs0, num_spat_fcns, num_points, nlsf)
+call Compute_Distance(obs, grid, D0h, D0z, num_obs_points)
+call Compute_Variogram(num_obs_points, num_points, D0h, D0z, gamma0, num_obs_points, par)
+call Evaluate_Spatial_Function(grid, Fs0, num_spat_fcns, num_points, nlsf)
 !
 !Compute the Univeral Kriging linear estimate of f following Cressie 1993
 !pages 151-154
@@ -387,12 +389,12 @@ do j=1, num_points
 enddo
 atmp=1.
 btmp=0.
-call dgemv('N', num_points, num_obs_points, atmp, W, num_points, obs%recr_psqm, 1,  btmp, g%recr_psqm, 1)
+call dgemv('N', num_points, num_obs_points, atmp, W, num_points, obs%f_psqm, 1,  btmp, grid%f_psqm, 1)
 !
 ! compute posterior trend statistics
 !
 Dinf(1, 1)=10.**10
-call variogram(1, 1, Dinf, Dinf, Vinf, 1, par)
+call Compute_Variogram(1, 1, Dinf, Dinf, Vinf, 1, par)
 !
 ! Ceps <- covariance between observation points (from variogram)
 !
@@ -422,28 +424,28 @@ write(*,*)'UK_GLS (b) dgesv info=', info
 !
 ! beta_gls = inv( F' * Cinv * F ) * F * Cinv * fo
 !
-Vtmp(1:num_obs_points)=matmul(Cinv(1:num_obs_points, 1:num_obs_points), obs%recr_psqm(1:num_obs_points))
+Vtmp(1:num_obs_points)=matmul(Cinv(1:num_obs_points, 1:num_obs_points), obs%f_psqm(1:num_obs_points))
 Vtmp2(1:num_spat_fcns)=matmul(transpose(Fs(1:num_obs_points, 1:num_spat_fcns)), Vtmp(1:num_obs_points))
 beta(1:num_spat_fcns)=matmul(Cbeta(1:num_spat_fcns, 1:num_spat_fcns), Vtmp2(1:num_spat_fcns))
 !
 ! Posterior covariance for residual
 !
-call distance(g, g, DGh, DGz, num_points)
+call Compute_Distance(grid, grid, DGh, DGz, num_points)
 write(*,*)'UK_GLS (e) dgesv info=', info
-call variogram(num_points, num_points, DGh, DGz, gammaG, num_points, par)
+call Compute_Variogram(num_points, num_points, DGh, DGz, gammaG, num_points, par)
 write(*,*)'UK_GLS (f) dgesv info=', info
 CepsG(1:num_points, 1:num_points)=Vinf(1, 1)-gammaG(1:num_points, 1:num_points)
 C0(1:num_obs_points, 1:num_points)=Vinf(1, 1)-gamma0(1:num_obs_points, 1:num_points)
 !
 ! CepsG <== CepsPostG = CepsG - C0v' * inv(C_obs) * C0v
 !
-write(*,*)'UK_GLS (g) dgesv info=', info
+write(*,*)'UK_GLS (grid) dgesv info=', info
 call dgemm('N', 'N', num_obs_points, num_points, num_obs_points, atmp, Cinv, num_obs_points, C0, num_obs_points, &
 &           btmp, Gtmp, num_obs_points )
 write(*,*)'UK_GLS (h) dgesv info=', info
 call dgemm('T', 'N', num_points, num_points, num_obs_points, atmp, C0, num_obs_points, Gtmp, num_obs_points, &
 &           btmp, gammaG, num_points )
-! note: gamma G<== C0' * Cinv * C0 no longer represents variogram for the grid!
+! note: gamma variogram<== C0' * Cinv * C0 no longer represents variogram for the grid!
 write(*,*)'UK_GLS (i) dgesv info=', info
 
 CepsG(1:num_points, 1:num_points) = CepsG(1:num_points, 1:num_points) - gammaG(1:num_points, 1:num_points)
@@ -455,10 +457,10 @@ write(*,*)'UK_GLS (j) dgesv info=', info
 call dgemv('N', num_points, num_spat_fcns, atmp, Fs0, num_points, beta, 1, btmp, ftrnd, 1)
 write(*,*)'UK_GLS (k) dgesv info=', info
 
-eps(1:num_points)=g%recr_psqm(1:num_points)-ftrnd(1:num_points)
+eps(1:num_points)=grid%f_psqm(1:num_points)-ftrnd(1:num_points)
 
 write(*,*)'UK_GLS end'
-deallocate( Dh, Dz, W, gamma, Fs, FsT, stat=error )
+deallocate( distance_horiz, distance_vert, W, gamma, Fs, FsT, stat=error )
 deallocate( D0h, D0z, gamma0, Fs0, Fs0T , stat=error)
 deallocate( R, V , stat=error)
 deallocate( CbetaInv, Ceps, Cinv, stat=error )
@@ -494,12 +496,12 @@ end subroutine
 !>
 !> @author Keston Smith (IBSS corp) June-July 2021
 !--------------------------------------------------------------------------------------------------
-subroutine UK_RandomField(g, num_spat_fcns, beta, Cbeta, eps, Ceps, Nsim, nlsf, IsLogT, mu, A, SF, fmax, z)
+subroutine UK_RandomField(grid, num_spat_fcns, beta, Cbeta, eps, Ceps, Nsim, nlsf, IsLogT, mu, A, SF, fmax, z)
 implicit none
-type(Grid_Data_Class):: g
+type(Grid_Data_Class):: grid
 type(NLSFpar):: nlsf(*)
 integer,  intent(in) :: num_spat_fcns
-real(dp), intent(in) :: beta(*), Cbeta(num_spat_fcns,*), eps(*), Ceps(g%num_points,*), mu(*), A, SF, fmax, z(*)
+real(dp), intent(in) :: beta(*), Cbeta(num_spat_fcns,*), eps(*), Ceps(grid%num_points,*), mu(*), A, SF, fmax, z(*)
 integer,  intent(in) :: Nsim
 logical,  intent(in) :: IsLogT
 
@@ -509,7 +511,7 @@ trend(:), Ctrend(:,:)
 
 real(dp)     atmp, btmp, adj
 integer     k, n
-n=g%num_points
+n=grid%num_points
 allocate(F(1:n, 1:num_spat_fcns))
 allocate(BetaRF(1:num_spat_fcns, 1:Nsim), RFtrend(1:n, 1:NSim), RFtotal(1:n, 1:NSim), RFeps(1:n, 1:NSim), &
         EnsMu(1:n), trend(1:n), Ctrend(1:n, 1:n) )
@@ -519,7 +521,7 @@ btmp=0.
 
 call RandomSampleF(n, n, Nsim, eps(1:n), Ceps, RFeps)
 
-call spatial_function(g, F, num_spat_fcns, g%num_points, nlsf)
+call Evaluate_Spatial_Function(grid, F, num_spat_fcns, grid%num_points, nlsf)
 trend(1:n)=matmul(F(1:n, 1:num_spat_fcns), beta(1:num_spat_fcns))
 
 call RandomSampleF(num_spat_fcns, num_spat_fcns, Nsim, beta(1:num_spat_fcns), Cbeta, BetaRF)
@@ -557,9 +559,9 @@ do k=1, n
 enddo
 close(69)
 
-call write_csv(g%num_points, NSim, RFeps, 'noiseRF.csv', g%num_points)
-call write_csv(g%num_points, NSim, RFtrend, 'trendRF.csv', g%num_points)
-call write_csv(g%num_points, NSim, RFtotal, 'totalRF.csv', g%num_points)
+call write_csv(grid%num_points, NSim, RFeps, 'noiseRF.csv', grid%num_points)
+call write_csv(grid%num_points, NSim, RFtrend, 'trendRF.csv', grid%num_points)
+call write_csv(grid%num_points, NSim, RFtotal, 'totalRF.csv', grid%num_points)
 
 deallocate(F)
 deallocate(BetaRF, RFtrend, RFtotal, RFeps)
@@ -572,7 +574,7 @@ end subroutine
 !> model.
 !>
 !> Inputs: 
-!>  - g   (real(dp)) Data point structure defining interpolation points 
+!>  - grid   (real(dp)) Data point structure defining interpolation points 
 !>  - num_spat_fcns  (integer) number of spatial functions
 !>  - par variogram parameter structure
 !>
@@ -584,25 +586,27 @@ end subroutine
 !> @author Keston Smith (IBSS corp) June-July 2021
 !> @todo need to fix dimensioning (1/10/2022)!
 !-----------------------------------------------------------------------
-subroutine UK_prior(g, num_spat_fcns, par, beta, Cbeta, eps, Ceps)
-type(Grid_Data_Class):: g
+subroutine UK_prior(grid, num_spat_fcns, par, beta, Cbeta, eps, Ceps)
+type(Grid_Data_Class):: grid
 type(KrigPar):: par
-integer,    intent(in):: num_spat_fcns
-real(dp),    intent(out):: beta(*), Cbeta(num_spat_fcns,*), eps(*), Ceps(g%num_points,*) 
+integer,  intent(in):: num_spat_fcns
+real(dp), intent(out):: beta(*), Cbeta(num_spat_fcns,*), eps(*), Ceps(grid%num_points,*) 
 
-real(dp),    allocatable:: Dh(:,:), Dz(:,:), gamma(:,:)
+real(dp), allocatable:: distance_horiz(:,:), distance_vert(:,:), gamma(:,:)
 
-real(dp)     Vinf(1, 1), Dinf(1, 1)
-integer     error, num_points
-num_points=g%num_points
-allocate( Dh(1:num_points, 1:num_points), Dz(1:num_points, 1:num_points), gamma(1:num_points, 1:num_points), stat=error )
+real(dp) Vinf(1, 1), Dinf(1, 1)
+integer  error, num_points
+num_points=grid%num_points
+allocate( distance_horiz(1:num_points, 1:num_points), stat=error)
+allocate( distance_vert(1:num_points, 1:num_points), stat=error)
+allocate( gamma(1:num_points, 1:num_points), stat=error )
 !
 ! Assign mean and Covariance for epsilon
 !
-call distance(g, g, Dh, Dz, num_points)
-call variogram(num_points, num_points, Dh, Dz, gamma, num_points, par)
+call Compute_Distance(grid, grid, distance_horiz, distance_vert, num_points)
+call Compute_Variogram(num_points, num_points, distance_horiz, distance_vert, gamma, num_points, par)
 Dinf(1, 1)=10.**10
-call variogram(1, 1, Dinf, Dinf, Vinf, 1, par)
+call Compute_Variogram(1, 1, Dinf, Dinf, Vinf, 1, par)
 Ceps(1:num_points, 1:num_points)=Vinf(1, 1)-gamma(1:num_points, 1:num_points)
 eps(1:num_points)=0.
 !
@@ -616,7 +620,7 @@ Cbeta(2, 1:4)= (/1.5366756312270658E-003, 1.7247639913097469E-005, 1.33246108758
 Cbeta(3, 1:4)= (/7.9881962338509589E-003, 1.3324610875862412E-006, 5.5464689237415081E-006, -2.4207894889311469E-006 /)
 Cbeta(4, 1:4)= (/-6.0292972962540783E-002, -2.3045855632585232E-007, -2.4207894889268253E-006, 1.3517389449680424E-005 /)
 
-deallocate( Dh, Dz, gamma, stat=error )
+deallocate( distance_horiz, distance_vert, gamma, stat=error )
 
 return
 end subroutine

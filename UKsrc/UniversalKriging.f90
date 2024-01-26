@@ -87,7 +87,7 @@
 !> 
 !> @subsection m1p1p2 Residual process
 !> After performing an ordinary least squares fit for the SF coeficients, @f$\beta@f$, we have an estimate of @f$\epsilon@f$. 
-!> An empirical variogram is computed subroutine @a variogramF, and variogram parameters are fit (again by brute force).  
+!> An empirical variogram is computed subroutine @a Compute_Empirical_Variogram, and variogram parameters are fit (again by brute force).  
 !> The variogram forms allowed are "spherical", "exponential", and "gaussian".  The form is hard-coded in the main program, 
 !> UniversalKriging.f90.
 !>
@@ -120,42 +120,34 @@ implicit none
 
 real(dp)  atmp, btmp
 real(dp), allocatable :: beta(:), Cbeta(:,:), eps(:), Ceps(:,:), Cr(:,:), F(:,:), r(:), trndOBS(:), resOBS(:)
-real(dp), allocatable :: Dh(:,:), Dz(:,:), gamma(:,:), Veps(:), VSpFn(:), CbetaF(:,:), Fg(:,:)
-real(dp), allocatable :: ClimEst(:), ClimEstObs(:), trend(:), Vtotal(:), logmu(:)
+real(dp), allocatable :: distance_horiz(:,:), distance_vert(:,:), gamma(:,:), Veps(:), VSpFn(:), CbetaF(:,:), Fg(:,:)
+real(dp), allocatable :: trend(:), Vtotal(:), logmu(:)
 real(dp), allocatable :: RandomField(:,:)
 integer   num_points, num_spat_fcns, num_obs_points, SimType, j, nits
 real(dp)  fmax, A, domain_average, SF
 ! variables for nonlinear fitting
 integer nsf, NRand, ncla
-logical IsClimEst, IsHiLimit, IsMatchMean, IsLogT
-character(72) obsfile, climfile
-character(2) DomainName
+logical IsHiLimit, IsMatchMean, IsLogT
+character(72) obsfile
+character(2) domain_name
 type(Grid_Data_Class):: grid
 type(Grid_Data_Class):: obs
 type(KrigPar):: par
 type(NLSFPar), allocatable ::nlsf(:)
 real(dp) alpha
 par%form='spherical'
-IsLogT=.true.
-IsHiLimit=.true.
-IsClimEst=.false.
-IsMatchMean=.true.
-alpha=1.D0
 
 write (*,*) term_grn, "PROGRAM STARTING", term_blk
 
-call Read_Startup_Config(DomainName, SimType, obsfile, climfile, Nrand, IsLogT, IsHiLimit, fmax, IsMatchMean, IsClimEst, par, alpha)
+call Read_Startup_Config(domain_name, SimType, obsfile, Nrand, IsLogT, IsHiLimit, fmax, IsMatchMean, par, alpha)
 !override UK.inp with command line arguments if present
 ncla=command_argument_count()
-if(ncla.ge.1)call get_command_argument(1, DomainName)
+if(ncla.ge.1)call get_command_argument(1, domain_name)
 if(ncla.ge.2)call get_command_argument(2, obsfile)
-if(ncla.ge.3)call get_command_argument(3, climfile)
-if(ncla.ge.3)IsClimEst=.true.
 
-write (*,*) term_blu,"Reading ", DomainName
+write (*,*) term_blu,"Reading ", domain_name
 
 write(*,*) 'Observation file:  ', trim(obsfile)
-if(IsClimEst) write(*,*) 'Clim file:  ', trim(climfile)
 write(*,*) 'Logtransorm', IsLogT
 write(*,*) 'Match stratified sampling estimate', IsMatchMean
 write(*,*) 'High limit fmax', fmax
@@ -171,71 +163,57 @@ allocate(nlsf(1:1))
 nsf = DefineNLSFunctions(nlsf, obs, .true.)
 deallocate(nlsf)
 
+num_spat_fcns = nsf + 1
+allocate( beta(1:num_spat_fcns), Cbeta(1:num_spat_fcns, 1:num_spat_fcns) )
 allocate(nlsf(1:nsf))
 nlsf(1:nsf)%nsf=nsf
-num_spat_fcns = nsf+1
 
 !
 ! Initalize grid point coordinates and bathymetry - initialize num_points
 !
-call Load_Grid(grid%x, grid%y, grid%z, grid%lat, grid%lon, grid%num_points, &
-&              grid%E, grid%num_squares, grid%ManagementRegion, DomainName)
-num_points=grid%num_points
+num_points = Load_Grid(grid%x, grid%y, grid%z, grid%lat, grid%lon, grid%ManagementRegion, domain_name)
+grid%num_points = num_points
 
-allocate( beta(1:num_spat_fcns), Cbeta(1:num_spat_fcns, 1:num_spat_fcns), eps(1:num_points), Ceps(1:num_points, 1:num_points))
+allocate( eps(1:num_points), Ceps(1:num_points, 1:num_points))
 allocate( CbetaF(1:num_spat_fcns, 1:num_points))
 allocate( Veps(1:num_points), VSpFn(1:num_points), Fg(1:num_points, 1:num_spat_fcns), trend(1:num_points))
 allocate( Vtotal(1:num_points), logmu(1:num_points))
 allocate( RandomField(1:num_points, 1:Nrand))
+
 if (SimType.eq.1) then
     !
     ! Initalize data point coordinates, bathymetry and data - initialize no
     !
-    call Load_Data(obs%x, obs%y, obs%z, obs%recr_psqm, obs%num_points, trim(obsfile))
+    obs%num_points = Load_Data(obs%x, obs%y, obs%z, obs%f_psqm, trim(obsfile))
     num_obs_points=obs%num_points
+    obs%f_psqm(1:num_obs_points)=obs%f_psqm(1:num_obs_points)**alpha
 
-    obs%recr_psqm(1:num_obs_points)=obs%recr_psqm(1:num_obs_points)**alpha
-
-    write(*,*)'num_obs_points=', num_obs_points, 'nsf limit=', nlsf(1)%nsflim, 'nsf=', nlsf(1)%nsf
     !-------------------------------------------------------------------------  
     ! nonlinear curve fitting for spatial functions
     !-------------------------------------------------------------------------  
     nsf = DefineNLSFunctions(nlsf, grid, .false.)
-    
+    nlsf(1:nsf)%nsflim=nsf
+
+    write(*,*)'num_obs_points=', num_obs_points, 'nsf limit=', nlsf(1)%nsflim, 'nsf=', nlsf(1)%nsf
     write(*,'(A, A, A, I2, A, A)') term_blu, 'Using ', term_blk, nsf, term_blu, ' Spatial Functions'
     write(*,'(A,I2)') 'Using Truncate Range: ', nlsf(1)%IsTruncateRange
     write(*,'(A,I2)') 'Using Greedy Fit:     ', nlsf(1)%UseGreedyFit, term_blk
     
     allocate( Cr(1:num_obs_points, 1:num_obs_points), F(1:num_obs_points, 1:num_spat_fcns), r(1:num_obs_points))
     allocate( trndOBS(1:num_obs_points), resOBS(1:num_obs_points))
-    allocate( Dh(1:num_obs_points, 1:num_obs_points), Dz(1:num_obs_points, 1:num_obs_points))
+    allocate( distance_horiz(1:num_obs_points, 1:num_obs_points), distance_vert(1:num_obs_points, 1:num_obs_points))
     allocate( gamma(1:num_obs_points, 1:num_obs_points) )
 
-    fmax=fmax*maxval(obs%recr_psqm(1:num_obs_points))
+    fmax = fmax * maxval(obs%f_psqm(1:num_obs_points))
     domain_average = Get_Domain_Average(obs, grid)
 
     if(IsLogT) then
         A = 1.D0 / tow_area_sqm ! 1 scallop per tow 
-        SF=sum(obs%recr_psqm(1:num_obs_points))/float(num_obs_points)
+        SF=sum(obs%f_psqm(1:num_obs_points))/float(num_obs_points)
         SF=SF/5.D0  ! mean / 5 ~ median
-        obs%recr_psqm(1:num_obs_points)=log(( A+obs%recr_psqm(1:num_obs_points) )/SF)
+        obs%f_psqm(1:num_obs_points)=log(( A+obs%f_psqm(1:num_obs_points) )/SF)
     endif
     
-    if(IsClimEst)then
-        allocate(ClimEst(1:num_points), ClimEstObs(1:num_obs_points))
-        write(*,*)'ClimFile=', climfile
-        call Read_CSV(climfile, ClimEst, j)
-        ClimEst(1:num_points)=ClimEst(1:num_points)**alpha
-        call Write_Vector_Scalar_Field(num_points, ClimEst(1:num_points), 'ClimEstField.txt')
-        write(*,*)'climatology: read num_points=', j, 'values from ', trim(ClimFile)
-        if (IsLogT)ClimEst(1:num_points)=log(A+ClimEst(1:num_points))
-        call Interpret_From_Grid(grid, ClimEst, obs, ClimEstObs)
-        call Write_Vector_Scalar_Field(num_obs_points, ClimEstObs(1:num_obs_points), 'ClimEstObs.txt')
-        call Write_Vector_Scalar_Field(num_obs_points, obs%recr_psqm(1:num_obs_points), 'RawObs.txt')
-        obs%recr_psqm(1:num_obs_points)=obs%recr_psqm(1:num_obs_points)-ClimEstObs(1:num_obs_points)
-        call Write_Vector_Scalar_Field(num_obs_points, obs%recr_psqm(1:num_obs_points), 'AdjObs.txt')
-    endif
-
     if (nlsf(1)%UseGreedyFit.eq.1) call FitNLSFunctionsGreedy(obs, nlsf)
     if (nlsf(1)%UseGreedyFit.eq.0) call FitNLSFunctions(obs, nlsf, 0)
     nsf=nlsf(1)%nsf
@@ -250,34 +228,34 @@ if (SimType.eq.1) then
     do j=1, num_obs_points
         Cr(j, j)=1.D0
     enddo
-    call spatial_function(obs, F, num_spat_fcns, num_obs_points, nlsf)
-    call GLS(obs%recr_psqm, F, Cr, num_obs_points, num_spat_fcns, beta, Cbeta, r)
+    call Evaluate_Spatial_Function(obs, F, num_spat_fcns, num_obs_points, nlsf)
+    call GLS(obs%f_psqm, F, Cr, num_obs_points, num_spat_fcns, beta, Cbeta, r)
     write(*,*)'OLSres:', sqrt(sum(r(1:num_obs_points)**2)/float(num_obs_points))
 
     !-------------------------------------------------------------------------
     ! Fit variogram parameters to OLS residual
     !-------------------------------------------------------------------------
     call Write_Vector_Scalar_Field(num_obs_points, r, 'OLSresidual.txt')
-    call Write_Vector_Scalar_Field(num_obs_points, obs%recr_psqm, 'data.txt')
-    call distance(obs, obs, Dh, Dz, num_obs_points)
+    call Write_Vector_Scalar_Field(num_obs_points, obs%f_psqm, 'data.txt')
+    call Compute_Distance(obs, obs, distance_horiz, distance_vert, num_obs_points)
     nits=1
     do j=1, nits
-        call variogramF(num_obs_points, Dh, Dz, Gamma, num_obs_points, r, par)
+        call Compute_Empirical_Variogram(num_obs_points, distance_horiz, distance_vert, Gamma, num_obs_points, r, par)
         open(63, file='KRIGpar.txt')
-        write(63,*)par%c, par%c0, par%alpha, par%Wz
+        write(63,*)par%sill, par%nugget, par%alpha, par%Wz
         close(63)
 
         !-------------------------------------------------------------------------
         ! Compute Universal Kriging estimate of field on grid (fest) given
-        ! observations xo, yo, zo, fo. Also returns the estimate of spatial function
+        ! observations x_obs, y_obs, z_obs, field_obs. Also returns the estimate of spatial function
         ! coeficients, beta, and posterior covariance of beta(Cbeta).
         !-------------------------------------------------------------------------
         call UK_GLS(grid, obs, num_spat_fcns, par, beta, Cbeta, eps, Ceps, nlsf)
-        call spatial_function(obs, F, num_spat_fcns, num_obs_points, nlsf)
+        call Evaluate_Spatial_Function(obs, F, num_spat_fcns, num_obs_points, nlsf)
         atmp=1.D0
         btmp=0.D0
         call dgemv('N', num_obs_points, num_spat_fcns, atmp, F, num_obs_points, beta, 1, btmp, trndOBS, 1)
-        resOBS(1:num_obs_points)=obs%recr_psqm(1:num_obs_points)-trndOBS(1:num_obs_points)
+        resOBS(1:num_obs_points)=obs%f_psqm(1:num_obs_points)-trndOBS(1:num_obs_points)
         write(*,*)'GLSres:', sqrt(sum(resOBS(1:num_obs_points)**2)/float(num_obs_points))
     enddo
 else 
@@ -285,21 +263,18 @@ else
     call UK_prior(grid, num_spat_fcns, par, beta, Cbeta, eps, Ceps)
 endif
 
-call OutputUK(num_points, num_spat_fcns, Nrand, grid, nlsf, beta, eps, Ceps, Cbeta, ClimEst, fmax, SF, A, domain_average, &
-&                    IsLogT, IsClimEst, IsMatchMean, IsHiLimit, DomainName, alpha)
+call OutputUK(num_points, num_spat_fcns, Nrand, grid, nlsf, beta, eps, Ceps, Cbeta, fmax, SF, A, domain_average, &
+&                    IsLogT, IsMatchMean, IsHiLimit, domain_name, alpha)
 
-call Interpret_From_Grid(grid, grid%recr_psqm, obs, r)
-r(1:num_obs_points)=r(1:num_obs_points)**(1./alpha)
-call Write_Vector_Scalar_Field(num_obs_points, r, 'KrigAtObs.txt')
-
-deallocate( Dh, Dz, beta, Cbeta, Ceps, r)
+write(*,*)'num_points, num_survey', num_points, num_obs_points
+deallocate( distance_horiz, distance_vert, beta, Cbeta, Ceps, r)
 
 stop
 endprogram
 
 !--------------------------------------------------------------------------------------------------
-!> Purpose: Read parameter values, flags, etc. from a ascii text input file:"UK.inp".  Parameters etc. 
-!> to be read from UK.inp are identified by the first letter of the line.  Values are read from the 
+!> Purpose: Read parameter values, flags, etc. from an ascii text input file:"UK.inp".  Parameters etc. 
+!> to be read from UK.inp are identified by tag before '='.  Values are read from the 
 !> line to the right of an "=" character. Logical variables are read from 'T','F'.
 !>
 !> outputs: 
@@ -308,28 +283,32 @@ endprogram
 !--------------------------------------------------------------------------------------------------
 ! Keston Smith, Tom Callaghan (IBSS) 2024
 !--------------------------------------------------------------------------------------------------
-subroutine Read_Startup_Config(DomainName, SimType, obsfile, climfile, NRand, IsLogT, IsHiLimit, fmax,&
-    &       IsMatchMean, IsClimEst, par, alpha)
+subroutine Read_Startup_Config(domain_name, SimType, obsfile, NRand, IsLogT, IsHiLimit, fmax,&
+    &       IsMatchMean, par, alpha)
         use globals
         use KrigMod
         implicit none
-        character(2),intent(out):: DomainName
+        character(2),intent(out):: domain_name
         integer, intent(out) :: SimType
         type(KrigPar), intent(out):: par
         integer j, k, io
         integer, intent(out):: NRand
-        character(72),intent(out):: obsfile,climfile
+        character(72),intent(out):: obsfile
         
-        logical IsLogT,IsHiLimit,IsMatchMean,IsClimEst
+        logical IsLogT,IsHiLimit,IsMatchMean
         character(72) :: input_string
         character(tag_len) tag
         character(value_len) value
         real(dp),intent(out)::  fmax,alpha
         logical exists
-        
-        IsClimEst=.false.
+
+        ! set default values for parameters not in file
+        IsLogT=.true.
         IsHiLimit=.false.
-        IsLogT = .false.
+!        IsClimEst=.false.
+        IsMatchMean=.true.
+        alpha=1.D0
+        SimType = 1
 
         ! Check if configuration file exists
         input_string = 'Configuration/UK.inp'
@@ -355,9 +334,9 @@ subroutine Read_Startup_Config(DomainName, SimType, obsfile, climfile, NRand, Is
     
                 select case (tag)
                 case('Domain Name')
-                    DomainName = value(1:2)
-                    if (.not. ( any ((/ DomainName.eq.'MA', DomainName.eq.'GB'/)) )) then
-                        write(*,*) term_red, ' **** INVALID DOMAIN NAME: ', DomainName, term_blk
+                    domain_name = value(1:2)
+                    if (.not. ( any ((/ domain_name.eq.'MA', domain_name.eq.'GB'/)) )) then
+                        write(*,*) term_red, ' **** INVALID DOMAIN NAME: ', domain_name, term_blk
                         stop
                     endif
     
@@ -389,19 +368,6 @@ subroutine Read_Startup_Config(DomainName, SimType, obsfile, climfile, NRand, Is
                         write(*,*)'Is this the fmax you were searching for?', fmax
                     endif
     
-                case('Climatology')
-                    climfile = value
-                    inquire(file=climfile, exist=exists)
-        
-                    if (exists) then
-                        write(*,*)'taking climatological background field from ',climfile
-                    else
-                        PRINT *, term_red, climfile, ' NOT FOUND', term_blk
-                        stop
-                    endif
-                        
-                    IsClimEst=.true.
-    
                 case('Number of Random Fields')
                     read( value,*) NRand
     
@@ -410,7 +376,6 @@ subroutine Read_Startup_Config(DomainName, SimType, obsfile, climfile, NRand, Is
     
                 case('Match stratified mean')
                     read(value,*) IsMatchMean
-                    !Match stratified mean = F
     
                 case('SimType')
                     read(value,*) SimType
@@ -427,14 +392,14 @@ subroutine Read_Startup_Config(DomainName, SimType, obsfile, climfile, NRand, Is
         return
         end
         
-    !---------------------------------------------------------------------------------------------------
+!---------------------------------------------------------------------------------------------------
 !> Purpose: This subroutine writes files for output.  This includes a central prediction: 
 !> "KrigingEstimate.txt" and random fields generated from the posterior distribution:
 !> "RandomFieldN.txt", where N =1:Nrand. Predictor standard deviation  is output to "KrigSTD.txt".
 !> Function coefficient 
 !---------------------------------------------------------------------------------------------------
-subroutine OutputUK(num_points, num_spat_fcns, Nrand, grid, nlsf, beta, eps, Ceps, Cbeta, ClimEst, fmax, SF, A, domain_average, &
-    IsLogT, IsClimEst, IsMatchMean, IsHiLimit, DomainName, alpha)
+subroutine OutputUK(num_points, num_spat_fcns, Nrand, grid, nlsf, beta, eps, Ceps, Cbeta, fmax, SF, A, domain_average, &
+&                  IsLogT, IsMatchMean, IsHiLimit, domain_name, alpha)
 use GridManagerMod
 use NonLinearSpatialFcnMod
 use KrigMod
@@ -443,11 +408,11 @@ implicit none
 type(Grid_Data_Class), intent(inout) :: grid
 type(NLSFPar), intent(in)::nlsf(*)
                                     
-character(2) DomainName
+character(2) domain_name
 integer, intent(in) :: num_points, num_spat_fcns, Nrand
-real(dp), intent(in) :: eps(*), beta(*), Cbeta(num_spat_fcns,*), ClimEst(*), fmax, SF, A, domain_average, alpha
+real(dp), intent(in) :: eps(*), beta(*), Cbeta(num_spat_fcns,*), fmax, SF, A, domain_average, alpha
 real(dp), intent(inout) :: Ceps(num_points,*)
-logical, intent(in) ::IsLogT, IsClimEst, IsMatchMean, IsHiLimit
+logical, intent(in) ::IsLogT, IsMatchMean, IsHiLimit
 integer j, k, n
 real(dp) trend(num_points), V(num_points), Fg(num_points, num_spat_fcns), MuY, EnsMu, EnsSTD
 real(dp) logf(num_points), adj, RandomField(num_points, Nrand)
@@ -457,19 +422,19 @@ write(*,*)'output fmax, SF, A=', fmax, SF, A
 do n=1, num_points
     V(n)=Ceps(n, n)
 enddo
-grid%recr_psqm(1:num_points)=grid%recr_psqm(1:num_points)**(1./alpha)
-if(IsClimEst)grid%recr_psqm(1:num_points)=grid%recr_psqm(1:num_points)+ClimEst(1:num_points)**(1./alpha)
-logf(1:num_points)=grid%recr_psqm(1:num_points)
-if(IsLogT) grid%recr_psqm(1:num_points)=SF*exp( grid%recr_psqm(1:num_points) + V(1:num_points)/2. ) - A  ! adjusted inverse log(A+f)
-if(IsHiLimit)call limitz(num_points, grid%recr_psqm, grid%z, fmax, DomainName)
-MuY=sum( grid%recr_psqm(1:num_points) )/float(num_points)
-if(IsMatchMean)grid%recr_psqm(1:num_points)=domain_average*grid%recr_psqm(1:num_points)/MuY
-if(IsHiLimit)call limitz(num_points, grid%recr_psqm, grid%z, fmax, DomainName)
-call Write_Vector_Scalar_Field(num_points, grid%recr_psqm, 'KrigingEstimate.txt')
+grid%f_psqm(1:num_points)=grid%f_psqm(1:num_points)**(1./alpha)
 
-call spatial_function(grid, Fg, num_spat_fcns, num_points, nlsf)
+logf(1:num_points)=grid%f_psqm(1:num_points)
+if(IsLogT) grid%f_psqm(1:num_points)=SF*exp( grid%f_psqm(1:num_points) + V(1:num_points)/2. ) - A  ! adjusted inverse log(A+f)
+if(IsHiLimit)call limitz(num_points, grid%f_psqm, grid%z, fmax, domain_name)
+MuY=sum( grid%f_psqm(1:num_points) )/float(num_points)
+if(IsMatchMean)grid%f_psqm(1:num_points)=domain_average*grid%f_psqm(1:num_points)/MuY
+if(IsHiLimit)call limitz(num_points, grid%f_psqm, grid%z, fmax, domain_name)
+call Write_Vector_Scalar_Field(num_points, grid%f_psqm, 'KrigingEstimate.txt')
+
+call Evaluate_Spatial_Function(grid, Fg, num_spat_fcns, num_points, nlsf)
 trend(1:num_points)=matmul( Fg(1:num_points, 1:num_spat_fcns), beta(1:num_spat_fcns)) 
-if(IsClimEst)trend(1:num_points)=trend(1:num_points)+ClimEst(1:num_points)
+
 if(IsLogT)trend(1:num_points)=SF*exp(trend(1:num_points))-A
 if(IsMatchMean)trend(1:num_points)=domain_average*trend(1:num_points)/MuY
 call Write_Vector_Scalar_Field(num_points, trend, 'SpatialTrend.txt')
@@ -479,7 +444,7 @@ call Write_Vector_Scalar_Field(num_spat_fcns, beta, 'beta.txt')
 
 call write_csv(num_spat_fcns, num_spat_fcns, Cbeta, 'CovBeta.csv', num_spat_fcns)
 
-call spatial_function(grid, Fg, num_spat_fcns, num_points, nlsf)
+call Evaluate_Spatial_Function(grid, Fg, num_spat_fcns, num_points, nlsf)
 Ceps(1:num_points, 1:num_points) = Ceps(1:num_points, 1:num_points)&
 &    + matmul( Fg(1:num_points, 1:num_spat_fcns) , &
 &              matmul(Cbeta(1:num_spat_fcns, 1:num_spat_fcns), transpose(Fg(1:num_points, 1:num_spat_fcns)) ) )
@@ -490,7 +455,7 @@ if(IsLogT)call Write_Vector_Scalar_Field(num_points, SF*exp(sqrt(V(1:num_points)
 if(.not.IsLogT)call Write_Vector_Scalar_Field(num_points, sqrt(V(1:num_points)), 'KrigSTD.txt')
 
 if(IsLogT)call RandomSampleF(num_points, num_points, NRand, logf(1:n), Ceps, RandomField)
-if(.not.IsLogT)call RandomSampleF(num_points, num_points, NRand, grid%recr_psqm(1:n)**alpha, Ceps, RandomField)
+if(.not.IsLogT)call RandomSampleF(num_points, num_points, NRand, grid%f_psqm(1:n)**alpha, Ceps, RandomField)
 RandomField(1:num_points, 1:Nrand)=RandomField(1:num_points, 1:Nrand)**(1./alpha)
 do k=1, num_points
     if(IsLogT)adj=SF*exp(sqrt(V(k)))-A
@@ -498,12 +463,12 @@ do k=1, num_points
     EnsMu=sum(  RandomField(k, 1:Nrand) )/float(Nrand)
     EnsSTD=sqrt( sum( ( RandomField(k, 1:Nrand)-EnsMu )**2 )/float(Nrand) )
     if(EnsSTD.gt.0.)then
-        RandomField(k, 1:Nrand) = grid%recr_psqm(k) +( RandomField(k, 1:Nrand) - EnsMu )*adj/EnsSTD
+        RandomField(k, 1:Nrand) = grid%f_psqm(k) +( RandomField(k, 1:Nrand) - EnsMu )*adj/EnsSTD
     else
-        RandomField(k, 1:Nrand) = grid%recr_psqm(k) + RandomField(k, 1:Nrand) - EnsMu 
+        RandomField(k, 1:Nrand) = grid%f_psqm(k) + RandomField(k, 1:Nrand) - EnsMu 
     endif
     if(IsHiLimit)call limitz(Nrand, RandomField(k, 1:NRand), grid%z(k)+0.*RandomField(k, 1:NRand), &
-                            fmax, DomainName)
+                            fmax, domain_name)
 enddo
 
 do j=1, Nrand

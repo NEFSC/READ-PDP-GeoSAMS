@@ -42,7 +42,6 @@ CONTAINS
 !> the parameters of function 1 must be fit before the parameters of function 3.
 !>
 !> The function is called twice from the main program.  In the first call
-!>
 !> InitiialCallFlag= T and the number of nonlinear spatial functions is returned.
 !>
 !> In the second call InitiialCallFlag= F and all of the functions are defined.
@@ -62,7 +61,7 @@ is_truncate_range = 1 !default
 greedy_fit = 0
 
 ! Check if configuration file exists
-input_string = 'Configuration/SpatialFcns.cfg'
+input_string = 'Configuration\SpatialFcns.cfg'
 inquire(file=input_string, exist=exists)
 
 if (.NOT. exists) then
@@ -71,7 +70,9 @@ if (.NOT. exists) then
 endif
 open(69,file=input_string)
 n=0
-if(InitialCallFlag)then
+
+!-------------------------------------------------------------------------------------
+if (InitialCallFlag) then
     ! only counting the number of defined 'Function n'
     do
         input_string=""
@@ -88,6 +89,7 @@ if(InitialCallFlag)then
     return
 endif
 
+!-------------------------------------------------------------------------------------
 do
     input_string=""
     read(69,'(a)',iostat=io) input_string
@@ -199,10 +201,10 @@ nsflim=nlsf(1)%nsflim
 write(*,*)'FNLSF',num_obs_points,num_points,nsf
 allocate(r(1:num_obs_points),fpc(1:num_obs_points),residuals(1:num_obs_points,1:nsf),rms(1:nsf),RankIndx(1:nsf))
 
-r(1:num_obs_points)=obs%recr_psqm(1:num_obs_points)
+r(1:num_obs_points)=obs%f_psqm(1:num_obs_points)
 write(*,*)'res0:',sqrt(sum(r(1:num_obs_points)**2)/float(num_obs_points))
 do j=1,nsf
-    if(IsReset.eq.1)r(1:num_obs_points)=obs%recr_psqm(1:num_obs_points)
+    if(IsReset.eq.1)r(1:num_obs_points)=obs%f_psqm(1:num_obs_points)
     if (nlsf(j)%PreCFnum.eq.0)then
         !no preconditioning
         fpc(1:num_obs_points)=1.D0
@@ -242,8 +244,8 @@ if(IsReset.eq.1)then
     nlsf(1:nsf)%nsf=min(nsf,nsflim)
     write(*,*)'function rms:',nlsf(1:nsf)%rms
 
-    mu=sum(obs%recr_psqm(1:num_obs_points)/float(num_obs_points))
-    rms0=sqrt(sum( ( obs%recr_psqm(1:num_obs_points)-mu  )**2)/float(num_obs_points))
+    mu=sum(obs%f_psqm(1:num_obs_points)/float(num_obs_points))
+    rms0=sqrt(sum( ( obs%f_psqm(1:num_obs_points)-mu  )**2)/float(num_obs_points))
     j=1
     call write_csv(num_obs_points,nsf,residuals,'residuals0.csv',num_obs_points)
     do while( ( nlsf(j)%rms .lt. .9*rms0 +.1*nlsf(1)%rms ) .and. (j+1.lt.nsf) )
@@ -465,7 +467,7 @@ nsflim=nlsf(1)%nsflim
 write(*,*)'FNLSF',num_obs_points,num_points,nsf
 allocate(r(1:num_obs_points),res(1:num_obs_points),fpc(1:num_obs_points),residuals(1:num_obs_points,1:nsf),rms(1:nsf),isfit(1:nsf))
 allocate(nlsfTmp(1:nsf),RankIndx(1:nsf))
-r(1:num_obs_points)=obs%recr_psqm(1:num_obs_points)
+r(1:num_obs_points)=obs%f_psqm(1:num_obs_points)
 write(*,*)'res0:',sqrt(sum(r(1:num_obs_points)**2)/float(num_obs_points))
 isfit(1:nsf)=0
 nfi=0

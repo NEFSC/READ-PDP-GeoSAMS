@@ -28,9 +28,9 @@ if (nargin<3)
 else
   fmtstr=fmt;
 end
-fmtstr=[fmtstr,'\n'];
+fmtstr=strcat(fmtstr,'\n');
 
-for k=1:n,
+for k=1:n
   fprintf(fp,fmtstr,M(k,:));
 end
  fclose(fp);

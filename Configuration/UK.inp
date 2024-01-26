@@ -3,13 +3,12 @@
 # values are read after "=" sign
 # parameters are identified by the first character in the line
 Domain Name = MA
-Input File = Data/Recruits2005MA.csv
-#Input File = Data/HabCamData2015MA.csv
+#Input File = Data/Recruits2005MA.csv
+Input File = Data/HabCamData2015MA.csv
 Log Transform = T
 #(max interp field < hlf*max(obs))
 High Limit Factor = 1.5
 Match stratified mean = T
-#Climatology = KrigingEstimates/SimMAClim/KrigingEstimate.txt
 Number of Random Fields = 10
 Kriging variogram form = spherical
 # Power transform interpolates f(x)^alpha 

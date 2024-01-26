@@ -19,13 +19,14 @@ DetectRS=.27;
 DetectHD=.13;
 DetectHDThreshold=2;%scallops/m^2
 
-flnm = 'OriginalData/dredgetowbysize7917-1.csv';
-%flnm = 'OriginalData/recruitsv2.csv';
+%flnm = 'OriginalData/dredgetowbysize7917-1.csv';
+flnm = 'OriginalData/recruitsv2.csv';
 %flnm = 'OriginalData/recruitsv2KWS.csv';
 if isOctave
   F=csvreadK(flnm);
   year=F(:,5);mon=F(:,6);day=F(:,7);
 else
+  warning('OFF', 'MATLAB:table:ModifiedAndSavedVarnames')
   F= readtable(flnm,"FileType","text");
   year=table2array(F(:,5));mon=table2array(F(:,6));day=table2array(F(:,7));
 end
@@ -53,7 +54,7 @@ end
 RecM2=Rec*T2M2;
 M=[DecYr(:),lat(:),lon(:),Depth(:),RecM2(:)];
 j=find(~isnan(sum(M')));M=M(j,:);
-flnm='Data/RecruitsUnadjusted.csv'
+flnm='Data/RecruitsUnadjusted.csv';
 header='"decmal year", "latitude", "longitude", "bottom depth(m)","recruits per m^2"';
 writecsv(M,flnm,['%g, %g, %g, %g, %e'],header);
 
@@ -84,9 +85,9 @@ writecsv(M,flnm,['%g, %g, %g, %g, %e'],header);
 %han
 clear
 isOctave = (exist('OCTAVE_VERSION', 'builtin') ~= 0);
-TowSqFt=6076.12*8
+TowSqFt=6076.12*8;
 MpSqft=.3048^2;
-T2M2=1/(MpSqft*TowSqFt)
+T2M2=1/(MpSqft*TowSqFt);
  
 Detect=.4;
 DetectRS=.27;
@@ -105,6 +106,7 @@ flnm='Data/RecruitsUnadjusted.csv';
 if isOctave
   F=csvreadK(flnm);
 else
+  warning('OFF', 'MATLAB:table:ModifiedAndSavedVarnames')
   F=table2array(readtable(flnm,'PreserveVariableNames', true));
 end
 
@@ -140,7 +142,7 @@ j0=find(IsRock==0);
 j1=find(IsRock==1);
 plot(lon(j0),lat(j0),'c.',lon(j1),lat(j1),'r.');
 hold on;
-for k=1:length(G),
+for k=1:length(G)
   lonStrat=G(k).X;
   latStrat=G(k).Y;
   plot(lonStrat,latStrat,'k');hold on;
@@ -169,6 +171,7 @@ if isOctave
   Depth=F(:,4);
   rec=F(:,7);
 else
+  warning('OFF', 'MATLAB:table:ModifiedAndSavedVarnames')
   F=readtable(flnm,"FileType","text");
   DecYr=table2array(F(:,1));
   lat=table2array(F(:,2));
@@ -198,6 +201,7 @@ if isOctave
   F=csvreadK(flnm);
   DecYr=F(:,1);
 else
+  warning('OFF', 'MATLAB:table:ModifiedAndSavedVarnames')
   F=readtable(flnm,"FileType","text");
   DecYr=table2array(F(:,1));
 end
@@ -226,6 +230,7 @@ if isOctave
   F=csvreadK(flnm);
   DecYr=F(:,1);
 else
+  warning('OFF', 'MATLAB:table:ModifiedAndSavedVarnames')
   F=readtable(flnm,"FileType","text");
   DecYr=table2array(F(:,1));
 end
@@ -252,6 +257,7 @@ flnm='Data/RecruitsMA.csv';
 if isOctave
   F=csvreadK(flnm);
 else
+  warning('OFF', 'MATLAB:table:ModifiedAndSavedVarnames')
   F=table2array(readtable(flnm,"FileType","text"));
 end
 Fout = LumpData1NM(F);
@@ -265,6 +271,7 @@ flnm='Data/RecruitsGB.csv';
 if isOctave
   F=csvreadK(flnm);
 else
+  warning('OFF', 'MATLAB:table:ModifiedAndSavedVarnames')
   F=table2array(readtable(flnm,"FileType","text"));
 end
 Fout = LumpData1NM(F);
