@@ -421,12 +421,17 @@ enddo
 call dgesv(num_spat_fcns, num_spat_fcns, CBetaInv, num_spat_fcns, IPIV, CBeta, num_spat_fcns, info)
 write(*,*)'UK_GLS (b) dgesv info=', info
 
-!
-! beta_gls = inv( F' * Cinv * F ) * F * Cinv * fo
-!
-Vtmp(1:num_obs_points)=matmul(Cinv(1:num_obs_points, 1:num_obs_points), obs%f_psqm(1:num_obs_points))
-Vtmp2(1:num_spat_fcns)=matmul(transpose(Fs(1:num_obs_points, 1:num_spat_fcns)), Vtmp(1:num_obs_points))
-beta(1:num_spat_fcns)=matmul(Cbeta(1:num_spat_fcns, 1:num_spat_fcns), Vtmp2(1:num_spat_fcns))
+! !
+! ! beta_gls = inv( F' * Cinv * F ) * F * Cinv * fo
+! !
+! Vtmp(1:num_obs_points)=matmul(Cinv(1:num_obs_points, 1:num_obs_points), obs%f_psqm(1:num_obs_points))
+! Vtmp2(1:num_spat_fcns)=matmul(transpose(Fs(1:num_obs_points, 1:num_spat_fcns)), Vtmp(1:num_obs_points))
+! beta(1:num_spat_fcns)=matmul(Cbeta(1:num_spat_fcns, 1:num_spat_fcns), Vtmp2(1:num_spat_fcns))
+! call dgemv('T', num_obs_points, num_spat_fcns, atmp, Fs, num_obs_points, Vtmp, 1, btmp, Vtmp2,1) ! Vtmp2 = F^T C^{-1} y
+! write(*,*)'UK_GLS (c) dgesv info=', info
+! call dgemv('N', num_spat_fcns, num_spat_fcns, atmp, Cbeta, num_spat_fcns, Vtmp2, 1, btmp, Beta, 1) ! beta = Cbeta F^t C^{-1} y
+! write(*,*)'UK_GLS (d) dgesv info=', info
+
 !
 ! Posterior covariance for residual
 !
@@ -439,7 +444,7 @@ C0(1:num_obs_points, 1:num_points)=Vinf(1, 1)-gamma0(1:num_obs_points, 1:num_poi
 !
 ! CepsG <== CepsPostG = CepsG - C0v' * inv(C_obs) * C0v
 !
-write(*,*)'UK_GLS (grid) dgesv info=', info
+write(*,*)'UK_GLS (g) dgesv info=', info
 call dgemm('N', 'N', num_obs_points, num_points, num_obs_points, atmp, Cinv, num_obs_points, C0, num_obs_points, &
 &           btmp, Gtmp, num_obs_points )
 write(*,*)'UK_GLS (h) dgesv info=', info
