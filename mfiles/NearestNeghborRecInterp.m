@@ -37,7 +37,7 @@ for yr=1979:2018
         [m,j]=min(dist);
         recs05(k)=recs(j);
     end
-    fl=['Data/NewRecs',int2str(yr),'For05Survey.csv'];
+    fl=['Data/NNRecs',int2str(yr),'For05Survey.csv'];
     DNN=[dyr0,x0,y0,z0,recs05];
     %header=['nearest neighbor interpolation of recruits to 2005 survey points for year ',int2str(yr)]
     header='"decmal year", "x utm", "y utm", "bottom depth(m)","recruits per m^2"';

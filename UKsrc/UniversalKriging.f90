@@ -123,7 +123,7 @@ real(dp), allocatable :: beta(:), Cbeta(:,:), eps(:), Ceps(:,:), Cr(:,:), F(:,:)
 real(dp), allocatable :: distance_horiz(:,:), distance_vert(:,:), gamma(:,:), Veps(:), VSpFn(:), CbetaF(:,:), Fg(:,:)
 real(dp), allocatable :: trend(:), Vtotal(:), logmu(:)
 real(dp), allocatable :: RandomField(:,:)
-integer   num_points, num_spat_fcns, num_obs_points, SimType, j, nits
+integer   num_points, num_spat_fcns, num_obs_points, SimType, j
 real(dp)  fmax, A, domain_average, SF
 ! variables for nonlinear fitting
 integer nsf, NRand, ncla
@@ -216,8 +216,7 @@ if (SimType.eq.1) then
     
     if (nlsf(1)%UseGreedyFit.eq.1) call FitNLSFunctionsGreedy(obs, nlsf)
     if (nlsf(1)%UseGreedyFit.eq.0) call FitNLSFunctions(obs, nlsf, 0)
-    nsf=nlsf(1)%nsf
-    do j=1, nlsf(1)%nsf
+    do j=1, nsf
         write(*,*)nlsf(j)%d, ' ', nlsf(j)%form, nlsf(j)%x0, nlsf(j)%lambda
     enddo
 
@@ -238,26 +237,24 @@ if (SimType.eq.1) then
     call Write_Vector_Scalar_Field(num_obs_points, r, 'OLSresidual.txt')
     call Write_Vector_Scalar_Field(num_obs_points, obs%f_psqm, 'data.txt')
     call Compute_Distance(obs, obs, distance_horiz, distance_vert, num_obs_points)
-    nits=1
-    do j=1, nits
-        call Compute_Empirical_Variogram(num_obs_points, distance_horiz, distance_vert, Gamma, num_obs_points, r, par)
-        open(63, file='KRIGpar.txt')
-        write(63,*)par%sill, par%nugget, par%alpha, par%Wz
-        close(63)
 
-        !-------------------------------------------------------------------------
-        ! Compute Universal Kriging estimate of field on grid (fest) given
-        ! observations x_obs, y_obs, z_obs, field_obs. Also returns the estimate of spatial function
-        ! coeficients, beta, and posterior covariance of beta(Cbeta).
-        !-------------------------------------------------------------------------
-        call UK_GLS(grid, obs, num_spat_fcns, par, beta, Cbeta, eps, Ceps, nlsf)
-        call Evaluate_Spatial_Function(obs, F, num_spat_fcns, num_obs_points, nlsf)
-        atmp=1.D0
-        btmp=0.D0
-        call dgemv('N', num_obs_points, num_spat_fcns, atmp, F, num_obs_points, beta, 1, btmp, trndOBS, 1)
-        resOBS(1:num_obs_points)=obs%f_psqm(1:num_obs_points)-trndOBS(1:num_obs_points)
-        write(*,*)'GLSres:', sqrt(sum(resOBS(1:num_obs_points)**2)/float(num_obs_points))
-    enddo
+    call Compute_Empirical_Variogram(num_obs_points, distance_horiz, distance_vert, Gamma, num_obs_points, r, par)
+    open(63, file='KRIGpar.txt')
+    write(63,*)par%sill, par%nugget, par%alpha, par%Wz
+    close(63)
+
+    !-------------------------------------------------------------------------
+    ! Compute Universal Kriging estimate of field on grid (fest) given
+    ! observations x_obs, y_obs, z_obs, field_obs. Also returns the estimate of spatial function
+    ! coeficients, beta, and posterior covariance of beta(Cbeta).
+    !-------------------------------------------------------------------------
+    call UK_GLS(grid, obs, num_spat_fcns, par, beta, Cbeta, eps, Ceps, nlsf)
+    call Evaluate_Spatial_Function(obs, F, num_spat_fcns, num_obs_points, nlsf)
+    atmp=1.D0
+    btmp=0.D0
+    call dgemv('N', num_obs_points, num_spat_fcns, atmp, F, num_obs_points, beta, 1, btmp, trndOBS, 1)
+    resOBS(1:num_obs_points)=obs%f_psqm(1:num_obs_points)-trndOBS(1:num_obs_points)
+    write(*,*)'GLSres:', sqrt(sum(resOBS(1:num_obs_points)**2)/float(num_obs_points))
 else 
     ! simulate from user supplied prior estimate of beta, Cbeta, eps, Ceps
     call UK_prior(grid, num_spat_fcns, par, beta, Cbeta, eps, Ceps)
@@ -283,114 +280,113 @@ endprogram
 !--------------------------------------------------------------------------------------------------
 ! Keston Smith, Tom Callaghan (IBSS) 2024
 !--------------------------------------------------------------------------------------------------
-subroutine Read_Startup_Config(domain_name, SimType, obsfile, NRand, IsLogT, IsHiLimit, fmax,&
-    &       IsMatchMean, par, alpha)
-        use globals
-        use KrigMod
-        implicit none
-        character(2),intent(out):: domain_name
-        integer, intent(out) :: SimType
-        type(KrigPar), intent(out):: par
-        integer j, k, io
-        integer, intent(out):: NRand
-        character(72),intent(out):: obsfile
-        
-        logical IsLogT,IsHiLimit,IsMatchMean
-        character(72) :: input_string
-        character(tag_len) tag
-        character(value_len) value
-        real(dp),intent(out)::  fmax,alpha
-        logical exists
+subroutine Read_Startup_Config(domain_name, SimType, obsfile, NRand, IsLogT, IsHiLimit, fmax, IsMatchMean, par, alpha)
+use globals
+use KrigMod
+implicit none
+character(2),intent(out):: domain_name
+integer, intent(out) :: SimType
+type(KrigPar), intent(out):: par
+integer j, k, io
+integer, intent(out):: NRand
+character(72),intent(out):: obsfile
 
-        ! set default values for parameters not in file
-        IsLogT=.true.
-        IsHiLimit=.false.
+logical IsLogT,IsHiLimit,IsMatchMean
+character(72) :: input_string
+character(tag_len) tag
+character(value_len) value
+real(dp),intent(out)::  fmax,alpha
+logical exists
+
+! set default values for parameters not in file
+IsLogT=.true.
+IsHiLimit=.false.
 !        IsClimEst=.false.
-        IsMatchMean=.true.
-        alpha=1.D0
-        SimType = 1
+IsMatchMean=.true.
+alpha=1.D0
+SimType = 1
 
-        ! Check if configuration file exists
-        input_string = 'Configuration/UK.inp'
-        inquire(file=input_string, exist=exists)
-        
-        if (.NOT. exists) then
-            PRINT *, term_red, input_string, ' NOT FOUND', term_blk
-            stop
-        endif
-        open(69,file=input_string)
-        do
-            input_string=""
-            read(69,'(a)',iostat=io) input_string
-            if (io.lt.0) exit
-        
-            if (input_string(1:1) .NE. '#') then
-                j = scan(input_string,"=",back=.true.)
-                tag = trim(adjustl(input_string(1:j-1)))
-                ! explicitly ignore inline comment
-                k = scan(input_string,"#",back=.true.)
-                if (k .EQ. 0) k = len(input_string) + 1
-                value =  trim(adjustl(input_string(j+1:k-1)))
-    
-                select case (tag)
-                case('Domain Name')
-                    domain_name = value(1:2)
-                    if (.not. ( any ((/ domain_name.eq.'MA', domain_name.eq.'GB'/)) )) then
-                        write(*,*) term_red, ' **** INVALID DOMAIN NAME: ', domain_name, term_blk
-                        stop
-                    endif
-    
-                case('Input File')
-                    obsfile = value
-                    inquire(file=obsfile, exist=exists)
-        
-                    if (exists) then
-                        write(*,*)'Using observation file ',obsfile
-                    else
-                        PRINT *, term_red, obsfile, ' NOT FOUND', term_blk
-                        stop
-                    endif
-    
-                case('Log Transform')
-                    read(value,*) IsLogT
-    
-                case('High Limit Factor')
-                    read(value, *) fmax
-    
-                case('Power Transform Parameter')
-                    if (IsLogT) then
-                        ! Forcing alpha to 1.0
-                        alpha=1.D0
-                        write(*,*) term_yel, 'Log Transform is T, ignoring Power Transform Param', term_blk
-                    else
-                        read(value,*) alpha
-                        IsHiLimit = .true.
-                        write(*,*)'Is this the fmax you were searching for?', fmax
-                    endif
-    
-                case('Number of Random Fields')
-                    read( value,*) NRand
-    
-                case('Kriging variogram form')
-                    read(value,*) par%form
-    
-                case('Match stratified mean')
-                    read(value,*) IsMatchMean
-    
-                case('SimType')
-                    read(value,*) SimType
-        
-                case default
-                    write(*,*) term_yel, 'ReadInput: Unrecognized line in UK.inp'
-                    write(*,*) 'Unrecognized Line->',input_string
-                    write(*,*) 'This is probably not a problem', term_blk
-                    !stop
-            end select
+! Check if configuration file exists
+input_string = 'Configuration/UK.inp'
+inquire(file=input_string, exist=exists)
+
+if (.NOT. exists) then
+    PRINT *, term_red, input_string, ' NOT FOUND', term_blk
+    stop
+endif
+open(69,file=input_string)
+do
+    input_string=""
+    read(69,'(a)',iostat=io) input_string
+    if (io.lt.0) exit
+
+    if (input_string(1:1) .NE. '#') then
+        j = scan(input_string,"=",back=.true.)
+        tag = trim(adjustl(input_string(1:j-1)))
+        ! explicitly ignore inline comment
+        k = scan(input_string,"#",back=.true.)
+        if (k .EQ. 0) k = len(input_string) + 1
+        value =  trim(adjustl(input_string(j+1:k-1)))
+
+        select case (tag)
+        case('Domain Name')
+            domain_name = value(1:2)
+            if (.not. ( any ((/ domain_name.eq.'MA', domain_name.eq.'GB'/)) )) then
+                write(*,*) term_red, ' **** INVALID DOMAIN NAME: ', domain_name, term_blk
+                stop
             endif
-        end do
-        close(69)
-        return
-        end
+
+        case('Input File')
+            obsfile = value
+            inquire(file=obsfile, exist=exists)
+
+            if (exists) then
+                write(*,*)'Using observation file ',obsfile
+            else
+                PRINT *, term_red, obsfile, ' NOT FOUND', term_blk
+                stop
+            endif
+
+        case('Log Transform')
+            read(value,*) IsLogT
+
+        case('High Limit Factor')
+            read(value, *) fmax
+
+        case('Power Transform Parameter')
+            if (IsLogT) then
+                ! Forcing alpha to 1.0
+                alpha=1.D0
+                write(*,*) term_yel, 'Log Transform is T, ignoring Power Transform Param', term_blk
+            else
+                read(value,*) alpha
+                IsHiLimit = .true.
+                write(*,*)'Is this the fmax you were searching for?', fmax
+            endif
+
+        case('Number of Random Fields')
+            read( value,*) NRand
+
+        case('Kriging variogram form')
+            read(value,*) par%form
+
+        case('Match stratified mean')
+            read(value,*) IsMatchMean
+
+        case('SimType')
+            read(value,*) SimType
+
+        case default
+            write(*,*) term_yel, 'ReadInput: Unrecognized line in UK.inp'
+            write(*,*) 'Unrecognized Line->',input_string
+            write(*,*) 'This is probably not a problem', term_blk
+            !stop
+    end select
+    endif
+end do
+close(69)
+return
+endsubroutine Read_Startup_Config
         
 !---------------------------------------------------------------------------------------------------
 !> Purpose: This subroutine writes files for output.  This includes a central prediction: 
@@ -477,4 +473,4 @@ do j=1, Nrand
 enddo
 
 return
-end
+endsubroutine OutputUK
