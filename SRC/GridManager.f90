@@ -131,6 +131,10 @@ max_num_grids = max_ngrids
 fname = 'Results\SurveyLoc.txt'
 open(70, file=trim(fname))
 
+init_cond_fname = ""
+! default value if 'Special Access Config File' is not specified
+use_spec_access_data = .false.
+
 call Read_Configuration()
 
 ! Load Grid. 
@@ -312,8 +316,12 @@ integer function Load_Grid_State(grid, state)
 
     character(csv_line_len) input_str
     integer n, io, is_closed
+    real(dp) year ! only used to read decimal year column, otherwise not used.
 
-    real(dp) year ! used as place holder when reading file_name
+    if (init_cond_fname .eq. "") then
+        write(*,*) term_red, '"Initial Conditions" is not defined, Check setting in GridManager.cfg', term_blk
+        stop
+    endif
 
     PRINT *, 'OPENING ', init_cond_fname
 
