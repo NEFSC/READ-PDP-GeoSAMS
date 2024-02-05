@@ -19,12 +19,9 @@ else:
 
 for year in years:
 
-    #flin = "Data/Recruits"+str(year)+"MA.csv"
-    flin = os.path.join('Data', 'Recruits'+str(year)+'MA.csv')
+    flin = 'Recruits'+str(year)+'MA.csv'
     subprocess.run([ex, DomainName, flin])
     print([ex, ' ', DomainName, ' ', flin])
- 
-    #outdir = "KrigingEstimates/SimMA"+str(year)+"/"
     outdir = os.path.join('KrigingEstimates', 'SimMA'+str(year), '')
     
     subprocess.run(["mkdir", outdir], shell = True)
@@ -60,12 +57,9 @@ DomainName = "GB"
 
 for year in years:
 
-    #flin = "Data/Recruits"+str(year)+"GB.csv"
-    flin = os.path.join('Data', 'Recruits'+str(year)+'GB.csv')
+    flin = 'Recruits'+str(year)+'GB.csv'
     subprocess.run([ex, DomainName, flin], shell = True)
     print([ex, ' ', DomainName, ' ', flin])
-    
-    #outdir = "KrigingEstimates/SimGB"+str(year)+"/"
     outdir = os.path.join('KrigingEstimates', 'SimGB'+str(year), '')
     
     subprocess.run(["mkdir", outdir], shell = True)

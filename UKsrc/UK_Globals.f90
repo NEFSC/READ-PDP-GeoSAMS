@@ -44,6 +44,11 @@ module globals
     character(*), parameter :: term_blu = ''//achar(27)//'[94m'
     character(*), parameter :: term_blk = ''//achar(27)//'[0m'
 
+    character(*), parameter :: config_dir = 'Configuration/'
+    character(*), parameter :: grid_dir = 'Grids/'
+    character(*), parameter :: data_dir = 'Data/'
+
+
     CONTAINS
 
     elemental real(dp) function Logic_To_Double (value)

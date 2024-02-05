@@ -10,10 +10,8 @@ else:
     move = 'mv'
 
 DomainName="MA"
-#flin="Data/RecruitsMALump1NM.csv"
-flin = os.path.join('Data', 'RecruitsMALump1NM.csv')
+flin = 'RecruitsMALump1NM.csv'
 subprocess.run([ex, DomainName, flin], shell=True)
-#outdir="KrigingEstimates/SimMAClim/"
 outdir = os.path.join('KrigingEstimates', 'SimMAClim', '')
 
 subprocess.run(["mkdir", outdir], shell=True)
@@ -37,11 +35,9 @@ subprocess.run([move, "SpatialTrend.txt", outdir], shell=True)
 subprocess.run([move, "CovBeta.csv", outdir], shell=True)
  
 DomainName="GB"
-#flin="Data/RecruitsGBLump1NM.csv"
-flin = os.path.join('Data', 'RecruitsGBLump1NM.csv')
+flin = 'RecruitsGBLump1NM.csv'
 
 subprocess.run([ex, DomainName, flin], shell=True)
-#outdir="KrigingEstimates/SimGBClim/"
 outdir = os.path.join('KrigingEstimates', 'SimGBClim', '')
 
 subprocess.run(["mkdir", outdir], shell=True)
