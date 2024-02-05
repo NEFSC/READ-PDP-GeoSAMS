@@ -154,11 +154,12 @@ do n = 1, num_grids
     j = Is_Grid_In_Special_Access(grid(n)%lon, grid(n)%lat)
     if (j > 0) then
         grid(n)%special_access_index = j
-        write(70,'(A, I4, A, I10, A, F8.3, A, F8.3, A, I3)') 'Survey #', n, ' Station #', grid(n)%station_number, &
-        &   ' location (lat, lon) (', grid(n)%lat, ',', grid(n)%lon, ' ) is found in special area ', j
+        write(70,'(A, I4, A, I10, A, F8.3, A, F8.3, A, L1, A, I2)') 'Survey #', n, ' Station #', grid(n)%station_number, &
+        &  ' location (lat, lon) (', grid(n)%lat, ',', grid(n)%lon, ' )  Is Closed:', &
+        &  grid(n)%is_closed, ' and is found in special area ', j
     else
-        write(70,'(A, I4, A, I10, A, F8.3, A, F8.3, A)') 'Survey #', n, ' Station #', grid(n)%station_number, &
-        &   ' location (lat, lon) (', grid(n)%lat, ',', grid(n)%lon, ' )'
+        write(70,'(A, I4, A, I10, A, F8.3, A, F8.3, A, L1)') 'Survey #', n, ' Station #', grid(n)%station_number, &
+        &   ' location (lat, lon) (', grid(n)%lat, ',', grid(n)%lon, ' )  Is Closed:', grid(n)%is_closed
     endif
 enddo
 
