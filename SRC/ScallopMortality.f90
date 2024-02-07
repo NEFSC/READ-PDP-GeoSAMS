@@ -96,6 +96,7 @@ real(dp), PRIVATE :: delta_time
 
 ! configuration parameters
 real(dp), PRIVATE :: fishing_mort
+real(dp), PRIVATE :: alpha_mort
 real(dp), PRIVATE :: ma_cull_size_mm
 real(dp), PRIVATE :: ma_discard
 real(dp), PRIVATE :: gb_cull_size_mm
@@ -134,6 +135,7 @@ real(dp), PRIVATE, allocatable :: landings_by_num(:)
 real(dp), PRIVATE, allocatable :: landings_wgt_grams(:)
 real(dp), PRIVATE, allocatable :: landings_wgt_grams_open(:)
 real(dp), PRIVATE, allocatable :: landings_wgt_grams_closed(:)
+real(dp), PRIVATE, allocatable :: lpue(:), dredge_time(:), dredge_area(:)
 
 real(dp), PRIVATE :: expl_scallops_psqm_at_size(num_size_classes)
 real(dp), PRIVATE :: landings_at_size(num_size_classes)
@@ -147,6 +149,7 @@ CONTAINS
 !==================================================================================================================
 subroutine Destructor()
     deallocate(expl_biomass_gpsqm)
+
     deallocate(USD_per_sqm)
     deallocate(expl_scallops_psqm)
     deallocate(expl_num)
@@ -157,6 +160,7 @@ subroutine Destructor()
     deallocate(landings_wgt_grams)
     deallocate(landings_wgt_grams_open)
     deallocate(landings_wgt_grams_closed)
+    deallocate(lpue, dredge_time, dredge_area)
 endsubroutine Destructor
 
 !==================================================================================================================
@@ -225,6 +229,7 @@ subroutine Set_Mortality(mortality, grid, shell_lengths, dom_name, dom_area, num
     allocate(expl_num(num_grids))
     allocate(F_mort(num_grids))
     allocate(F_mort_raw(num_grids))
+    allocate(lpue(num_grids), dredge_time(num_grids), dredge_area(num_grids))
 
     allocate(landings_by_num(num_grids))
     allocate(landings_wgt_grams(num_grids))
@@ -247,8 +252,8 @@ subroutine Set_Mortality(mortality, grid, shell_lengths, dom_name, dom_area, num
         ! Load parameters for fishing selectivity 
         ! alpha = (1+exp(.1*(shell_lengths-70))).^-1)
         mortality(j)%alpha(1:num_size_classes) =  &
-        &    1._dp  - 1._dp / ( 1._dp + exp( - ( shell_lengths(1:num_size_classes)/10._dp - length_0 ) ) )
-        
+        &    1._dp  - 1._dp / ( 1._dp + exp( - (shell_lengths(1:num_size_classes) - length_0) /10._dp ) )
+
         mortality(j)%selectivity = Ring_Size_Selectivity(shell_lengths(1:num_size_classes), grid(j)%is_closed) 
         mortality(j)%selectivity_open = mortality(j)%selectivity * Logic_To_Double(.NOT. grid(j)%is_closed)
         mortality(j)%selectivity_closed = mortality(j)%selectivity * Logic_To_Double(grid(j)%is_closed)
@@ -422,7 +427,7 @@ function Set_Fishing(fishing_type, year, ts, state, weight_grams, mortality, gri
     integer Mindx, loc
     real(dp) catch_open, catch_closed, total_catch
     real(dp) c_mort !constant for fishing mortality
-    real(dp) divisor
+    real(dp) f_avg
 
     !=============================================================
     ! these sums are over num_size_classes
@@ -444,14 +449,26 @@ function Set_Fishing(fishing_type, year, ts, state, weight_grams, mortality, gri
         USD_per_sqm(loc) = Dollars_Per_SqM(year, weight_grams(loc, 1:num_size_classes))
     enddo
 
-    ! now sum here over num_grids 
-    divisor = dot_product(expl_biomass_gpsqm(:), expl_num(:) / sum(expl_num))
+    F_mort_raw(:) = Set_Fishing_Mortality(grid(1:num_grids), year, .false., 0._dp)
 
-    do loc = 1,num_grids
-        c_mort = Set_Fishing_Mortality(grid(loc), year) / divisor
-        F_mort(loc) = c_mort * expl_biomass_gpsqm(loc)
-        F_mort_raw(loc) = Set_Fishing_Mortality(grid(loc), year)
+    ! So for open areas, an overall fishing mortality F_avg would be specified and then F at each location
+    ! would be computed so that:
+    !  (1) The weighted (by exploitable numbers) average F over all locations is equal to F_avg and 
+    !  (2) F at each location is proportional to LPUE^alpha. 
+    ! This would also apply to special access areas, but each one would have their own specified F, 
+    ! and the average would only be for those points within that access area.
+    !f_avg = dot_product(expl_num, F_mort_raw) / sum(expl_num)
     
+    call  Calc_LPUE(expl_biomass_gpsqm, expl_scallops_psqm, lpue, dredge_time, dredge_area)
+
+    c_mort = fishing_mort * sum(expl_num) / dot_product(expl_num, lpue**alpha_mort) 
+    F_mort(:) = c_mort * lpue(:)**alpha_mort
+    F_mort(:) = Set_Fishing_Mortality(grid(1:num_grids), year, .true., F_mort(:))
+    f_avg = dot_product(expl_num, F_mort) / sum(expl_num)
+    write(*,'(A,I2,F6.3,A)') term_blu, ts, f_avg, term_blk
+
+    do loc = 1, num_grids
+
         ! (1._dp - exp(-F * delta_time)) * state * grid_area_sqm  * selectivity
         landings_at_size(:) = (1._dp - exp(-F_mort(loc) * delta_time)) &
         &    * state(loc, 1:num_size_classes) * grid_area_sqm&
@@ -475,6 +492,7 @@ function Set_Fishing(fishing_type, year, ts, state, weight_grams, mortality, gri
         ! (1._dp - exp(-F * delta_time)) * selectivity * state * grid_area_sqm
         landings_by_num(loc)    = sum(landings_at_size(:))
     enddo
+
     !=============================================================
     !=============================================================
     ! originally in metric tons, Set_Fishing_Effort_Weight_xx modified to accept grams
@@ -778,22 +796,33 @@ endfunction Compute_Natural_Mortality
 !>   - Check if the grids
 !>
 !==================================================================================================================
-real(dp) function Set_Fishing_Mortality(grid, year)
+elemental real(dp) function Set_Fishing_Mortality(grid, year, use_f_loc, f_loc)
 type(Grid_Data_Class), intent(in) :: grid
 integer, intent(in) :: year
+logical, intent(in) :: use_f_loc
+real(dp), intent(in) :: f_loc
 
-integer index, area, j
+integer index, area_idx, j
 integer k
 
     ! set default value
     if (grid%is_closed) then
-        Set_Fishing_Mortality = 0._dp ! default value
+        Set_Fishing_Mortality = 0._dp
     else
-        Set_Fishing_Mortality = fishing_mort ! default value
+        if (use_f_loc) then
+            Set_Fishing_Mortality = f_loc
+        else
+            Set_Fishing_Mortality = fishing_mort
+        endif
     endif
 
-    if (use_spec_access_data) then
-        ! now check if grid is in special access with and use it's fishing mortality
+    !
+    ! otherwise use value if location is in special access area
+    !
+    area_idx = grid%special_access_index
+    ! if data has been loaded and grid is in a special access area
+    if ((use_spec_access_data) .AND. (area_idx > 0)) then
+        ! now check if special access is in list and use it's fishing mortality
         ! look for year
         do j = 1, num_in_list
             if( fmort_list(j)%year .eq. year) exit
@@ -801,18 +830,13 @@ integer k
 
         if (j <= num_in_list) then
             ! found year, now look for special access
-            area = grid%special_access_index
-            if (area > 0) then
-                ! grid is within a special access
-                k = fmort_list(j)%n_areas
-                index = findloc(fmort_list(j)%area_list(1:k), area, 1)
+            ! grid is within a special access
+            k = fmort_list(j)%n_areas
+            index = findloc(fmort_list(j)%area_list(1:k), area_idx, 1)
 
-                ! check if special access in in the list
-                if (index > 0) then
-                    ! write(*,*)  term_grn,&
-                    ! &'For year', year, 'Found special access', area, 'FM = ', fmort_list(j)%area_fish_mort(index), term_blk
-                    Set_Fishing_Mortality = fmort_list(j)%area_fish_mort(index)
-                endif
+            ! check if special access in in the list
+            if (index > 0) then
+                Set_Fishing_Mortality = fmort_list(j)%area_fish_mort(index)
             endif
         endif
     endif
@@ -896,6 +920,9 @@ subroutine Read_Configuration()
             select case(tag)
             case ('Fishing Mortality')
                 read(value, *) fishing_mort
+
+            case ('Alpha Mortality')
+                read(value, *) alpha_mort
 
             case ('MA Cull size')
                 read(value, *) ma_cull_size_mm
@@ -1001,11 +1028,9 @@ subroutine Mortality_Write_At_Timestep(year, ts, state, weight_grams, mortality,
     real(dp) :: M(num_size_classes)
     real(dp), allocatable :: abundance(:)
     real(dp), allocatable :: bms(:)
-    real(dp), allocatable :: lpue(:), dredge_time(:), dredge_area(:)
 
     allocate(abundance(num_grids))
     allocate(bms(num_grids))
-    allocate(lpue(num_grids), dredge_time(num_grids), dredge_area(num_grids))
 
     ! write entire state for all grids in separate time stamp files
     write(buf,'(A8,I4,A1,I0.3)') '_AtTime_',year, '_', ts
@@ -1036,8 +1061,6 @@ subroutine Mortality_Write_At_Timestep(year, ts, state, weight_grams, mortality,
         &                      weight_grams(loc,1:num_size_classes) / grams_per_metric_ton)
     enddo
 
-    call  Calc_LPUE(expl_biomass_gpsqm, expl_scallops_psqm, lpue, dredge_time, dredge_area)
-
     ! CSV files (number of timestep by number of grids)
     call Write_CSV(1, num_grids, abundance,           output_dir//'Abundance_psqm_'//domain_name//'.csv',    1, (ts .ne. 0))
     call Write_CSV(1, num_grids, abundance*grid_area_sqm, output_dir//'Abundance_'//domain_name//'.csv',     1, (ts .ne. 0))
@@ -1062,7 +1085,6 @@ subroutine Mortality_Write_At_Timestep(year, ts, state, weight_grams, mortality,
                 
     deallocate(abundance)
     deallocate(bms)
-    deallocate(lpue, dredge_time, dredge_area)
     return
 endsubroutine Mortality_Write_At_Timestep
 
@@ -1100,11 +1122,11 @@ endfunction Set_Discard
 !>
 !==================================================================================================================
 elemental subroutine Calc_LPUE(expl_biomass, expl_scallops, lpue_ppd, dredge_time_hrs, dredge_area_sqnm)
-    real(dp), Intent(In) ::  expl_biomass          !  Expl biomass
-    real(dp), Intent(In) ::  expl_scallops         !  Expl Number of Scallops
-    real(dp), Intent(Out) :: lpue_ppd              !  Catch rate in pounds per day
-    real(dp), Intent(Out) :: dredge_time_hrs       !  dredge bottom time
-    real(dp), Intent(Out) :: dredge_area_sqnm      !  area swept per day
+    real(dp), intent(in) ::  expl_biomass          !  expl biomass
+    real(dp), intent(in) ::  expl_scallops         !  expl number of scallops
+    real(dp), intent(out) :: lpue_ppd              !  catch rate in pounds per day
+    real(dp), intent(out) :: dredge_time_hrs       !  dredge bottom time
+    real(dp), intent(out) :: dredge_area_sqnm      !  area swept per day
     real(dp) lpue1_ppd, lpue_limit_ppd
     real(dp) expl_weight_g, expl_biomass_gptow
 

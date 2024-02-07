@@ -1,5 +1,6 @@
-
 function SetUpICS(yr,Dom)
+% column where scallop densities start in bin5mmYYYYDN.csv
+sd = 9; % COL I
 
 % Check if directories have been created
 if ~exist('InitialCondition', 'dir')
@@ -54,8 +55,7 @@ j=find(isnan(zp));zp(j)=z(j);
 j=find(zp>250);
 zp(j)=250;
 l=3:.5:15; 
-%F=F(:,5:end);
-F=F(:,8:end);
+F=F(:,sd:end);
 close all 
 if strcmp(Dom,'MA')
     Gs = shaperead('ShapeFiles/MAB_Estimation_Areas_2019_UTM18_PDT.shp');
