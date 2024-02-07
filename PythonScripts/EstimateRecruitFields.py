@@ -1,4 +1,4 @@
-#subprocess.run([ex, DomainName, flin, climfl])
+#subprocess.run([ex, DomainName, flin])
 
 import subprocess
 import socket
@@ -8,8 +8,9 @@ years = range(1979, 2020)
 MC = range(1, 101)
 
 
+# set configuration file for UK.exe
+cfgFile = 'UK.cfg'
 ex = os.path.join('UKsrc', 'UK')
-climfl = "KrigClimMA.txt"
 DomainName = "MA"
 if (os.name == 'nt'):
     move = 'move'
@@ -18,9 +19,8 @@ else:
 
 
 for year in years:
-
     flin = 'Recruits'+str(year)+'MA.csv'
-    subprocess.run([ex, DomainName, flin])
+    subprocess.run([ex, cfgFile, DomainName, flin])
     print([ex, ' ', DomainName, ' ', flin])
     outdir = os.path.join('KrigingEstimates', 'SimMA'+str(year), '')
     
@@ -49,16 +49,11 @@ for year in years:
         fl = "RandomField"+str(j)+".txt"
         subprocess.run([move, fl, outdir], shell = True)
         
-    #subprocess.run([move, "ClimEstObs.txt", outdir])
-
-
-climfl = "KrigClimGB.txt"
 DomainName = "GB"
 
 for year in years:
-
     flin = 'Recruits'+str(year)+'GB.csv'
-    subprocess.run([ex, DomainName, flin], shell = True)
+    subprocess.run([ex, cfgFile, DomainName, flin])
     print([ex, ' ', DomainName, ' ', flin])
     outdir = os.path.join('KrigingEstimates', 'SimGB'+str(year), '')
     
@@ -86,4 +81,3 @@ for year in years:
         fl = "RandomField"+str(j)+".txt"
         subprocess.run([move, fl, outdir], shell = True)
     #subprocess.run([move, "RandomField.csv", outdir])
-    #subprocess.run([move, "ClimEstObs.txt", outdir])
