@@ -1,87 +1,87 @@
-!-----------------------------------------------------------------------
-!> Read_Input
-!! @brief Read Input File
-!! 
-!! Reads a configuration file, 'Scallop.inp', to set data parameters for simulation
-!!
-!! 
-!! @param[out] domain_name can be either 
-!!             MA MidAtlantic or 
-!!             GB GeorgesBank
-!! @param[out] init_cond_file_name File name that contains intial simulation conditions
-!! @param[out] start_year Starting year for simulation read from config file
-!! @param[out] stop_year  End year for simulation read from config file
-!! @param[out] fishing_type Fishing can be USD, BMS, or, CAS
-!! @param[out] time_steps_per_year Number of times steps to evaluate growth
-!! @param[out] num_monte_carlo_iter Number of iterations for Monte Carlo simulation
-!-----------------------------------------------------------------------
-subroutine Read_Input(domain_name, init_cond_file_name, start_year, stop_year, fishing_type,time_steps_per_year) !,num_monte_carlo_iter)
-    use globals
-    implicit none
-    integer, intent(out) :: start_year, stop_year, time_steps_per_year ! , num_monte_carlo_iter
-    integer j,io  !,k
-    character(fname_len),intent(out):: init_cond_file_name
-    character(2),intent(out):: domain_name
-    character(3),intent(out):: fishing_type
-    character(input_str_len) :: input_string
+! !-----------------------------------------------------------------------
+! !> Read_Input
+! !! @brief Read Input File
+! !! 
+! !! Reads a configuration file, 'Scallop.inp', to set data parameters for simulation
+! !!
+! !! 
+! !! @param[out] domain_name can be either 
+! !!             MA MidAtlantic or 
+! !!             GB GeorgesBank
+! !! @param[out] init_cond_file_name File name that contains intial simulation conditions
+! !! @param[out] start_year Starting year for simulation read from config file
+! !! @param[out] stop_year  End year for simulation read from config file
+! !! @param[out] fishing_type Fishing can be USD, BMS, or, CAS
+! !! @param[out] time_steps_per_year Number of times steps to evaluate growth
+! !! @param[out] num_monte_carlo_iter Number of iterations for Monte Carlo simulation
+! !-----------------------------------------------------------------------
+! subroutine Read_Input(domain_name, init_cond_file_name, start_year, stop_year, fishing_type,time_steps_per_year) !,num_monte_carlo_iter)
+!     use globals
+!     implicit none
+!     integer, intent(out) :: start_year, stop_year, time_steps_per_year ! , num_monte_carlo_iter
+!     integer j,io  !,k
+!     character(fname_len),intent(out):: init_cond_file_name
+!     character(2),intent(out):: domain_name
+!     character(3),intent(out):: fishing_type
+!     character(input_str_len) :: input_string
 
-    open(read_dev,file=sim_input_fname)
-    do
-        input_string=""
-        read(read_dev,'(a)',iostat=io) input_string
-        if (io.lt.0) exit
+!     open(read_dev,file=sim_input_fname)
+!     do
+!         input_string=""
+!         read(read_dev,'(a)',iostat=io) input_string
+!         if (io.lt.0) exit
 
-        ! TODO
-        ! if (input_string(1:6).eq.'Output')then
-        !     ! call Read_Output_Flags()
+!         ! TODO
+!         ! if (input_string(1:6).eq.'Output')then
+!         !     ! call Read_Output_Flags()
         
-        ! else
+!         ! else
   
-            select case (input_string(1:1))
-                case('#')
-                !     write(*,*)'Comment echo:',input_string
-                case('D')
-                    j = scan(input_string,"=",back=.true.)
-                    domain_name=trim(adjustl(input_string(j+1:)))
-                    if (.not. ( any ((/ domain_name.eq.'MA', domain_name.eq.'GB'/)) )) then
-                        write(*,*) term_red, ' **** INVALID DOMAIN NAME: ', domain_name, term_blk
-                        stop
-                    endif
-                case('I')
-                    j = scan(input_string,"=",back=.true.)
-                    init_cond_file_name=trim(adjustl(input_string(j+1:)))
-                    write(*,*)'Initial Conditions File Name =',init_cond_file_name
-                case('B')
-                    j = scan(input_string,"=",back=.true.)
-                    read( input_string(j+1:),* )start_year
-                case('E')
-                    j = scan(input_string,"=",back=.true.)
-                    read( input_string(j+1:),* )stop_year
-                case('T')
-                    j = scan(input_string,"=",back=.true.)
-                    read( input_string(j+1:),* )time_steps_per_year
-                ! case('N')
-                !     j = scan(input_string,"=",back=.true.)
-                !     read( input_string(j+1:),* )num_monte_carlo_iter
-                case('F')
-                    j = scan(input_string,"=",back=.true.)
-                    fishing_type=trim(adjustl(input_string(j+1:)))
-                    if (.not. ( any ((/ fishing_type.eq.'USD', fishing_type.eq.'BMS', fishing_type.eq.'CAS'/)) )) then
-                        write(*,*) term_red, ' **** INVALID FISHING TYPE: ', fishing_type, term_blk
-                        stop
-                    endif
-                case default
-                    write(*,*) 'Unrecognized line in ',sim_input_fname
-                    write(*,*) 'Unknown Line->',input_string
-                    stop
-            end select
+!             select case (input_string(1:1))
+!                 case('#')
+!                 !     write(*,*)'Comment echo:',input_string
+!                 case('D')
+!                     j = scan(input_string,"=",back=.true.)
+!                     domain_name=trim(adjustl(input_string(j+1:)))
+!                     if (.not. ( any ((/ domain_name.eq.'MA', domain_name.eq.'GB'/)) )) then
+!                         write(*,*) term_red, ' **** INVALID DOMAIN NAME: ', domain_name, term_blk
+!                         stop
+!                     endif
+!                 case('I')
+!                     j = scan(input_string,"=",back=.true.)
+!                     init_cond_file_name=trim(adjustl(input_string(j+1:)))
+!                     write(*,*)'Initial Conditions File Name =',init_cond_file_name
+!                 case('B')
+!                     j = scan(input_string,"=",back=.true.)
+!                     read( input_string(j+1:),* )start_year
+!                 case('E')
+!                     j = scan(input_string,"=",back=.true.)
+!                     read( input_string(j+1:),* )stop_year
+!                 case('T')
+!                     j = scan(input_string,"=",back=.true.)
+!                     read( input_string(j+1:),* )time_steps_per_year
+!                 ! case('N')
+!                 !     j = scan(input_string,"=",back=.true.)
+!                 !     read( input_string(j+1:),* )num_monte_carlo_iter
+!                 case('F')
+!                     j = scan(input_string,"=",back=.true.)
+!                     fishing_type=trim(adjustl(input_string(j+1:)))
+!                     if (.not. ( any ((/ fishing_type.eq.'USD', fishing_type.eq.'BMS', fishing_type.eq.'CAS'/)) )) then
+!                         write(*,*) term_red, ' **** INVALID FISHING TYPE: ', fishing_type, term_blk
+!                         stop
+!                     endif
+!                 case default
+!                     write(*,*) 'Unrecognized line in ',sim_input_fname
+!                     write(*,*) 'Unknown Line->',input_string
+!                     stop
+!             end select
 
-        ! endif
+!         ! endif
 
-    end do
-    close(read_dev)
-    return
-end subroutine Read_Input
+!     end do
+!     close(read_dev)
+!     return
+! end subroutine Read_Input
 
 subroutine Read_Recruit_Input(RecStartYD,RecStopYD,RandomStartYear,NRecruitFields)
     use globals
@@ -315,7 +315,7 @@ endsubroutine Write_Scalar_Field
 !--------------------------------------------------------------------------------------------------
 
 !--------------------------------------------------------------------------------------------------
-!subroutine Write_CSV(n,m,f,file_name,ndim)
+!subroutine Write_CSV(n,m,f,file_name,nndim)
 ! Purpose: Write values of a matrix (f) to a csv file in exponential format.
 ! Inputs:
 !  n (integer) number of rows in f 
@@ -325,11 +325,11 @@ endsubroutine Write_Scalar_Field
 !--------------------------------------------------------------------------------------------------
 ! Keston Smith (IBSS corp) June-July 2021
 !--------------------------------------------------------------------------------------------------
-subroutine Write_CSV(n,m,f,file_name,ndim, append)
+subroutine Write_CSV(n,m,f,file_name,nndim, append)
     use globals
     implicit none
-    integer, intent(in):: n,m,ndim
-    real(dp), intent(in):: f(ndim,*)
+    integer, intent(in):: n,m,nndim
+    real(dp), intent(in):: f(nndim,*)
     character(*), intent(in)::file_name
     logical, intent(in) :: append
     integer k
@@ -354,9 +354,59 @@ subroutine Write_CSV(n,m,f,file_name,ndim, append)
     close(69)
 endsubroutine Write_CSV
 
+subroutine Write_Column_CSV(n,f,file_name,append)
+use globals
+implicit none
+integer, intent(in):: n
+real(dp), intent(in):: f(*)
+character(*), intent(in)::file_name
+logical, intent(in) :: append
+integer k, io
+character(fname_len) fmtstr
+character(1) cr
+character(5000) input_str
+character(5000) output_str
+
+if (append) then
+    ! create a temp file to write output then move temp to file_name
+    open(read_dev, file=file_name, status='old')
+
+    open(unit=write_dev, iostat=io, file=output_dir//'TEMP', status='replace')
+    do k=1,n
+        read(read_dev,'(A)',iostat=io) input_str
+
+        write(output_str,'(A,A,(ES14.7 : ))') trim(input_str),',',f(k)
+        write(write_dev, '(A)'//NEW_LINE(cr)) trim(output_str)
+    enddo
+    close(write_dev)
+    close(read_dev)
+
+
+    open(read_dev, file=output_dir//'TEMP', status='old')
+    open(unit=write_dev, iostat=io, file=file_name, status='replace')
+    do k=1,n
+        read(read_dev,'(A)',iostat=io) input_str
+        write(write_dev,'(A)') trim(input_str)
+    enddo
+    close(write_dev)
+    close(read_dev)
+
+
+else
+    fmtstr='(ES14.7 : )'//NEW_LINE(cr)
+    open(write_dev,file=file_name)
+    do k=1,n
+        write(write_dev,fmtstr) f(k)
+    enddo
+    close(write_dev)
+    close(read_dev)
+endif
+
+endsubroutine Write_Column_CSV
+
 !--------------------------------------------------------------------------------------------------
 !--------------------------------------------------------------------------------------------------
-!subroutine Write_CSV_H(n,m,f,file_name,ndim)
+!subroutine Write_CSV_H(n,m,f,file_name,nndim)
 ! Purpose: Write values of a matrrix (f) to a csv file in exponential format.
 ! Inputs:
 !  n (integer) number of rows in f 
@@ -366,11 +416,11 @@ endsubroutine Write_CSV
 !--------------------------------------------------------------------------------------------------
 ! Keston Smith (IBSS corp) June-July 2021
 !--------------------------------------------------------------------------------------------------
-subroutine Write_CSV_H(n,m,f,file_name,ndim,header)
+subroutine Write_CSV_H(n,m,f,file_name,nndim,header)
     use globals
     implicit none
-    integer, intent(in):: n,m,ndim
-    real(dp), intent(in):: f(ndim,*)
+    integer, intent(in):: n,m,nndim
+    real(dp), intent(in):: f(nndim,*)
     character(*), intent(in)::file_name,header
     integer  k
     character(fname_len) buf,fmtstr
@@ -415,7 +465,7 @@ subroutine Read_CSV(num_rows, num_cols, file_name, M, nndim)
     real(dp) tmp(num_cols)
     character (*), intent(in):: file_name
     integer n,io
-
+    
     open(read_dev, file=file_name, status='old')
     n=0
     do
@@ -435,9 +485,6 @@ subroutine Read_CSV(num_rows, num_cols, file_name, M, nndim)
     end do
     close(read_dev)
     num_rows = n
-    ! if (num_rows <= nndim) then
-    !     PRINT '(A,A,I7,A,A,A)', term_blu,' Read ', num_rows, ' rows from file: ', term_blk, file_name
-    ! endif
     return
 endsubroutine Read_CSV
 !-----------------------------------------------------------------------

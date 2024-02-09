@@ -775,9 +775,10 @@ function Time_To_Grow(ts, growth, mortality, recruit, state, fishing_effort, yea
     Rec(1:num_size_classes) = 0.D0
     ! TODO can recruitment take on negative values????
     !!!!Rec(1:recruit%max_rec_ind) = recruit%recruitment(Rindx)/float(recruit%max_rec_ind)
-    Rec(1:recruit%max_rec_ind) = abs(recruit%recruitment(Rindx)/float(recruit%max_rec_ind))
+    !!!!Rec(1:recruit%max_rec_ind) = abs(recruit%recruitment(Rindx)/float(recruit%max_rec_ind))
+    Rec(1:recruit%max_rec_ind) = recruit%recruitment(Rindx)
 
-    t = dfloat(ts) * delta_time
+    t = dfloat(mod(ts,time_steps_year)) * delta_time
 
     ! Compute natural mortality based on current state
     mortality%natural_mortality(1:num_size_classes) = Compute_Natural_Mortality(recruit%max_rec_ind, mortality, state)
@@ -786,8 +787,10 @@ function Time_To_Grow(ts, growth, mortality, recruit, state, fishing_effort, yea
     state(1:num_size_classes) = matmul(growth%G(1:num_size_classes, 1:num_size_classes), state(1:num_size_classes))
 
     ! Compute increase due to recruitment
-    if ( ( t .gt. recruit%rec_start ) .and. ( t.le.recruit%rec_stop) ) state(1:num_size_classes) = &
-    &       state(1:num_size_classes) + delta_time * Rec(1:num_size_classes) / (recruit%rec_stop-recruit%rec_start)
+    if ( ( t .gt. recruit%rec_start ) .and. ( t.le.recruit%rec_stop) ) then
+        state(1:num_size_classes) = &
+        &         state(1:num_size_classes) + delta_time * Rec(1:num_size_classes) / (recruit%rec_stop-recruit%rec_start)
+    endif
 
     ! Compute overall mortality
     M(1:num_size_classes) = mortality%natural_mortality(1:num_size_classes) &

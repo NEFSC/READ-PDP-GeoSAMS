@@ -301,6 +301,13 @@ call Set_Mortality(mortality, grid, shell_length_mm, domain_name, domain_area, n
 !  - III. MAIN LOOP
 ! Start simulation
 !==================================================================================================================
+
+! write latitude and longitude out for later use by Matlab Geographic Scatter Plot ------------------------------
+call Write_Column_CSV(num_grids, grid(:)%lat, output_dir//'X_Y_EBMS_'//domain_name//'.csv',.false.)
+call Write_Column_CSV(num_grids, grid(:)%lon, output_dir//'X_Y_EBMS_'//domain_name//'.csv',.true.)
+call Write_Column_CSV(num_grids, grid(:)%lat, output_dir//'X_Y_Feffort_'//domain_name//'.csv',.false.)
+call Write_Column_CSV(num_grids, grid(:)%lon, output_dir//'X_Y_Feffort_'//domain_name//'.csv',.true.)
+!----------------------------------------------------------------------------------------------------------------
 year = start_year
 do ts = 1, num_time_steps
     !- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - 

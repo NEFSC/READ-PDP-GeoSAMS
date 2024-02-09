@@ -1069,9 +1069,16 @@ subroutine Mortality_Write_At_Timestep(year, ts, state, weight_grams, mortality,
     call Write_CSV(1, num_grids, landings_by_num,     output_dir//'NumLandings'//domain_name//'.csv',1, (ts .ne. 0))
     call Write_CSV(1, num_grids, expl_biomass_gpsqm(1:num_grids)*grid_area_sqm/grams_per_metric_ton,&
     &                                                  output_dir//'ExplBMS_mt_'//domain_name//'.csv',    1, (ts .ne. 0))
+
+    call Write_Column_CSV(num_grids, expl_biomass_gpsqm(1:num_grids)*grid_area_sqm/grams_per_metric_ton, &
+    & output_dir//'X_Y_EBMS_'//domain_name//'.csv',.true.)
+
     call Write_CSV(1, num_grids, expl_biomass_gpsqm(1:num_grids)/grams_per_metric_ton,&
     &                                                 output_dir//'ExplBMS_mtpsqm_'//domain_name//'.csv',    1, (ts .ne. 0))
     call Write_CSV(1, num_grids, set_fishing_by_loc,  output_dir//'FishingEffort'//domain_name//'.csv',       1, (ts .ne. 0))
+
+    call Write_Column_CSV(num_grids, set_fishing_by_loc(1:num_grids)*10000, output_dir//'X_Y_Feffort_'//domain_name//'.csv',.true.)
+
     call Write_CSV(1, num_grids, F_mort,       output_dir//'FishingMort'//domain_name//'.csv',         1, (ts .ne. 0))
     call Write_CSV(1, num_grids, F_mort_raw,   output_dir//'FishingMortRaw'//domain_name//'.csv',         1, (ts .ne. 0))
     call Write_CSV(1, num_grids, USD_per_sqm*grid_area_sqm,  output_dir//'USD_psqm_'//domain_name//'.csv',1, (ts .ne. 0))

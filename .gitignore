@@ -3,6 +3,8 @@ InputDataError.txt
 *.txt
 *.csv
 *.exe
+*.xlsx
+*.xlsm
 fort.8
 mod/
 obj/

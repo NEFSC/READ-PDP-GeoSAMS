@@ -1,3 +1,7 @@
+% for each location it sums together the scallop density from shell length 3cm to 6 cm, 
+% inclusive. It then adds this value as a new column along with the current data for size 
+% grp 4 as a single row for the location and writes this out to "OriginalData/NewRecruits.csv".
+% TODO make compatible with Octave
 flnm = 'OriginalData/dredgetowbysize7917.csv';
 fprintf('Reading from %s\n', flnm)
 

@@ -3,12 +3,21 @@
 import subprocess
 import socket
 import os
+import sys
 
-years = range(1979, 2020)
+if (len(sys.argv) < 3):
+    print ("  Missing command line arguments. Expecting: ")
+    print ("  $ EstimateRecruitFields.py StartYear EndYear")
+    print()
+    quit()
+    
+year_start = int(sys.argv[1])
+year_end = int(sys.argv[2])
+print(year_start, year_end)
+years = range(year_start, year_end)
 MC = range(1, 101)
 
-
-# set configuration file for UK.exe
+# set configuration file name for UK.exe
 cfgFile = 'UK.cfg'
 ex = os.path.join('UKsrc', 'UK')
 DomainName = "MA"
