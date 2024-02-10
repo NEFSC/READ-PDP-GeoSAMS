@@ -22,7 +22,11 @@ end
 end
 
 figure('Name',fname)
-for k=1:c
-geoscatter(lat, lon, param(:,k) , '.');
-end
+s=geoscatter(lat, lon, param(:,1), 'o', 'r');
+hold on
+s=geoscatter(lat, lon, param(:,14), 'o', 'black');
+s=geoscatter(lat, lon, param(:,27), 'o', 'm');
+s=geoscatter(lat, lon, param(:,40), 'o', 'g');
+s=geoscatter(lat, lon, param(:,53), 'o', 'b');
+legend('2005 start','2005', '2006','2007', '2008')
 geobasemap streets
