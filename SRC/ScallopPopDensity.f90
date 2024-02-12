@@ -218,6 +218,7 @@ integer ts_per_year
 real(dp) delta_time
 integer num_years
 integer year
+character(4) buf
 character(fname_len) file_name
 
 real(dp) domain_area
@@ -262,10 +263,6 @@ num_years = stop_year - start_year + 1
 num_time_steps = num_years * ts_per_year + 1 ! +1 to capture last data from last step
 delta_time = 1._dp / dfloat(ts_per_year)
 
-! Force correct region
-! Data/bin5mm2005MA.csv
-file_name(16:17) = domain_name
-
 write(*,*) '========================================================'
 write(*,'(A,I6)') ' Max Expected #grids ', max_num_grids
 write(*,'(A,A6)') ' Domain:             ', domain_name
@@ -283,7 +280,15 @@ allocate(state(1:max_num_grids,1:num_size_classes))
 !==================================================================================================================
 !  - II. Instantiate mods, that is objects
 !==================================================================================================================
+! Setting initial conditions file name
+! Force year and domain name given values in scallop configuration file
+! Data/bin5mmYYYYDN.csv
+write(buf,'(I4)') start_year
+file_name = 'Data/bin5mm'//buf//domain_name//'.csv'
+call Set_Init_Cond_File_Name(file_name)
+
 call Set_Grid_Manager(max_num_grids, state, grid, num_grids)
+
 
 ! number of grids known, allocated remaining data
 allocate(growth(1:num_grids), mortality(1:num_grids), recruit(1:num_grids) )

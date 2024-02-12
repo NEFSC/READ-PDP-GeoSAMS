@@ -4,10 +4,8 @@
 %"surv_n","partrecn","fullrecn","surv_b","partrecb","fullrecb","postow","datasource","lwarea","SETLW",
 %"SVSPP","PropChains","AREAKIND","STRATMAP","SQNM","ysta","gperiod","recruit","linf","K",
 %"date","days_from_apr1","sh_apr1","upper","rec""
+function ProcessRecruitData(yrStart, yrEnd)
 
-% addpath (genpath('.'))
-
-clear
 isOctave = (exist('OCTAVE_VERSION', 'builtin') ~= 0);
 
 towArea_sqm = 4516;
@@ -91,17 +89,7 @@ writecsv(M,flnm,['%g, %g, %g, %g, %e'],header);
 %need anything else. Hope this helps.
 %best,
 %han
-clear
-isOctave = (exist('OCTAVE_VERSION', 'builtin') ~= 0);
-towArea_sqm = 4516;
-T2M2=1./towArea_sqm;
  
-Detect=.4;
-DetectRS=.27;
-DetectHD=.13;
-DetectHDThreshold=2;%scallops/m^2
-
-
 RS= [46,47,49,50,51,52,71,72,74,651,661,652,662];
 RSI=[36,37,14,13,11,9 ,5 ,10,17, 4 , 2 , 3 , 1 ];
 MinLon=[-180*ones(1,6),-67.333333*ones(1,5),-180*ones(1,2)];
@@ -169,8 +157,8 @@ end
 print -djpeg RockStrata.jpg
 %XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX
 
-clear
-isOctave = (exist('OCTAVE_VERSION', 'builtin') ~= 0);
+%clear
+%isOctave = (exist('OCTAVE_VERSION', 'builtin') ~= 0);
 flnm='Data/RecruitsRockStrataAdjustment.csv';
 fprintf('Reading from %s\n', flnm)
 if isOctave
@@ -206,8 +194,6 @@ header='"decmal year", "x utm", "y utm", "bottom depth(m)","recruits per sq m"';
 fprintf('Writing to %s\n\n', flnm)
 writecsv(M,flnm,'%g, %f, %f, %f, %e',header);
 %XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX
-clear
-isOctave = (exist('OCTAVE_VERSION', 'builtin') ~= 0);
 flnm='Data/RecruitsMA.csv';
 fprintf('Reading from %s\n', flnm)
 if isOctave
@@ -220,24 +206,26 @@ else
 end
 yearMin = min(floor(DecYr));
 yearMax = max(floor(DecYr));
-for yr=yearMin:yearMax
-  j=find(floor(DecYr)==yr);
-  if isOctave
-    M=F(j,:);
-  else
-    M=table2array(F(j,:));
-  end
-  G = LumpDataDx (M,1000.);
-  flnm=['Data/Recruits',int2str(yr),'MA.csv'];
-  header='"decmal year", "x utm", "y utm", "bottom depth(m)","recruits per sq m"';
-  writecsv(G,flnm,'%g, %f, %f, %f, %e',header);
-end
-fprintf('Writing to Data/RecruitsYYYYMA.csv  From %i to %i\n\n', yearMin, yearMax)
+if yrStart >= yearMin && yrEnd <= yearMax
 
+    for yr=yrStart:yrEnd
+      j=find(floor(DecYr)==yr);
+      if isOctave
+        M=F(j,:);
+      else
+        M=table2array(F(j,:));
+      end
+      G = LumpDataDx (M,1000.);
+      flnm=['Data/Recruits',int2str(yr),'MA.csv'];
+      header='"decmal year", "x utm", "y utm", "bottom depth(m)","recruits per sq m"';
+      writecsv(G,flnm,'%g, %f, %f, %f, %e',header);
+    end
+    fprintf('Writing to Data/RecruitsYYYYMA.csv  From %i to %i\n\n', yrStart, yrEnd)
+else
+    fprintf('INPUT YEARS OUT OF RANGE: %i to %i', yearMin, yearMax)
+end
 
 %XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX
-clear
-isOctave = (exist('OCTAVE_VERSION', 'builtin') ~= 0);
 flnm='Data/RecruitsGB.csv';
 fprintf('Reading from %s\n', flnm)
 if isOctave
@@ -250,26 +238,29 @@ else
 end
 yearMin = min(floor(DecYr));
 yearMax = max(floor(DecYr));
-for yr=yearMin:yearMax
-  j=find(floor(DecYr)==yr);
-  if isOctave
-    M=F(j,:);
-  else
-    M=table2array(F(j,:));
-  end
-  G = LumpDataDx (M,1000.);
-  flnm=['Data/Recruits',int2str(yr),'GB.csv'];
-  header='"decmal year", "x utm", "y utm", "bottom depth(m)","recruits per sq m"';
-  writecsv(G,flnm,'%g, %f, %f, %f, %e',header);
-end
-fprintf('Writing to Data/RecruitsYYYYGB.csv  From %i to %i\n\n', yearMin, yearMax)
 
+if yrStart >= yearMin && yrEnd <= yearMax
+
+    for yr=yrStart:yrEnd
+      j=find(floor(DecYr)==yr);
+      if isOctave
+        M=F(j,:);
+      else
+        M=table2array(F(j,:));
+      end
+      G = LumpDataDx (M,1000.);
+      flnm=['Data/Recruits',int2str(yr),'GB.csv'];
+      header='"decmal year", "x utm", "y utm", "bottom depth(m)","recruits per sq m"';
+      writecsv(G,flnm,'%g, %f, %f, %f, %e',header);
+    end
+    fprintf('Writing to Data/RecruitsYYYYGB.csv  From %i to %i\n\n', yrStart, yrEnd)
+else
+    fprintf('INPUT YEARS OUT OF RANGE: %i to %i', yearMin, yearMax)
+end    
 %----------------------------------------------------------------------------
 % DEPRECATE
 %----------------------------------------------------------------------------
 % %XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX
-% clear
-% isOctave = (exist('OCTAVE_VERSION', 'builtin') ~= 0);
 % flnm='Data/RecruitsMA.csv';
 % fprintf('Reading from %s\n', flnm)
 % if isOctave
@@ -284,8 +275,6 @@ fprintf('Writing to Data/RecruitsYYYYGB.csv  From %i to %i\n\n', yearMin, yearMa
 % fprintf('Writing to %s\n\n', flnm)
 % writecsv(Fout,flnm,['%g, %f, %f, %f, %e'],header);
 % %XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX
-% clear
-% isOctave = (exist('OCTAVE_VERSION', 'builtin') ~= 0);
 % flnm='Data/RecruitsGB.csv';
 % fprintf('Reading from %s\n', flnm)
 % if isOctave

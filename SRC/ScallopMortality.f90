@@ -519,7 +519,7 @@ function Set_Fishing(fishing_type, year, ts, state, weight_grams, mortality, gri
     end select
 
     ! Report current timestep results
-    call Mortality_Write_At_Timestep(year, ts, state, weight_grams, mortality, Set_Fishing(:))
+    call Mortality_Write_At_Timestep(ts, state, weight_grams, mortality, Set_Fishing(:))
 
     return
 endfunction Set_Fishing
@@ -1012,8 +1012,7 @@ end subroutine Read_Configuration
 !> Initializes growth for startup
 !>
 !==================================================================================================================
-subroutine Mortality_Write_At_Timestep(year, ts, state, weight_grams, mortality, set_fishing_by_loc)
-    integer, intent(in) :: year
+subroutine Mortality_Write_At_Timestep(ts, state, weight_grams, mortality, set_fishing_by_loc)
     integer, intent(in) :: ts
     ! state is allocated before the number of grids is known
     real(dp), intent(in) :: state(max_num_grids, num_size_classes)
@@ -1023,7 +1022,7 @@ subroutine Mortality_Write_At_Timestep(year, ts, state, weight_grams, mortality,
     real(dp), intent(in) :: set_fishing_by_loc(*)
 
     integer loc
-    character(20) buf
+    ! character(20) buf
     character(5) gbuf
     real(dp) :: M(num_size_classes)
     real(dp), allocatable :: abundance(:)
@@ -1031,11 +1030,6 @@ subroutine Mortality_Write_At_Timestep(year, ts, state, weight_grams, mortality,
 
     allocate(abundance(num_grids))
     allocate(bms(num_grids))
-
-    ! write entire state for all grids in separate time stamp files
-    write(buf,'(A8,I4,A1,I0.3)') '_AtTime_',year, '_', ts
-    call Write_CSV(num_grids, num_size_classes, state, &
-    &            output_dir//'State'//domain_name//trim(buf)//'.csv',size(state,1), .FALSE.)
 
     do loc = 1, num_grids
         !=======================================================================================
@@ -1050,8 +1044,8 @@ subroutine Mortality_Write_At_Timestep(year, ts, state, weight_grams, mortality,
         M(1:num_size_classes) = mortality(loc)%natural_mortality(1:num_size_classes) &
         & + set_fishing_by_loc(loc) * ( mortality(loc)%selectivity(1:num_size_classes) &
         & + mortality(loc)%incidental + mortality(loc)%discard(1:num_size_classes) )
-        call Write_CSV(1, num_size_classes, M(1:num_size_classes), &
-        &    output_dir//'TotalMort'//domain_name//'_AtGrid-'//gbuf//'_BySizeOverTime.csv', 1, (ts .ne. 0))
+        ! call Write_CSV(1, num_size_classes, M(1:num_size_classes), &
+        ! &    output_dir//'TotalMort'//domain_name//'_AtGrid-'//gbuf//'_BySizeOverTime.csv', 1, (ts .ne. 0))
 
         !=======================================================================================
 

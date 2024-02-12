@@ -1,6 +1,6 @@
-clear
+function TrawlData5mmbin(yrStart, yrEnd)
 
-domain = ["GB", "MA"];
+domain = ['GB', 'MA'];
 isOctave = (exist('OCTAVE_VERSION', 'builtin') ~= 0);
 % UTM Zone. Zone 18 if lon <= -72.0
 %           Zone 19 if lon >  -72.0
@@ -65,8 +65,9 @@ for d = 1:numel(size(domain))
   towArea_sqm = 4516.; % nautMile_m * 2.438;
   countPerSqm = 1. / (towArea_sqm * Detect);
 
-  for yr=1979:2017
-    fprintf( 'Working on %s Year %d\n',  domain(d), yr);
+  %for yr=1979:2017
+  for yr=yrStart:yrEnd
+    fprintf( 'Working on %s Year %d\n',  domain(d*2-1:d*2), yr);
     X=[];
     j=and(year==yr,sc==3.);
     if isOctave
@@ -126,12 +127,10 @@ for d = 1:numel(size(domain))
         X=[X;DecYr_t(k,:), x_t(k,:), y_t(k,:), lat_t(k,:), lon_t(k,:), z_t(k,:), is_closed_t(k,:), station_t(k,:), density(1,2:end)];
       end  
     end
+    flnm=strcat('Data/bin5mm',int2str(yr),domain(d*2-1:d*2),'.csv');
     if isOctave
-      flnm=strcat('Data/bin5mm',int2str(yr),domain(d*2-1:d*2),'.csv');
       csvwrite(flnm,X);
-
     else
-      flnm=strcat('Data/bin5mm',int2str(yr),domain(d),'.csv');
       writetable(X,flnm,'WriteVariableNames',0);
     end
   end

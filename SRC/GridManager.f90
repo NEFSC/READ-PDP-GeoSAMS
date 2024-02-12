@@ -131,7 +131,7 @@ max_num_grids = max_ngrids
 fname = 'Results\SurveyLoc.txt'
 open(70, file=trim(fname))
 
-init_cond_fname = ""
+!!init_cond_fname = "" ! DEPRECATED
 ! default value if 'Special Access Config File' is not specified
 use_spec_access_data = .false.
 
@@ -280,8 +280,9 @@ subroutine Read_Configuration()
             value =  trim(adjustl(input_string(j+1:k-1)))
 
             select case(tag)
-            case('Initial Conditions')
-                call Set_Init_Cond_File_Name(trim(adjustl(value)))
+            ! DEPRECATED
+            ! case('Initial Conditions')
+            !     call Set_Init_Cond_File_Name(trim(adjustl(value)))
 
             case('Special Access Config File')
                 call Set_Special_Access_File_Name(trim(adjustl(value)))
@@ -289,6 +290,7 @@ subroutine Read_Configuration()
             case default
                 write(*,*) term_red, 'Unrecognized line in ',config_file_name
                 write(*,*) 'Unknown Line-> ',input_string, term_blk
+                stop
             end select
         endif
     end do

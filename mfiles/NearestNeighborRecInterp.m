@@ -1,5 +1,9 @@
-function NearestNeighborRecInterp(yrStart, yrEnd, dom)
-    isOctave = (exist('OCTAVE_VERSION', 'builtin') ~= 0);
+function NearestNeighborRecInterp(yrStart, yrEnd)
+isOctave = (exist('OCTAVE_VERSION', 'builtin') ~= 0);
+
+domain = ['GB', 'MA'];
+for dd = 1:2
+    dom=domain(dd*2-1:dd*2);
     fl0=strcat('Data/Recruits',int2str(yrStart),dom,'.csv');
     if isOctave
         D=csvreadK(fl0);
@@ -18,11 +22,12 @@ function NearestNeighborRecInterp(yrStart, yrEnd, dom)
         recs0=table2array(D(:,5));
     end
     fl2=strcat('KrigingEstimates/Sim',dom,int2str(yrStart),'/KrigingEstimate.txt');
+    fprintf('Writing to %s\n', fl2)
     writematrix(recs0,fl2)
     
     ngp=length(x0);
     for yr=yrStart+1:yrEnd
-        fl=['Data/Recruits',int2str(yr),dom,'.csv'];
+        fl=strcat('Data/Recruits',int2str(yr),dom,'.csv');
         if isOctave
             D=csvreadK(fl);
             x=D(:,2);
@@ -47,7 +52,8 @@ function NearestNeighborRecInterp(yrStart, yrEnd, dom)
         %header=['nearest neighbor interpolation of recruits to 2005 survey points for year ',int2str(yr)]
     %    header='"decmal year", "x utm", "y utm", "bottom depth(m)","recruits per m^2"';
     %    writecsv (DNN,fl,"%f, %f, %f, %f, %f",header)
-        fl2=['KrigingEstimates/Sim',dom,int2str(yr),'/KrigingEstimate.txt'];
+        fl2=strcat('KrigingEstimates/Sim',dom,int2str(yr),'/KrigingEstimate.txt');
+        fprintf('Writing to %s\n', fl2)
         writematrix(recs05,fl2)
     end
-    
+end    
