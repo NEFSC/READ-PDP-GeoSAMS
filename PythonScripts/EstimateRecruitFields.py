@@ -14,7 +14,7 @@ if (len(sys.argv) < 3):
 year_start = int(sys.argv[1])
 year_end = int(sys.argv[2])
 print(year_start, year_end)
-years = range(year_start, year_end)
+years = range(year_start, year_end+1)
 MC = range(1, 101)
 
 # set configuration file name for UK.exe
