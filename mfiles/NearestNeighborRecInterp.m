@@ -1,10 +1,20 @@
 function NearestNeighborRecInterp(yrStart, yrEnd)
 isOctave = (exist('OCTAVE_VERSION', 'builtin') ~= 0);
 
+if isOctave
+  % used if called by command line
+  if (exist("yrStart", "var") == 0)
+     arg_list = argv();
+     yrStart=str2num(arg_list{1});
+     yrEnd=str2num(arg_list{2});
+  end
+end
+
 domain = ['GB', 'MA'];
 for dd = 1:2
     dom=domain(dd*2-1:dd*2);
     fl0=strcat('Data/Recruits',int2str(yrStart),dom,'.csv');
+    fl2=strcat('KrigingEstimates/Sim',dom,int2str(yrStart),'/KrigingEstimate.txt');
     if isOctave
         D=csvreadK(fl0);
         dyr0=D(:,1);
@@ -12,6 +22,10 @@ for dd = 1:2
         y0=D(:,3);
         z0=D(:,4);
         recs0=D(:,5);
+        fprintf('Writing to %s\n', fl2)
+        fid=fopen(fl2,'w');
+        dlmwrite(fid, recs0);
+        fclose(fid);
     else
         warning('OFF', 'MATLAB:table:ModifiedAndSavedVarnames')
         D=readtable(fl0,"FileType","spreadsheet");
@@ -20,11 +34,10 @@ for dd = 1:2
         y0=table2array(D(:,3));
         z0=table2array(D(:,4));
         recs0=table2array(D(:,5));
+        fprintf('Writing to %s\n', fl2)
+        writematrix(recs0,fl2)
     end
-    fl2=strcat('KrigingEstimates/Sim',dom,int2str(yrStart),'/KrigingEstimate.txt');
-    fprintf('Writing to %s\n', fl2)
-    writematrix(recs0,fl2)
-    
+
     ngp=length(x0);
     for yr=yrStart+1:yrEnd
         fl=strcat('Data/Recruits',int2str(yr),dom,'.csv');
@@ -47,13 +60,14 @@ for dd = 1:2
             [m,j]=min(dist);
             recs05(k)=recs(j);
         end
-    %    fl=['Data/NNRecs',int2str(yr),'For05Survey.csv'];
-    %    DNN=[dyr0,x0,y0,z0,recs05];
-        %header=['nearest neighbor interpolation of recruits to 2005 survey points for year ',int2str(yr)]
-    %    header='"decmal year", "x utm", "y utm", "bottom depth(m)","recruits per m^2"';
-    %    writecsv (DNN,fl,"%f, %f, %f, %f, %f",header)
         fl2=strcat('KrigingEstimates/Sim',dom,int2str(yr),'/KrigingEstimate.txt');
         fprintf('Writing to %s\n', fl2)
-        writematrix(recs05,fl2)
+        if isOctave
+            fid=fopen(fl2,'w');
+            dlmwrite(fid, recs0);
+            fclose(fid);
+        else
+            writematrix(recs05,fl2)
+        end
     end
-end    
+end

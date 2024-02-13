@@ -58,12 +58,8 @@ ifeq ($(OS), Windows_NT)
 	del .\mod\*.mod
 else
 	rm -fr  $(EXEC)
-	ifneq "$(OBJ_DIR)" ""
-		rm -fr $(OBJ_DIR)/*.o
-		rm -fr $(MOD_DIR)/*.mod
-	else 
-		@echo "OBJ_DIR is not defined" 
-	endif
+	rm -fr $(OBJ_DIR)/*.o
+	rm -fr $(MOD_DIR)/*.mod
 endif
 
 setup:

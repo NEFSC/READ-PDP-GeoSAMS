@@ -10,6 +10,14 @@ utmZone = [19,18];
 for d = 1:numel(size(domain))
 
   if isOctave
+
+    % used if called by command line
+    if (exist("yrStart", "var") == 0)
+       arg_list = argv();
+       yrStart=str2num(arg_list{1});
+       yrEnd=str2num(arg_list{2});
+    end
+    
     M=csvreadK('OriginalData/dredgetowbysize7917.csv');
 
     mon=M(:,5);
@@ -40,7 +48,7 @@ for d = 1:numel(size(domain))
     j=mon>0;
     M=M(j,:);
     %------- new M table ----------------------
- 
+
     lon = -table2array(M(:,19));
     if d == 1
       j = lon>-70.5;%GB
@@ -125,7 +133,7 @@ for d = 1:numel(size(domain))
         density = [table2array(M(n(k):n(k)+23,30));k25];
         density= rows2vars(array2table( density * countPerSqm));
         X=[X;DecYr_t(k,:), x_t(k,:), y_t(k,:), lat_t(k,:), lon_t(k,:), z_t(k,:), is_closed_t(k,:), station_t(k,:), density(1,2:end)];
-      end  
+      end
     end
     flnm=strcat('Data/bin5mm',int2str(yr),domain(d*2-1:d*2),'.csv');
     if isOctave

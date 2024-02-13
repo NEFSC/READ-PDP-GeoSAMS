@@ -28,6 +28,13 @@ depth_col=yr_col+17;
 fprintf('Reading from %s\n', flnm)
 
 if isOctave
+  % used if called by command line
+  if (exist("yrStart", "var") == 0)
+     arg_list = argv();
+     yrStart=str2num(arg_list{1});
+     yrEnd=str2num(arg_list{2});
+  end
+
   F=csvreadK(flnm);
   year=F(:,yr_col);mon=F(:,mon_col);day=F(:,day_col);
 else

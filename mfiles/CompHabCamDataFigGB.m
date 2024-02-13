@@ -1,6 +1,6 @@
 function CompHabCamDataFigGB(direct)
 
-F=csvreadK('OrigonalData/HabcamDataAggregated_All_2011-2021.csv');
+F=csvreadK('OriginalData/HabcamDataAggregated_All_2011-2021.csv');
 lon=F(:,5);
 j=find(lon>-70.5);F=F(j,:);
 year=F(:,1);SFov=F(:,3);lon=F(:,5);lat=F(:,6);z=F(:,7);x=F(:,10);y=F(:,11);f=F(:,8);
@@ -24,7 +24,7 @@ xt=min(xg)+.125*xs;
 close all;
 A=1/(1862*.3034)
 for yr=2012:2021,
-  F=csvreadK('OrigonalData/HabcamDataAggregated_All_2011-2021.csv');
+  F=csvreadK('OriginalData/HabcamDataAggregated_All_2011-2021.csv');
   lon=F(:,5);
   j=find(lon>-70.5);F=F(j,:);
   year=F(:,1);SFov=F(:,3);lon=F(:,5);lat=F(:,6);z=F(:,7);x=F(:,10);y=F(:,11);f=F(:,8);

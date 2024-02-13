@@ -3,7 +3,7 @@
 %NESPP4: 8002=U10, 8003 = 10-20, 8004 = 20-30, 8005 = 30-40, 8006=40-50, 8007=50-60,8008=60+, 8009 = unclassified
 
 
-M=csvreadK('OrigonalData/landsum9821.csv');
+M=csvreadK('OriginalData/landsum9821.csv');
 yrs=M(:,2);
 cl=M(:,3);
 ucl=unique(cl)
@@ -17,7 +17,7 @@ value=[];
 price=[];
 
 
-M=csvreadK('OrigonalData/landsum9821.csv');
+M=csvreadK('OriginalData/landsum9821.csv');
 
 m=0;
 for yr=1998:2021
