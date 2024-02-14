@@ -25,7 +25,7 @@
 !> Selectivity = \frac{1}{ 1 + e^{ a - b * length_{shell}}}
 !> @f]
 !>
-!> @subsection p3p1p5 Set_Fishing
+!> @subsection p3p1p5 Set_Fishing_Effort
 !> @subsection p3p1p6 Dollars_Per_SqM
 !> @subsection p3p1p7 Scallops_To_Counts
 !> @subsection p3p1p8 Set_Fishing_Effort_Weight_USD
@@ -82,6 +82,7 @@ endtype FishingMortality
 character(fname_len), PRIVATE :: config_file_name
 character(fname_len), PRIVATE :: fishing_mort_fname
 type(FishingMortality), PRIVATE :: fmort_list(max_num_years)
+character(3), PRIVATE ::  fishing_type      !> Fishing can be USD,  BMS,  or,  CAS
 
 ! if a fmort_list file exists then use data, otherwise use_spec_access_data is false
 logical, PRIVATE :: use_spec_access_data
@@ -404,26 +405,20 @@ endfunction Ring_Size_Selectivity
 !>
 !> Determines a real value of mortality due to fishing given a fishing type
 !>
-!> @param[in] fishing_type 3 character string 'USD', 'BMS', 'CAS'
-!>  - USD: fishing proportional to value of stock
-!>  - BMS: fishing proportional to biomass
-!>  - CAS: fishing spatially constant with region, CASA
-!>
 !> @param[in] year
 !> @param[in] state matrix|num_grids by num_size classes| current state in scallops per square meter
 !> @param[in] weight_grams matrix|num_grids by num_size classes|
 !> @param[in] mortality vector(num_grids)
 !> @results fishing mortality
 !==================================================================================================================
-function Set_Fishing(fishing_type, year, ts, state, weight_grams, mortality, grid)
+function Set_Fishing_Effort(year, ts, state, weight_grams, mortality, grid)
     implicit none
-    character(*), intent(in):: fishing_type !> < string inputs
     integer, intent(in):: year, ts
     ! need max_num_grids as that is how variable was allocated to get column memory access correct
     real(dp), intent(in):: state(max_num_grids, num_size_classes), weight_grams(num_grids, num_size_classes )
     type(Mortality_Class), intent(in):: mortality(*)
     type(Grid_Data_Class), intent(in) :: grid(*)
-    real(dp) :: Set_Fishing(num_grids)
+    real(dp) :: Set_Fishing_Effort(num_grids)
     integer Mindx, loc
     real(dp) catch_open, catch_closed, total_catch
     real(dp) c_mort !constant for fishing mortality
@@ -503,26 +498,26 @@ function Set_Fishing(fishing_type, year, ts, state, weight_grams, mortality, gri
 
     select case (fishing_type(1:3))
         case('USD')
-            Set_Fishing (1:num_grids) = Set_Fishing_Effort_Weight_USD(grid(1:num_grids)%is_closed, &
+            Set_Fishing_Effort (1:num_grids) = Set_Fishing_Effort_Weight_USD(grid(1:num_grids)%is_closed, &
             &                           total_catch, catch_open, catch_closed)
         case('BMS')
-            Set_Fishing(1:num_grids) = Set_Fishing_Effort_Weight_BMS(grid(1:num_grids)%is_closed, &
+            Set_Fishing_Effort(1:num_grids) = Set_Fishing_Effort_Weight_BMS(grid(1:num_grids)%is_closed, &
             &                           total_catch, catch_open, catch_closed)
         case('CAS')
             Mindx = minloc( abs(mortality(1)%year(1:mortality(1)%num_years) - year ), 1)
-            Set_Fishing(1:num_grids) = mortality(1:num_grids)%fishing_effort(Mindx)!CASA Fishing
+            Set_Fishing_Effort(1:num_grids) = mortality(1:num_grids)%fishing_effort(Mindx)!CASA Fishing
         case default
             Mindx = minloc( abs(mortality(1)%year(1:mortality(1)%num_years) - year ), 1)
-            Set_Fishing(1:num_grids) = mortality(1:num_grids)%fishing_effort(Mindx)!CASA Fishing
+            Set_Fishing_Effort(1:num_grids) = mortality(1:num_grids)%fishing_effort(Mindx)!CASA Fishing
             write(*,*)'Unkown fishing fishing_type:', fishing_type, &
             &    '.  Using spatially constant fishing_effort from CASA model'
     end select
 
     ! Report current timestep results
-    call Mortality_Write_At_Timestep(ts, state, weight_grams, mortality, Set_Fishing(:))
+    call Mortality_Write_At_Timestep(ts, state, weight_grams, mortality, Set_Fishing_Effort(:))
 
     return
-endfunction Set_Fishing
+endfunction Set_Fishing_Effort
 
 !==================================================================================================================
 !! @public @memberof Mortality_Class
@@ -921,6 +916,13 @@ subroutine Read_Configuration()
             case ('Fishing Mortality')
                 read(value, *) fishing_mort
 
+            case('Fishing')
+                fishing_type = trim(adjustl(value))
+                if (.not. ( any ((/ fishing_type.eq.'USD', fishing_type.eq.'BMS', fishing_type.eq.'CAS'/)) )) then
+                    write(*,*) term_red, ' **** INVALID FISHING TYPE: ', fishing_type, term_blk
+                    stop
+                endif
+
             case ('Alpha Mortality')
                 read(value, *) alpha_mort
 
@@ -1049,7 +1051,6 @@ subroutine Mortality_Write_At_Timestep(ts, state, weight_grams, mortality, set_f
 
         !=======================================================================================
 
-
         abundance(loc) = sum(state(loc,1:num_size_classes))                                  ! scallops per sq meter
         bms(loc) = dot_product(state(loc,1:num_size_classes), &                              ! metric tons per sq meter
         &                      weight_grams(loc,1:num_size_classes) / grams_per_metric_ton)
@@ -1148,5 +1149,14 @@ elemental subroutine Calc_LPUE(expl_biomass, expl_scallops, lpue_ppd, dredge_tim
     endif
     dredge_area_sqnm = dredge_time_hrs * towing_speed_knots * dredge_width_m / meters_per_naut_mile  !Bottom area swept in nautical miles
 endsubroutine Calc_LPUE
+
+!==================================================================================================================
+!> @public @memberof Mortality_Class
+!>
+!==================================================================================================================
+function Get_Fishing_Type()
+    character(3) Get_Fishing_Type
+    Get_Fishing_Type = fishing_type
+endfunction Get_Fishing_Type
 
 end module Mortality_Mod

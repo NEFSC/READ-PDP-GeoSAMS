@@ -92,7 +92,7 @@
 !>
 !> @subsubsection Rsubsubsec4 Posterior sampling
 !> With the fitting of the residual we have a covariance for @f$\epsilon@f$ and the estimation problem becomes one of Generalized Least 
-!> Squares (GLS).  Posterior sampling is then conducted  achieved posterior sampling is Treating the 
+!> Squares (GeneralizedLeastSquares).  Posterior sampling is then conducted  achieved posterior sampling is Treating the 
 !>
 !>---------------------------------------------------------------------------------------------------------------------
 module Recruit_Mod
@@ -196,7 +196,7 @@ subroutine Set_Recruitment(recruit, n_grids, dom_name, dom_area, L_inf_mu, K_mu,
             ! TODO replace magic number 100
             tmp = Random_Recruits(year, year, 100, use_random_rec)
         else
-            call Read_Scalar_Field(rec_input_dir//'Sim'//domain_name//trim(adjustl(buf))//'/KrigingEstimate.txt',tmp, num_grids)
+            call Read_Scalar_Field(rec_input_dir//'KrigingEstimate'//domain_name//trim(adjustl(buf))//'.txt', tmp, num_grids)
         endif
         do j = 1,num_grids
             recruit(j)%recruitment(year_index) = tmp(j)

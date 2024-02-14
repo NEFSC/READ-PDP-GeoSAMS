@@ -14,7 +14,7 @@ domain = ['GB', 'MA'];
 for dd = 1:2
     dom=domain(dd*2-1:dd*2);
     fl0=strcat('Data/Recruits',int2str(yrStart),dom,'.csv');
-    fl2=strcat('KrigingEstimates/Sim',dom,int2str(yrStart),'/KrigingEstimate.txt');
+    fl2=strcat('KrigingEstimates/KrigingEstimate',dom,int2str(yrStart),'.txt');
     if isOctave
         D=csvreadK(fl0);
         dyr0=D(:,1);
@@ -60,7 +60,7 @@ for dd = 1:2
             [m,j]=min(dist);
             recs05(k)=recs(j);
         end
-        fl2=strcat('KrigingEstimates/Sim',dom,int2str(yr),'/KrigingEstimate.txt');
+        fl2=strcat('KrigingEstimates/KrigingEstimate',dom,int2str(yr),'.txt');
         fprintf('Writing to %s\n', fl2)
         if isOctave
             fid=fopen(fl2,'w');

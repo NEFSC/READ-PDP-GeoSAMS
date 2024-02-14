@@ -93,7 +93,7 @@
 !>
 !> @subsubsection m1p1p2p1 Posterior sampling
 !> With the fitting of the residual we have a covariance for @f$\epsilon@f$ and the estimation problem becomes one of 
-!> Generalized Least Squares (GLS).  Posterior sampling is then conducted  achieved posterior sampling is Treating the TBD
+!> Generalized Least Squares (GeneralizedLeastSquares).  Posterior sampling is then conducted  achieved posterior sampling is Treating the TBD
 !>
 !> @section m1p2 Non Linear Spatial function fitting for UK
 !> The universal kriging algorithm described above is used to build a distribution based on the historical recruitment data 
@@ -251,7 +251,7 @@ if (SimType.eq.1) then
         Cr(j, j)=1.D0
     enddo
     call Evaluate_Spatial_Function(obs, F, num_spat_fcns, num_obs_points, nlsf)
-    call GLS(obs%f_psqm, F, Cr, num_obs_points, num_spat_fcns, beta, Cbeta, r)
+    call GeneralizedLeastSquares(obs%f_psqm, F, Cr, num_obs_points, num_spat_fcns, beta, Cbeta, r)
     write(*,*)'OLSres:', sqrt(sum(r(1:num_obs_points)**2)/float(num_obs_points))
 
     !-------------------------------------------------------------------------
@@ -271,7 +271,7 @@ if (SimType.eq.1) then
     ! observations x_obs, y_obs, z_obs, field_obs. Also returns the estimate of spatial function
     ! coeficients, beta, and posterior covariance of beta(Cbeta).
     !-------------------------------------------------------------------------
-    call UK_GLS(grid, obs, num_spat_fcns, par, beta, Cbeta, eps, Ceps, nlsf)
+    call UK_GeneralizedLeastSquares(grid, obs, num_spat_fcns, par, beta, Cbeta, eps, Ceps, nlsf)
     call Evaluate_Spatial_Function(obs, F, num_spat_fcns, num_obs_points, nlsf)
     atmp=1.D0
     btmp=0.D0

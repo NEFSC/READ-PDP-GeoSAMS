@@ -28,7 +28,7 @@ CONTAINS
 !>
 !> @author Keston Smith (IBSS corp) June-July 2021
 !--------------------------------------------------------------------------------------------------
-subroutine GLS(y, F, C, n, m, beta, Cbeta, r)
+subroutine GeneralizedLeastSquares(y, F, C, n, m, beta, Cbeta, r)
 use globals
 implicit none
 integer,    intent(in):: n, m
@@ -52,7 +52,7 @@ do j=1, n
     Cinv(j, j)=1.
 enddo
 call dgesv(n, n, C, n, IPIV, Cinv, n, info)
-write(*,*)'GLS', info
+write(*,*)'GeneralizedLeastSquares', info
 !
 ! cov(beta)) =  inv (F' Cinv F )
 !
@@ -64,7 +64,7 @@ do j=1, m
     CBeta(j, j)=1.
 enddo
 call dgesv(m, m, CBetaInv, m, IPIV, CBeta, m, info)
-write(*,*)'GLS  dgesv info=', info
+write(*,*)'GeneralizedLeastSquares  dgesv info=', info
 call write_csv(m, m, CbetaInv, 'CBeta0.csv', m)
 call write_csv(n, m, F, 'Fglsa0.csv', n)
 !

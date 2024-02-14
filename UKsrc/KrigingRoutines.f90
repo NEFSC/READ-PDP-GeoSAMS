@@ -307,7 +307,7 @@ end subroutine
 !>
 !> @author Keston Smith (IBSS corp) June-July 2021
 !--------------------------------------------------------------------------------------------------
-subroutine UK_GLS(grid, obs, num_spat_fcns, par, beta, Cbeta, eps, CepsG, nlsf)
+subroutine UK_GeneralizedLeastSquares(grid, obs, num_spat_fcns, par, beta, Cbeta, eps, CepsG, nlsf)
 type(Grid_Data_Class):: grid
 type(Grid_Data_Class):: obs
 type(KrigPar):: par
@@ -377,7 +377,7 @@ V(1:num_obs_points, 1:num_points)=gamma0(1:num_obs_points, 1:num_points)
 V(num_obs_points+1:num_obs_points+num_spat_fcns, 1:num_points)=Fs0T(1:num_spat_fcns, 1:num_points)
 
 call dgesv(nopnf, num_points, R, nopnf, IPIV, V, nopnf, info)
-write(*,*)'UK_GLS (a) dgesv info=', info
+write(*,*)'UK_GeneralizedLeastSquares (a) dgesv info=', info
 !
 ! compute best linear estimate of the field on the grid points x, y
 ! f = W f_obs
@@ -419,7 +419,7 @@ do j=1, num_spat_fcns
     CBeta(j, j)=1.
 enddo
 call dgesv(num_spat_fcns, num_spat_fcns, CBetaInv, num_spat_fcns, IPIV, CBeta, num_spat_fcns, info)
-write(*,*)'UK_GLS (b) dgesv info=', info
+write(*,*)'UK_GeneralizedLeastSquares (b) dgesv info=', info
 
 !
 ! beta_gls = inv( F' * Cinv * F ) * F * Cinv * fo
@@ -428,43 +428,43 @@ Vtmp(1:num_obs_points)=matmul(Cinv(1:num_obs_points, 1:num_obs_points), obs%f_ps
 Vtmp2(1:num_spat_fcns)=matmul(transpose(Fs(1:num_obs_points, 1:num_spat_fcns)), Vtmp(1:num_obs_points))
 beta(1:num_spat_fcns)=matmul(Cbeta(1:num_spat_fcns, 1:num_spat_fcns), Vtmp2(1:num_spat_fcns))
 ! call dgemv('T', num_obs_points, num_spat_fcns, atmp, Fs, num_obs_points, Vtmp, 1, btmp, Vtmp2,1) ! Vtmp2 = F^T C^{-1} y
-! write(*,*)'UK_GLS (c) dgesv info=', info
+! write(*,*)'UK_GeneralizedLeastSquares (c) dgesv info=', info
 ! call dgemv('N', num_spat_fcns, num_spat_fcns, atmp, Cbeta, num_spat_fcns, Vtmp2, 1, btmp, Beta, 1) ! beta = Cbeta F^t C^{-1} y
-! write(*,*)'UK_GLS (d) dgesv info=', info
+! write(*,*)'UK_GeneralizedLeastSquares (d) dgesv info=', info
 
 !
 ! Posterior covariance for residual
 !
 call Compute_Distance(grid, grid, DGh, DGz, num_points)
-write(*,*)'UK_GLS (e) dgesv info=', info
+write(*,*)'UK_GeneralizedLeastSquares (e) dgesv info=', info
 call Compute_Variogram(num_points, num_points, DGh, DGz, gammaG, num_points, par)
-write(*,*)'UK_GLS (f) dgesv info=', info
+write(*,*)'UK_GeneralizedLeastSquares (f) dgesv info=', info
 CepsG(1:num_points, 1:num_points)=Vinf(1, 1)-gammaG(1:num_points, 1:num_points)
 C0(1:num_obs_points, 1:num_points)=Vinf(1, 1)-gamma0(1:num_obs_points, 1:num_points)
 !
 ! CepsG <== CepsPostG = CepsG - C0v' * inv(C_obs) * C0v
 !
-write(*,*)'UK_GLS (g) dgesv info=', info
+write(*,*)'UK_GeneralizedLeastSquares (g) dgesv info=', info
 call dgemm('N', 'N', num_obs_points, num_points, num_obs_points, atmp, Cinv, num_obs_points, C0, num_obs_points, &
 &           btmp, Gtmp, num_obs_points )
-write(*,*)'UK_GLS (h) dgesv info=', info
+write(*,*)'UK_GeneralizedLeastSquares (h) dgesv info=', info
 call dgemm('T', 'N', num_points, num_points, num_obs_points, atmp, C0, num_obs_points, Gtmp, num_obs_points, &
 &           btmp, gammaG, num_points )
 ! note: gamma variogram<== C0' * Cinv * C0 no longer represents variogram for the grid!
-write(*,*)'UK_GLS (i) dgesv info=', info
+write(*,*)'UK_GeneralizedLeastSquares (i) dgesv info=', info
 
 CepsG(1:num_points, 1:num_points) = CepsG(1:num_points, 1:num_points) - gammaG(1:num_points, 1:num_points)
 !
 ! Compute posterior mean of epsilon.  This is the difference between unbiased estimate of f and
 ! the mean of the trend.  Thus the mean of the total distribution is the kriging estimate. 
 !
-write(*,*)'UK_GLS (j) dgesv info=', info
+write(*,*)'UK_GeneralizedLeastSquares (j) dgesv info=', info
 call dgemv('N', num_points, num_spat_fcns, atmp, Fs0, num_points, beta, 1, btmp, ftrnd, 1)
-write(*,*)'UK_GLS (k) dgesv info=', info
+write(*,*)'UK_GeneralizedLeastSquares (k) dgesv info=', info
 
 eps(1:num_points)=grid%f_psqm(1:num_points)-ftrnd(1:num_points)
 
-write(*,*)'UK_GLS end'
+write(*,*)'UK_GeneralizedLeastSquares end'
 deallocate( distance_horiz, distance_vert, W, gamma, Fs, FsT, stat=error )
 deallocate( D0h, D0z, gamma0, Fs0, Fs0T , stat=error)
 deallocate( R, V , stat=error)

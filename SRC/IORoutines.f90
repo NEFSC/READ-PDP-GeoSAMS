@@ -268,7 +268,7 @@ subroutine Read_Scalar_Field(file_name, M, vector_len)
     integer n,io
     character(input_str_len) input_str
 
-    !PRINT '(A,A,A,A)', term_blu, ' READING FILE: ', file_name, term_blk
+    PRINT '(A,A,A,A)', term_blu, ' READING FILE: ', file_name, term_blk
 
     open(read_dev,file=trim(file_name),status='old')
     n=0

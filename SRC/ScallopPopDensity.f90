@@ -212,7 +212,6 @@ logical exists
 integer max_num_grids
 character(2) domain_name
 integer start_year, stop_year
-character(3) fishing_type      !> Fishing can be USD,  BMS,  or,  CAS
 integer num_time_steps
 integer ts_per_year
 real(dp) delta_time
@@ -256,22 +255,13 @@ endif
 !==================================================================================================================
 !  - I. Read Configuration file 'Scallop.inp'
 !==================================================================================================================
-call Read_Startup_Config(max_num_grids, domain_name, file_name, start_year, stop_year, fishing_type, ts_per_year)
+call Read_Startup_Config(max_num_grids, domain_name, file_name, start_year, stop_year, ts_per_year)
 
 ! time parameters
 num_years = stop_year - start_year + 1
 num_time_steps = num_years * ts_per_year + 1 ! +1 to capture last data from last step
 delta_time = 1._dp / dfloat(ts_per_year)
 
-write(*,*) '========================================================'
-write(*,'(A,I6)') ' Max Expected #grids ', max_num_grids
-write(*,'(A,A6)') ' Domain:             ', domain_name
-write(*,'(A,I6)') ' Start Year:         ', start_year
-write(*,'(A,I6)') ' Stop Year:          ', stop_year
-write(*,'(A,A6)') ' Fishing Type:       ', fishing_type
-write(*,'(A,I6,A,F7.4)') ' Time steps/year:', ts_per_year, ' delta ', delta_time
-write(*,'(A,I6,A,F7.4)') ' Total number time steps:', num_time_steps
-write(*,*) '========================================================'
 
 ! allow for maximum expected number of grids
 allocate(grid(1:max_num_grids))
@@ -302,6 +292,17 @@ call Set_Recruitment(recruit, num_grids, domain_name, domain_area, &
 call Set_Mortality(mortality, grid, shell_length_mm, domain_name, domain_area, num_time_steps, &
 &                    ts_per_year, num_grids, max_num_grids)
 
+write(*,*) '========================================================'
+write(*,'(A,I6)') ' Max Expected #grids ', max_num_grids
+write(*,'(A,A6)') ' Domain:             ', domain_name
+write(*,'(A,I6)') ' Start Year:         ', start_year
+write(*,'(A,I6)') ' Stop Year:          ', stop_year
+write(*,'(A,A6)') ' Fishing Type:       ', Get_Fishing_Type()
+write(*,'(A,I6,A,F7.4)') ' Time steps/year:', ts_per_year, ' delta ', delta_time
+write(*,'(A,I6,A,F7.4)') ' Total number time steps:', num_time_steps
+write(*,*) '========================================================'
+
+
 !==================================================================================================================
 !  - III. MAIN LOOP
 ! Start simulation
@@ -318,7 +319,7 @@ do ts = 1, num_time_steps
     !- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - 
     !  i. Determine fishing effort
     !- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - 
-    fishing_effort(1:num_grids) = Set_Fishing(fishing_type, year, ts-1, state, weight_grams, mortality, grid)
+    fishing_effort(1:num_grids) = Set_Fishing_Effort(year, ts-1, state, weight_grams, mortality, grid)
 
     !- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - 
     !  ii. For each grid, evaluate growth state for this time step
@@ -358,11 +359,10 @@ END PROGRAM ScallopPopDensity
 !> @param[out] init_cond_file_name File name that contains intial simulation conditions
 !> @param[out] start_year Starting year for simulation read from config file
 !> @param[out] stop_year  End year for simulation read from config file
-!> @param[out] fishing_type Fishing can be USD, BMS, or, CAS
 !> @param[out] time_steps_per_year Number of times steps to evaluate growth
 !> @param[out] num_monte_carlo_iter Number of iterations for Monte Carlo simulation
 !-----------------------------------------------------------------------
-subroutine Read_Startup_Config(max_num_grids, domain_name, file_name, start_year, stop_year, fishing_type,time_steps_per_year)
+subroutine Read_Startup_Config(max_num_grids, domain_name, file_name, start_year, stop_year, time_steps_per_year)
     use globals
     use Mortality_Mod, only : Mortality_Set_Config_File_Name => Set_Config_File_Name
     use Recruit_Mod, only : Recruit_Set_Config_File_Name => Set_Config_File_Name
@@ -372,7 +372,6 @@ subroutine Read_Startup_Config(max_num_grids, domain_name, file_name, start_year
     integer, intent(out) :: max_num_grids
     character(2),intent(out):: domain_name
     character(*),intent(in):: file_name
-    character(3),intent(out):: fishing_type
     integer, intent(out) :: start_year, stop_year, time_steps_per_year ! , num_monte_carlo_iter
 
     integer j, k, io
@@ -410,13 +409,6 @@ subroutine Read_Startup_Config(max_num_grids, domain_name, file_name, start_year
 
             case('Time steps per Year')
                 read(value,*) time_steps_per_year
-
-            case('Fishing')
-                fishing_type = trim(adjustl(value))
-                if (.not. ( any ((/ fishing_type.eq.'USD', fishing_type.eq.'BMS', fishing_type.eq.'CAS'/)) )) then
-                    write(*,*) term_red, ' **** INVALID FISHING TYPE: ', fishing_type, term_blk
-                    stop
-                endif
 
             case('Grid Manager Config File')
                 call GridMgr_Set_Config_File_Name(trim(adjustl(value)))
