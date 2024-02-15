@@ -52,12 +52,12 @@
 !> where G is the transition matrix
 !>  - Compute overall mortality, <b>M</b>
 !> @f[
-!> \vec{M} = \vec{M}_{nat} + Fishing * \vec{M}_{selectivity} + \vec{M}_{incidental} + \vec{M}_{discard}
+!> \vec{M} = \vec{M}_{nat} + Fishing * \left( \vec{M}_{selectivity} + \vec{M}_{incidental} + \vec{M}_{discard} \right)
 !> @f]
 !>
 !>  - Compute new state
 !> @f[
-!> \vec{S_{t+1}} = \vec{S_t} * (1- \delta_t * \vec{M})
+!> \vec{S_{t+1}} = \vec{S_t} * \left(1- \delta_t * \vec{M}\right)
 !> @f]
 !>
 !> \anchor mn 1. MN18 refers to Miller, R. B. and Nottingham, 2018, "Improved approximations for estimation of size-transition 
@@ -734,12 +734,12 @@ end subroutine enforce_non_negative_growth
 !> @f]
 !>  - Compute overall mortality, <b>M</b>
 !> @f[
-!> \vec{M} = \vec{M}_{nat} + Fishing *( \vec{M}_{selectivity} + \vec{M}_{incidental} + \vec{M}_{discard})
+!> \vec{M} = \vec{M}_{nat} + Fishing * \left( \vec{M}_{selectivity} + \vec{M}_{incidental} + \vec{M}_{discard} \right)
 !> @f]
 !>
 !>  - Compute new state
 !> @f[
-!> \vec{S_{t+1}} = \vec{S_t} * (1- \delta_t * \vec{M})
+!> \vec{S_{t+1}} = \vec{S_t} * \left(1- \delta_t * \vec{M}\right)
 !> @f]
 !> 
 !> @param[in] growth object to hold growth simulation paramters
