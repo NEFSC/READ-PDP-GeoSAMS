@@ -45,7 +45,6 @@ fi
 if [ ! -d "obj" ]; then
     mkdir obj
 fi
-make clean
 make
 
 # Make UK executables
@@ -56,9 +55,9 @@ fi
 if [ ! -d "obj" ]; then
     mkdir obj
 fi
-make clean
 make
 
+# finish with preprocessing
 cd ..
 
 octave PreProcess/TrawlData5mmbin.m $1 $2

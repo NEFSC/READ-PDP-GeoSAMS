@@ -2,13 +2,21 @@
 if [%1] == [] (
     echo No year inputs
     echo Expecting: GeoSamSetup.bat YYYYstart YYYYend
-    exit
+    exit /b
 )
 if [%2] == [] (
     echo No year inputs
     echo Expecting: GeoSamSetup.bat YYYYstart YYYYend
-    exit
+    exit /b
 )
+
+@REM unzip dredge data
+if not exist OriginalData\dredgetowbysize7917.csv (
+    cd "OriginalData/"
+    "C:\Program Files\7-Zip\7z" e dredgetowbysize7917.zip
+    cd ..
+)
+
 @REM Create Directories used by GeoSAMS
 if not exist GrowthOutput\ (
     mkdir GrowthOutput\
@@ -41,7 +49,6 @@ if not exist mod\ (
 if not exist obj\ (
     mkdir obj\
 )
-make clean
 make
 
 @REM Make UK executables
@@ -52,7 +59,6 @@ if not exist mod\ (
 if not exist obj\ (
     mkdir obj\
 )
-make clean
 make
 
 @REM finish with preprocessing
