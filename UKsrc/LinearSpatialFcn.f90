@@ -4,7 +4,7 @@
 !--------------------------------------------------------------------------------------------------
 ! Keston Smith, Tom Callaghan (IBSS) 2024
 !--------------------------------------------------------------------------------------------------
-module LinearSpatialFcnMod
+module LSF_Mod
 use globals
 implicit none
 
@@ -28,7 +28,7 @@ CONTAINS
 !>
 !> @author Keston Smith (IBSS corp) June-July 2021
 !--------------------------------------------------------------------------------------------------
-subroutine GeneralizedLeastSquares(y, F, C, n, m, beta, Cbeta, r)
+subroutine LSF_Generalized_Least_Squares(y, F, C, n, m, beta, Cbeta, r)
 use globals
 implicit none
 integer,    intent(in):: n, m
@@ -52,7 +52,7 @@ do j=1, n
     Cinv(j, j)=1.
 enddo
 call dgesv(n, n, C, n, IPIV, Cinv, n, info)
-write(*,*)'GeneralizedLeastSquares', info
+write(*,*)'LSF_Generalized_Least_Squares', info
 !
 ! cov(beta)) =  inv (F' Cinv F )
 !
@@ -64,7 +64,7 @@ do j=1, m
     CBeta(j, j)=1.
 enddo
 call dgesv(m, m, CBetaInv, m, IPIV, CBeta, m, info)
-write(*,*)'GeneralizedLeastSquares  dgesv info=', info
+write(*,*)'LSF_Generalized_Least_Squares  dgesv info=', info
 call write_csv(m, m, CbetaInv, 'CBeta0.csv', m)
 call write_csv(n, m, F, 'Fglsa0.csv', n)
 !
@@ -84,12 +84,13 @@ call Write_Vector_Scalar_Field(n, y, 'obs.txt')
 deallocate( ipiv, stat=error)
 deallocate(  Cinv, CbetaInv, ytr, Mtmp, Vtmp, Vtmp2, stat=error )
 
-return
 end subroutine
 
 !--------------------------------------------------------------------------------------------------
 !> Purpose: Simple linear regresion 
 !> minimize sum_{j=1:n}  ( y(j) - alpha + beta * x(j) )**2 over alpha and beta
+!>
+!> Simple Least Squares
 !>
 !> Inputs:
 !>  - y (real) [n]
@@ -103,11 +104,12 @@ end subroutine
 !>
 !> @author Keston Smith (IBSS corp) June-July 2021
 !--------------------------------------------------------------------------------------------------
-!Simple Least Squares
-subroutine SLR(y, x, n, alpha, beta, p)
-integer,    intent(in):: n
-real(dp),    intent(in):: y(*), x(*)
-real(dp),    intent(out):: p(*), alpha, beta
+function LSF_Simple_Linear_Regression(y, x, n)
+integer,  intent(in):: n
+real(dp), intent(in):: y(*), x(*)
+real(dp) :: LSF_Simple_Linear_Regression(1:n)
+
+real(dp) alpha, beta
 real(dp) Sxy, Sx, Sy, Sx2
 Sxy=sum(x(1:n)*y(1:n))
 Sx=sum(x(1:n))
@@ -115,9 +117,8 @@ Sy=sum(y(1:n))
 Sx2=sum(x(1:n)*x(1:n))
 beta=(n * Sxy - Sx * Sy) / ( n * Sx2 -Sx * Sx )
 alpha=(Sy / n) - (beta*Sx / n)
-p(1:n)=alpha + beta * x(1:n)
-return
-end subroutine
+LSF_Simple_Linear_Regression(1:n)=alpha + beta * x(1:n)
+end function LSF_Simple_Linear_Regression
 
 !----------------------------------------------------------------------------------------
 !> Purpose: Restrict maximum recruit density based on historical relation ship between 
@@ -134,7 +135,7 @@ end subroutine
 !>  - f [n] recruitment observations from the same year.
 !> @author Keston Smith 2022
 !----------------------------------------------------------------------------------------
-subroutine limitz(n, f, z, fpeak, Domain)
+subroutine LSF_Limit_Z(n, f, z, fpeak, Domain)
 
 integer, intent(in) :: n
 real(dp), intent(in) :: z(*), fpeak
@@ -162,7 +163,6 @@ do j=1, n
     fmax= fpeak*(a +   exp(- ( (z(j)-zc)/w )**kappa ))
     f(j)=min( f(j) , fmax )
 enddo    
-return
 end subroutine
 
-end module LinearSpatialFcnMod
+end module LSF_Mod

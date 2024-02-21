@@ -72,14 +72,14 @@
 !> @subsubsection Rsubsubsec3 Fitting non-linear parameters
 !> A brute force approach is taken to fitting the nonlinear parameters @f$x_0@f$ and @f$\lambda@f$.  A search range is determined based on
 !> the geographic range of the observations.  The parameters are then fit to minimize the misfit to observations.   
-!>  subroutine @f${\it FitNLSFunc}@f$ parameter np).  The nonlinear parameters are fit by minimizing RMS misfit to the simple least squares 
+!>  subroutine @f${\it NLSF_Fit_Function}@f$ parameter np).  The nonlinear parameters are fit by minimizing RMS misfit to the simple least squares 
 !> fit with a smoothness penalty,
 !> @f[
 !> J(x_0,\lambda)=\sqrt{ \frac{1}{n} \sum_i (d_i-a - b f(x_i|\lambda,x_0))^2 }+S(\lambda,x_0)
 !> @f]
 !> Where @f$S(\lambda,x_0)=\int_{-\infty}^\infty f''(x) ^2 d x= S(\lambda)@f$ is a roughness penalty, @f$a@f$ and @f$b@f$ are temporarily 
 !> assigned (by least squares) constants fit to minimize @f$J@f$.  @f$S@f$ is proportional to @f$\lambda^{-3}@f$ for all examples used here 
-!> (see subroutine @f${\it NLSFuncPen}@f$).  Other one dimensional function forms can be added to the software in subroutine NLSFunc and 
+!> (see subroutine @f${\it NLSFuncPen}@f$).  Other one dimensional function forms can be added to the software in subroutine NLSF_Evaluate_Fcn and 
 !> NLSFFuncPen.
 !> 
 !> A smoothness penalty is imposed for each function based on the analytic 
@@ -92,7 +92,7 @@
 !>
 !> @subsubsection Rsubsubsec4 Posterior sampling
 !> With the fitting of the residual we have a covariance for @f$\epsilon@f$ and the estimation problem becomes one of Generalized Least 
-!> Squares (GeneralizedLeastSquares).  Posterior sampling is then conducted  achieved posterior sampling is Treating the 
+!> Squares (LSF_Generalized_Least_Squares).  Posterior sampling is then conducted  achieved posterior sampling is Treating the 
 !>
 !>---------------------------------------------------------------------------------------------------------------------
 module Recruit_Mod

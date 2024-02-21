@@ -5,27 +5,28 @@
 !> sill value sill and nugget value nugget. Kringing form is 'spherical',
 !> 'exponential', 'gaussian' or 'matern'
 !--------------------------------------------------------------------------------------------------
-! Keston Smith, Tom Callaghan (IBSS) 2024
+! Keston Smith (IBSS)
 !--------------------------------------------------------------------------------------------------
-module KrigMod
+module Krig_Mod
 
 use globals
 use GridManagerMod
-use NonLinearSpatialFcnMod
+use NLSF_Mod
 use RandomFieldMod
 implicit none
 
-type KrigPar
+type Krig_Class
     real(dp) alpha
     real(dp) nugget
     real(dp) sill
     real(dp) Wz
     character(72) form
-end type KrigPar
+end type Krig_Class
    
 CONTAINS
 
 !--------------------------------------------------------------------------------------------------
+!! @public @memberof Krig_Class
 !>
 !> Purpose: Computes distance between two vectors of points
 !> Inputs:
@@ -38,7 +39,7 @@ CONTAINS
 !>
 !> @author Keston Smith (IBSS corp) June-July 2021
 !--------------------------------------------------------------------------------------------------
-subroutine Compute_Distance(p, q, distance_horiz, distance_vert,n_dim)
+subroutine Krig_Compute_Distance(p, q, distance_horiz, distance_vert,n_dim)
     type(Grid_Data_Class), intent(in) :: p
     type(Grid_Data_Class), intent(in) :: q
     integer, intent(in)  :: n_dim
@@ -52,6 +53,7 @@ subroutine Compute_Distance(p, q, distance_horiz, distance_vert,n_dim)
 end subroutine
 
 !--------------------------------------------------------------------------------------------------
+!! @public @memberof Krig_Class
 !>
 !> Purpose: Computes a variogram (variogram) given distances between points (D).
 !> 
@@ -70,8 +72,8 @@ end subroutine
 !>    
 !> @author Keston Smith (IBSS corp) June-July 2021
 !--------------------------------------------------------------------------------------------------
-subroutine Compute_Variogram(num_points,num_cols,distance_horiz,distance_vert,variogram,n_dim,par)
-type(KrigPar):: par
+subroutine Krig_Compute_Variogram(num_points,num_cols,distance_horiz,distance_vert,variogram,n_dim,par)
+type(Krig_Class):: par
 integer, intent(in) :: num_points,num_cols,n_dim
 real(dp), intent(in) :: distance_horiz(n_dim,*),distance_vert(n_dim,*)
 real(dp), intent(out) :: variogram(n_dim,*)
@@ -129,11 +131,10 @@ if (trim(form).eq.'matern')then
 endif
 
 deallocate( D,stat=error) 
-
-return
-endsubroutine
+endsubroutine 
 
 !--------------------------------------------------------------------------------------------------
+!! @public @memberof Krig_Class
 !> Purpose: Computes a variogram (variogram) given distances between points (D).
 !>
 !> @param[in]  num_points    (integer) number of rows in D, Gamma
@@ -144,9 +145,9 @@ endsubroutine
 !> 
 !> @author Keston Smith (IBSS corp) June-July 2021
 !--------------------------------------------------------------------------------------------------
-subroutine Compute_Empirical_Variogram(num_points,distance_horiz,distance_vert,variogram,n_dim,f,par)
-type(KrigPar), intent(inout) :: par
-type(KrigPar):: parTmp
+subroutine Krig_Comp_Emp_Variogram(num_points,distance_horiz,distance_vert,variogram,n_dim,f,par)
+type(Krig_Class), intent(inout) :: par
+type(Krig_Class):: parTmp
 
 integer  NIntVD,NPS
 parameter(NIntVD=31,NPS=30)
@@ -216,7 +217,7 @@ do j=1,NPS
             parTmp%sill=cR(k)
             parTmp%alpha=alphaR(m)
             parTmp%Wz=WzR
-            call Compute_Variogram(NintV,1,DintVm,0*DintVm,variogram,NintV,parTmp)
+            call Krig_Compute_Variogram(NintV,1,DintVm,0*DintVm,variogram,NintV,parTmp)
             cost=sum( (SIntV(1:NIntV)-variogram(1:NIntV,1))**2 )
             if( cost.lt.costmin )then
                 costmin=cost
@@ -229,7 +230,7 @@ do j=1,NPS
     enddo !k
 enddo !j
 
-call Compute_Variogram(NintV,1,DIntVm,0*DIntV,variogram,NintV,par)
+call Krig_Compute_Variogram(NintV,1,DIntVm,0*DIntV,variogram,NintV,par)
 
 call Write_2D_Scalar_Field(NintV,1,variogram,'GammaIntV.txt',NintV)
 call Write_2D_Scalar_Field(NintV,1,DIntVm,'DIntV.txt',NintV)
@@ -238,11 +239,11 @@ call Write_2D_Scalar_Field(NintV,1,SIntV,'SIntV.txt',NintV)
 write(*,*)'Bounds alpha:[', alphaR(1),par%alpha,alphaR(NPS),']'
 write(*,*)'Bounds nugget:[', c0R(1),par%nugget,c0R(NPS),']'
 write(*,*)'Bounds sill:[',cR(1),par%sill,cR(NPS),']'
-call Compute_Variogram(num_points, num_points, distance_horiz,distance_vert, variogram, num_points, par)
-
-return
+call Krig_Compute_Variogram(num_points, num_points, distance_horiz,distance_vert, variogram, num_points, par)
 endsubroutine
+
 !--------------------------------------------------------------------------------------------------
+!! @public @memberof Krig_Class
 !> Purpose: Computes value of spatial functions at x,y.
 !> Inputs:
 !> @param[in]  p      (Grid_Data_Class) - Spatial points to evaluate functions at
@@ -254,7 +255,7 @@ endsubroutine
 !> @param[out] num_spat_fcns   (integer) number of spatial functions (be carefull allocating F)
 !> @author Keston Smith (IBSS corp) June-July 2021
 !--------------------------------------------------------------------------------------------------
-subroutine Evaluate_Spatial_Function(p,F,num_spat_fcns,n_dim,nlsf)
+subroutine Krig_Evaluate_Spatial_Function(p,F,num_spat_fcns,n_dim,nlsf)
 type(Grid_Data_Class):: p
 type(NLSFpar), intent(in):: nlsf(*)
 integer, intent(in)    :: n_dim
@@ -262,17 +263,20 @@ integer, intent(in)   :: num_spat_fcns
 real(dp), intent(out)   :: F(n_dim,*)
 real(dp) s(n_dim), fpc(n_dim)
 integer num_points,j,k
+integer nsf
+
+nsf = Get_NSF()
 
 num_points=p%num_points
 F(1:num_points,1)=1.
-do j=1,nlsf(1)%nsf
-    call NLSFunc (p,nlsf(j),s)
-    if (nlsf(j)%PreCFnum.eq.0)then
-        F(1:num_points,j+1)=s(1:num_points)
+do j=1,nsf
+    s(:) = NLSF_Evaluate_Fcn(p, nlsf(j))
+    if (nlsf(j)%pre_cond_fcn_num .eq. 0) then
+        F(1:num_points,j+1) = s(1:num_points)
     else
-        k=nlsf(j)%PreCFnum
-        call NLSFunc (p,nlsf(k),fpc)
-        F(1:num_points,j+1)=s(1:num_points)*fpc(1:num_points)
+        k = nlsf(j)%pre_cond_fcn_num
+        fpc(:) = NLSF_Evaluate_Fcn(p, nlsf(k))
+        F(1:num_points,j+1) = s(1:num_points) * fpc(1:num_points)
     endif
 enddo
 
@@ -280,6 +284,7 @@ call write_csv(num_points,num_spat_fcns,F,'SpatialFunctions.csv',num_points)
 end subroutine
 
 !--------------------------------------------------------------------------------------------------
+!! @public @memberof Krig_Class
 !> Purpose: Calculates Universal Kriging (UK) estimate at grid points given by coordinates (x, y). 
 !> Additionally this returns the statistics needed to simulate from the posterior distribution, that 
 !> is to simulate random fields consistent with the observations, spatial functions, and variogram.  
@@ -307,22 +312,22 @@ end subroutine
 !>
 !> @author Keston Smith (IBSS corp) June-July 2021
 !--------------------------------------------------------------------------------------------------
-subroutine UK_GeneralizedLeastSquares(grid, obs, num_spat_fcns, par, beta, Cbeta, eps, CepsG, nlsf)
+subroutine Krig_Generalized_Least_Sq(grid, obs, num_spat_fcns, par, beta, Cbeta, eps, CepsG, nlsf)
 type(Grid_Data_Class):: grid
 type(Grid_Data_Class):: obs
-type(KrigPar):: par
+type(Krig_Class):: par
 type(NLSFPar):: nlsf(*)
 
-integer,    intent(in):: num_spat_fcns
-real(dp),    intent(out):: beta(*), Cbeta(num_spat_fcns, num_spat_fcns), eps(*), CepsG(grid%num_points, grid%num_points)
+integer,  intent(in):: num_spat_fcns
+real(dp), intent(out):: beta(*), Cbeta(num_spat_fcns, num_spat_fcns), eps(*), CepsG(grid%num_points, grid%num_points)
 
-real(dp),    allocatable:: distance_horiz(:,:), distance_vert(:,:), W(:,:), gamma(:,:), Fs(:,:), FsT(:,:)
-real(dp),    allocatable:: D0h(:,:), D0z(:,:), gamma0(:,:), Fs0(:,:), Fs0T(:,:)
-real(dp),    allocatable:: R(:,:), V(:,:)
-real(dp),    allocatable:: CbetaInv(:,:), Ceps(:,:), Cinv(:,:)
-real(dp),    allocatable:: DGh(:,:), DGz(:,:), C0(:,:), gammaG(:,:)
-real(dp),    allocatable:: Mtmp(:,:), Vtmp(:), Vtmp2(:), Gtmp(:,:), ftrnd(:)
-integer,    allocatable:: ipiv(:)
+real(dp), allocatable:: distance_horiz(:,:), distance_vert(:,:), W(:,:), gamma(:,:), Fs(:,:), FsT(:,:)
+real(dp), allocatable:: D0h(:,:), D0z(:,:), gamma0(:,:), Fs0(:,:), Fs0T(:,:)
+real(dp), allocatable:: R(:,:), V(:,:)
+real(dp), allocatable:: CbetaInv(:,:), Ceps(:,:), Cinv(:,:)
+real(dp), allocatable:: DGh(:,:), DGz(:,:), C0(:,:), gammaG(:,:)
+real(dp), allocatable:: Mtmp(:,:), Vtmp(:), Vtmp2(:), Gtmp(:,:), ftrnd(:)
+integer,  allocatable:: ipiv(:)
 
 real(dp)     Vinf(1, 1), Dinf(1, 1), atmp, btmp
 integer     j, k, info, nopnf, error, num_points, num_obs_points
@@ -348,9 +353,9 @@ allocate( ftrnd(1:num_points), ipiv(1:nopnf), stat=error)
 ! Compute variogram between observation points and spatial functions at
 ! observation points
 !
-call Compute_Distance(obs, obs, distance_horiz, distance_vert, num_obs_points)
-call Compute_Variogram(num_obs_points, num_obs_points, distance_horiz, distance_vert, Gamma, num_obs_points, par)
-call Evaluate_Spatial_Function(obs, Fs, num_spat_fcns, num_obs_points, nlsf)
+call Krig_Compute_Distance(obs, obs, distance_horiz, distance_vert, num_obs_points)
+call Krig_Compute_Variogram(num_obs_points, num_obs_points, distance_horiz, distance_vert, Gamma, num_obs_points, par)
+call Krig_Evaluate_Spatial_Function(obs, Fs, num_spat_fcns, num_obs_points, nlsf)
 !
 ! Ceps <- covariance between observation points (from variogram)
 !
@@ -359,9 +364,9 @@ call Evaluate_Spatial_Function(obs, Fs, num_spat_fcns, num_obs_points, nlsf)
 ! Compute variogram between observation points and grid points and spatial
 ! functions at grid points
 !
-call Compute_Distance(obs, grid, D0h, D0z, num_obs_points)
-call Compute_Variogram(num_obs_points, num_points, D0h, D0z, gamma0, num_obs_points, par)
-call Evaluate_Spatial_Function(grid, Fs0, num_spat_fcns, num_points, nlsf)
+call Krig_Compute_Distance(obs, grid, D0h, D0z, num_obs_points)
+call Krig_Compute_Variogram(num_obs_points, num_points, D0h, D0z, gamma0, num_obs_points, par)
+call Krig_Evaluate_Spatial_Function(grid, Fs0, num_spat_fcns, num_points, nlsf)
 !
 !Compute the Univeral Kriging linear estimate of f following Cressie 1993
 !pages 151-154
@@ -377,7 +382,7 @@ V(1:num_obs_points, 1:num_points)=gamma0(1:num_obs_points, 1:num_points)
 V(num_obs_points+1:num_obs_points+num_spat_fcns, 1:num_points)=Fs0T(1:num_spat_fcns, 1:num_points)
 
 call dgesv(nopnf, num_points, R, nopnf, IPIV, V, nopnf, info)
-write(*,*)'UK_GeneralizedLeastSquares (a) dgesv info=', info
+write(*,*)'Krig_Generalized_Least_Sq (a) dgesv info=', info
 !
 ! compute best linear estimate of the field on the grid points x, y
 ! f = W f_obs
@@ -389,12 +394,12 @@ do j=1, num_points
 enddo
 atmp=1.
 btmp=0.
-call dgemv('N', num_points, num_obs_points, atmp, W, num_points, obs%f_psqm, 1,  btmp, grid%f_psqm, 1)
+call dgemv('N', num_points, num_obs_points, atmp, W, num_points, obs%field_psqm, 1, btmp, grid%field_psqm, 1)
 !
 ! compute posterior trend statistics
 !
 Dinf(1, 1)=10.**10
-call Compute_Variogram(1, 1, Dinf, Dinf, Vinf, 1, par)
+call Krig_Compute_Variogram(1, 1, Dinf, Dinf, Vinf, 1, par)
 !
 ! Ceps <- covariance between observation points (from variogram)
 !
@@ -419,52 +424,52 @@ do j=1, num_spat_fcns
     CBeta(j, j)=1.
 enddo
 call dgesv(num_spat_fcns, num_spat_fcns, CBetaInv, num_spat_fcns, IPIV, CBeta, num_spat_fcns, info)
-write(*,*)'UK_GeneralizedLeastSquares (b) dgesv info=', info
+write(*,*)'Krig_Generalized_Least_Sq (b) dgesv info=', info
 
 !
 ! beta_gls = inv( F' * Cinv * F ) * F * Cinv * fo
 !
-Vtmp(1:num_obs_points)=matmul(Cinv(1:num_obs_points, 1:num_obs_points), obs%f_psqm(1:num_obs_points))
+Vtmp(1:num_obs_points)=matmul(Cinv(1:num_obs_points, 1:num_obs_points), obs%field_psqm(1:num_obs_points))
 Vtmp2(1:num_spat_fcns)=matmul(transpose(Fs(1:num_obs_points, 1:num_spat_fcns)), Vtmp(1:num_obs_points))
 beta(1:num_spat_fcns)=matmul(Cbeta(1:num_spat_fcns, 1:num_spat_fcns), Vtmp2(1:num_spat_fcns))
 ! call dgemv('T', num_obs_points, num_spat_fcns, atmp, Fs, num_obs_points, Vtmp, 1, btmp, Vtmp2,1) ! Vtmp2 = F^T C^{-1} y
-! write(*,*)'UK_GeneralizedLeastSquares (c) dgesv info=', info
+! write(*,*)'Krig_Generalized_Least_Sq (c) dgesv info=', info
 ! call dgemv('N', num_spat_fcns, num_spat_fcns, atmp, Cbeta, num_spat_fcns, Vtmp2, 1, btmp, Beta, 1) ! beta = Cbeta F^t C^{-1} y
-! write(*,*)'UK_GeneralizedLeastSquares (d) dgesv info=', info
+! write(*,*)'Krig_Generalized_Least_Sq (d) dgesv info=', info
 
 !
 ! Posterior covariance for residual
 !
-call Compute_Distance(grid, grid, DGh, DGz, num_points)
-write(*,*)'UK_GeneralizedLeastSquares (e) dgesv info=', info
-call Compute_Variogram(num_points, num_points, DGh, DGz, gammaG, num_points, par)
-write(*,*)'UK_GeneralizedLeastSquares (f) dgesv info=', info
+call Krig_Compute_Distance(grid, grid, DGh, DGz, num_points)
+write(*,*)'Krig_Generalized_Least_Sq (e) dgesv info=', info
+call Krig_Compute_Variogram(num_points, num_points, DGh, DGz, gammaG, num_points, par)
+write(*,*)'Krig_Generalized_Least_Sq (f) dgesv info=', info
 CepsG(1:num_points, 1:num_points)=Vinf(1, 1)-gammaG(1:num_points, 1:num_points)
 C0(1:num_obs_points, 1:num_points)=Vinf(1, 1)-gamma0(1:num_obs_points, 1:num_points)
 !
 ! CepsG <== CepsPostG = CepsG - C0v' * inv(C_obs) * C0v
 !
-write(*,*)'UK_GeneralizedLeastSquares (g) dgesv info=', info
+write(*,*)'Krig_Generalized_Least_Sq (g) dgesv info=', info
 call dgemm('N', 'N', num_obs_points, num_points, num_obs_points, atmp, Cinv, num_obs_points, C0, num_obs_points, &
 &           btmp, Gtmp, num_obs_points )
-write(*,*)'UK_GeneralizedLeastSquares (h) dgesv info=', info
+write(*,*)'Krig_Generalized_Least_Sq (h) dgesv info=', info
 call dgemm('T', 'N', num_points, num_points, num_obs_points, atmp, C0, num_obs_points, Gtmp, num_obs_points, &
 &           btmp, gammaG, num_points )
 ! note: gamma variogram<== C0' * Cinv * C0 no longer represents variogram for the grid!
-write(*,*)'UK_GeneralizedLeastSquares (i) dgesv info=', info
+write(*,*)'Krig_Generalized_Least_Sq (i) dgesv info=', info
 
 CepsG(1:num_points, 1:num_points) = CepsG(1:num_points, 1:num_points) - gammaG(1:num_points, 1:num_points)
 !
 ! Compute posterior mean of epsilon.  This is the difference between unbiased estimate of f and
 ! the mean of the trend.  Thus the mean of the total distribution is the kriging estimate. 
 !
-write(*,*)'UK_GeneralizedLeastSquares (j) dgesv info=', info
+write(*,*)'Krig_Generalized_Least_Sq (j) dgesv info=', info
 call dgemv('N', num_points, num_spat_fcns, atmp, Fs0, num_points, beta, 1, btmp, ftrnd, 1)
-write(*,*)'UK_GeneralizedLeastSquares (k) dgesv info=', info
+write(*,*)'Krig_Generalized_Least_Sq (k) dgesv info=', info
 
-eps(1:num_points)=grid%f_psqm(1:num_points)-ftrnd(1:num_points)
+eps(1:num_points)=grid%field_psqm(1:num_points)-ftrnd(1:num_points)
 
-write(*,*)'UK_GeneralizedLeastSquares end'
+write(*,*)'Krig_Generalized_Least_Sq end'
 deallocate( distance_horiz, distance_vert, W, gamma, Fs, FsT, stat=error )
 deallocate( D0h, D0z, gamma0, Fs0, Fs0T , stat=error)
 deallocate( R, V , stat=error)
@@ -473,108 +478,10 @@ deallocate( Mtmp, Vtmp, Vtmp2, Gtmp, ftrnd, stat=error )
 deallocate( ipiv, stat=error)
 deallocate( C0, DGh, DGz,  gammaG, ftrnd, stat=error )
 
-return
-end subroutine
-    
-!--------------------------------------------------------------------------------------------------
-!> Purpose: Simulate independent random fields under the assumptions of a Universal Kriging model.
-!> 
-!>  Inputs:
-!>   - x     (real(dp)) length num_points vector of x-coordinates of grid  
-!>   - y     (real(dp)) length num_points vector of y-coordinates for grid  
-!>   - z     (real(dp)) length num_points vector of bathymetric depth at (x, y)  
-!>   - num_points    (integer) number of points in grid
-!>   - beta  (real(dp)) length num_spat_fcns vector estimate of spatial function coefficients
-!>   - Cbeta (real(dp)) (num_spat_fcns x num_spat_fcns) covariance matrix for estimate beta
-!>   - eps   (real(dp)) length num_points vector estimate of noise field
-!>   - Ceps  (real(dp)) (num_points x num_points) spatial covariance matrix of residual from linear fit of spatial functions
-!>    Nsim    (integer) number of random fields to simulate
-!>
-!>  Outputs:
-!>   - none    
-!>  Currently random fields are written to files 'totalRF.csv', 'trendRF.csv', and noiseRF.csv' 
-!>  as (num_points x Nsim) matricies in which each column represents an independent random field. '
-!>  trend' is the component related to the spatial functions, 'noise' the component related 
-!>  to the residual, and 'total' their sum.
-!>
-!> The independence of the trend component and spatially correlated noise component is assumed.
-!>
-!> @author Keston Smith (IBSS corp) June-July 2021
-!--------------------------------------------------------------------------------------------------
-subroutine UK_RandomField(grid, num_spat_fcns, beta, Cbeta, eps, Ceps, Nsim, nlsf, IsLogT, mu, A, SF, fmax, z)
-implicit none
-type(Grid_Data_Class):: grid
-type(NLSFpar):: nlsf(*)
-integer,  intent(in) :: num_spat_fcns
-real(dp), intent(in) :: beta(*), Cbeta(num_spat_fcns,*), eps(*), Ceps(grid%num_points,*), mu(*), A, SF, fmax, z(*)
-integer,  intent(in) :: Nsim
-logical,  intent(in) :: IsLogT
-
-real(dp),    allocatable    :: F(:,:)
-real(dp),    allocatable    :: BetaRF(:,:), RFtrend(:,:), RFtotal(:,:), RFeps(:,:), EnsMu(:), &
-trend(:), Ctrend(:,:)
-
-real(dp)     atmp, btmp, adj
-integer     k, n
-n=grid%num_points
-allocate(F(1:n, 1:num_spat_fcns))
-allocate(BetaRF(1:num_spat_fcns, 1:Nsim), RFtrend(1:n, 1:NSim), RFtotal(1:n, 1:NSim), RFeps(1:n, 1:NSim), &
-        EnsMu(1:n), trend(1:n), Ctrend(1:n, 1:n) )
-
-atmp=1.
-btmp=0.
-
-call RandomSampleF(n, n, Nsim, eps(1:n), Ceps, RFeps)
-
-call Evaluate_Spatial_Function(grid, F, num_spat_fcns, grid%num_points, nlsf)
-trend(1:n)=matmul(F(1:n, 1:num_spat_fcns), beta(1:num_spat_fcns))
-
-call RandomSampleF(num_spat_fcns, num_spat_fcns, Nsim, beta(1:num_spat_fcns), Cbeta, BetaRF)
-RFtrend(1:n, 1:Nsim)=matmul(F(1:n, 1:num_spat_fcns), BetaRF(1:num_spat_fcns, 1:Nsim))
-
-RFtotal(1:n, 1:NSim)=RFtrend(1:n, 1:NSim)+RFeps(1:n, 1:NSim)
-
-if(IsLogT)then
-    RFtrend(1:n, 1:NSim) = SF * exp(RFtrend(1:n, 1:NSim)) - A  
-    RFeps(1:n, 1:NSim) = SF * exp(RFeps(1:n, 1:NSim))   - A 
-endif
-
-!-----------------------------------------------------------
-!enforce ensemble mean in trend
-trend(1:n)=matmul(F(1:n, 1:num_spat_fcns), beta(1:num_spat_fcns))
-if(IsLogT)trend(1:n) = SF * exp(trend(1:n)) - A  
-!-----------------------------------------------------------
-
-do k=1, n
-    call limitz(Nsim, RFtrend(k, 1:Nsim), z(k)+0.*RFtrend(k, 1:Nsim), fmax, 'MA')
-    call limitz(Nsim, RFeps(k, 1:Nsim), z(k)+0.*RFeps(k, 1:Nsim), fmax, 'MA')
-enddo
-if(IsLogT)then
-    RFtotal(1:n, 1:NSim) = SF * exp(RFtotal(1:n, 1:NSim)) - A 
-endif
-
-open(69, FILE='RandomFieldSF.txt')
-!adjust ensemble ensemble mean to match kriging estimate 
-do k=1, n
-    EnsMu(k)=sum( RFtotal(k, 1:Nsim) )/float(Nsim)
-    adj=min( (mu(k)+A) / (EnsMu(k)+A), 1.D0)
-    RFtotal(k, 1:Nsim) = RFtotal(k, 1:Nsim)*adj
-    call limitz(Nsim, RFtotal(k, 1:Nsim), z(k)+0.*RFtotal(k, 1:Nsim), fmax, 'MA')
-    write(69,*) mu(k)  - EnsMu(k)
-enddo
-close(69)
-
-call write_csv(grid%num_points, NSim, RFeps, 'noiseRF.csv', grid%num_points)
-call write_csv(grid%num_points, NSim, RFtrend, 'trendRF.csv', grid%num_points)
-call write_csv(grid%num_points, NSim, RFtotal, 'totalRF.csv', grid%num_points)
-
-deallocate(F)
-deallocate(BetaRF, RFtrend, RFtotal, RFeps)
-
-return
 end subroutine
 
 !--------------------------------------------------------------------------------------------------
+!! @public @memberof Krig_Class
 !> Assign values needed to simulate random fields from a Universal Kriging 
 !> model.
 !>
@@ -593,7 +500,7 @@ end subroutine
 !-----------------------------------------------------------------------
 subroutine UK_prior(grid, num_spat_fcns, par, beta, Cbeta, eps, Ceps)
 type(Grid_Data_Class):: grid
-type(KrigPar):: par
+type(Krig_Class):: par
 integer,  intent(in):: num_spat_fcns
 real(dp), intent(out):: beta(*), Cbeta(num_spat_fcns,*), eps(*), Ceps(grid%num_points,*) 
 
@@ -608,10 +515,10 @@ allocate( gamma(1:num_points, 1:num_points), stat=error )
 !
 ! Assign mean and Covariance for epsilon
 !
-call Compute_Distance(grid, grid, distance_horiz, distance_vert, num_points)
-call Compute_Variogram(num_points, num_points, distance_horiz, distance_vert, gamma, num_points, par)
+call Krig_Compute_Distance(grid, grid, distance_horiz, distance_vert, num_points)
+call Krig_Compute_Variogram(num_points, num_points, distance_horiz, distance_vert, gamma, num_points, par)
 Dinf(1, 1)=10.**10
-call Compute_Variogram(1, 1, Dinf, Dinf, Vinf, 1, par)
+call Krig_Compute_Variogram(1, 1, Dinf, Dinf, Vinf, 1, par)
 Ceps(1:num_points, 1:num_points)=Vinf(1, 1)-gamma(1:num_points, 1:num_points)
 eps(1:num_points)=0.
 !
@@ -627,7 +534,6 @@ Cbeta(4, 1:4)= (/-6.0292972962540783E-002, -2.3045855632585232E-007, -2.42078948
 
 deallocate( distance_horiz, distance_vert, gamma, stat=error )
 
-return
 end subroutine
 
 end module

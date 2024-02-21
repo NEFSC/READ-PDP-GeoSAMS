@@ -42,7 +42,6 @@ call random_number(U1)
 call random_number(U2)
 R(1:n, 1:m) = sqrt ( - 2.0D0* log ( U1(1:n, 1:m) ) ) * cos ( 2.0D0 * pi * U2(1:n, 1:m) )
 deallocate(U1, U2)
-return
 end subroutine
 
 !--------------------------------------------------------------------------------------------------
@@ -106,8 +105,6 @@ do j=1, Nsample
 enddo
 
 deallocate(R, S)
-
-return
 end subroutine
 
 end module RandomFieldMod

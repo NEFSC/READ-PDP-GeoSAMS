@@ -6,25 +6,90 @@
 ! Keston Smith (IBSS) 2024
 !--------------------------------------------------------------------------------------------------
 
-module NonLinearSpatialFcnMod
+module NLSF_Mod
 use globals
 use GridManagerMod
-use LinearSpatialFcnMod
+use LSF_Mod
 implicit none
 
 type NLSFPar
-    real(dp) lambda, x0
-    real(dp) lambdaMin, lambdaMax
-    real(dp) x0Min, x0Max
-    real(dp) xRange(2)
+    real(dp) lambda, f0
+    real(dp) lambda_min, lambda_max
+    real(dp) f0_min, f0_max
+    real(dp) f_range(2)
     real(dp) rms
     character(12) form
-    character(3) d
-    integer nsf, PreCFnum, IsTruncateRange, UseGreedyFit, nsflim
-
+    character(3) axis
+    !integer nsf, pre_cond_fcn_num, IsTruncateRange, UseGreedyFit, nsflim
+    integer pre_cond_fcn_num
 end type NLSFPar
 
+character(fname_len), PRIVATE :: config_file_name
+integer, PRIVATE :: nsf
+integer, PRIVATE :: nsflim
+logical, PRIVATE :: is_truncate_range
+logical, PRIVATE :: use_greedy_fit
+
 CONTAINS
+
+!-----------------------------------------------------------------------------------------------
+!> Getter functions
+!-----------------------------------------------------------------------------------------------
+logical function Get_Use_Greedy_Fit()
+    Get_Use_Greedy_Fit = use_greedy_fit
+endfunction Get_Use_Greedy_Fit
+
+logical function Get_Is_Truncate_Range()
+    Get_Is_Truncate_Range = is_truncate_range
+endfunction Get_Is_Truncate_Range
+
+integer function Get_NSF_Limit()
+    Get_NSF_Limit = nsflim
+endfunction Get_NSF_Limit
+
+integer function Get_NSF()
+    Get_NSF = nsf
+endfunction Get_NSF
+
+!-----------------------------------------------------------------------------------------------
+!> Determines which function to call to do a brute force least squares fit of nonlinear spatial 
+!> function parameters to data points in obs.
+!>
+!> NOTE: Greedy function takes significantly longer to run
+!-----------------------------------------------------------------------------------------------
+subroutine NLSF_Select_Fit(obs, nlsf)
+type(Grid_Data_Class):: obs
+type(NLSFPar)::nlsf(*)
+
+if (use_greedy_fit) then
+    call NLSF_Greedy_Least_Sq_Fit(obs, nlsf)
+else
+    call NLSF_Least_Sq_Fit(obs, nlsf)
+endif
+
+endsubroutine NLSF_Select_Fit
+    
+
+!-----------------------------------------------------------------------------------------------
+!> Used during instantiation to set the name of the file to read to for configuration parameters
+!> @brief Read Input File
+!> 
+!> Sets name of a configuration file, 'config_file_name.cfg'
+!-----------------------------------------------------------------------------------------------
+subroutine Set_Config_File_Name(fname)
+    character(*), intent(in) :: fname
+    logical exists
+
+    config_file_name = config_dir//fname
+    inquire(file=config_file_name, exist=exists)
+
+    if (exists) then
+        PRINT *, term_blu, trim(config_file_name), ' FOUND', term_blk
+    else
+        PRINT *, term_red, trim(config_file_name), ' NOT FOUND', term_blk
+        stop
+    endif
+endsubroutine Set_Config_File_Name
 
 !--------------------------------------------------------------------------------------------------
 !> Define non linear spatial functions(NLSF) and paramater search range.
@@ -47,28 +112,17 @@ CONTAINS
 !> In the second call InitiialCallFlag= F and all of the functions are defined.
 !> with precon=0 the nonlinear paraters function is fit in a least
 !--------------------------------------------------------------------------------------------------
-integer function DefineNLSFunctions(nlsf, p, InitialCallFlag)
+integer function NLSF_Define_Functions(nlsf, p, InitialCallFlag)
 type(NLSFPar) :: nlsf(*)
 type(Grid_Data_Class):: p
 integer j, io, n, num_points
 logical, intent(in):: InitialCallFlag
-integer greedy_fit
 character(72) :: input_string
-integer is_truncate_range
-logical exists
 
-is_truncate_range = 1 !default
-greedy_fit = 0
+is_truncate_range = .true. !default
+use_greedy_fit = .false.
 
-! Check if configuration file exists
-input_string = 'Configuration\SpatialFcns.cfg'
-inquire(file=input_string, exist=exists)
-
-if (.NOT. exists) then
-    PRINT *, term_red, input_string, ' NOT FOUND', term_blk
-    stop
-endif
-open(69,file=input_string)
+open(69,file=config_file_name)
 n=0
 
 !-------------------------------------------------------------------------------------
@@ -85,7 +139,7 @@ if (InitialCallFlag) then
         write(*,*) term_red, 'No spatial functions are defined. Cannot proceed.', term_blk
         stop
     endif
-    DefineNLSFunctions = n
+    NLSF_Define_Functions = n
     return
 endif
 
@@ -102,7 +156,7 @@ do
     case('F')
         n = n+1
         j = index(input_string, 'dim=',back=.true.)
-        nlsf(n)%d= trim( adjustl( input_string(j+4:j+4) ) )
+        nlsf(n)%axis= trim( adjustl( input_string(j+4:j+4) ) )
         j = index(input_string, 'shape=',back=.true.)
         select case (input_string(j+6:j+6))
             case('G')
@@ -118,11 +172,11 @@ do
                 stop
         end select
         j = index(input_string,"precon=",back=.true.)
-        read( input_string(j+7:),* )nlsf(n)%PreCFnum
+        read( input_string(j+7:),* )nlsf(n)%pre_cond_fcn_num
 
     case ('G')
         j = index(input_string,"=",back=.true.)
-        read( input_string(j+1:),* ) greedy_fit
+        read( input_string(j+1:),* ) use_greedy_fit
 
     case ('I')
         j = index(input_string,"=",back=.true.)
@@ -131,40 +185,38 @@ do
  end do
 close(69)
 
-nlsf(1:n)%nsf = n
-DefineNLSFunctions = n
-
-nlsf(1:n)%IsTruncateRange = is_truncate_range
-nlsf(1:n)%UseGreedyFit = greedy_fit
+! set private variables to the number of detected spatial functions
+nsf = n
+nsflim = n
+NLSF_Define_Functions = n
 
 num_points = p%num_points
-do n = 1, nlsf(1)%nsf
-    select case (trim(nlsf(n)%d))
+do n = 1, nsf
+    select case (trim(nlsf(n)%axis))
         case ('x')
-            nlsf(n)%x0Min = minval(p%x(1:num_points))
-            nlsf(n)%x0Max = maxval(p%x(1:num_points))
-            nlsf(n)%lambdaMin = 5000.
+            nlsf(n)%f0_min = minval(p%x(1:num_points))
+            nlsf(n)%f0_max = maxval(p%x(1:num_points))
+            nlsf(n)%lambda_min = 5000.
         case ('y')
-            nlsf(n)%x0Min = minval(p%y(1:num_points))
-            nlsf(n)%x0Max = maxval(p%y(1:num_points))
-            nlsf(n)%lambdaMin = 5000.
+            nlsf(n)%f0_min = minval(p%y(1:num_points))
+            nlsf(n)%f0_max = maxval(p%y(1:num_points))
+            nlsf(n)%lambda_min = 5000.
         case ('z')
-            nlsf(n)%x0Min = minval(p%z(1:num_points))
-            nlsf(n)%x0Max = maxval(p%z(1:num_points))
-            nlsf(n)%lambdaMin = 5.
+            nlsf(n)%f0_min = minval(p%z(1:num_points))
+            nlsf(n)%f0_max = maxval(p%z(1:num_points))
+            nlsf(n)%lambda_min = 5.
         case ('x+y')
-            nlsf(n)%x0Min = minval(p%x(1:num_points)+p%y(1:num_points))
-            nlsf(n)%x0Max = maxval(p%x(1:num_points)+p%y(1:num_points))
-            nlsf(n)%lambdaMin = 5000.
+            nlsf(n)%f0_min = minval(p%x(1:num_points)+p%y(1:num_points))
+            nlsf(n)%f0_max = maxval(p%x(1:num_points)+p%y(1:num_points))
+            nlsf(n)%lambda_min = 5000.
         case default
-            write(*,*) 'Error unkown spatial dimension in nlsf(b):', n, trim(nlsf(n)%d)
+            write(*,*) 'Error unkown spatial dimension in nlsf(b):', n, trim(nlsf(n)%axis)
             stop
     end select
-    nlsf(n)%lambdaMax = nlsf(n)%x0Max - nlsf(n)%x0Min
-    nlsf(n)%xRange(1) = nlsf(n)%x0Min
-    nlsf(n)%xRange(2) = nlsf(n)%x0Max
+    nlsf(n)%lambda_max = nlsf(n)%f0_max - nlsf(n)%f0_min
+    nlsf(n)%f_range(1) = nlsf(n)%f0_min
+    nlsf(n)%f_range(2) = nlsf(n)%f0_max
 enddo
-return
 endfunction
 
 !--------------------------------------------------------------------------------------------------
@@ -173,101 +225,67 @@ endfunction
 !>
 !> inputs:
 !> - obs: GridManagerMod(see UniversalKriging.f90) Defines observations to be fit. 
-!> - IsReset: (integer) if IsReset=0 the residual from the preceeding function is fit. 
-!>   if IsReset=1 each function is fit to observations.
+!> - the residual from the preceeding function is fit. 
 !>
 !> inputs/output:
 !>  - nlsf: Nonlinear spatial function(see UniversalKriging.f90). Defines a vector of nonlinear 
-!>          spatial functions. On return nlsf(1:nsf)%x0 and nlsf(1:nsf)%lambda are specified.
+!>          spatial functions. On return nlsf(1:nsf)%f0 and nlsf(1:nsf)%lambda are specified.
 !>
 !> outputs: 
 !>  - f: p%num_points length vector of values of nlsf at points defined in p.
 !>
 !> @author keston Smith (IBSS corp) 2022
 !--------------------------------------------------------------------------------------------------
-subroutine FitNLSFunctions(obs, nlsf, IsReset)
-
-implicit none
-integer j, num_obs_points, num_points, nsf, k, IsReset, nsflim
-real(dp) mu, rms0
-type(Grid_Data_Class):: obs
-type(NLSFPar)::nlsf(*)
-real(dp), allocatable :: r(:), fpc(:), residuals(:, :), rms(:)
+subroutine NLSF_Least_Sq_Fit(obs, nlsf)
+type(Grid_Data_Class), intent(in) :: obs
+type(NLSFPar), intent(inout) ::nlsf(*)
+integer j, num_obs_points, k
+real(dp), allocatable :: residual_vect(:), field_precond(:), residuals(:, :), rms(:)
 integer, allocatable:: RankIndx(:)
 
 num_obs_points = obs%num_points
-nsf = nlsf(1)%nsf
-nsflim = nlsf(1)%nsflim
-write(*,*)'FNLSF', num_obs_points, num_points, nsf
-allocate(r(1:num_obs_points), fpc(1:num_obs_points), residuals(1:num_obs_points, 1:nsf), rms(1:nsf), RankIndx(1:nsf))
 
-r(1:num_obs_points) = obs%f_psqm(1:num_obs_points)
-write(*,*)'res0:', sqrt(sum(r(1:num_obs_points)**2)/float(num_obs_points))
+write(*,*)'NLSF_Least_Sq_Fit', num_obs_points, nsf
+allocate(residual_vect(1:num_obs_points), field_precond(1:num_obs_points), residuals(1:num_obs_points, 1:nsf))
+allocate(rms(1:nsf), RankIndx(1:nsf))
+
+! initialize residual 0
+residual_vect(:) = obs%field_psqm(1:num_obs_points)
+write(*,'(A,F18.16)') 'residual  0:', sqrt(sum(residual_vect(1:num_obs_points)**2)/float(num_obs_points))
+
 do j = 1, nsf
-    if(IsReset.eq.1)r(1:num_obs_points) = obs%f_psqm(1:num_obs_points)
-    if (nlsf(j)%PreCFnum.eq.0) then
+    if (nlsf(j)%pre_cond_fcn_num.eq.0) then
         !no preconditioning
-        fpc(1:num_obs_points) = 1.D0
+        field_precond(:) = 1.D0
     else
-        k = nlsf(j)%PreCFnum
+        k = nlsf(j)%pre_cond_fcn_num
         if (k.ge.j)then
-            write(*,*) 'Preconditiong function must be indexed first:', k, j
+            write(*,'(A, I2, I3)') 'Preconditiong function must be indexed first:', k, j
             stop
         endif
-        write(*,*) 'Preconditiong', k, j
-        call NLSFunc (obs, nlsf(k), fpc)
+        write(*,'(A, I2, I3)') 'Preconditioning Function Number', k, j
+        field_precond(:) = NLSF_Evaluate_Fcn (obs, nlsf(k))
     endif
-    call FitNLSFunc(obs, nlsf(j), r, fpc, r)
-    nlsf(j)%rms = sqrt( sum( r(1:num_obs_points)**2 )/float(num_obs_points) )
+    residual_vect = NLSF_Fit_Function(obs, nlsf(j), residual_vect, field_precond)
+
+    nlsf(j)%rms = sqrt( sum( residual_vect(:)**2 )/float(num_obs_points) )
     rms(j) = nlsf(j)%rms
-    residuals(1:num_obs_points, j) = r(1:num_obs_points)
+    residuals(:, j) = residual_vect(:)
+    write(*,'(A,I2,A,F18.16)')'residual ', j, ': ', sqrt(sum(residual_vect(:)**2)/float(num_obs_points))
 enddo
 call write_csv(num_obs_points, nsf, residuals, 'residuals.csv', num_obs_points)
+
 open(63, file = 'NLSFpar.csv')
 do j = 1, nsf
-    write(63,*)nlsf(j)%d, ', ', trim(nlsf(j)%form), ', ', nlsf(j)%x0, ', ', nlsf(j)%lambda
+    write(63,*)nlsf(j)%axis, ', ', trim(nlsf(j)%form), ', ', nlsf(j)%f0, ', ', nlsf(j)%lambda
 enddo
 close(63)
 
-if(IsReset.eq.1)then
-    !sort functions into increasing rms
-    write(*,*)'rms:', rms(1:nsf)
-    do k = 1, nsf
-        j = minloc(rms(1:nsf), 1)
-        write(*,*)k, j, rms(j)
-        RankIndx(k) = j
-        rms(j) = huge(1.D0)
-    enddo
-    write(*,*)'function rank:', RankIndx(1:nsf)
-    nlsf(1:nsf) = nlsf(RankIndx(1:nsf))
-    residuals(1:num_obs_points, 1:nsf) = residuals(1:num_obs_points, RankIndx(1:nsf))
-    nlsf(1:nsf)%nsf = min(nsf, nsflim)
-    write(*,*)'function rms:', nlsf(1:nsf)%rms
+do j = 1, nsf
+    write(*,*)'spatial function', j, 'postfit rms:', rms(j)
+enddo
 
-    mu = sum(obs%f_psqm(1:num_obs_points)/float(num_obs_points))
-    rms0 = sqrt(sum( ( obs%f_psqm(1:num_obs_points) - mu)**2) / float(num_obs_points))
-    j = 1
-    call write_csv(num_obs_points, nsf, residuals, 'residuals0.csv', num_obs_points)
-    do while( ( nlsf(j)%rms .lt. .9*rms0 + .1*nlsf(1)%rms) .and. (j+1.lt.nsf) )
-        j = j+1
-        write(*,*)'delta rms:', nlsf(j)%rms, rms0, nlsf(1)%rms, .9*rms0 +.1*nlsf(1)%rms, &
-        sum(  (residuals(1:num_obs_points, j+1) - residuals(1:num_obs_points, j))**2 )/float(num_obs_points) 
-    enddo
-    j = j-1
-    nlsf(1:nsf)%nsflim = j
-    nlsf(1:nsf)%nsf = nlsf(1:nsf)%nsflim
-    write(*,*) 'NLSF limit = ', j
-else
-    nlsf(1:nsf)%nsflim = nsf
-    nlsf(1:nsf)%nsf = nlsf(1:nsf)%nsflim
-    do j = 1, nsf
-        write(*,*)'spatial function', j, 'postfit rms:', rms(j)
-    enddo
-   
-endif
-
-deallocate(r, fpc, residuals, rms)
-return
+deallocate(residual_vect, field_precond, residuals, rms)
 endsubroutine
 
 !--------------------------------------------------------------------------------------------------
@@ -282,47 +300,58 @@ endsubroutine
 !> - f: p%num_points length vector of values of nlsf at points defined in p.
 !> @author keston Smith (IBSS corp) 2022
 !--------------------------------------------------------------------------------------------------
-subroutine NLSFunc (p, nlsf, f)
+function NLSF_Evaluate_Fcn (p, nlsf)
 type(Grid_Data_Class), intent(in):: p
 type(NLSFPar), intent(in)::nlsf
-real(dp), intent(out)::  f(*)
+real(dp) :: NLSF_Evaluate_Fcn(1:p%num_points)
 real(dp), allocatable :: x(:)
 integer num_points, j
 num_points = p%num_points
 
 allocate(x(1:num_points))
 
-select case (trim(nlsf%d))
-    case ('x')
-        x(1:num_points) = p%x(1:num_points)
-    case ('y')
-        x(1:num_points) = p%y(1:num_points)
-    case ('z')
-        x(1:num_points) = p%z(1:num_points)
-    case ('x+y')
-        x(1:num_points) = p%x(1:num_points)+p%y(1:num_points)
-    case default
-        write(*,*) 'Error unkown spatial dimension in nlsf(a):', trim(nlsf%d)
-        stop
+select case (trim(nlsf%axis))
+case ('x')
+    x(1:num_points) = p%x(1:num_points)
+case ('y')
+    x(1:num_points) = p%y(1:num_points)
+case ('z')
+    x(1:num_points) = p%z(1:num_points)
+case ('x+y')
+    x(1:num_points) = p%x(1:num_points)+p%y(1:num_points)
+case default ! this should not occur as the variable values have already been checked
+    write(*,*) 'Error unkown spatial dimension in nlsf(a):', trim(nlsf%axis)
+    stop
 end select
+
 !Bound interpolation range to observed range 
-if (nlsf%IsTruncateRange.eq.1)then
+if (is_truncate_range) then
     do j = 1, num_points
-        if(x(j).lt.nlsf%xRange(1)) x(j) = nlsf%xRange(1)
-        if(x(j).gt.nlsf%xRange(2)) x(j) = nlsf%xRange(2)
+        if(x(j).lt.nlsf%f_range(1)) x(j) = nlsf%f_range(1)
+        if(x(j).gt.nlsf%f_range(2)) x(j) = nlsf%f_range(2)
     enddo
 endif
-if(nlsf%form(1:8).eq.'Logistic')f(1:num_points) = 1.D0 / ( 1.D0 + exp( - ( x(1:num_points) - nlsf%x0 ) / nlsf%lambda ) )
-if(nlsf%form(1:8).eq.'Gaussian')f(1:num_points) = exp( - ( (x(1:num_points) - nlsf%x0) / nlsf%lambda )**2 )
-if(nlsf%form(1:6).eq.'SinExp')&
-&         f(1:num_points) = sin((x(1:num_points)-nlsf%x0)/nlsf%lambda ) * exp(-((x(1:num_points) - nlsf%x0)/nlsf%lambda )**2)
-if(nlsf%form(1:6).eq.'CosExp')&
-&         f(1:num_points) = cos((x(1:num_points)-nlsf%x0)/nlsf%lambda ) * exp(-((x(1:num_points) - nlsf%x0)/(2.*nlsf%lambda))**2)
+
+select case (trim(nlsf%form))
+case ('Logistic')
+    NLSF_Evaluate_Fcn(:) = 1.D0 / ( 1.D0 + exp( - ( x(:) - nlsf%f0 ) / nlsf%lambda ) )
+
+case ('Gaussian')
+    NLSF_Evaluate_Fcn(:) = exp( - ( (x(:) - nlsf%f0) / nlsf%lambda )**2 )
+
+case ('SinExp')
+    NLSF_Evaluate_Fcn(:) = sin((x(:)-nlsf%f0)/nlsf%lambda ) * exp(-((x(:) - nlsf%f0)/nlsf%lambda )**2)
+
+case ('CosExp')
+    NLSF_Evaluate_Fcn(:) = cos((x(:)-nlsf%f0)/nlsf%lambda ) * exp(-((x(:) - nlsf%f0)/(2.*nlsf%lambda))**2)
+
+case default ! this should not occur as the variable values have already been checked
+    write(*,*) 'Error unkown spatial form in nlsf(a):', trim(nlsf%form)
+    stop
+end select
 
 deallocate(x)
-
-return
-endsubroutine
+endfunction NLSF_Evaluate_Fcn
 
 !----------------------------------------------------------------------------------------
 !> Purpose: Calculate smoothing penalty for nonlinear spatial function fit.  Penalty is 
@@ -338,23 +367,32 @@ endsubroutine
 !>
 !> @author keston Smith (IBSS corp) 2022
 !----------------------------------------------------------------------------------------
-subroutine NLSFuncPen (nlsf, p)
+real(dp) function NLSF_Smooth_Penalty (nlsf)
 type(NLSFPar)::nlsf
-real(dp), intent(out)::  p
-if(nlsf%form(1:8).eq.'Gaussian')p = 3.D0 * sqrt(pi/2.D0) / nlsf%lambda**3
-if(nlsf%form(1:8).eq.'Logistic')p = (1.D0/30.D0) / nlsf%lambda**3
-if(nlsf%form(1:6).eq.'SinExp') p = 0.25D0*sqrt(2.D0*pi)*(10.D0-3.D0/exp(-.5D0)) / nlsf%lambda**3
-if(nlsf%form(1:6).eq.'CosExp') p = (1.D0/32.D0)*sqrt(2.D0*pi)*(43.D0-3.D0/exp(-.5D0)) / nlsf%lambda**3
-return
-endsubroutine
+
+select case (trim(nlsf%form))
+case ('Logistic')
+    NLSF_Smooth_Penalty = (1.D0/30.D0) / nlsf%lambda**3
+
+case ('Gaussian')
+    NLSF_Smooth_Penalty = 3.D0 * sqrt(pi/2.D0) / nlsf%lambda**3
+
+case ('SinExp')
+    NLSF_Smooth_Penalty = 0.25D0*sqrt(2.D0*pi)*(10.D0-3.D0/exp(-.5D0)) / nlsf%lambda**3
+
+case ('CosExp')
+    NLSF_Smooth_Penalty = (1.D0/32.D0)*sqrt(2.D0*pi)*(43.D0-3.D0/exp(-.5D0)) / nlsf%lambda**3
+
+end select
+endfunction NLSF_Smooth_Penalty
 
 !--------------------------------------------------------------------------------------------------
-!> Purpose: Fit nonlinear parameters nlsf%x0 and nlsf%lambda to observations at num_points points defined in 
+!> Purpose: Fit nonlinear parameters nlsf%f0 and nlsf%lambda to observations at num_points points defined in 
 !> obs with values y.  f is a function defined at the observation points. The penalty function is \n
 !>           sum_i (a+b*nlsf%g_i(x0,lambda)*f_i - y_i)**2 \n
 !> where a and b are estimated using simple linear regresion for each nonlinear parameter pair x_0, 
 !> lambda.  The minimization is done with a brute force search over np=500 equally spaced values 
-!> between (nlsf%x0Min and nlsf%x0Max) and (nlsf%x0Min and  nlsf%x0Max) respectivly.
+!> between (nlsf%f0_min and nlsf%f0_max) and (nlsf%f0_min and  nlsf%f0_max) respectivly.
 !>
 !> inputs:
 !> - obs: GridManagerMod(see UniversalKriging.f90) Defines spatial observation points
@@ -366,56 +404,57 @@ endsubroutine
 !>             function. On exit optimal values of x_0 and lambda are specified 
 !>
 !> outputs: 
-!> - r: residual, r_i=y_i - nlsf(x_i |x0,lambda) where i=1..# of observations.
+!> - residual: residual, r_i=y_i - nlsf(x_i |x0,lambda) where i=1..# of observations.
 !>
 !> @author keston Smith (IBSS corp) 2022
 !--------------------------------------------------------------------------------------------------
-subroutine FitNLSFunc(obs, nlsf, y, f, r)
+function NLSF_Fit_Function(obs, nlsf, y, f)
 
-type(Grid_Data_Class):: obs
-type(NLSFPar)::nlsf
+type(Grid_Data_Class), intent(in) :: obs
+type(NLSFPar), intent(inout) ::nlsf
 real(dp), intent(in):: y(*), f(*)
-real(dp), intent(inout):: r(*)
+real(dp) :: NLSF_Fit_Function(1:obs%num_points)
 
-real(dp)  alpha, beta, ErrMin, Err, x0hat, lambdahat, smoothness_penalty, SPF, RMS
-integer j, k, np, num_points, nx0, nlambda
+real(dp)  ErrMin, Err, x0hat, lambdahat, smoothness_penalty, SPF, RMS
+integer j, k, num_points
 real(dp), allocatable :: s(:), p(:), x0(:), lambda(:), lpr(:), pg(:)
+integer, parameter :: np = 500
 
 num_points = obs%num_points
-np = 500
 allocate(s(1:num_points), lpr(1:num_points), p(1:np), x0(1:np), lambda(1:np), pg(1:num_points))
 
+! linear interpolation positions???
 do j = 1, np
     p(j) = float(j-1) / float(np-1)
 enddo
 
 !----------------------------------------------
-! set smoothness to dominate below lambdaMin
+! set smoothness to dominate below lambda_min
 ! SPF: penalizes integral [d2 f /d x2 f(x)]^2
 ! set SPF=0 for no roughness penalty
 !----------------------------------------------
-RMS = sqrt( sum( r(1:num_points)**2 )/float(num_points) )
-nlsf%lambda = nlsf%lambdaMin
-call NLSFuncPen(nlsf, smoothness_penalty)
+RMS = sqrt( sum( y(1:num_points)**2 )/float(num_points) )
+nlsf%lambda = nlsf%lambda_min
+smoothness_penalty = NLSF_Smooth_Penalty(nlsf)
 SPF = RMS/smoothness_penalty
-x0(1:np) = nlsf%x0Min + ( nlsf%x0Max - nlsf%x0Min ) * p(1:np)
-lambda(1:np) = nlsf%lambdaMin + (nlsf%lambdaMax - nlsf%lambdaMin) * p(1:np)
+x0(1:np) = nlsf%f0_min + ( nlsf%f0_max - nlsf%f0_min ) * p(1:np)
+lambda(1:np) = nlsf%lambda_min + (nlsf%lambda_max - nlsf%lambda_min) * p(1:np)
 !----------------------------------------------
 
-nx0 = np
-nlambda = np
 ErrMin = Huge(1.D0)
 x0hat = x0(1)
 lambdahat = lambda(1)
-do j = 1, nx0
-    do k = 1, nlambda
-        nlsf%x0 = x0(j)
+! index x0
+do j = 1, np
+    ! index lambda
+    do k = 1, np
+        nlsf%f0 = x0(j)
         nlsf%lambda = lambda(k)
-        call NLSFunc(obs, nlsf, s)
-        call SLR(y, s(1:num_points)*f(1:num_points), num_points, alpha, beta, lpr)
+        s(:) = NLSF_Evaluate_Fcn(obs, nlsf)
+        lpr = LSF_Simple_Linear_Regression(y(1:num_points), s(1:num_points) * f(1:num_points), num_points)
         RMS = sqrt( sum( (y(1:num_points) - lpr(1:num_points))**2) / float(num_points) )
-        call NLSFuncPen(nlsf, smoothness_penalty) ! penalize roguhness analytic approximation
-        Err = RMS+SPF*smoothness_penalty
+        smoothness_penalty = NLSF_Smooth_Penalty(nlsf) ! penalize roughness analytic approximation
+        Err = RMS + SPF * smoothness_penalty
         if (Err.lt.ErrMin)then
             ! write(*,*)nlsf%form, Err, RMS, SPF*smoothness_penalty
             ErrMin = err
@@ -424,16 +463,15 @@ do j = 1, nx0
         endif
     enddo
 enddo
-nlsf%x0 = x0hat
+nlsf%f0 = x0hat
 nlsf%lambda = lambdahat
-call NLSFunc(obs, nlsf, s)
-call SLR(y, s(1:num_points)*f(1:num_points), num_points, alpha, beta, lpr)
-r(1:num_points) = y(1:num_points) - lpr(1:num_points)
+s(:) = NLSF_Evaluate_Fcn(obs, nlsf)
+lpr = LSF_Simple_Linear_Regression(y, s(1:num_points) * f(1:num_points), num_points)
+NLSF_Fit_Function(1:num_points) = y(1:num_points) - lpr(1:num_points)
 
 deallocate(s, p, x0, lambda, lpr)
 
-return
-endsubroutine
+endfunction NLSF_Fit_Function
 
 !--------------------------------------------------------------------------------------------------
 !> Purpose: Performs a brute force least squares fit of nonlinear spatial function parameters to 
@@ -445,44 +483,42 @@ endsubroutine
 !>
 !> inputs/output:
 !> - nlsf: Nonlinear spatial function(see UniversalKriging.f90). Defines a vector of nonlinear 
-!>         spatial functions. On return nlsf(1:nsf)%x0 and nlsf(1:nsf)%lambda are specified.
+!>         spatial functions. On return nlsf(1:nsf)%f0 and nlsf(1:nsf)%lambda are specified.
 !>
 !> outputs: 
 !> - f: p%num_points length vector of values of nlsf at points defined in p.
 !>
 !> @author keston Smith (IBSS corp) 2022
 !--------------------------------------------------------------------------------------------------
-subroutine FitNLSFunctionsGreedy(obs, nlsf)
-integer j, num_obs_points, num_points, nsf, k, jBest, notyet, nfi, nsflim
+subroutine NLSF_Greedy_Least_Sq_Fit(obs, nlsf)
+integer j, num_obs_points, num_points, k, jBest, notyet, nfi
 real(dp) rmsMin
 type(Grid_Data_Class), intent(in):: obs
 type(NLSFPar), intent(inout) ::nlsf(*)
-real(dp), allocatable :: r(:), fpc(:), residuals(:, :), rms(:), res(:)
+real(dp), allocatable :: residual_vect(:), field_precond(:), residuals(:, :), rms(:), res(:)
 integer, allocatable :: isfit(:), RankIndx(:)
 type(NLSFPar), allocatable ::nlsfTmp(:)
 
 num_obs_points = obs%num_points
-nsf = nlsf(1)%nsf
-nsflim = nlsf(1)%nsflim
 write(*,*)'FNLSF', num_obs_points, num_points, nsf
-allocate(r(1:num_obs_points), res(1:num_obs_points), fpc(1:num_obs_points))
+allocate(residual_vect(1:num_obs_points), res(1:num_obs_points), field_precond(1:num_obs_points))
 allocate(residuals(1:num_obs_points, 1:nsf), rms(1:nsf), isfit(1:nsf))
 allocate(nlsfTmp(1:nsf), RankIndx(1:nsf))
-r(1:num_obs_points) = obs%f_psqm(1:num_obs_points)
-write(*,*)'res0:', sqrt(sum(r(1:num_obs_points)**2) / float(num_obs_points))
+residual_vect(1:num_obs_points) = obs%field_psqm(1:num_obs_points)
+write(*,*)'res0:', sqrt(sum(residual_vect(1:num_obs_points)**2) / float(num_obs_points))
 isfit(1:nsf) = 0
 nfi = 0
 do while(sum(isfit(1:nsf)).lt.nsflim)
     do j = 1, nsf
         notyet = 0
         if (isfit(j).eq.0)then
-            if (nlsf(j)%PreCFnum.eq.0)then
+            if (nlsf(j)%pre_cond_fcn_num.eq.0)then
                 !no preconditioning
-                fpc(1:num_obs_points) = 1.D0
+                field_precond(1:num_obs_points) = 1.D0
             else
-                k = nlsf(j)%PreCFnum
+                k = nlsf(j)%pre_cond_fcn_num
                 if(isfit(k).eq.1)then
-                    call NLSFunc (obs, nlsf(k), fpc)
+                    field_precond(:) = NLSF_Evaluate_Fcn (obs, nlsf(k))
                 else
                 ! dont fit function if preconditioning function not set
                     rms(j) = huge(1.D0)
@@ -490,7 +526,7 @@ do while(sum(isfit(1:nsf)).lt.nsflim)
                 endif
             endif
             if(notyet.eq.0)then
-                call FitNLSFunc(obs, nlsf(j), r, fpc, res)
+                res = NLSF_Fit_Function(obs, nlsf(j), residual_vect, field_precond)
                 nlsf(j)%rms = sqrt( sum( res(1:num_obs_points)**2) / float(num_obs_points) )
                 residuals(1:num_obs_points, j) = res(1:num_obs_points)
                 rms(j) = sqrt( sum( res(1:num_obs_points)**2) / float(num_obs_points) )
@@ -509,24 +545,24 @@ do while(sum(isfit(1:nsf)).lt.nsflim)
     enddo
     isfit(Jbest) = 1
     
-    call FitNLSFunc(obs, nlsf(Jbest), r, fpc, res)
+    res = NLSF_Fit_Function(obs, nlsf(Jbest), residual_vect, field_precond)
     nfi = nfi+1
     RankIndx(nfi) = Jbest
-    r(1:num_obs_points) = res(1:num_obs_points)
+    residual_vect(1:num_obs_points) = res(1:num_obs_points)
     write(*,*)'Fit function number', Jbest, float(sum(isfit(1:nsf))) / float(nsf), &
-             'Remaining RMS=', sqrt( sum( r(1:num_obs_points)**2) / float(num_obs_points) )
+             'Remaining RMS=', sqrt( sum( residual_vect(1:num_obs_points)**2) / float(num_obs_points) )
 enddo
 
 call write_csv(num_obs_points, nsf, residuals, 'residuals.csv', num_obs_points)
 open(63, file = 'NLSFpar.csv')
 do j = 1, nsf
-    write(63,*)nlsf(j)%d, ', ', trim(nlsf(j)%form), ', ', nlsf(j)%x0, ', ', nlsf(j)%lambda
+    write(63,*)nlsf(j)%axis, ', ', trim(nlsf(j)%form), ', ', nlsf(j)%f0, ', ', nlsf(j)%lambda
 enddo
 close(63)
 write(*,*)'function rank:', RankIndx(1:nsf)
 nlsf(1:nsf) = nlsf(RankIndx(1:nsf))
-deallocate(r, fpc, residuals, rms, res, nlsfTmp)
-return
+deallocate(residual_vect, field_precond, residuals, rms, res, nlsfTmp)
+
 endsubroutine
 
 endmodule
