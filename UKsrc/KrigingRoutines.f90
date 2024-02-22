@@ -72,11 +72,11 @@ end subroutine
 !>    
 !> @author Keston Smith (IBSS corp) June-July 2021
 !--------------------------------------------------------------------------------------------------
-subroutine Krig_Compute_Variogram(num_points,num_cols,distance_horiz,distance_vert,variogram,n_dim,par)
-type(Krig_Class):: par
+function Krig_Compute_Variogram(num_points,num_cols,distance_horiz,distance_vert,n_dim,par)
+type(Krig_Class), intent(in) :: par
 integer, intent(in) :: num_points,num_cols,n_dim
 real(dp), intent(in) :: distance_horiz(n_dim,*),distance_vert(n_dim,*)
-real(dp), intent(out) :: variogram(n_dim,*)
+real(dp) :: Krig_Compute_Variogram(n_dim,num_cols)
 integer j,k,error
 real(dp) sill,nugget,alpha,Wz
 real(dp) kap
@@ -95,9 +95,9 @@ D(1:num_points,1:num_cols) = sqrt( distance_horiz(1:num_points,1:num_cols)**2 &
 if (trim(form).eq.'spherical')then
     do j=1,num_points
         do k=1,num_cols
-            variogram(j,k)=nugget+ sill*(1.5*D(j,k)/alpha -((D(j,k)/alpha)**3)/2.)
-            if(D(j,k).gt.alpha) variogram(j,k)=nugget+sill
-            if(D(j,k).eq.0.) variogram(j,k)=0.
+            Krig_Compute_Variogram(j,k)=nugget + sill * (1.5_dp * D(j,k) / alpha - ((D(j,k) / alpha)**3) / 2._dp)
+            if(D(j,k).gt.alpha) Krig_Compute_Variogram(j,k) = nugget + sill
+            if(D(j,k).eq.0.) Krig_Compute_Variogram(j,k) = 0._dp
         enddo
     enddo
 endif
@@ -105,8 +105,8 @@ endif
 if (trim(form).eq.'exponential')then
     do j=1,num_points
         do k=1,num_cols
-            variogram(j,k)=nugget+ sill*(1 - exp(-D(j,k)/alpha)  )
-            if(D(j,k).eq.0.) variogram(j,k)=0.
+            Krig_Compute_Variogram(j,k)=nugget + sill * (1._dp - exp(-D(j,k) / alpha)  )
+            if(D(j,k).eq.0.) Krig_Compute_Variogram(j,k) = 0._dp
         enddo
     enddo
 endif
@@ -114,8 +114,8 @@ endif
 if (trim(form).eq.'gaussian')then
     do j=1,num_points
         do k=1,num_cols
-            variogram(j,k)=nugget+ sill*(1 - exp(-D(j,k)/alpha)**2  )
-            if(D(j,k).eq.0.) variogram(j,k)=0.
+            Krig_Compute_Variogram(j,k)=nugget + sill * (1._dp - exp(-D(j,k)/alpha)**2  )
+            if(D(j,k).eq.0.) Krig_Compute_Variogram(j,k) = 0._dp
         enddo
     enddo
 endif
@@ -124,14 +124,15 @@ if (trim(form).eq.'matern')then
     kap=.5
     do j=1,num_points
         do k=1,num_cols
-            variogram(j,k)=nugget+ sill*(1. - (1./(gamma(kap) * 2.**(kap-1) ) ) * bessel_jn(2,D(j,k)/alpha) * (D(j,k)/alpha)**kap );
-           if(D(j,k).eq.0.) variogram(j,k)=0.
+            Krig_Compute_Variogram(j,k) = nugget + &
+            & sill * (1._dp - (1._dp / (gamma(kap) * 2.**(kap - 1._dp))) * bessel_jn(2, D(j,k) / alpha) * (D(j,k)/alpha)**kap);
+           if(D(j,k).eq.0.) Krig_Compute_Variogram(j,k)=0.
         enddo
     enddo
 endif
 
 deallocate( D,stat=error) 
-endsubroutine 
+endfunction Krig_Compute_Variogram
 
 !--------------------------------------------------------------------------------------------------
 !! @public @memberof Krig_Class
@@ -141,11 +142,11 @@ endsubroutine
 !> @param[in]  n_dim    (integer) allocated number of rows D, Gamma
 !> @param[in]  distance_horiz, distance_vert     (real(dp))  Size (num_points x num_cols) matrix distance between point pairs
 !> 
-!> @param[out] variogram     (real(dp))  Size (num_points x num_cols) variogram matrix for point pairs represented in D
+!> @param[inout] par
 !> 
 !> @author Keston Smith (IBSS corp) June-July 2021
 !--------------------------------------------------------------------------------------------------
-subroutine Krig_Comp_Emp_Variogram(num_points,distance_horiz,distance_vert,variogram,n_dim,f,par)
+subroutine Krig_Comp_Emp_Variogram(num_points,distance_horiz,distance_vert,n_dim,f,par)
 type(Krig_Class), intent(inout) :: par
 type(Krig_Class):: parTmp
 
@@ -153,8 +154,8 @@ integer  NIntVD,NPS
 parameter(NIntVD=31,NPS=30)
 integer, intent(in)  :: num_points,n_dim
 real(dp), intent(in) :: distance_horiz(n_dim,*),distance_vert(n_dim,*),f(*)
-real(dp), intent(out):: variogram(n_dim,*)
 real(dp) DintV(NIntVD),DintVm(NIntVD), SIntV(NIntVD)
+real(dp) variogram(n_dim,1)
 real(dp) Pind(NPS),alphaR(NPS),c0R(NPS),cR(NPS),WzR
 integer j,k,n,m,nc,NIntV
 real(dp) dx,cost,costmin,Wz
@@ -217,8 +218,8 @@ do j=1,NPS
             parTmp%sill=cR(k)
             parTmp%alpha=alphaR(m)
             parTmp%Wz=WzR
-            call Krig_Compute_Variogram(NintV,1,DintVm,0*DintVm,variogram,NintV,parTmp)
-            cost=sum( (SIntV(1:NIntV)-variogram(1:NIntV,1))**2 )
+            variogram = Krig_Compute_Variogram(NintV, 1, DintVm, 0*DintVm, NIntV, parTmp)
+            cost = sum((SIntV(1:NIntV) - variogram(1:NIntV,1))**2)
             if( cost.lt.costmin )then
                 costmin=cost
                 par%nugget=c0R(j)
@@ -230,7 +231,7 @@ do j=1,NPS
     enddo !k
 enddo !j
 
-call Krig_Compute_Variogram(NintV,1,DIntVm,0*DIntV,variogram,NintV,par)
+variogram = Krig_Compute_Variogram(NintV, 1, DIntVm, 0*DIntV, NIntV, par)
 
 call Write_2D_Scalar_Field(NintV,1,variogram,'GammaIntV.txt',NintV)
 call Write_2D_Scalar_Field(NintV,1,DIntVm,'DIntV.txt',NintV)
@@ -239,8 +240,7 @@ call Write_2D_Scalar_Field(NintV,1,SIntV,'SIntV.txt',NintV)
 write(*,*)'Bounds alpha:[', alphaR(1),par%alpha,alphaR(NPS),']'
 write(*,*)'Bounds nugget:[', c0R(1),par%nugget,c0R(NPS),']'
 write(*,*)'Bounds sill:[',cR(1),par%sill,cR(NPS),']'
-call Krig_Compute_Variogram(num_points, num_points, distance_horiz,distance_vert, variogram, num_points, par)
-endsubroutine
+endsubroutine Krig_Comp_Emp_Variogram
 
 !--------------------------------------------------------------------------------------------------
 !! @public @memberof Krig_Class
@@ -354,7 +354,7 @@ allocate( ftrnd(1:num_points), ipiv(1:nopnf), stat=error)
 ! observation points
 !
 call Krig_Compute_Distance(obs, obs, distance_horiz, distance_vert, num_obs_points)
-call Krig_Compute_Variogram(num_obs_points, num_obs_points, distance_horiz, distance_vert, Gamma, num_obs_points, par)
+Gamma = Krig_Compute_Variogram(num_obs_points, num_obs_points, distance_horiz, distance_vert, num_obs_points, par)
 call Krig_Evaluate_Spatial_Function(obs, Fs, num_spat_fcns, num_obs_points, nlsf)
 !
 ! Ceps <- covariance between observation points (from variogram)
@@ -365,7 +365,7 @@ call Krig_Evaluate_Spatial_Function(obs, Fs, num_spat_fcns, num_obs_points, nlsf
 ! functions at grid points
 !
 call Krig_Compute_Distance(obs, grid, D0h, D0z, num_obs_points)
-call Krig_Compute_Variogram(num_obs_points, num_points, D0h, D0z, gamma0, num_obs_points, par)
+gamma0 = Krig_Compute_Variogram(num_obs_points, num_points, D0h, D0z, num_obs_points, par)
 call Krig_Evaluate_Spatial_Function(grid, Fs0, num_spat_fcns, num_points, nlsf)
 !
 !Compute the Univeral Kriging linear estimate of f following Cressie 1993
@@ -399,7 +399,7 @@ call dgemv('N', num_points, num_obs_points, atmp, W, num_points, obs%field_psqm,
 ! compute posterior trend statistics
 !
 Dinf(1, 1)=10.**10
-call Krig_Compute_Variogram(1, 1, Dinf, Dinf, Vinf, 1, par)
+Vinf = Krig_Compute_Variogram(1, 1, Dinf, Dinf, 1, par)
 !
 ! Ceps <- covariance between observation points (from variogram)
 !
@@ -442,7 +442,7 @@ beta(1:num_spat_fcns)=matmul(Cbeta(1:num_spat_fcns, 1:num_spat_fcns), Vtmp2(1:nu
 !
 call Krig_Compute_Distance(grid, grid, DGh, DGz, num_points)
 write(*,*)'Krig_Generalized_Least_Sq (e) dgesv info=', info
-call Krig_Compute_Variogram(num_points, num_points, DGh, DGz, gammaG, num_points, par)
+gammaG = Krig_Compute_Variogram(num_points, num_points, DGh, DGz, num_points, par)
 write(*,*)'Krig_Generalized_Least_Sq (f) dgesv info=', info
 CepsG(1:num_points, 1:num_points)=Vinf(1, 1)-gammaG(1:num_points, 1:num_points)
 C0(1:num_obs_points, 1:num_points)=Vinf(1, 1)-gamma0(1:num_obs_points, 1:num_points)
@@ -498,7 +498,7 @@ end subroutine
 !> @author Keston Smith (IBSS corp) June-July 2021
 !> @todo need to fix dimensioning (1/10/2022)!
 !-----------------------------------------------------------------------
-subroutine UK_prior(grid, num_spat_fcns, par, beta, Cbeta, eps, Ceps)
+subroutine Krig_User_Estimates(grid, num_spat_fcns, par, beta, Cbeta, eps, Ceps)
 type(Grid_Data_Class):: grid
 type(Krig_Class):: par
 integer,  intent(in):: num_spat_fcns
@@ -516,9 +516,9 @@ allocate( gamma(1:num_points, 1:num_points), stat=error )
 ! Assign mean and Covariance for epsilon
 !
 call Krig_Compute_Distance(grid, grid, distance_horiz, distance_vert, num_points)
-call Krig_Compute_Variogram(num_points, num_points, distance_horiz, distance_vert, gamma, num_points, par)
+gamma = Krig_Compute_Variogram(num_points, num_points, distance_horiz, distance_vert, num_points, par)
 Dinf(1, 1)=10.**10
-call Krig_Compute_Variogram(1, 1, Dinf, Dinf, Vinf, 1, par)
+Vinf = Krig_Compute_Variogram(1, 1, Dinf, Dinf, 1, par)
 Ceps(1:num_points, 1:num_points)=Vinf(1, 1)-gamma(1:num_points, 1:num_points)
 eps(1:num_points)=0.
 !

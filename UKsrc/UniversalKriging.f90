@@ -120,7 +120,7 @@ implicit none
 
 real(dp)  atmp, btmp
 real(dp), allocatable :: beta(:), Cbeta(:,:), eps(:), Ceps(:,:), Cr(:,:), F(:,:), r(:), trndOBS(:), resOBS(:)
-real(dp), allocatable :: distance_horiz(:,:), distance_vert(:,:), gamma(:,:)
+real(dp), allocatable :: distance_horiz(:,:), distance_vert(:,:)
 real(dp), allocatable :: RandomField(:,:)
 integer num_points, num_spat_fcns, num_obs_points, j
 logical use_posterior_sim ! # F priori simulation, T posterior simulation
@@ -225,8 +225,7 @@ if (use_posterior_sim) then
     allocate( Cr(1:num_obs_points, 1:num_obs_points), F(1:num_obs_points, 1:num_spat_fcns), r(1:num_obs_points))
     allocate( trndOBS(1:num_obs_points), resOBS(1:num_obs_points))
     allocate( distance_horiz(1:num_obs_points, 1:num_obs_points), distance_vert(1:num_obs_points, 1:num_obs_points))
-    allocate( gamma(1:num_obs_points, 1:num_obs_points) )
-
+        
     fmax = fmax * maxval(obs%field_psqm(1:num_obs_points))
     !domain_average = Get_Domain_Average(obs, grid)
 
@@ -260,7 +259,7 @@ if (use_posterior_sim) then
     call Write_Vector_Scalar_Field(num_obs_points, obs%field_psqm, 'data.txt')
     call Krig_Compute_Distance(obs, obs, distance_horiz, distance_vert, num_obs_points)
 
-    call Krig_Comp_Emp_Variogram(num_obs_points, distance_horiz, distance_vert, gamma, num_obs_points, r, par)
+    call Krig_Comp_Emp_Variogram(num_obs_points, distance_horiz, distance_vert, num_obs_points, r, par)
     open(63, file='KRIGpar.txt')
     write(63,*)par%sill, par%nugget, par%alpha, par%Wz
     close(63)
@@ -279,7 +278,7 @@ if (use_posterior_sim) then
     write(*,*)'GLSres:', sqrt(sum(resOBS(1:num_obs_points)**2) / float(num_obs_points))
 else 
     ! simulate from user supplied prior estimate of beta, Cbeta, eps, Ceps
-    call UK_prior(grid, num_spat_fcns, par, beta, Cbeta, eps, Ceps)
+    call Krig_User_Estimates(grid, num_spat_fcns, par, beta, Cbeta, eps, Ceps)
 endif
 
 ! Deprecate domain_average IsMatchMean
@@ -298,7 +297,6 @@ if (use_posterior_sim) then
     deallocate( Cr, F, r)
     deallocate( trndOBS, resOBS)
     deallocate( distance_horiz, distance_vert)
-    deallocate( gamma)
 endif
 
 stop
