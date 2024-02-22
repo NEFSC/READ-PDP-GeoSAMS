@@ -12,7 +12,7 @@ use GridManagerMod
 use LSF_Mod
 implicit none
 
-type NLSFPar
+type NLSF_Class
     real(dp) lambda, f0
     real(dp) lambda_min, lambda_max
     real(dp) f0_min, f0_max
@@ -22,7 +22,7 @@ type NLSFPar
     character(3) axis
     !integer nsf, pre_cond_fcn_num, IsTruncateRange, UseGreedyFit, nsflim
     integer pre_cond_fcn_num
-end type NLSFPar
+end type NLSF_Class
 
 character(fname_len), PRIVATE :: config_file_name
 integer, PRIVATE :: nsf
@@ -57,14 +57,15 @@ endfunction Get_NSF
 !>
 !> NOTE: Greedy function takes significantly longer to run
 !-----------------------------------------------------------------------------------------------
-subroutine NLSF_Select_Fit(obs, nlsf)
+subroutine NLSF_Select_Fit(obs, nlsf, only_est)
 type(Grid_Data_Class):: obs
-type(NLSFPar)::nlsf(*)
+type(NLSF_Class)::nlsf(*)
+logical, intent(in) :: only_est
 
 if (use_greedy_fit) then
-    call NLSF_Greedy_Least_Sq_Fit(obs, nlsf)
+    call NLSF_Greedy_Least_Sq_Fit(obs, nlsf, only_est)
 else
-    call NLSF_Least_Sq_Fit(obs, nlsf)
+    call NLSF_Least_Sq_Fit(obs, nlsf, only_est)
 endif
 
 endsubroutine NLSF_Select_Fit
@@ -113,7 +114,7 @@ endsubroutine Set_Config_File_Name
 !> with precon=0 the nonlinear paraters function is fit in a least
 !--------------------------------------------------------------------------------------------------
 integer function NLSF_Define_Functions(nlsf, p, InitialCallFlag)
-type(NLSFPar) :: nlsf(*)
+type(NLSF_Class) :: nlsf(*)
 type(Grid_Data_Class):: p
 integer j, io, n, num_points
 logical, intent(in):: InitialCallFlag
@@ -236,9 +237,11 @@ endfunction
 !>
 !> @author keston Smith (IBSS corp) 2022
 !--------------------------------------------------------------------------------------------------
-subroutine NLSF_Least_Sq_Fit(obs, nlsf)
+subroutine NLSF_Least_Sq_Fit(obs, nlsf, only_est)
 type(Grid_Data_Class), intent(in) :: obs
-type(NLSFPar), intent(inout) ::nlsf(*)
+type(NLSF_Class), intent(inout) ::nlsf(*)
+logical, intent(in) :: only_est
+
 integer j, num_obs_points, k
 real(dp), allocatable :: residual_vect(:), field_precond(:), residuals(:, :), rms(:)
 integer, allocatable:: RankIndx(:)
@@ -273,13 +276,15 @@ do j = 1, nsf
     residuals(:, j) = residual_vect(:)
     write(*,'(A,I2,A,F18.16)')'residual ', j, ': ', sqrt(sum(residual_vect(:)**2)/float(num_obs_points))
 enddo
-call write_csv(num_obs_points, nsf, residuals, 'residuals.csv', num_obs_points)
 
-open(63, file = 'NLSFpar.csv')
-do j = 1, nsf
-    write(63,*)nlsf(j)%axis, ', ', trim(nlsf(j)%form), ', ', nlsf(j)%f0, ', ', nlsf(j)%lambda
-enddo
-close(63)
+if (.not. only_est) then
+    call write_csv(num_obs_points, nsf, residuals, 'residuals.csv', num_obs_points)
+    open(63, file = 'NLSF_Class.csv')
+    do j = 1, nsf
+        write(63,*)nlsf(j)%axis, ', ', trim(nlsf(j)%form), ', ', nlsf(j)%f0, ', ', nlsf(j)%lambda
+    enddo
+    close(63)
+endif
 
 do j = 1, nsf
     write(*,*)'spatial function', j, 'postfit rms:', rms(j)
@@ -302,7 +307,7 @@ endsubroutine
 !--------------------------------------------------------------------------------------------------
 function NLSF_Evaluate_Fcn (p, nlsf)
 type(Grid_Data_Class), intent(in):: p
-type(NLSFPar), intent(in)::nlsf
+type(NLSF_Class), intent(in)::nlsf
 real(dp) :: NLSF_Evaluate_Fcn(1:p%num_points)
 real(dp), allocatable :: x(:)
 integer num_points, j
@@ -368,7 +373,7 @@ endfunction NLSF_Evaluate_Fcn
 !> @author keston Smith (IBSS corp) 2022
 !----------------------------------------------------------------------------------------
 real(dp) function NLSF_Smooth_Penalty (nlsf)
-type(NLSFPar)::nlsf
+type(NLSF_Class)::nlsf
 
 select case (trim(nlsf%form))
 case ('Logistic')
@@ -411,7 +416,7 @@ endfunction NLSF_Smooth_Penalty
 function NLSF_Fit_Function(obs, nlsf, y, f)
 
 type(Grid_Data_Class), intent(in) :: obs
-type(NLSFPar), intent(inout) ::nlsf
+type(NLSF_Class), intent(inout) ::nlsf
 real(dp), intent(in):: y(*), f(*)
 real(dp) :: NLSF_Fit_Function(1:obs%num_points)
 
@@ -490,14 +495,16 @@ endfunction NLSF_Fit_Function
 !>
 !> @author keston Smith (IBSS corp) 2022
 !--------------------------------------------------------------------------------------------------
-subroutine NLSF_Greedy_Least_Sq_Fit(obs, nlsf)
+subroutine NLSF_Greedy_Least_Sq_Fit(obs, nlsf, only_est)
+type(Grid_Data_Class), intent(in):: obs
+type(NLSF_Class), intent(inout) ::nlsf(*)
+logical, intent(in) :: only_est
+
 integer j, num_obs_points, num_points, k, jBest, notyet, nfi
 real(dp) rmsMin
-type(Grid_Data_Class), intent(in):: obs
-type(NLSFPar), intent(inout) ::nlsf(*)
 real(dp), allocatable :: residual_vect(:), field_precond(:), residuals(:, :), rms(:), res(:)
 integer, allocatable :: isfit(:), RankIndx(:)
-type(NLSFPar), allocatable ::nlsfTmp(:)
+type(NLSF_Class), allocatable :: nlsfTmp(:)
 
 num_obs_points = obs%num_points
 write(*,*)'FNLSF', num_obs_points, num_points, nsf
@@ -553,12 +560,14 @@ do while(sum(isfit(1:nsf)).lt.nsflim)
              'Remaining RMS=', sqrt( sum( residual_vect(1:num_obs_points)**2) / float(num_obs_points) )
 enddo
 
-call write_csv(num_obs_points, nsf, residuals, 'residuals.csv', num_obs_points)
-open(63, file = 'NLSFpar.csv')
-do j = 1, nsf
-    write(63,*)nlsf(j)%axis, ', ', trim(nlsf(j)%form), ', ', nlsf(j)%f0, ', ', nlsf(j)%lambda
-enddo
-close(63)
+if (.not. only_est) then
+    call write_csv(num_obs_points, nsf, residuals, 'residuals.csv', num_obs_points)
+    open(63, file = 'NLSF_Class.csv')
+    do j = 1, nsf
+        write(63,*)nlsf(j)%axis, ', ', trim(nlsf(j)%form), ', ', nlsf(j)%f0, ', ', nlsf(j)%lambda
+    enddo
+    close(63)
+endif
 write(*,*)'function rank:', RankIndx(1:nsf)
 nlsf(1:nsf) = nlsf(RankIndx(1:nsf))
 deallocate(residual_vect, field_precond, residuals, rms, res, nlsfTmp)

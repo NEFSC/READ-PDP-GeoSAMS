@@ -124,7 +124,7 @@ real(dp), allocatable :: distance_horiz(:,:), distance_vert(:,:)
 real(dp), allocatable :: RandomField(:,:)
 integer num_points, num_spat_fcns, num_obs_points, j
 logical use_posterior_sim ! # F priori simulation, T posterior simulation
-real(dp)  fmax, A, SF!, domain_average Deprecate domain_average
+real(dp)  fmax, SF
 ! variables for nonlinear fitting
 integer nsf, NRand, ncla
 logical IsHiLimit, IsLogT!, IsMatchMean
@@ -135,8 +135,10 @@ logical exists
 type(Grid_Data_Class):: grid
 type(Grid_Data_Class):: obs
 type(Krig_Class):: par
-type(NLSFPar), allocatable ::nlsf(:)
+type(NLSF_Class), allocatable ::nlsf(:)
 real(dp) alpha
+logical only_est
+
 par%form='spherical'
 
 write (*,*) term_grn, "PROGRAM STARTING", term_blk
@@ -159,7 +161,7 @@ else
     stop
 endif
 
-call Read_Startup_Config(cfg_file_name, domain_name, use_posterior_sim, Nrand, IsLogT, IsHiLimit, fmax, par, alpha) !, IsMatchMean
+call Read_Startup_Config(cfg_file_name, domain_name, use_posterior_sim, Nrand, IsLogT, IsHiLimit, fmax, par, alpha, only_est)
 !override UK.cfg with command line arguments if present. Used by python scripts
 if(ncla.ge.2) call get_command_argument(2, domain_name)
 if (.not. ( any ((/ domain_name.eq.'MA', domain_name.eq.'GB'/)) )) then
@@ -181,6 +183,8 @@ write(*,*) 'High limit fmax', fmax
 write(*,*) 'Form of variagram: ', par%form
 if (.not. use_posterior_sim) write(*,*) 'use_posterior_sim is priori simulation'
 if (use_posterior_sim) write(*,*) 'use_posterior_sim is posterior simulation'
+if (only_est) write(*,*) 'Only resulting estimate is saved'
+if (.not. only_est) write(*,*) 'All data is saved'
 write(*,*) term_blk
 
 call random_seed( )
@@ -230,13 +234,12 @@ if (use_posterior_sim) then
     !domain_average = Get_Domain_Average(obs, grid)
 
     if(IsLogT) then
-        A = 1.D0 / tow_area_sqm ! 1 scallop per tow, prevents log(0)
         SF = sum(obs%field_psqm(1:num_obs_points))/float(num_obs_points)
         SF = SF/5.D0  ! mean / 5 ~ median
-        obs%field_psqm(1:num_obs_points) = log((A + obs%field_psqm(1:num_obs_points)) / SF)
+        obs%field_psqm(1:num_obs_points) = log((one_scallop_per_tow + obs%field_psqm(1:num_obs_points)) / SF)
     endif
     
-    call NLSF_Select_Fit(obs, nlsf)
+    call NLSF_Select_Fit(obs, nlsf, only_est)
     do j=1, nsf
         write(*,*)nlsf(j)%axis, ' ', nlsf(j)%form, nlsf(j)%f0, nlsf(j)%lambda
     enddo
@@ -248,29 +251,34 @@ if (use_posterior_sim) then
     do j=1, num_obs_points
         Cr(j, j)=1.D0
     enddo
-    call Krig_Evaluate_Spatial_Function(obs, F, num_spat_fcns, num_obs_points, nlsf)
-    call LSF_Generalized_Least_Squares(obs%field_psqm, F, Cr, num_obs_points, num_spat_fcns, beta, Cbeta, r)
+    F = Krig_Eval_Spatial_Function(obs, num_spat_fcns, num_obs_points, nlsf, only_est)
+    r = LSF_Generalized_Least_Squares(obs%field_psqm, F, Cr, num_obs_points, num_spat_fcns, only_est)
     write(*,*)'OLSres:', sqrt(sum(r(1:num_obs_points)**2)/float(num_obs_points))
 
     !-------------------------------------------------------------------------
     ! Fit variogram parameters to OLS residual
     !-------------------------------------------------------------------------
-    call Write_Vector_Scalar_Field(num_obs_points, r, 'OLSresidual.txt')
-    call Write_Vector_Scalar_Field(num_obs_points, obs%field_psqm, 'data.txt')
+    if (.not. only_est) then
+        call Write_Vector_Scalar_Field(num_obs_points, r, 'OLSresidual.txt')
+        call Write_Vector_Scalar_Field(num_obs_points, obs%field_psqm, 'data.txt')
+    endif
     call Krig_Compute_Distance(obs, obs, distance_horiz, distance_vert, num_obs_points)
 
-    call Krig_Comp_Emp_Variogram(num_obs_points, distance_horiz, distance_vert, num_obs_points, r, par)
-    open(63, file='KRIGpar.txt')
-    write(63,*)par%sill, par%nugget, par%alpha, par%Wz
-    close(63)
+    call Krig_Comp_Emp_Variogram(num_obs_points, distance_horiz, distance_vert, num_obs_points, r, par, only_est)
+
+    if (.not. only_est) then
+        open(63, file='KRIGpar.txt')
+        write(63,*)par%sill, par%nugget, par%alpha, par%Wz
+        close(63)
+    endif
 
     !-------------------------------------------------------------------------
     ! Compute Universal Kriging estimate of field on grid (fest) given
     ! observations x_obs, y_obs, z_obs, field_obs. Also returns the estimate of spatial function
     ! coeficients, beta, and posterior covariance of beta(Cbeta).
     !-------------------------------------------------------------------------
-    call Krig_Generalized_Least_Sq(grid, obs, num_spat_fcns, par, beta, Cbeta, eps, Ceps, nlsf)
-    call Krig_Evaluate_Spatial_Function(obs, F, num_spat_fcns, num_obs_points, nlsf)
+    call Krig_Generalized_Least_Sq(grid, obs, num_spat_fcns, par, beta, Cbeta, eps, Ceps, nlsf, only_est)
+    F = Krig_Eval_Spatial_Function(obs, num_spat_fcns, num_obs_points, nlsf, only_est)
     atmp=1.D0
     btmp=0.D0
     call dgemv('N', num_obs_points, num_spat_fcns, atmp, F, num_obs_points, beta, 1, btmp, trndOBS, 1)
@@ -281,11 +289,12 @@ else
     call Krig_User_Estimates(grid, num_spat_fcns, par, beta, Cbeta, eps, Ceps)
 endif
 
-! Deprecate domain_average IsMatchMean
-! call OutputUK(num_points, num_spat_fcns, Nrand, grid, nlsf, beta, eps, Ceps, Cbeta, fmax, SF, A, domain_average, &
-! &                    IsLogT, IsMatchMean, IsHiLimit, domain_name, alpha)  
-call OutputUK(num_points, num_spat_fcns, Nrand, grid, nlsf, beta, eps, Ceps, Cbeta, fmax, SF, A, &
-&                    IsLogT, IsHiLimit, domain_name, alpha)
+if (only_est) then
+    call OutputEstimates(num_points, grid, Ceps, IsLogT, IsHiLimit, fmax, SF, domain_name)
+else
+    call OutputUK(num_points, num_spat_fcns, Nrand, grid, nlsf, beta, eps, Ceps, Cbeta, fmax, SF, &
+    &                    IsLogT, IsHiLimit, domain_name, alpha)
+endif
 
 write(*,*)'num_points, num_survey', num_points, num_obs_points
 
@@ -313,7 +322,7 @@ endprogram
 !--------------------------------------------------------------------------------------------------
 ! Keston Smith, Tom Callaghan (IBSS) 2024
 !--------------------------------------------------------------------------------------------------
-subroutine Read_Startup_Config(cfg_file_name, domain_name, use_posterior_sim, NRand, IsLogT, IsHiLimit, fmax, par, alpha)
+subroutine Read_Startup_Config(cfg_file_name,domain_name,use_posterior_sim,NRand,IsLogT,IsHiLimit,fmax,par,alpha,only_est)
 use globals
 use Krig_Mod
 use NLSF_Mod, only : NLS_Set_Config_File_Name => Set_Config_File_Name
@@ -330,6 +339,7 @@ character(72) :: input_string
 character(tag_len) tag
 character(value_len) value
 real(dp),intent(out)::  fmax,alpha
+logical, intent(out) :: only_est
 
 ! set default values for parameters not in file
 IsLogT=.true.
@@ -386,10 +396,6 @@ do
         case('Kriging variogram form')
             read(value,*) par%form
 
-        ! DEPRECATE
-        ! case('Match stratified mean')
-        !     read(value,*) IsMatchMean
-
         case('Use Posterior Sim')
             read(value,*) use_posterior_sim
 
@@ -403,6 +409,9 @@ do
 
         case('NLS Spatial Fcn File Name')
             call NLS_Set_Config_File_Name(value)
+
+        case('Only Estimates')
+            read(value,*) only_est
 
         case default
             write(*,*) term_yel, 'ReadInput: Unrecognized line in UK.cfg'
@@ -421,46 +430,44 @@ endsubroutine Read_Startup_Config
 !> "RandomFieldN.txt", where N =1:Nrand. Predictor standard deviation  is output to "KrigSTD.txt".
 !> Function coefficient 
 !---------------------------------------------------------------------------------------------------
-subroutine OutputUK(num_points, num_spat_fcns, Nrand, grid, nlsf, beta, eps, Ceps, Cbeta, fmax, SF, A, &!domain_average, , IsMatchMean
+subroutine OutputUK(num_points, num_spat_fcns, Nrand, grid, nlsf, beta, eps, Ceps, Cbeta, fmax, SF, &
 &                  IsLogT, IsHiLimit, domain_name, alpha)
+use globals
 use GridManagerMod
 use NLSF_Mod
+use LSF_Mod
 use Krig_Mod
 implicit none
 
 type(Grid_Data_Class), intent(inout) :: grid
-type(NLSFPar), intent(in)::nlsf(*)
+type(NLSF_Class), intent(in)::nlsf(*)
                                     
-character(2) domain_name
+character(2), intent(in) :: domain_name
 integer, intent(in) :: num_points, num_spat_fcns, Nrand
-real(dp), intent(in) :: eps(*), beta(*), Cbeta(num_spat_fcns,*), fmax, SF, A, alpha !domain_average
+real(dp), intent(in) :: eps(*), beta(*), Cbeta(num_spat_fcns,*), fmax, SF, alpha
 real(dp), intent(inout) :: Ceps(num_points,*)
 logical, intent(in) ::IsLogT, IsHiLimit
-!logical, intent(in) ::IsMatchMean ! Deprecate
 integer j, k, n
-real(dp) trend(num_points), V(num_points), Fg(num_points, num_spat_fcns), EnsMu, EnsSTD ! , MuY ! Deprecate
+real(dp) trend(num_points), V(num_points), Fg(num_points, num_spat_fcns), EnsMu, EnsSTD 
 real(dp) logf(num_points), adj, RandomField(num_points, Nrand)
 character(72) buf
+logical, parameter :: only_est = .false.
 
-write(*,*)'output fmax, SF, A=', fmax, SF, A
+write(*,*)'output fmax, SF, A=', fmax, SF, one_scallop_per_tow
 do n=1, num_points
     V(n)=Ceps(n, n)
 enddo
 grid%field_psqm(1:num_points) = grid%field_psqm(1:num_points)**(1./alpha)
 
 logf(1:num_points) = grid%field_psqm(1:num_points)
-if(IsLogT) grid%field_psqm(1:num_points) = SF * exp( grid%field_psqm(1:num_points) + V(1:num_points)/2. ) - A  ! adjusted inverse log(A+f)
-if(IsHiLimit) call LSF_Limit_Z(num_points, grid%field_psqm, grid%z, fmax, domain_name)
-! MuY = sum( grid%field_psqm(1:num_points)) / float(num_points)
-!if(IsMatchMean) grid%field_psqm(1:num_points) = domain_average * grid%field_psqm(1:num_points) / MuY ! Deprecate
+if(IsLogT) grid%field_psqm(1:num_points) = SF * exp( grid%field_psqm(1:num_points) + V(1:num_points)/2. ) - one_scallop_per_tow  ! adjusted inverse log(one_scallop_per_tow+f)
 if(IsHiLimit) call LSF_Limit_Z(num_points, grid%field_psqm, grid%z, fmax, domain_name)
 call Write_Vector_Scalar_Field(num_points, grid%field_psqm, 'KrigingEstimate.txt')
 
-call Krig_Evaluate_Spatial_Function(grid, Fg, num_spat_fcns, num_points, nlsf)
+Fg = Krig_Eval_Spatial_Function(grid, num_spat_fcns, num_points, nlsf, only_est)
 trend(1:num_points) = matmul( Fg(1:num_points, 1:num_spat_fcns), beta(1:num_spat_fcns)) 
 
-if(IsLogT) trend(1:num_points) = SF*exp(trend(1:num_points))-A
-!if(IsMatchMean) trend(1:num_points) = domain_average * trend(1:num_points) / MuY ! Deprecate
+if(IsLogT) trend(1:num_points) = SF*exp(trend(1:num_points))-one_scallop_per_tow
 call Write_Vector_Scalar_Field(num_points, trend, 'SpatialTrend.txt')
 
 call Write_Vector_Scalar_Field(num_points, eps, 'epsilon.txt')
@@ -468,21 +475,21 @@ call Write_Vector_Scalar_Field(num_spat_fcns, beta, 'beta.txt')
 
 call write_csv(num_spat_fcns, num_spat_fcns, Cbeta, 'CovBeta.csv', num_spat_fcns)
 
-call Krig_Evaluate_Spatial_Function(grid, Fg, num_spat_fcns, num_points, nlsf)
+Fg = Krig_Eval_Spatial_Function(grid, num_spat_fcns, num_points, nlsf, only_est)
 Ceps(1:num_points, 1:num_points) = Ceps(1:num_points, 1:num_points)&
 &    + matmul( Fg(1:num_points, 1:num_spat_fcns) , &
 &              matmul(Cbeta(1:num_spat_fcns, 1:num_spat_fcns), transpose(Fg(1:num_points, 1:num_spat_fcns)) ) )
 do n=1, num_points
    V(n) = Ceps(n, n)
 enddo
-if(IsLogT) call Write_Vector_Scalar_Field(num_points, SF*exp(sqrt(V(1:num_points)))-A, 'KrigSTD.txt')
+if(IsLogT) call Write_Vector_Scalar_Field(num_points, SF*exp(sqrt(V(1:num_points)))-one_scallop_per_tow, 'KrigSTD.txt')
 if(.not.IsLogT) call Write_Vector_Scalar_Field(num_points, sqrt(V(1:num_points)), 'KrigSTD.txt')
 
 if(IsLogT) call RandomSampleF(num_points, num_points, NRand, logf(1:n), Ceps, RandomField)
 if(.not.IsLogT) call RandomSampleF(num_points, num_points, NRand, grid%field_psqm(1:n)**alpha, Ceps, RandomField)
 RandomField(1:num_points, 1:Nrand)=RandomField(1:num_points, 1:Nrand)**(1./alpha)
 do k=1, num_points
-    if(IsLogT) adj = SF * exp(sqrt(V(k))) - A
+    if(IsLogT) adj = SF * exp(sqrt(V(k))) - one_scallop_per_tow
     if(.not.IsLogT) adj = sqrt(V(k))
     EnsMu = sum(RandomField(k, 1:Nrand)) / float(Nrand)
     EnsSTD = sqrt( sum((RandomField(k, 1:Nrand) - EnsMu)**2 ) / float(Nrand) )
@@ -500,3 +507,28 @@ do j=1, Nrand
     call Write_Vector_Scalar_Field(num_points, RandomField(1:num_points, j), 'RandomField'//trim(adjustl(buf))//'.txt')
 enddo
 endsubroutine OutputUK
+
+subroutine OutputEstimates(num_points, grid, Ceps, IsLogT, IsHiLimit, fmax, SF, domain_name)
+use globals
+use GridManagerMod
+use LSF_Mod
+implicit none
+integer, intent(in) :: num_points
+type(Grid_Data_Class), intent(inout) :: grid
+real(dp), intent(in) :: Ceps(num_points,*)
+logical, intent(in) ::IsLogT, IsHiLimit
+real(dp), intent(in) :: fmax, SF
+character(2), intent(in) :: domain_name
+
+integer n
+real(dp) V(num_points)
+
+do n=1, num_points
+    V(n)=Ceps(n, n)
+enddo
+    
+if(IsLogT) grid%field_psqm(1:num_points) = SF * exp( grid%field_psqm(1:num_points) + V(1:num_points)/2. ) - one_scallop_per_tow  ! adjusted inverse log(one_scallop_per_tow+f)
+if(IsHiLimit) call LSF_Limit_Z(num_points, grid%field_psqm, grid%z, fmax, domain_name)
+call Write_Vector_Scalar_Field(num_points, grid%field_psqm, 'KrigingEstimate.txt')
+
+endsubroutine OutputEstimates

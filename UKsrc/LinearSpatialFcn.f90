@@ -28,20 +28,23 @@ CONTAINS
 !>
 !> @author Keston Smith (IBSS corp) June-July 2021
 !--------------------------------------------------------------------------------------------------
-subroutine LSF_Generalized_Least_Squares(y, F, C, n, m, beta, Cbeta, r)
+function LSF_Generalized_Least_Squares(y, F, C, n, m, only_est)
 use globals
 implicit none
-integer,    intent(in):: n, m
-real(dp),    intent(in):: y(*), F(n,*), C(n,*)
-real(dp),    intent(out):: beta(*), Cbeta(m, m), r(*)
+integer, intent(in):: n, m
+real(dp), intent(in):: y(*), F(n,*), C(n,*)
+real(dp) :: LSF_Generalized_Least_Squares(n)
+logical, intent(in) :: only_est
 
-real(dp),    allocatable:: Cinv(:,:), CbetaInv(:,:), Vtmp(:), Vtmp2(:), Mtmp(:,:), ytr(:)
-integer,    allocatable:: ipiv(:)
+real(dp), allocatable:: Cinv(:,:), CbetaInv(:,:), Vtmp(:), Vtmp2(:), Mtmp(:,:), ytr(:)
+real(dp), allocatable:: beta(:), Cbeta(:,:)
+integer, allocatable:: ipiv(:)
 
-real(dp)     atmp, btmp
-integer     j, info, error
+real(dp) atmp, btmp
+integer j, info, error
 
 allocate( Cinv(1:n, 1:n), CbetaInv(1:m, 1:m), ytr(1:n), Mtmp(1:n, 1:m), Vtmp(1:n), Vtmp2(1:m) ) 
+allocate(beta(1:m), Cbeta(1:m, 1:m))
 allocate( ipiv(1:n), stat=error)
 
 atmp=1.
@@ -65,8 +68,10 @@ do j=1, m
 enddo
 call dgesv(m, m, CBetaInv, m, IPIV, CBeta, m, info)
 write(*,*)'LSF_Generalized_Least_Squares  dgesv info=', info
-call write_csv(m, m, CbetaInv, 'CBeta0.csv', m)
-call write_csv(n, m, F, 'Fglsa0.csv', n)
+if (.not. only_est) then
+    call write_csv(m, m, CbetaInv, 'CBeta0.csv', m)
+    call write_csv(n, m, F, 'Fglsa0.csv', n)
+endif
 !
 ! beta = inv( F' * Cinv * F ) * F * Cinv * fo
 !
@@ -77,14 +82,15 @@ call dgemv('N', m, m, atmp, Cbeta, m, Vtmp2, 1, btmp, Beta, 1)
 ! compute residual
 !
 call dgemv('N', n, m, atmp, F, n, beta,  1, btmp, ytr, 1)
-r(1:n)=y(1:n)-ytr(1:n)
+LSF_Generalized_Least_Squares(1:n) = y(1:n) - ytr(1:n)
 
-call Write_Vector_Scalar_Field(n, y, 'obs.txt')
+if (.not. only_est) call Write_Vector_Scalar_Field(n, y, 'obs.txt')
 
-deallocate( ipiv, stat=error)
-deallocate(  Cinv, CbetaInv, ytr, Mtmp, Vtmp, Vtmp2, stat=error )
+deallocate(ipiv)
+deallocate(beta, Cbeta)
+deallocate(Cinv, CbetaInv, ytr, Mtmp, Vtmp, Vtmp2)
 
-end subroutine
+endfunction LSF_Generalized_Least_Squares
 
 !--------------------------------------------------------------------------------------------------
 !> Purpose: Simple linear regresion 

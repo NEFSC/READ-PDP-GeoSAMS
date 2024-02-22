@@ -20,6 +20,7 @@ module globals
     integer, parameter :: comment_len = 80
     integer, parameter :: line_len = tag_len+value_len+comment_len
     integer, parameter :: fname_len = 100
+    integer, parameter :: form_len = 20
     integer, parameter :: input_str_len = 100
     integer, parameter :: csv_line_len = 2000
 
@@ -36,6 +37,7 @@ module globals
     real(dp), parameter :: grams_per_metric_ton = 1000000._dp
     real(dp), parameter :: grid_area_sqm = meters_per_naut_mile**2
     real(dp), parameter :: tow_area_sqm = 4516.D0 ! nautical mmile x 8 feet
+    real(dp), parameter :: one_scallop_per_tow = 1.D0 / tow_area_sqm ! 1 scallop per tow, prevents log(0)
 
     ! colors taken from https://i.stack.imgur.com/9UVnC.png
     character(*), parameter :: term_red = ''//achar(27)//'[31m'

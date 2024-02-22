@@ -20,7 +20,7 @@ type Krig_Class
     real(dp) nugget
     real(dp) sill
     real(dp) Wz
-    character(72) form
+    character(form_len) form
 end type Krig_Class
    
 CONTAINS
@@ -67,7 +67,7 @@ end subroutine
 !>  - sill     (real(dp))  Variogram parameter sill+nugget = shelf\n
 !>  - nugget    (real(dp))  Variogram parameter nugget\n
 !>  - alpha (real(dp))  Variogram length scale parameter\n
-!>  - form  (charecter*72) functional form of variogram\n
+!>  - form  (charecter) functional form of variogram\n
 !> The above should be read in an input file but are written as constants for now
 !>    
 !> @author Keston Smith (IBSS corp) June-July 2021
@@ -80,7 +80,7 @@ real(dp) :: Krig_Compute_Variogram(n_dim,num_cols)
 integer j,k,error
 real(dp) sill,nugget,alpha,Wz
 real(dp) kap
-character(72) form
+character(form_len) form
 real(dp), allocatable:: D(:,:)
 
 allocate( D(1:num_points,1:num_cols) ) 
@@ -146,7 +146,7 @@ endfunction Krig_Compute_Variogram
 !> 
 !> @author Keston Smith (IBSS corp) June-July 2021
 !--------------------------------------------------------------------------------------------------
-subroutine Krig_Comp_Emp_Variogram(num_points,distance_horiz,distance_vert,n_dim,f,par)
+subroutine Krig_Comp_Emp_Variogram(num_points,distance_horiz,distance_vert,n_dim,f,par, only_est)
 type(Krig_Class), intent(inout) :: par
 type(Krig_Class):: parTmp
 
@@ -154,6 +154,7 @@ integer  NIntVD,NPS
 parameter(NIntVD=31,NPS=30)
 integer, intent(in)  :: num_points,n_dim
 real(dp), intent(in) :: distance_horiz(n_dim,*),distance_vert(n_dim,*),f(*)
+logical, intent(in) :: only_est
 real(dp) DintV(NIntVD),DintVm(NIntVD), SIntV(NIntVD)
 real(dp) variogram(n_dim,1)
 real(dp) Pind(NPS),alphaR(NPS),c0R(NPS),cR(NPS),WzR
@@ -233,9 +234,11 @@ enddo !j
 
 variogram = Krig_Compute_Variogram(NintV, 1, DIntVm, 0*DIntV, NIntV, par)
 
-call Write_2D_Scalar_Field(NintV,1,variogram,'GammaIntV.txt',NintV)
-call Write_2D_Scalar_Field(NintV,1,DIntVm,'DIntV.txt',NintV)
-call Write_2D_Scalar_Field(NintV,1,SIntV,'SIntV.txt',NintV)
+if (.not. only_est) then
+    call Write_2D_Scalar_Field(NintV,1,variogram,'GammaIntV.txt',NintV)
+    call Write_2D_Scalar_Field(NintV,1,DIntVm,'DIntV.txt',NintV)
+    call Write_2D_Scalar_Field(NintV,1,SIntV,'SIntV.txt',NintV)
+endif
 
 write(*,*)'Bounds alpha:[', alphaR(1),par%alpha,alphaR(NPS),']'
 write(*,*)'Bounds nugget:[', c0R(1),par%nugget,c0R(NPS),']'
@@ -255,33 +258,35 @@ endsubroutine Krig_Comp_Emp_Variogram
 !> @param[out] num_spat_fcns   (integer) number of spatial functions (be carefull allocating F)
 !> @author Keston Smith (IBSS corp) June-July 2021
 !--------------------------------------------------------------------------------------------------
-subroutine Krig_Evaluate_Spatial_Function(p,F,num_spat_fcns,n_dim,nlsf)
+function Krig_Eval_Spatial_Function(p, num_spat_fcns, n_dim, nlsf, only_est)
 type(Grid_Data_Class):: p
-type(NLSFpar), intent(in):: nlsf(*)
-integer, intent(in)    :: n_dim
-integer, intent(in)   :: num_spat_fcns
-real(dp), intent(out)   :: F(n_dim,*)
+type(NLSF_Class), intent(in):: nlsf(*)
+integer, intent(in) :: n_dim
+integer, intent(in) :: num_spat_fcns
+real(dp) :: Krig_Eval_Spatial_Function(n_dim,num_spat_fcns)
+logical, intent(in) :: only_est
 real(dp) s(n_dim), fpc(n_dim)
 integer num_points,j,k
 integer nsf
 
-nsf = Get_NSF()
+! num_spat_fcns is set to allow for N+1
+nsf = num_spat_fcns - 1
 
 num_points=p%num_points
-F(1:num_points,1)=1.
+Krig_Eval_Spatial_Function(1:num_points,1)=1.
 do j=1,nsf
     s(:) = NLSF_Evaluate_Fcn(p, nlsf(j))
     if (nlsf(j)%pre_cond_fcn_num .eq. 0) then
-        F(1:num_points,j+1) = s(1:num_points)
+        Krig_Eval_Spatial_Function(1:num_points,j+1) = s(1:num_points)
     else
         k = nlsf(j)%pre_cond_fcn_num
         fpc(:) = NLSF_Evaluate_Fcn(p, nlsf(k))
-        F(1:num_points,j+1) = s(1:num_points) * fpc(1:num_points)
+        Krig_Eval_Spatial_Function(1:num_points,j+1) = s(1:num_points) * fpc(1:num_points)
     endif
 enddo
 
-call write_csv(num_points,num_spat_fcns,F,'SpatialFunctions.csv',num_points)
-end subroutine
+if (.not. only_est) call write_csv(num_points,num_spat_fcns,Krig_Eval_Spatial_Function,'SpatialFunctions.csv',num_points)
+end function Krig_Eval_Spatial_Function
 
 !--------------------------------------------------------------------------------------------------
 !! @public @memberof Krig_Class
@@ -312,14 +317,15 @@ end subroutine
 !>
 !> @author Keston Smith (IBSS corp) June-July 2021
 !--------------------------------------------------------------------------------------------------
-subroutine Krig_Generalized_Least_Sq(grid, obs, num_spat_fcns, par, beta, Cbeta, eps, CepsG, nlsf)
+subroutine Krig_Generalized_Least_Sq(grid, obs, num_spat_fcns, par, beta, Cbeta, eps, CepsG, nlsf, only_est)
 type(Grid_Data_Class):: grid
 type(Grid_Data_Class):: obs
 type(Krig_Class):: par
-type(NLSFPar):: nlsf(*)
+type(NLSF_Class):: nlsf(*)
 
 integer,  intent(in):: num_spat_fcns
 real(dp), intent(out):: beta(*), Cbeta(num_spat_fcns, num_spat_fcns), eps(*), CepsG(grid%num_points, grid%num_points)
+logical, intent(in) :: only_est
 
 real(dp), allocatable:: distance_horiz(:,:), distance_vert(:,:), W(:,:), gamma(:,:), Fs(:,:), FsT(:,:)
 real(dp), allocatable:: D0h(:,:), D0z(:,:), gamma0(:,:), Fs0(:,:), Fs0T(:,:)
@@ -355,7 +361,7 @@ allocate( ftrnd(1:num_points), ipiv(1:nopnf), stat=error)
 !
 call Krig_Compute_Distance(obs, obs, distance_horiz, distance_vert, num_obs_points)
 Gamma = Krig_Compute_Variogram(num_obs_points, num_obs_points, distance_horiz, distance_vert, num_obs_points, par)
-call Krig_Evaluate_Spatial_Function(obs, Fs, num_spat_fcns, num_obs_points, nlsf)
+Fs = Krig_Eval_Spatial_Function(obs, num_spat_fcns, num_obs_points, nlsf, only_est)
 !
 ! Ceps <- covariance between observation points (from variogram)
 !
@@ -366,20 +372,20 @@ call Krig_Evaluate_Spatial_Function(obs, Fs, num_spat_fcns, num_obs_points, nlsf
 !
 call Krig_Compute_Distance(obs, grid, D0h, D0z, num_obs_points)
 gamma0 = Krig_Compute_Variogram(num_obs_points, num_points, D0h, D0z, num_obs_points, par)
-call Krig_Evaluate_Spatial_Function(grid, Fs0, num_spat_fcns, num_points, nlsf)
+Fs0 = Krig_Eval_Spatial_Function(grid, num_spat_fcns, num_points, nlsf, only_est)
 !
 !Compute the Univeral Kriging linear estimate of f following Cressie 1993
 !pages 151-154
 !
 Fs0T=transpose(Fs0)
 FsT=transpose(Fs)
-R(1:num_obs_points+num_spat_fcns, 1:num_obs_points+num_spat_fcns)=0.
-R(1:num_obs_points, 1:num_obs_points)=gamma(1:num_obs_points, 1:num_obs_points)
-R(1:num_obs_points, num_obs_points+1:num_obs_points+num_spat_fcns)=Fs(1:num_obs_points, 1:num_spat_fcns)
-R(num_obs_points+1:num_obs_points+num_spat_fcns, 1:num_obs_points)=FsT(1:num_spat_fcns, 1:num_obs_points)
+R(1:num_obs_points+num_spat_fcns, 1:num_obs_points+num_spat_fcns) = 0._dp
+R(1:num_obs_points, 1:num_obs_points) = gamma(1:num_obs_points, 1:num_obs_points)
+R(1:num_obs_points, num_obs_points+1:num_obs_points+num_spat_fcns) = Fs(1:num_obs_points, 1:num_spat_fcns)
+R(num_obs_points+1:num_obs_points+num_spat_fcns, 1:num_obs_points) = FsT(1:num_spat_fcns, 1:num_obs_points)
 
-V(1:num_obs_points, 1:num_points)=gamma0(1:num_obs_points, 1:num_points)
-V(num_obs_points+1:num_obs_points+num_spat_fcns, 1:num_points)=Fs0T(1:num_spat_fcns, 1:num_points)
+V(1:num_obs_points, 1:num_points) = gamma0(1:num_obs_points, 1:num_points)
+V(num_obs_points+1:num_obs_points+num_spat_fcns, 1:num_points) = Fs0T(1:num_spat_fcns, 1:num_points)
 
 call dgesv(nopnf, num_points, R, nopnf, IPIV, V, nopnf, info)
 write(*,*)'Krig_Generalized_Least_Sq (a) dgesv info=', info
