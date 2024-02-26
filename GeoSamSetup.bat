@@ -71,5 +71,7 @@ matlab.exe -batch "addpath mfiles\; addpath mfiles\latlonutm\; addpath PreProces
 @REM Not used with NearestNeighborRecInterp
 @REM python PythonScripts/EstimateRecruitFields.py %1 %2
 
-@REM .\SRC\ScallopPopDensity.exe Scallop.cfg   
-@REM .\UKsrc\UK UK.cfg
+.\SRC\ScallopPopDensity.exe Scallop.cfg MA %1 %2
+.\SRC\ScallopPopDensity.exe Scallop.cfg GB %1 %2
+python .\PythonScripts\ProcessResults.py %1 %2
+python .\PythonScripts\ConcatCsvResults.py %1 %2

@@ -49,7 +49,7 @@ module globals
     character(*), parameter :: config_dir = 'Configuration/'
     character(*), parameter :: grid_dir = 'Grids/'
     character(*), parameter :: data_dir = 'Data/'
-
+    character(*), parameter :: output_dir = 'Results/'
 
     CONTAINS
 

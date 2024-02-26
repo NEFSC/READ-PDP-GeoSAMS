@@ -57,15 +57,15 @@ endfunction Get_NSF
 !>
 !> NOTE: Greedy function takes significantly longer to run
 !-----------------------------------------------------------------------------------------------
-subroutine NLSF_Select_Fit(obs, nlsf, only_est)
+subroutine NLSF_Select_Fit(obs, nlsf, proc_recruits)
 type(Grid_Data_Class):: obs
 type(NLSF_Class)::nlsf(*)
-logical, intent(in) :: only_est
+logical, intent(in) :: proc_recruits
 
 if (use_greedy_fit) then
-    call NLSF_Greedy_Least_Sq_Fit(obs, nlsf, only_est)
+    call NLSF_Greedy_Least_Sq_Fit(obs, nlsf, proc_recruits)
 else
-    call NLSF_Least_Sq_Fit(obs, nlsf, only_est)
+    call NLSF_Least_Sq_Fit(obs, nlsf, proc_recruits)
 endif
 
 endsubroutine NLSF_Select_Fit
@@ -237,10 +237,10 @@ endfunction
 !>
 !> @author keston Smith (IBSS corp) 2022
 !--------------------------------------------------------------------------------------------------
-subroutine NLSF_Least_Sq_Fit(obs, nlsf, only_est)
+subroutine NLSF_Least_Sq_Fit(obs, nlsf, proc_recruits)
 type(Grid_Data_Class), intent(in) :: obs
 type(NLSF_Class), intent(inout) ::nlsf(*)
-logical, intent(in) :: only_est
+logical, intent(in) :: proc_recruits
 
 integer j, num_obs_points, k
 real(dp), allocatable :: residual_vect(:), field_precond(:), residuals(:, :), rms(:)
@@ -254,7 +254,7 @@ allocate(rms(1:nsf), RankIndx(1:nsf))
 
 ! initialize residual 0
 residual_vect(:) = obs%field_psqm(1:num_obs_points)
-write(*,'(A,F18.16)') 'residual  0:', sqrt(sum(residual_vect(1:num_obs_points)**2)/float(num_obs_points))
+write(*,'(A,F18.16)') 'residual  0: ', sqrt(sum(residual_vect(1:num_obs_points)**2)/float(num_obs_points))
 
 do j = 1, nsf
     if (nlsf(j)%pre_cond_fcn_num.eq.0) then
@@ -277,7 +277,7 @@ do j = 1, nsf
     write(*,'(A,I2,A,F18.16)')'residual ', j, ': ', sqrt(sum(residual_vect(:)**2)/float(num_obs_points))
 enddo
 
-if (.not. only_est) then
+if (proc_recruits) then
     call write_csv(num_obs_points, nsf, residuals, 'residuals.csv', num_obs_points)
     open(63, file = 'NLSF_Class.csv')
     do j = 1, nsf
@@ -495,10 +495,10 @@ endfunction NLSF_Fit_Function
 !>
 !> @author keston Smith (IBSS corp) 2022
 !--------------------------------------------------------------------------------------------------
-subroutine NLSF_Greedy_Least_Sq_Fit(obs, nlsf, only_est)
+subroutine NLSF_Greedy_Least_Sq_Fit(obs, nlsf, proc_recruits)
 type(Grid_Data_Class), intent(in):: obs
 type(NLSF_Class), intent(inout) ::nlsf(*)
-logical, intent(in) :: only_est
+logical, intent(in) :: proc_recruits
 
 integer j, num_obs_points, num_points, k, jBest, notyet, nfi
 real(dp) rmsMin
@@ -560,7 +560,7 @@ do while(sum(isfit(1:nsf)).lt.nsflim)
              'Remaining RMS=', sqrt( sum( residual_vect(1:num_obs_points)**2) / float(num_obs_points) )
 enddo
 
-if (.not. only_est) then
+if (proc_recruits) then
     call write_csv(num_obs_points, nsf, residuals, 'residuals.csv', num_obs_points)
     open(63, file = 'NLSF_Class.csv')
     do j = 1, nsf

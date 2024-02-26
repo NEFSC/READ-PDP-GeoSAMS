@@ -55,6 +55,8 @@ character(*), parameter :: rec_input_dir = 'KrigingEstimates/'
 character(*), parameter :: rec_output_dir = 'RecruitField/'
 character(*), parameter :: output_dir = 'Results/'
 character(*), parameter :: config_dir = 'Configuration/'
+character(*), parameter :: data_dir = 'Data/'
+
 
 character(*), parameter :: sim_input_fname = 'Scallop.inp'
 

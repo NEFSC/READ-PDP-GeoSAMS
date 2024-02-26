@@ -1,12 +1,12 @@
 del beta.txt
-del *.csv
-del K*.txt
-del .\RandomField*.txt
 del data.txt
 del DIntV.txt
 del epsilon.txt
 del GammaIntV.txt
+del K*.txt
 del obs.txt
 del OLSresidual.txt
+del RandomField*.txt
 del SIntV.txt
 del SpatialTrend.txt
+del *.csv

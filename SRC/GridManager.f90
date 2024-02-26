@@ -57,6 +57,8 @@ implicit none
 
 !> @class Grid_Data_Class
 type Grid_Data_Class
+    ! used for column padding in csv files
+    real(dp) year
     !> @public @memberof Grid_Data_Class
     !> UTM Easting
     real(dp) x
@@ -319,7 +321,6 @@ integer function Load_Grid_State(grid, state)
 
     character(csv_line_len) input_str
     integer n, io, is_closed
-    real(dp) year ! only used to read decimal year column, otherwise not used.
 
     if (init_cond_fname .eq. "") then
         write(*,*) term_red, '"Initial Conditions" is not defined, Check setting in GridManager.cfg', term_blk
@@ -338,7 +339,7 @@ integer function Load_Grid_State(grid, state)
             write(*,'(A,A, I5, A, I5)') term_red, 'MAX NUMBER OF GRIDS EXCEEDED, AT ', n, ' EXPECTED ', max_num_grids
             write(*,*) 'CHANGE "Max Number of Grids" IN CONFIGURATION FILE', term_blk
         end if
-        read(input_str,*) year, grid(n)%x, grid(n)%y, grid(n)%lat, grid(n)%lon, grid(n)%z, &
+        read(input_str,*) grid(n)%year, grid(n)%x, grid(n)%y, grid(n)%lat, grid(n)%lon, grid(n)%z, &
         &               is_closed, grid(n)%station_number, state(n,1:num_size_classes)
         grid(n)%is_closed = (is_closed > 0)
         grid(n)%special_access_index = 0

@@ -137,10 +137,11 @@ integer function Load_Observation_Data(x, y, z, f)
 real(dp), intent(out):: x(*), y(*), z(*), f(*)
 real(dp) year
 integer    n, io
-character(72) input_str
+character(line_len) input_str
 
 open(63, file = obs_data_file_name, status = 'old')
 n = 0
+! read header text
 read(63,*) input_str
 do
     read(63, '(a)', iostat = io) input_str

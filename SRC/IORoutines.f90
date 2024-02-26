@@ -354,11 +354,12 @@ subroutine Write_CSV(n,m,f,file_name,nndim, append)
     close(69)
 endsubroutine Write_CSV
 
-subroutine Write_Column_CSV(n,f,file_name,append)
+subroutine Write_Column_CSV(n,f,header,file_name,append)
 use globals
 implicit none
 integer, intent(in):: n
 real(dp), intent(in):: f(*)
+character(*), intent(in) :: header
 character(*), intent(in)::file_name
 logical, intent(in) :: append
 integer k, io
@@ -372,9 +373,12 @@ if (append) then
     open(read_dev, file=file_name, status='old')
 
     open(unit=write_dev, iostat=io, file=output_dir//'TEMP', status='replace')
+    ! read and write header row
+    read(read_dev,'(A)',iostat=io) input_str
+    write(output_str,'(A,A,A)') trim(input_str),',',header
+    write(write_dev, '(A)'//NEW_LINE(cr)) trim(output_str)
     do k=1,n
         read(read_dev,'(A)',iostat=io) input_str
-
         write(output_str,'(A,A,(ES14.7 : ))') trim(input_str),',',f(k)
         write(write_dev, '(A)'//NEW_LINE(cr)) trim(output_str)
     enddo
@@ -384,7 +388,7 @@ if (append) then
 
     open(read_dev, file=output_dir//'TEMP', status='old')
     open(unit=write_dev, iostat=io, file=file_name, status='replace')
-    do k=1,n
+    do k=1,n+1 ! including header row
         read(read_dev,'(A)',iostat=io) input_str
         write(write_dev,'(A)') trim(input_str)
     enddo
@@ -395,11 +399,11 @@ if (append) then
 else
     fmtstr='(ES14.7 : )'//NEW_LINE(cr)
     open(write_dev,file=file_name)
+    write(write_dev, '(A)') header
     do k=1,n
         write(write_dev,fmtstr) f(k)
     enddo
     close(write_dev)
-    close(read_dev)
 endif
 
 endsubroutine Write_Column_CSV

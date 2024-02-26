@@ -236,15 +236,19 @@ real(dp), allocatable :: fishing_effort(:) ! rate of fishing mortality
 
 character(fname_len) :: arg
 integer pct_comp
+integer ncla
 
-call get_command_argument(1, arg)
-file_name = config_dir//trim(arg)
-if (len_trim(file_name) == 0) then
+ncla=command_argument_count()
+if (ncla .eq. 0) then
     write(*,*) term_red, 'No configuration file', term_blk
+    call get_command(arg)
+    write(*,*) term_blu,'Typical use: $ ', term_yel, trim(arg), ' Scallop.cfg [Domain] [Start Year] [Stop Year]', term_blk
     stop
 endif
-inquire(file=file_name, exist=exists)
 
+if(ncla.ge.1) call get_command_argument(1, arg)
+file_name = config_dir//trim(arg)
+inquire(file=file_name, exist=exists)
 if (exists) then
     PRINT *, term_blu, trim(file_name), ' FOUND', term_blk
 else
@@ -256,6 +260,24 @@ endif
 !  - I. Read Configuration file 'Scallop.inp'
 !==================================================================================================================
 call Read_Startup_Config(max_num_grids, domain_name, file_name, start_year, stop_year, ts_per_year)
+!override UK.cfg with command line arguments if present. Used by python scripts
+if(ncla.ge.2) call get_command_argument(2, domain_name)
+if (.not. ( any ((/ domain_name.eq.'MA', domain_name.eq.'GB'/)) )) then
+    write(*,*) term_red, ' **** INVALID DOMAIN NAME: ', domain_name, term_blk
+    stop
+endif
+
+if(ncla.ge.3) then
+    call get_command_argument(3, arg)
+    read(arg,*) start_year
+endif
+
+if(ncla.ge.4) then
+    call get_command_argument(4, arg)
+    read(arg,*) stop_year
+endif
+
+
 
 ! time parameters
 num_years = stop_year - start_year + 1
@@ -309,10 +331,15 @@ write(*,*) '========================================================'
 !==================================================================================================================
 
 ! write latitude and longitude out for later use by Matlab Geographic Scatter Plot ------------------------------
-call Write_Column_CSV(num_grids, grid(:)%lat, output_dir//'X_Y_EBMS_'//domain_name//'.csv',.false.)
-call Write_Column_CSV(num_grids, grid(:)%lon, output_dir//'X_Y_EBMS_'//domain_name//'.csv',.true.)
-call Write_Column_CSV(num_grids, grid(:)%lat, output_dir//'X_Y_Feffort_'//domain_name//'.csv',.false.)
-call Write_Column_CSV(num_grids, grid(:)%lon, output_dir//'X_Y_Feffort_'//domain_name//'.csv',.true.)
+call Write_Lat_Lon_Preamble(num_grids, grid, output_dir//'Lat_Lon_EBMS_'//domain_name//'.csv')
+call Write_Lat_Lon_Preamble(num_grids, grid, output_dir//'Lat_Lon_Feffort_'//domain_name//'.csv')
+
+
+call Write_Y_Y_Preamble(num_grids, grid, data_dir//'X_Y_EBMS_'//domain_name//buf//'_0.csv')
+do n = start_year, stop_year
+    write(buf,'(I4)') n
+    call Write_Y_Y_Preamble(num_grids, grid, data_dir//'X_Y_EBMS_'//domain_name//buf//'.csv')
+end do
 !----------------------------------------------------------------------------------------------------------------
 year = start_year
 do ts = 1, num_time_steps
@@ -432,3 +459,38 @@ subroutine Read_Startup_Config(max_num_grids, domain_name, file_name, start_year
     close(read_dev)
     return
 end subroutine Read_Startup_Config
+
+!--------------------------------------------------------------------------------
+!! Read_Startup_Config
+!> @brief Writes lat and lon columns with headers to named file
+!--------------------------------------------------------------------------------
+subroutine Write_Lat_Lon_Preamble(num_grids, grid, fname)
+use globals
+use Grid_Manager_Mod
+integer, intent(in) :: num_grids
+type(Grid_Data_Class), intent(in) :: grid(*)
+character(*), intent(in) :: fname
+
+call Write_Column_CSV(num_grids, grid(1:num_grids)%lat, 'LAT', fname,.false.)
+call Write_Column_CSV(num_grids, grid(1:num_grids)%lon, 'LON', fname,.true.)
+
+endsubroutine Write_Lat_Lon_Preamble
+
+!--------------------------------------------------------------------------------
+!! Read_Startup_Config
+!> @brief Writes year, UTM-X, UTM-Y, and Depth columns with headers to named file
+!--------------------------------------------------------------------------------
+subroutine Write_Y_Y_Preamble(num_grids, grid, fname)
+use globals
+use Grid_Manager_Mod
+integer, intent(in) :: num_grids
+type(Grid_Data_Class), intent(in) :: grid(*)
+character(*), intent(in) :: fname
+    
+call Write_Column_CSV(num_grids, grid(1:num_grids)%year, 'YEAR', fname,.false.)
+call Write_Column_CSV(num_grids, grid(1:num_grids)%x,    'UTM_X', fname,.true.)
+call Write_Column_CSV(num_grids, grid(1:num_grids)%y,    'UTM_Y', fname,.true.)
+call Write_Column_CSV(num_grids, grid(1:num_grids)%z,    'DEPTH', fname,.true.)
+    
+endsubroutine Write_Y_Y_Preamble
+    

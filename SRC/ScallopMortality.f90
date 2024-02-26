@@ -93,6 +93,7 @@ integer, PRIVATE :: num_areas
 character(2), PRIVATE :: domain_name
 real(dp), PRIVATE :: domain_area_sqm
 integer, PRIVATE :: num_time_steps
+integer, PRIVATE :: ts_per_year
 real(dp), PRIVATE :: delta_time
 
 ! configuration parameters
@@ -174,7 +175,7 @@ endsubroutine Destructor
 !> @param[in] domain_area,Size of domain under consideration in square meters
 !> 
 !==================================================================================================================
-subroutine Set_Mortality(mortality, grid, shell_lengths, dom_name, dom_area, num_ts, ts_per_year, ngrids, max_ngrids)
+subroutine Set_Mortality(mortality, grid, shell_lengths, dom_name, dom_area, num_ts, ts_py, ngrids, max_ngrids)
     implicit none
     
     type(Mortality_Class), intent(inout):: mortality(*)
@@ -182,7 +183,7 @@ subroutine Set_Mortality(mortality, grid, shell_lengths, dom_name, dom_area, num
     real(dp), intent(in):: shell_lengths(*)
     character(2), intent(in) :: dom_name
     real(dp), intent(in) :: dom_area
-    integer, intent(in) :: num_ts, ts_per_year
+    integer, intent(in) :: num_ts, ts_py
     integer, intent(in) :: ngrids
     integer, intent(in) :: max_ngrids
     integer yr_index, j, num_years, year
@@ -197,6 +198,7 @@ subroutine Set_Mortality(mortality, grid, shell_lengths, dom_name, dom_area, num
     domain_name = dom_name
     domain_area_sqm = dom_area
     num_time_steps = num_ts
+    ts_per_year = ts_py
     delta_time = 1._dp / dfloat(ts_per_year)
 
     ! default values
@@ -460,7 +462,6 @@ function Set_Fishing_Effort(year, ts, state, weight_grams, mortality, grid)
     F_mort(:) = c_mort * lpue(:)**alpha_mort
     F_mort(:) = Set_Fishing_Mortality(grid(1:num_grids), year, .true., F_mort(:))
     f_avg = dot_product(expl_num, F_mort) / sum(expl_num)
-    write(*,'(A,I2,F6.3,A)') term_blu, ts, f_avg, term_blk
 
     do loc = 1, num_grids
 
@@ -514,7 +515,7 @@ function Set_Fishing_Effort(year, ts, state, weight_grams, mortality, grid)
     end select
 
     ! Report current timestep results
-    call Mortality_Write_At_Timestep(ts, state, weight_grams, mortality, Set_Fishing_Effort(:))
+    call Mortality_Write_At_Timestep(year, ts, state, weight_grams, mortality, Set_Fishing_Effort(:))
 
     return
 endfunction Set_Fishing_Effort
@@ -1014,80 +1015,76 @@ end subroutine Read_Configuration
 !> Initializes growth for startup
 !>
 !==================================================================================================================
-subroutine Mortality_Write_At_Timestep(ts, state, weight_grams, mortality, set_fishing_by_loc)
-    integer, intent(in) :: ts
-    ! state is allocated before the number of grids is known
-    real(dp), intent(in) :: state(max_num_grids, num_size_classes)
-    ! weight_grams is allocated once the number of grids is known
-    real(dp), intent(in) :: weight_grams(num_grids, num_size_classes)
-    type(Mortality_Class), intent(in):: mortality(*)
-    real(dp), intent(in) :: set_fishing_by_loc(*)
+subroutine Mortality_Write_At_Timestep(year, ts, state, weight_grams, mortality, set_fishing_by_loc)
+integer, intent(in) :: year, ts
+! state is allocated before the number of grids is known
+real(dp), intent(in) :: state(max_num_grids, num_size_classes)
+! weight_grams is allocated once the number of grids is known
+real(dp), intent(in) :: weight_grams(num_grids, num_size_classes)
+type(Mortality_Class), intent(in):: mortality(*)
+real(dp), intent(in) :: set_fishing_by_loc(*)
 
-    integer loc
-    ! character(20) buf
-    character(5) gbuf
-    real(dp) :: M(num_size_classes)
-    real(dp), allocatable :: abundance(:)
-    real(dp), allocatable :: bms(:)
+integer loc
+! character(20) buf
+real(dp) :: M(num_size_classes)
+real(dp), allocatable :: abundance(:)
+real(dp), allocatable :: bms(:)
+real(dp), allocatable :: ebms_mt(:)
+character(4) buf
 
-    allocate(abundance(num_grids))
-    allocate(bms(num_grids))
+allocate(abundance(num_grids))
+allocate(bms(num_grids), ebms_mt(num_grids))
 
-    do loc = 1, num_grids
-        !=======================================================================================
-        ! CSV files at grid # over time: for each grid;  (number of timesteps by number of size classes)
-        !=======================================================================================
+do loc = 1, num_grids
+    ! Compute overall mortality
+    M(1:num_size_classes) = mortality(loc)%natural_mortality(1:num_size_classes) &
+    & + set_fishing_by_loc(loc) * ( mortality(loc)%selectivity(1:num_size_classes) &
+    & + mortality(loc)%incidental + mortality(loc)%discard(1:num_size_classes) )
 
-        write(gbuf,'(I0.5)') loc
-        call Write_CSV(1, num_size_classes, state(loc,1:num_size_classes), &
-        &    output_dir//'State'//domain_name//'_AtGrid-'//gbuf//'_BySizeOverTime.csv', 1, (ts .ne. 0))
+    abundance(loc) = sum(state(loc,1:num_size_classes)) ! scallops per sq meter
+    bms(loc) = dot_product(state(loc,1:num_size_classes), weight_grams(loc,1:num_size_classes) / grams_per_metric_ton) ! metric tons per sq meter
+enddo
 
-        ! Compute overall mortality
-        M(1:num_size_classes) = mortality(loc)%natural_mortality(1:num_size_classes) &
-        & + set_fishing_by_loc(loc) * ( mortality(loc)%selectivity(1:num_size_classes) &
-        & + mortality(loc)%incidental + mortality(loc)%discard(1:num_size_classes) )
-        ! call Write_CSV(1, num_size_classes, M(1:num_size_classes), &
-        ! &    output_dir//'TotalMort'//domain_name//'_AtGrid-'//gbuf//'_BySizeOverTime.csv', 1, (ts .ne. 0))
+! CSV files (number of timestep by number of grids)
+call Write_CSV(1, num_grids, abundance,           output_dir//'Abundance_psqm_'//domain_name//'.csv',    1, (ts .ne. 0))
+call Write_CSV(1, num_grids, abundance*grid_area_sqm, output_dir//'Abundance_'//domain_name//'.csv',     1, (ts .ne. 0))
+call Write_CSV(1, num_grids, bms,                 output_dir//'BMS_mtpsqm_'//domain_name//'.csv',        1, (ts .ne. 0))
+call Write_CSV(1, num_grids, bms*grid_area_sqm,   output_dir//'BMS_mt_'//domain_name//'.csv',            1, (ts .ne. 0))
+call Write_CSV(1, num_grids, landings_by_num,     output_dir//'NumLandings'//domain_name//'.csv',1, (ts .ne. 0))
 
-        !=======================================================================================
+ebms_mt(1:num_grids) = expl_biomass_gpsqm(1:num_grids)*grid_area_sqm/grams_per_metric_ton
+call Write_CSV(1, num_grids, ebms_mt(:), output_dir//'ExplBMS_mt_'//domain_name//'.csv',    1, (ts .ne. 0))
+call Write_Column_CSV(num_grids, ebms_mt(:), 'EBMS', output_dir//'Lat_Lon_EBMS_'//domain_name//'.csv',.true.)
+if (mod(ts+1, ts_per_year) .eq. 1) then
+    write(buf,'(I4)') year
+    if (ts .eq. 0) then
+        call Write_Column_CSV(num_grids, ebms_mt(:), 'EBMS', data_dir//'X_Y_EBMS_'//domain_name//buf//'_0.csv', .true.)
+    else
+        call Write_Column_CSV(num_grids, ebms_mt(:), 'EBMS', data_dir//'X_Y_EBMS_'//domain_name//buf//'.csv', .true.)
+    endif 
+endif
 
-        abundance(loc) = sum(state(loc,1:num_size_classes))                                  ! scallops per sq meter
-        bms(loc) = dot_product(state(loc,1:num_size_classes), &                              ! metric tons per sq meter
-        &                      weight_grams(loc,1:num_size_classes) / grams_per_metric_ton)
-    enddo
+call Write_CSV(1, num_grids, expl_biomass_gpsqm(1:num_grids)/grams_per_metric_ton,&
+&                                                 output_dir//'ExplBMS_mtpsqm_'//domain_name//'.csv',    1, (ts .ne. 0))
+call Write_CSV(1, num_grids, set_fishing_by_loc,  output_dir//'FishingEffort'//domain_name//'.csv',       1, (ts .ne. 0))
 
-    ! CSV files (number of timestep by number of grids)
-    call Write_CSV(1, num_grids, abundance,           output_dir//'Abundance_psqm_'//domain_name//'.csv',    1, (ts .ne. 0))
-    call Write_CSV(1, num_grids, abundance*grid_area_sqm, output_dir//'Abundance_'//domain_name//'.csv',     1, (ts .ne. 0))
-    call Write_CSV(1, num_grids, bms,                 output_dir//'BMS_mtpsqm_'//domain_name//'.csv',        1, (ts .ne. 0))
-    call Write_CSV(1, num_grids, bms*grid_area_sqm,   output_dir//'BMS_mt_'//domain_name//'.csv',            1, (ts .ne. 0))
-    call Write_CSV(1, num_grids, landings_by_num,     output_dir//'NumLandings'//domain_name//'.csv',1, (ts .ne. 0))
-    call Write_CSV(1, num_grids, expl_biomass_gpsqm(1:num_grids)*grid_area_sqm/grams_per_metric_ton,&
-    &                                                  output_dir//'ExplBMS_mt_'//domain_name//'.csv',    1, (ts .ne. 0))
+call Write_Column_CSV(num_grids, set_fishing_by_loc(1:num_grids)*10000, 'Feffort',&
+&                                                 output_dir//'Lat_Lon_Feffort_'//domain_name//'.csv',.true.)
 
-    call Write_Column_CSV(num_grids, expl_biomass_gpsqm(1:num_grids)*grid_area_sqm/grams_per_metric_ton, &
-    & output_dir//'X_Y_EBMS_'//domain_name//'.csv',.true.)
+call Write_CSV(1, num_grids, F_mort,       output_dir//'FishingMort'//domain_name//'.csv',         1, (ts .ne. 0))
+call Write_CSV(1, num_grids, F_mort_raw,   output_dir//'FishingMortRaw'//domain_name//'.csv',         1, (ts .ne. 0))
+call Write_CSV(1, num_grids, USD_per_sqm*grid_area_sqm,  output_dir//'USD_psqm_'//domain_name//'.csv',1, (ts .ne. 0))
+call Write_CSV(1, num_grids, landings_wgt_grams(1:num_grids)/grams_per_metric_ton, &
+&                                                 output_dir//'WgtLandings_mt'//domain_name//'.csv',1, (ts .ne. 0))
 
-    call Write_CSV(1, num_grids, expl_biomass_gpsqm(1:num_grids)/grams_per_metric_ton,&
-    &                                                 output_dir//'ExplBMS_mtpsqm_'//domain_name//'.csv',    1, (ts .ne. 0))
-    call Write_CSV(1, num_grids, set_fishing_by_loc,  output_dir//'FishingEffort'//domain_name//'.csv',       1, (ts .ne. 0))
+call Write_CSV(1, num_grids, lpue(1:num_grids),   output_dir//'LPUE_'//domain_name//'.csv',1, (ts .ne. 0))
+call Write_CSV(1, num_grids, dredge_time(1:num_grids), output_dir//'DredgeTime_'//domain_name//'.csv',1, (ts .ne. 0))
+call Write_CSV(1, num_grids, dredge_area(1:num_grids), output_dir//'DredgeArea_'//domain_name//'.csv',1, (ts .ne. 0))
 
-    call Write_Column_CSV(num_grids, set_fishing_by_loc(1:num_grids)*10000, output_dir//'X_Y_Feffort_'//domain_name//'.csv',.true.)
-
-    call Write_CSV(1, num_grids, F_mort,       output_dir//'FishingMort'//domain_name//'.csv',         1, (ts .ne. 0))
-    call Write_CSV(1, num_grids, F_mort_raw,   output_dir//'FishingMortRaw'//domain_name//'.csv',         1, (ts .ne. 0))
-    call Write_CSV(1, num_grids, USD_per_sqm*grid_area_sqm,  output_dir//'USD_psqm_'//domain_name//'.csv',1, (ts .ne. 0))
-    call Write_CSV(1, num_grids, landings_wgt_grams(1:num_grids)/grams_per_metric_ton, &
-    &                                                 output_dir//'WgtLandings_mt'//domain_name//'.csv',1, (ts .ne. 0))
-
-    call Write_CSV(1, num_grids, lpue(1:num_grids),   output_dir//'LPUE_'//domain_name//'.csv',1, (ts .ne. 0))
-    call Write_CSV(1, num_grids, dredge_time(1:num_grids), output_dir//'DredgeTime_'//domain_name//'.csv',1, (ts .ne. 0))
-    call Write_CSV(1, num_grids, dredge_area(1:num_grids), output_dir//'DredgeArea_'//domain_name//'.csv',1, (ts .ne. 0))
-
-                
-    deallocate(abundance)
-    deallocate(bms)
-    return
+            
+deallocate(abundance)
+deallocate(bms, ebms_mt)
+return
 endsubroutine Mortality_Write_At_Timestep
 
 !==================================================================================================================

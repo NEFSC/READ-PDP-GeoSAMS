@@ -28,13 +28,13 @@ CONTAINS
 !>
 !> @author Keston Smith (IBSS corp) June-July 2021
 !--------------------------------------------------------------------------------------------------
-function LSF_Generalized_Least_Squares(y, F, C, n, m, only_est)
+function LSF_Generalized_Least_Squares(y, F, C, n, m, proc_recruits)
 use globals
 implicit none
 integer, intent(in):: n, m
 real(dp), intent(in):: y(*), F(n,*), C(n,*)
 real(dp) :: LSF_Generalized_Least_Squares(n)
-logical, intent(in) :: only_est
+logical, intent(in) :: proc_recruits
 
 real(dp), allocatable:: Cinv(:,:), CbetaInv(:,:), Vtmp(:), Vtmp2(:), Mtmp(:,:), ytr(:)
 real(dp), allocatable:: beta(:), Cbeta(:,:)
@@ -68,7 +68,7 @@ do j=1, m
 enddo
 call dgesv(m, m, CBetaInv, m, IPIV, CBeta, m, info)
 write(*,*)'LSF_Generalized_Least_Squares  dgesv info=', info
-if (.not. only_est) then
+if (proc_recruits) then
     call write_csv(m, m, CbetaInv, 'CBeta0.csv', m)
     call write_csv(n, m, F, 'Fglsa0.csv', n)
 endif
@@ -84,7 +84,7 @@ call dgemv('N', m, m, atmp, Cbeta, m, Vtmp2, 1, btmp, Beta, 1)
 call dgemv('N', n, m, atmp, F, n, beta,  1, btmp, ytr, 1)
 LSF_Generalized_Least_Squares(1:n) = y(1:n) - ytr(1:n)
 
-if (.not. only_est) call Write_Vector_Scalar_Field(n, y, 'obs.txt')
+if (proc_recruits) call Write_Vector_Scalar_Field(n, y, 'obs.txt')
 
 deallocate(ipiv)
 deallocate(beta, Cbeta)

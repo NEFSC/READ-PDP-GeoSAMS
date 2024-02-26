@@ -264,35 +264,3 @@ if yrStart >= yearMin && yrEnd <= yearMax
 else
     fprintf('INPUT YEARS OUT OF RANGE: %i to %i', yearMin, yearMax)
 end    
-%----------------------------------------------------------------------------
-% DEPRECATE
-%----------------------------------------------------------------------------
-% %XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX
-% flnm='Data/RecruitsMA.csv';
-% fprintf('Reading from %s\n', flnm)
-% if isOctave
-%   F=csvreadK(flnm);
-% else
-%   warning('OFF', 'MATLAB:table:ModifiedAndSavedVarnames')
-%   F=table2array(readtable(flnm,"FileType","text"));
-% end
-% Fout = LumpData1NM(F);
-% flnm='Data/RecruitsMALump1NM.csv';
-% header='"decmal year", "x utm", "y utm", "bottom depth(m)","recruits per sq m"';
-% fprintf('Writing to %s\n\n', flnm)
-% writecsv(Fout,flnm,['%g, %f, %f, %f, %e'],header);
-% %XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX
-% flnm='Data/RecruitsGB.csv';
-% fprintf('Reading from %s\n', flnm)
-% if isOctave
-%   F=csvreadK(flnm);
-% else
-%   warning('OFF', 'MATLAB:table:ModifiedAndSavedVarnames')
-%   F=table2array(readtable(flnm,"FileType","text"));
-% end
-% Fout = LumpData1NM(F);
-% flnm='Data/RecruitsGBLump1NM.csv';
-% header='"decmal year", "x utm", "y utm", "bottom depth(m)","recruits per sq m"';
-% fprintf('Writing to %s\n\n', flnm)
-% writecsv(Fout,flnm,['%g, %f, %f, %f, %e'],header);
-%----------------------------------------------------------------------------
