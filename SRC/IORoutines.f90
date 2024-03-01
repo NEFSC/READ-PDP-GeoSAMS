@@ -354,13 +354,25 @@ subroutine Write_CSV(n,m,f,file_name,nndim, append)
     close(69)
 endsubroutine Write_CSV
 
+!--------------------------------------------------------------------------------------------------
+!subroutine Write_Column_CSV(n,m,f,file_name,nndim)
+! Purpose: Write values of a matrix (f) to a csv file in exponential format by column rather than row
+! Inputs:
+!  n (integer) number of rows in f 
+!  m (integer) number of columns in f
+!  header string to write as a column header
+!  f (real(dp)) values to write to csv file
+! file_name (character(72)) filename to write f to in csv format
+!--------------------------------------------------------------------------------------------------
+! Tom Callaghan
+!--------------------------------------------------------------------------------------------------
 subroutine Write_Column_CSV(n,f,header,file_name,append)
 use globals
 implicit none
 integer, intent(in):: n
 real(dp), intent(in):: f(*)
 character(*), intent(in) :: header
-character(*), intent(in)::file_name
+character(*), intent(in) :: file_name
 logical, intent(in) :: append
 integer k, io
 character(fname_len) fmtstr
@@ -385,7 +397,6 @@ if (append) then
     close(write_dev)
     close(read_dev)
 
-
     open(read_dev, file=output_dir//'TEMP', status='old')
     open(unit=write_dev, iostat=io, file=file_name, status='replace')
     do k=1,n+1 ! including header row
@@ -393,8 +404,7 @@ if (append) then
         write(write_dev,'(A)') trim(input_str)
     enddo
     close(write_dev)
-    close(read_dev)
-
+    close(read_dev, status='delete')
 
 else
     fmtstr='(ES14.7 : )'//NEW_LINE(cr)
@@ -407,7 +417,7 @@ else
 endif
 
 endsubroutine Write_Column_CSV
-
+    
 !--------------------------------------------------------------------------------------------------
 !--------------------------------------------------------------------------------------------------
 !subroutine Write_CSV_H(n,m,f,file_name,nndim)

@@ -486,11 +486,11 @@ use Grid_Manager_Mod
 integer, intent(in) :: num_grids
 type(Grid_Data_Class), intent(in) :: grid(*)
 character(*), intent(in) :: fname
-    
-call Write_Column_CSV(num_grids, grid(1:num_grids)%year, 'YEAR', fname,.false.)
-call Write_Column_CSV(num_grids, grid(1:num_grids)%x,    'UTM_X', fname,.true.)
-call Write_Column_CSV(num_grids, grid(1:num_grids)%y,    'UTM_Y', fname,.true.)
-call Write_Column_CSV(num_grids, grid(1:num_grids)%z,    'DEPTH', fname,.true.)
-    
+
+    call Write_Column_CSV(num_grids, grid(1:num_grids)%year, 'YEAR', fname,.false.)
+    call Write_Column_CSV(num_grids, grid(1:num_grids)%x,    'UTM_X', fname,.true.)
+    call Write_Column_CSV(num_grids, grid(1:num_grids)%y,    'UTM_Y', fname,.true.)
+    call Write_Column_CSV(num_grids, grid(1:num_grids)%z,    'DEPTH', fname,.true.)
+
 endsubroutine Write_Y_Y_Preamble
     

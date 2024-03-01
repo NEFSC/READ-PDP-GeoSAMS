@@ -79,7 +79,7 @@ type Grid_Data_Class
     logical is_closed
     !> @public @memberof Grid_Data_Class
     !> Number of station where survey occured
-    integer station_number
+    real(dp) stratum
     !> @public @memberof Grid_Data_Class
     !> Indexed special access
     integer special_access_index
@@ -156,11 +156,11 @@ do n = 1, num_grids
     j = Is_Grid_In_Special_Access(grid(n)%lon, grid(n)%lat)
     if (j > 0) then
         grid(n)%special_access_index = j
-        write(70,'(A, I4, A, I10, A, F8.3, A, F8.3, A, L1, A, I2)') 'Survey #', n, ' Station #', grid(n)%station_number, &
+        write(70,'(A, I4, A, F5.0, A, F8.3, A, F8.3, A, L1, A, I2)') 'Survey #', n, ' Stratum #', grid(n)%stratum, &
         &  ' location (lat, lon) (', grid(n)%lat, ',', grid(n)%lon, ' )  Is Closed:', &
         &  grid(n)%is_closed, ' and is found in special area ', j
     else
-        write(70,'(A, I4, A, I10, A, F8.3, A, F8.3, A, L1)') 'Survey #', n, ' Station #', grid(n)%station_number, &
+        write(70,'(A, I4, A, F5.0, A, F8.3, A, F8.3, A, L1)') 'Survey #', n, ' Stratum #', grid(n)%stratum, &
         &   ' location (lat, lon) (', grid(n)%lat, ',', grid(n)%lon, ' )  Is Closed:', grid(n)%is_closed
     endif
 enddo
@@ -340,7 +340,7 @@ integer function Load_Grid_State(grid, state)
             write(*,*) 'CHANGE "Max Number of Grids" IN CONFIGURATION FILE', term_blk
         end if
         read(input_str,*) grid(n)%year, grid(n)%x, grid(n)%y, grid(n)%lat, grid(n)%lon, grid(n)%z, &
-        &               is_closed, grid(n)%station_number, state(n,1:num_size_classes)
+        &               is_closed, grid(n)%stratum, state(n,1:num_size_classes)
         grid(n)%is_closed = (is_closed > 0)
         grid(n)%special_access_index = 0
     end do

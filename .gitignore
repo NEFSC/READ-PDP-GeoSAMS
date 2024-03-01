@@ -5,6 +5,8 @@ InputDataError.txt
 *.exe
 *.xlsx
 *.xlsm
+*.jpg
+*.fig
 fort.8
 mod/
 obj/

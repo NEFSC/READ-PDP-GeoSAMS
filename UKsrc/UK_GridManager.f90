@@ -17,9 +17,8 @@ type Grid_Data_Class
     real(dp) field_psqm(nDim)
     real(dp) lat(NDim)
     real(dp) lon(NDim)
-    integer num_points, num_squares
+        integer num_points, num_squares
     integer E(4, nDim)
-    character(2) region(nDim)
 end type Grid_Data_Class
 
 character(fname_len), PRIVATE :: grid_data_file_name
@@ -99,7 +98,7 @@ endfunction Get_Obs_Data_File_Name
 integer function Load_Grid(x, y, z, lat, lon)
 real(dp) lat(*), lon(*), x(*), y(*), z(*)
 integer n, io
-character(72) input_str
+character(csv_line_len) input_str
 
 write(*,*)'grid file: ', trim(grid_data_file_name)
 open(63, file = trim(grid_data_file_name), status = 'old')
@@ -108,7 +107,7 @@ do
     read(63, '(a)', iostat = io) input_str
     if (io.lt.0) exit
     n = n + 1
-    read(input_str,*) x(n), y(n), z(n), lat(n), lon(n)!, ManagementRegion(n)
+    read(input_str,*) x(n), y(n), z(n), lat(n), lon(n)
 end do
 close(63)
 Load_Grid = n
@@ -147,8 +146,8 @@ do
     read(63, '(a)', iostat = io) input_str
     if (io.lt.0) exit
     n = n + 1
-    read(input_str,*) year, x(n), y(n), z(n), f(n)
-end do
+            read(input_str,*) year, x(n), y(n), z(n), f(n)
+        end do
 close(63)
 Load_Observation_Data = n
 end function

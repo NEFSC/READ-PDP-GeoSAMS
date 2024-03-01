@@ -13,7 +13,7 @@ integer, parameter :: num_size_classes = (shell_len_max - shell_len_min) / shell
 integer, parameter :: max_num_years  = 50
 integer, parameter :: max_num_areas = 25
 integer, parameter :: max_sides = 8
-    
+
 ! used by configuration files
 integer, parameter :: tag_len = 40
 integer, parameter :: value_len = 30

@@ -18,12 +18,16 @@ if (len(sys.argv) < 3):
     
 year_start = int(sys.argv[1])
 year_end = int(sys.argv[2])
+# number of colums in csv file, starting at 0
+# lat, lon, initial data
+ncols = year_end - year_start + 3
 print(year_start, year_end)
 years = range(year_start, year_end+1)
+
 domainName = ['MA', 'GB']
 for dn in domainName:
     col = []
-    col = [defaultdict(list) for i in range(5)]
+    col = [defaultdict(list) for i in range(ncols-1)]
     k = 0
     print( 'Concat ', dn)
     with open('Results/X_Y_EBMS_'+dn+str(year_start)+'_0.csv') as f:
@@ -44,31 +48,13 @@ for dn in domainName:
         for i in range (len(col[0][0])):    
             col[0][k+2].append(col[k][2][i])
 
-        # with open('Results/X_Y_EBMS_MA2006.csv') as f:
-        #             col[2][i].append(v)
-
-        # for i in range (len(col[0][0])):    
-        #     col[0][4].append(col[2][2][i])
-
-        # with open('Results/X_Y_EBMS_MA2007.csv') as f:
-        #             col[3][i].append(v)
-
-        # for i in range (len(col[0][0])):    
-        #     col[0][5].append(col[3][2][i])
-
-        # with open('Results/X_Y_EBMS_MA2008.csv') as f:
-        #             col[4][i].append(v)
-
-        # for i in range (len(col[0][0])):    
-        #     col[0][6].append(col[4][2][i])
-
     # brute force write out results
     file1 = open('Results/X_Y_EBMS_'+dn+'.csv', 'w')
     for r in range(len(col[0][0])):
-        for c in range(6):
+        for c in range(ncols):
             file1.write(col[0][c][r])
             file1.write(',')
-        file1.write(col[0][6][r])
+        file1.write(col[0][ncols][r])
         file1.write('\n')
 
     file1.close()

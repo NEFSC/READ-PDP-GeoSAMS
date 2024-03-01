@@ -63,8 +63,9 @@ make
 
 @REM finish with preprocessing
 cd ..
-matlab.exe -batch "addpath mfiles\; addpath mfiles\latlonutm\; addpath PreProcess\; TrawlData5mmbin(%1, %2); exit;"
-matlab.exe -batch "addpath mfiles\; addpath mfiles\latlonutm\; addpath PreProcess\; PullOutRecruitData; exit;"
+@REM PullOutRecruitData compiles recruit data for all years from the dredge data.
+matlab.exe -batch "addpath mfiles\; addpath mfiles\latlonutm\; addpath PreProcess\; PullOutRecruitData('NMFS_ALB'); exit;"
+matlab.exe -batch "addpath mfiles\; addpath mfiles\latlonutm\; addpath PreProcess\; TrawlData5mmbin(%1, %2, 'NMFS_ALB'); exit;"
 matlab.exe -batch "addpath mfiles\; addpath mfiles\latlonutm\; addpath PreProcess\; ProcessRecruitData(%1, %2); exit;"
 matlab.exe -batch "addpath mfiles\; addpath mfiles\latlonutm\; addpath PreProcess\; NearestNeighborRecInterp(%1, %2); exit;"
 

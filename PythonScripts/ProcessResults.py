@@ -28,11 +28,10 @@ for dn in domainName:
     # UK writes results to subdir Results/
     # using the same file name as provide for observation data.
     flin = 'X_Y_EBMS_'+dn+str(year_start)+'_0.csv'
-    print([ex, ' ', dn, ' ', flin, ' F'])
     subprocess.run([ex, cfgFile, dn, flin, ' F'])
+    print([ex, cfgFile, dn, flin, ' F'])
     for year in years:
         flin = 'X_Y_EBMS_'+dn+str(year)+'.csv'
         # output all data, proc_recruits='F'
         subprocess.run([ex, cfgFile, dn, flin, ' F'])
-
-# Results/X_Y_EBMS_MA2005_0.csv
+        print([ex, cfgFile, dn, flin, ' F'])
