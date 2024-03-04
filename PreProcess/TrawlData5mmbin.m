@@ -1,4 +1,19 @@
-function TrawlData5mmbin(yrStart, yrEnd, srcText)
+function TrawlData5mmbin(yrStart, yrEnd, src)
+
+% It seems to be confusing trying to pass a string in batch files or command line. 
+% "text" becomes 'text'
+% Therefore, converting passed parameter to desired string
+switch src
+case 0
+    srcText = "ALL";
+case 1
+    srcText = "NMFS_ALB";
+case 2
+    srcText = "VIMSRSA";
+otherwise
+    srcText = "ALL";
+end
+
 
 domain = ['GB', 'MA'];
 isOctave = (exist('OCTAVE_VERSION', 'builtin') ~= 0);
@@ -80,7 +95,11 @@ for d = 1:numel(size(domain))
     fprintf( 'Working on %s Year %d\n',  domain(d*2-1:d*2), yr);
     X=[];
     %j=and(year==yr,sg==3.);
-    j=strcmp(src, {srcText}) & year==2005 & sg==3.;
+    if srcText == "ALL"
+        j= year==yr & sg==3.;
+    else
+        j= src==srcText & year==yr & sg==3.;
+    end
     if isOctave
       stratum_t = M(j,8);
       is_closed_t = double(M(j,17)>0);

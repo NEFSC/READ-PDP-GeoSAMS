@@ -338,7 +338,7 @@ subroutine Load_Fishing_Mortalities()
                 write(*,*) term_red, 'NUM OF AREAS VALUE TOO LARGE in', trim(fishing_mort_fname)
                 write(*,'(A,A,I4,A,A)') ' EXPECTING', term_blk, num_areas, term_red, ' OR LESS'
                 write(*,* ) trim(input_str), term_blk
-                stop
+                stop 1
             endif
             j = index(sub_str,',')
             sub_str = sub_str(j+1:)
@@ -856,7 +856,7 @@ subroutine Set_Config_File_Name(fname)
         PRINT *, term_blu, trim(config_file_name), ' FOUND', term_blk
     else
         PRINT *, term_red, trim(config_file_name), ' NOT FOUND', term_blk
-        stop
+        stop 1
     endif
 endsubroutine Set_Config_File_Name
 
@@ -874,7 +874,7 @@ subroutine Set_Fishing_Mort_File_Name(fname)
             PRINT *, term_blu, trim(fishing_mort_fname), ' FOUND', term_blk
         else
             PRINT *, term_red, trim(fishing_mort_fname), ' NOT FOUND', term_blk
-            stop
+            stop 1
         endif
     else
         if (num_areas > 0) write(*,*) term_yel, 'YEARLY FISHING MORTALITY DATA FILE SET TO ', term_blk, '"NONE"',  &
@@ -921,7 +921,7 @@ subroutine Read_Configuration()
                 fishing_type = trim(adjustl(value))
                 if (.not. ( any ((/ fishing_type.eq.'USD', fishing_type.eq.'BMS', fishing_type.eq.'CAS'/)) )) then
                     write(*,*) term_red, ' **** INVALID FISHING TYPE: ', fishing_type, term_blk
-                    stop
+                    stop 1
                 endif
 
             case ('Alpha Mortality')
@@ -1058,10 +1058,12 @@ call Write_Column_CSV(num_grids, ebms_mt(:), 'EBMS', output_dir//'Lat_Lon_EBMS_'
 if (mod(ts+1, ts_per_year) .eq. 1) then
     write(buf,'(I4)') year
     if (ts .eq. 0) then
-            call Write_Column_CSV(num_grids, ebms_mt(:), 'EBMS', data_dir//'X_Y_EBMS_'//domain_name//buf//'_0.csv', .true.)
-        else
-            call Write_Column_CSV(num_grids, ebms_mt(:), 'EBMS', data_dir//'X_Y_EBMS_'//domain_name//buf//'.csv', .true.)
-        endif 
+        call Write_Column_CSV(num_grids, ebms_mt(:), 'EBMS', data_dir//'X_Y_EBMS_'//domain_name//buf//'_0.csv', .true.)
+        call Write_Column_CSV(num_grids, landings_by_num(:), 'Landings', data_dir//'X_Y_LAND_'//domain_name//buf//'_0.csv', .true.)
+    else
+        call Write_Column_CSV(num_grids, ebms_mt(:), 'EBMS', data_dir//'X_Y_EBMS_'//domain_name//buf//'.csv', .true.)
+        call Write_Column_CSV(num_grids, landings_by_num(:), 'Landings', data_dir//'X_Y_LAND_'//domain_name//buf//'.csv', .true.)
+    endif 
 endif
 
 call Write_CSV(1, num_grids, expl_biomass_gpsqm(1:num_grids)/grams_per_metric_ton,&

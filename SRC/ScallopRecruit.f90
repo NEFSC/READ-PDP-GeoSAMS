@@ -301,7 +301,7 @@ subroutine Set_Config_File_Name(fname)
         PRINT *, term_blu, trim(config_file_name), ' FOUND', term_blk
     else
         PRINT *, term_red, trim(config_file_name), ' NOT FOUND', term_blk
-        stop
+        stop 1
     endif
     endsubroutine Set_Config_File_Name
 
@@ -360,7 +360,7 @@ subroutine Read_Configuration()
             case default
                 write(*,*) term_red, 'Unrecognized line in ',config_file_name
                 write(*,*) 'Unknown Line-> ',input_string, term_blk
-                stop
+                stop 1
             end select
         endif
     end do

@@ -44,7 +44,7 @@ subroutine Set_Grid_Data_File_Name(fname)
         PRINT *, term_blu, trim(grid_data_file_name), ' FOUND', term_blk
     else
         PRINT *, term_red, trim(grid_data_file_name), ' NOT FOUND', term_blk
-        stop
+        stop 1
     endif
 endsubroutine Set_Grid_Data_File_Name
 
@@ -66,7 +66,7 @@ subroutine Set_Obs_Data_File_Name(fname)
         PRINT *, term_blu, trim(obs_data_file_name), ' FOUND', term_blk
     else
         PRINT *, term_red, trim(obs_data_file_name), ' NOT FOUND', term_blk
-        stop
+        stop 1
     endif
 endsubroutine Set_Obs_Data_File_Name
 

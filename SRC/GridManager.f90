@@ -186,7 +186,7 @@ subroutine Set_Config_File_Name(fname)
         PRINT *, term_blu, trim(config_file_name), ' FOUND', term_blk
     else
         PRINT *, term_red, trim(config_file_name), ' NOT FOUND', term_blk
-        stop
+        stop 1
     endif
 endsubroutine Set_Config_File_Name
 
@@ -208,7 +208,7 @@ subroutine Set_Init_Cond_File_Name(fname)
         PRINT *, term_blu, trim(init_cond_fname), ' FOUND', term_blk
     else
         PRINT *, term_red, trim(init_cond_fname), ' NOT FOUND', term_blk
-        stop
+        stop 1
     endif
 endsubroutine Set_Init_Cond_File_Name
 
@@ -234,7 +234,7 @@ subroutine Set_Special_Access_File_Name(fname)
             PRINT *, term_blu, trim(special_accesss_fname), ' FOUND', term_blk
         else
             PRINT *, term_red, trim(special_accesss_fname), ' NOT FOUND', term_blk
-            stop
+            stop 1
         endif
     else
         write(*,*) term_yel, 'SPECIAL ACCESS DATA FILE SET TO ', term_blk, '"NONE"',  &
@@ -292,7 +292,7 @@ subroutine Read_Configuration()
             case default
                 write(*,*) term_red, 'Unrecognized line in ',config_file_name
                 write(*,*) 'Unknown Line-> ',input_string, term_blk
-                stop
+                stop 1
             end select
         endif
     end do
@@ -324,7 +324,7 @@ integer function Load_Grid_State(grid, state)
 
     if (init_cond_fname .eq. "") then
         write(*,*) term_red, '"Initial Conditions" is not defined, Check setting in GridManager.cfg', term_blk
-        stop
+        stop 1
     endif
 
     PRINT *, 'OPENING ', init_cond_fname
@@ -338,6 +338,7 @@ integer function Load_Grid_State(grid, state)
         if (n>max_num_grids) then
             write(*,'(A,A, I5, A, I5)') term_red, 'MAX NUMBER OF GRIDS EXCEEDED, AT ', n, ' EXPECTED ', max_num_grids
             write(*,*) 'CHANGE "Max Number of Grids" IN CONFIGURATION FILE', term_blk
+            stop 1
         end if
         read(input_str,*) grid(n)%year, grid(n)%x, grid(n)%y, grid(n)%lat, grid(n)%lon, grid(n)%z, &
         &               is_closed, grid(n)%stratum, state(n,1:num_size_classes)
@@ -406,7 +407,7 @@ integer function Load_Area_Coordinates()
 
             if (edge_lon .ne. edge_lat) then
                 write(*,*) term_red, 'INVALID SPECIAL ACCESS FILE: at set ', n, term_blk
-                stop
+                stop 1
             endif
             area(n)%n_sides = edge_lat
         endif

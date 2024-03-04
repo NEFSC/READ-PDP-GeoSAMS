@@ -243,7 +243,7 @@ if (ncla .eq. 0) then
     write(*,*) term_red, 'No configuration file', term_blk
     call get_command(arg)
     write(*,*) term_blu,'Typical use: $ ', term_yel, trim(arg), ' Scallop.cfg [Domain] [Start Year] [Stop Year]', term_blk
-    stop
+    stop 1
 endif
 
 if(ncla.ge.1) call get_command_argument(1, arg)
@@ -253,7 +253,7 @@ if (exists) then
     PRINT *, term_blu, trim(file_name), ' FOUND', term_blk
 else
     PRINT *, term_red, trim(file_name), ' NOT FOUND', term_blk
-    stop
+    stop 1
 endif
 
 !==================================================================================================================
@@ -264,7 +264,7 @@ call Read_Startup_Config(max_num_grids, domain_name, file_name, start_year, stop
 if(ncla.ge.2) call get_command_argument(2, domain_name)
 if (.not. ( any ((/ domain_name.eq.'MA', domain_name.eq.'GB'/)) )) then
     write(*,*) term_red, ' **** INVALID DOMAIN NAME: ', domain_name, term_blk
-    stop
+    stop 1
 endif
 
 if(ncla.ge.3) then
@@ -336,9 +336,11 @@ call Write_Lat_Lon_Preamble(num_grids, grid, output_dir//'Lat_Lon_Feffort_'//dom
 
 
 call Write_Y_Y_Preamble(num_grids, grid, data_dir//'X_Y_EBMS_'//domain_name//buf//'_0.csv')
+call Write_Y_Y_Preamble(num_grids, grid, data_dir//'X_Y_LAND_'//domain_name//buf//'_0.csv')
 do n = start_year, stop_year
     write(buf,'(I4)') n
     call Write_Y_Y_Preamble(num_grids, grid, data_dir//'X_Y_EBMS_'//domain_name//buf//'.csv')
+    call Write_Y_Y_Preamble(num_grids, grid, data_dir//'X_Y_LAND_'//domain_name//buf//'.csv')
 end do
 !----------------------------------------------------------------------------------------------------------------
 year = start_year
@@ -371,6 +373,7 @@ enddo ! ts = 1, num_time_steps
 
 deallocate(grid, growth, mortality, recruit, state, weight_grams, fishing_effort)
 call Destructor()
+stop 0
 END PROGRAM ScallopPopDensity
 
 !-----------------------------------------------------------------------
@@ -425,7 +428,7 @@ subroutine Read_Startup_Config(max_num_grids, domain_name, file_name, start_year
                 domain_name = trim(adjustl(value))
                 if (.not. ( any ((/ domain_name.eq.'MA', domain_name.eq.'GB'/)) )) then
                     write(*,*) term_red, ' **** INVALID DOMAIN NAME: ', domain_name, term_blk
-                    stop
+                    stop 1
                 endif
 
             case('Beginning Year')
@@ -452,7 +455,7 @@ subroutine Read_Startup_Config(max_num_grids, domain_name, file_name, start_year
             case default
                 write(*,*) term_red, 'Unrecognized line in ',file_name
                 write(*,*) 'Unknown Line-> ',input_string, term_blk
-                stop
+                stop 1
             end select
         endif
     end do

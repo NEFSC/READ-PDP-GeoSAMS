@@ -148,7 +148,7 @@ if (ncla .eq. 0) then
     write(*,*) term_red, 'No UK configuration file given', term_blk
     call get_command(cmd)
     write(*,*) term_blu,'Typical use: $ ', term_yel, trim(cmd), ' UK.cfg', term_blk
-    stop
+    stop 1
 endif
 
 if(ncla.ge.1) call get_command_argument(1, cfg_file_name)
@@ -158,7 +158,7 @@ if (exists) then
     PRINT *, term_blu, trim(cfg_file_name), ' FOUND', term_blk
 else
     PRINT *, term_red, trim(cfg_file_name), ' NOT FOUND', term_blk
-    stop
+    stop 1
 endif
 
 call Read_Startup_Config(cfg_file_name, domain_name, use_posterior_sim, Nrand, IsLogT, IsHiLimit, fmax, par, alpha, proc_recruits)
@@ -167,7 +167,7 @@ if(ncla.ge.2) then
     call get_command_argument(2, domain_name)
     if (.not. ( any ((/ domain_name.eq.'MA', domain_name.eq.'GB'/)) )) then
         write(*,*) term_red, ' **** INVALID DOMAIN NAME: ', domain_name, term_blk
-        stop
+        stop 1
     endif
     ! Force Grid file name
     cmd = domain_name//'xyzLatLon.csv'
@@ -333,7 +333,7 @@ if (use_posterior_sim) then
     deallocate( distance_horiz, distance_vert)
 endif
 
-stop
+stop 0
 endprogram
 
 !--------------------------------------------------------------------------------------------------
@@ -392,7 +392,7 @@ do
             domain_name = value(1:2)
             if (.not. ( any ((/ domain_name.eq.'MA', domain_name.eq.'GB'/)) )) then
                 write(*,*) term_red, ' **** INVALID DOMAIN NAME: ', domain_name, term_blk
-                stop
+                stop 1
             endif
             ! Force Grid file name
             value = domain_name//'xyzLatLon.csv'
@@ -432,7 +432,7 @@ do
         !     if (domain_name .ne. value(1:2)) then
         !         write (*,*) term_red, 'Domain Name Mismatch: Expecting ', term_blk, domain_name, term_red, &
         !         &  ' read ', term_blk, value(1:2)
-        !         stop
+        !         stop 1
         !     endif
             
         !     Call Set_Grid_Data_File_Name(value)
@@ -447,7 +447,6 @@ do
             write(*,*) term_yel, 'ReadInput: Unrecognized line in UK.cfg'
             write(*,*) 'Unrecognized Line->',input_string
             write(*,*) 'This is probably not a problem', term_blk
-            !stop
     end select
     endif
 end do

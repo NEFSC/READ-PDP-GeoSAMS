@@ -84,7 +84,11 @@ call dgemv('N', m, m, atmp, Cbeta, m, Vtmp2, 1, btmp, Beta, 1)
 call dgemv('N', n, m, atmp, F, n, beta,  1, btmp, ytr, 1)
 LSF_Generalized_Least_Squares(1:n) = y(1:n) - ytr(1:n)
 
-if (proc_recruits) call Write_Vector_Scalar_Field(n, y, 'obs.txt')
+if (proc_recruits) then
+    call Write_Vector_Scalar_Field(n,  y(1:n), 'obs.txt')
+    call Write_Vector_Scalar_Field(n,  ytr(1:n), 'obs_ytr.txt')
+    call Write_Vector_Scalar_Field(n,  y(1:n) - ytr(1:n), 'obs_delta.txt')
+endif
 
 deallocate(ipiv)
 deallocate(beta, Cbeta)

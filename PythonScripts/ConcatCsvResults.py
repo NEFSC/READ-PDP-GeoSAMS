@@ -25,36 +25,43 @@ print(year_start, year_end)
 years = range(year_start, year_end+1)
 
 domainName = ['MA', 'GB']
-for dn in domainName:
-    col = []
-    col = [defaultdict(list) for i in range(ncols-1)]
-    k = 0
-    print( 'Concat ', dn)
-    with open('Results/X_Y_EBMS_'+dn+str(year_start)+'_0.csv') as f:
-        reader = csv.reader(f)
-        for row in reader:
-            for (i,v) in enumerate(row):
-                col[k][i].append(v)
+xyString = ['Results/X_Y_EBMS_', 'Results/X_Y_LAND_']
 
-    # append remaining years as additional columns to first data set
-    for year in years:
-        k += 1
-        with open('Results/X_Y_EBMS_'+dn+str(year)+'.csv') as f:
+for dn in domainName:
+    for xyStr in xyString:
+        col = []
+        col = [defaultdict(list) for i in range(ncols-1)]
+        k = 0
+        print( 'Concat ', dn)
+        with open(xyStr+dn+str(year_start)+'_0.csv') as f:
             reader = csv.reader(f)
             for row in reader:
                 for (i,v) in enumerate(row):
                     col[k][i].append(v)
+            f.close()
+            os.remove(f.name)
 
-        for i in range (len(col[0][0])):    
-            col[0][k+2].append(col[k][2][i])
+        # append remaining years as additional columns to first data set
+        for year in years:
+            k += 1
+            with open(xyStr+dn+str(year)+'.csv') as f:
+                reader = csv.reader(f)
+                for row in reader:
+                    for (i,v) in enumerate(row):
+                        col[k][i].append(v)
+                f.close()
+                os.remove(f.name)
 
-    # brute force write out results
-    file1 = open('Results/X_Y_EBMS_'+dn+'.csv', 'w')
-    for r in range(len(col[0][0])):
-        for c in range(ncols):
-            file1.write(col[0][c][r])
-            file1.write(',')
-        file1.write(col[0][ncols][r])
-        file1.write('\n')
+            for i in range (len(col[0][0])):    
+                col[0][k+2].append(col[k][2][i])
 
-    file1.close()
+        # brute force write out results
+        file1 = open(xyStr+dn+'_'+str(year_start)+'_'+str(year_end)+'.csv', 'w')
+        for r in range(len(col[0][0])):
+            for c in range(ncols):
+                file1.write(col[0][c][r])
+                file1.write(',')
+            file1.write(col[0][ncols][r])
+            file1.write('\n')
+
+        file1.close()

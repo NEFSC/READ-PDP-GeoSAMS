@@ -88,7 +88,7 @@ subroutine Set_Config_File_Name(fname)
         PRINT *, term_blu, trim(config_file_name), ' FOUND', term_blk
     else
         PRINT *, term_red, trim(config_file_name), ' NOT FOUND', term_blk
-        stop
+        stop 1
     endif
 endsubroutine Set_Config_File_Name
 
@@ -138,7 +138,7 @@ if (InitialCallFlag) then
     close(69)
     if (n .eq. 0) then
         write(*,*) term_red, 'No spatial functions are defined. Cannot proceed.', term_blk
-        stop
+        stop 1
     endif
     NLSF_Define_Functions = n
     return
@@ -170,7 +170,7 @@ do
                 nlsf(n)%form = 'CosExp'
             case default
                 write(*,*) 'Unrecognized function Form in SpatialFcns.inp:', input_string
-                stop
+                stop 1
         end select
         j = index(input_string,"precon=",back=.true.)
         read( input_string(j+7:),* )nlsf(n)%pre_cond_fcn_num
@@ -212,7 +212,7 @@ do n = 1, nsf
             nlsf(n)%lambda_min = 5000.
         case default
             write(*,*) 'Error unkown spatial dimension in nlsf(b):', n, trim(nlsf(n)%axis)
-            stop
+            stop 1
     end select
     nlsf(n)%lambda_max = nlsf(n)%f0_max - nlsf(n)%f0_min
     nlsf(n)%f_range(1) = nlsf(n)%f0_min
@@ -264,7 +264,7 @@ do j = 1, nsf
         k = nlsf(j)%pre_cond_fcn_num
         if (k.ge.j)then
             write(*,'(A, I2, I3)') 'Preconditiong function must be indexed first:', k, j
-            stop
+            stop 1
         endif
         write(*,'(A, I2, I3)') 'Preconditioning Function Number', k, j
         field_precond(:) = NLSF_Evaluate_Fcn (obs, nlsf(k))
@@ -326,7 +326,7 @@ case ('x+y')
     x(1:num_points) = p%x(1:num_points)+p%y(1:num_points)
 case default ! this should not occur as the variable values have already been checked
     write(*,*) 'Error unkown spatial dimension in nlsf(a):', trim(nlsf%axis)
-    stop
+    stop 1
 end select
 
 !Bound interpolation range to observed range 
@@ -352,7 +352,7 @@ case ('CosExp')
 
 case default ! this should not occur as the variable values have already been checked
     write(*,*) 'Error unkown spatial form in nlsf(a):', trim(nlsf%form)
-    stop
+    stop 1
 end select
 
 deallocate(x)
