@@ -101,7 +101,7 @@ for d = 1:numel(size(domain))
         end
 
         if sum(j) == 0
-            % do data found
+            % no data found
             fprintf( 'Skipping %s Year %d\n',  domain(d*2-1:d*2), yr);
         else
             fprintf( 'Working on %s Year %d\n',  domain(d*2-1:d*2), yr);
