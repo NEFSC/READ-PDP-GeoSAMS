@@ -134,7 +134,18 @@ real(dp), PRIVATE :: recr_period_stop  ! day of year as a fraction of year, Apr 
 
 CONTAINS
 
-!==================================================================================================================
+subroutine Set_Start_Year(value)
+integer, intent(in) :: value
+recr_start_year = value
+endsubroutine Set_Start_Year
+    
+subroutine Set_Stop_Year(value)
+integer, intent(in) :: value
+recr_stop_year = value
+recr_all_rand_stop = value ! TODO is this correct. Not using random recruits at this time
+endsubroutine Set_Stop_Year
+        
+        !==================================================================================================================
 !! @public @memberof Recruitment_Class
 !> Set_Recruitment
 !> @brief Sets recruitment parameters
@@ -149,7 +160,7 @@ CONTAINS
 !> @param[in] K_mu Brody growth coefficient K, average
 !> @param[in] shell_length_mm Shell height in millimeters
 !==================================================================================================================
-subroutine Set_Recruitment(recruit, n_grids, dom_name, dom_area, L_inf_mu, K_mu, shell_length_mm)
+subroutine Set_Recruitment(recruit, n_grids, dom_name, dom_area, L_inf_mu, K_mu, shell_length_mm, yr_start,  yr_stop)
     use globals
     type(Recruitment_Class), intent(inout) :: recruit(*)
     integer, intent(in) :: n_grids
@@ -158,6 +169,7 @@ subroutine Set_Recruitment(recruit, n_grids, dom_name, dom_area, L_inf_mu, K_mu,
     real(dp), intent(in) :: L_inf_mu(*)
     real(dp), intent(in) :: K_mu(*)
     real(dp), intent(in) :: shell_length_mm(*)
+    integer, intent(in) :: yr_start,  yr_stop
 
     integer n, j, year, year_index
     real(dp) tmp(n_grids)
@@ -172,6 +184,10 @@ subroutine Set_Recruitment(recruit, n_grids, dom_name, dom_area, L_inf_mu, K_mu,
     recr_all_rand_stop = 2025
 
     call Read_Configuration()
+    ! Force recruitment years
+    call Set_Start_Year(yr_start)
+    call Set_Stop_Year(yr_stop)
+
 
     !! initalize private members
     num_grids = n_grids

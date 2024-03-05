@@ -1,12 +1,38 @@
 @echo off
 if [%1] == [] (
     echo No year inputs
-    echo Expecting: GeoSamSetup.bat YYYYstart YYYYend
+    echo Expecting: GeoSamSetup.bat YYYYstart YYYYend DataSource#
+    echo Data Source
+    echo NMFS_ALB ==> 1111
+    echo CANADIAN ==> 2222
+    echo F/V_TRAD ==> 3333
+    echo VIMSRSA ==> 4444
+    echo NMFSSHRP ==> 5555
+    echo ALL ==> 0
     exit /b
 )
 if [%2] == [] (
     echo No year inputs
-    echo Expecting: GeoSamSetup.bat YYYYstart YYYYend
+    echo Expecting: GeoSamSetup.bat YYYYstart YYYYend DataSource#
+    echo Data Source
+    echo NMFS_ALB ==> 1111
+    echo CANADIAN ==> 2222
+    echo F/V_TRAD ==> 3333
+    echo VIMSRSA ==> 4444
+    echo NMFSSHRP ==> 5555
+    echo ALL ==> 0
+    exit /b
+)
+if [%3] == [] (
+    echo No year inputs
+    echo Expecting: GeoSamSetup.bat YYYYstart YYYYend DataSource#
+    echo Data Source
+    echo NMFS_ALB ==> 1111
+    echo CANADIAN ==> 2222
+    echo F/V_TRAD ==> 3333
+    echo VIMSRSA ==> 4444
+    echo NMFSSHRP ==> 5555
+    echo ALL ==> 0
     exit /b
 )
 
@@ -68,12 +94,9 @@ cd ..
 @REM For Matlab: %3 defines the source data for the dredge
 @REM before 2008 use NMFS_ALB
 @REM 2008 and after use VIMSRSA
-@REM 0 : "ALL"
-@REM 1 : "NMFS_ALB"
-@REM 2 : "VIMSRSA" 
 @REM font color take from
 @REM The ESC special character can be entered with ALT+0+2+7 on the numeric keypad
-@REM However, vscode does not see it so enter via notepad and cut & paste to here.
+@REM However, vscode does not see it. Either cut&paste here or enter via notepad and cut & paste to here.
 @REM https://stackoverflow.com/questions/2048509/how-to-echo-with-different-colors-in-the-windows-command-line
 @REM https://gist.githubusercontent.com/mlocati/fdabcaeb8071d5c75a2d51712db24011/raw/b710612d6320df7e146508094e84b92b34c77d48/win10colors.cmd
 matlab.exe -batch "addpath mfiles\; addpath mfiles\latlonutm\; addpath PreProcess\; PullOutRecruitData(%3); exit;"

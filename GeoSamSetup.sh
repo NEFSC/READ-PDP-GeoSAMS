@@ -1,8 +1,15 @@
 #!/bin/bash
-if [ $# \< 2 ] 
+if [ $# \< 3 ] 
 then
     echo No year inputs
-    echo Expecting: GeoSamSetup.sh YYYYstart YYYYend
+    echo Expecting: GeoSamSetup.sh YYYYstart YYYYend DataSource#
+    echo Data Source
+    echo NMFS_ALB ==> 1111
+    echo CANADIAN ==> 2222
+    echo F/V_TRAD ==> 3333
+    echo VIMSRSA ==> 4444
+    echo NMFSSHRP ==> 5555
+    echo ALL ==> 0
     exit
 fi
 
@@ -60,10 +67,53 @@ make
 # finish with preprocessing
 cd ..
 
-octave PreProcess/TrawlData5mmbin.m $1 $2
-octave PreProcess/PullOutRecruitData.m
+octave PreProcess/TrawlData5mmbin.m $1 $2 $3
+if [ $? != 0 ]; then
+    echo [31mError in MATLAB TrawlData5mmbin. Stopping[0m
+    exit
+fi
+
+octave PreProcess/PullOutRecruitData.m $3
+if [ $? != 0 ]; then
+    echo [31mError in MATLAB PullOutRecruitData. Stopping[0m
+    exit
+fi
+
 octave PreProcess/ProcessRecruitData.m $1 $2
+if [ $? != 0 ]; then
+    echo [31mError in MATLAB ProcessRecruitData. Stopping[0m
+    exit
+fi
+
 octave mfiles/NearestNeighborRecInterp.m $1 $2
+if [ $? != 0 ]; then
+    echo [31mError in MATLAB NearestNeighborRecInterp. Stopping[0m
+    exit
+fi
+
 
 # Not used with NearestNeighborRecInterp
-# python PythonScripts/EstimateRecruitFields.py %1 %2
+# python PythonScripts/EstimateRecruitFields.py $1 $2
+# if [ $? != 0 ]; then
+#     echo [31mError in MATLAB EstimateRecruitFields. Stopping[0m
+#     exit
+# fi
+
+./SRC/ScallopPopDensity Scallop.cfg MA $1 $2
+if [ $? != 0 ]; then
+    echo [31mError in MATLAB ScallopPopDensity MA. Stopping[0m
+    exit
+fi
+
+./SRC/ScallopPopDensity Scallop.cfg GB $1 $2
+if [ $? != 0 ]; then
+    echo [31mError in MATLAB ScallopPopDensity GB. Stopping[0m
+    exit
+fi
+
+python3 ./PythonScripts/ProcessResults.py $1 $2
+if [ $? == 0 ]; then
+    python3 ./PythonScripts/ConcatCsvResults.py $1 $2
+else 
+    echo [31mError in ProcessResults.py. Stopping[0m
+fi

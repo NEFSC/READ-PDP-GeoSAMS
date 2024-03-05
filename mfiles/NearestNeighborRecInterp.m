@@ -2,11 +2,14 @@ function NearestNeighborRecInterp(yrStart, yrEnd)
 isOctave = (exist('OCTAVE_VERSION', 'builtin') ~= 0);
 
 if isOctave
-  % used if called by command line
-  if (exist("yrStart", "var") == 0)
-     arg_list = argv();
-     yrStart=str2num(arg_list{1});
-     yrEnd=str2num(arg_list{2});
+  % used if called by command line, or gui
+  arg_list=argv();
+  if ~strcmp(arg_list(1), '--gui');
+    yrStart = str2num(cell2mat(arg_list(1)));
+    yrEnd = str2num(cell2mat(arg_list(2)));
+  else
+    yrStart = str2num(yrStart);
+    yrEnd = str2num(yrEnd);
   end
 end
 

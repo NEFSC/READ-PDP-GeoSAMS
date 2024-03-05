@@ -14,7 +14,7 @@ param=NaN(r,c); % pre-allocate
 lat=table2array(D(:,1));
 lon=table2array(D(:,2));
 for k=1:c
-    param(:,k) =table2array(D(:,k+2))/1000.;
+    param(:,k) =table2array(D(:,k+2));
 end
 
 % normalize the data
@@ -22,14 +22,14 @@ for k=1:c
 for n=1:r
     % geoscatter does not accept 0.0, must be positive or NaN
     % assume anything > 1e12 is an outlier
-    if param(n,k)<=0 ; param(n,k) = 1e-6; end
+    if param(n,k)<=0 || param(n,k) > 1e8; param(n,k) = 1e-6; end
     % saturate values
-    if param(n,k)> 100; param(n,k) = 100; end
+    %if param(n,k)> 100; param(n,k) = 100; end
 end
 end
 max(param,[],"all")
 % scale data 0+ to 100
-m=max(param,[],"all") / 100.;
+m=max(param,[],"all") / 200.;
 param = param ./ m;
 max(param,[],"all")
 

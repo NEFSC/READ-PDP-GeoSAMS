@@ -310,7 +310,7 @@ allocate(fishing_effort(1:num_grids))
 call Set_Growth(growth, grid, shell_length_mm, num_time_steps, ts_per_year, domain_name, domain_area,&
 &              state, weight_grams, num_grids, max_num_grids)
 call Set_Recruitment(recruit, num_grids, domain_name, domain_area, &
-&                    growth(1:num_grids)%L_inf_mu, growth(1:num_grids)%K_mu, shell_length_mm)
+&                    growth(1:num_grids)%L_inf_mu, growth(1:num_grids)%K_mu, shell_length_mm, start_year, stop_year)
 call Set_Mortality(mortality, grid, shell_length_mm, domain_name, domain_area, num_time_steps, &
 &                    ts_per_year, num_grids, max_num_grids)
 

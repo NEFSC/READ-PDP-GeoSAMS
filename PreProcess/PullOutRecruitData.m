@@ -1,25 +1,30 @@
 % for each location it sums together the scallop density from shell length 3cm to 6 cm,
 % inclusive. It then adds this value as a new column along with the current data for size
 % grp 4 as a single row for the location and writes this out to "OriginalData/NewRecruits.csv".
+% src
+% NMFS_ALB ==> 1111
+% CANADIAN ==> 2222
+% F/V_TRAD ==> 3333
+% VIMSRSA ==> 4444
+% NMFSSHRP ==> 5555
+% ALL ==> 0
 function PullOutRecruitData(src)
-% It seems to be confusing trying to pass a string in batch files or command line. 
-% "text" becomes 'text'
-% Therefore, converting passed parameter to desired string
-switch src
-case 0
-    srcText = "ALL";
-case 1
-    srcText = "NMFS_ALB";
-case 2
-    srcText = "VIMSRSA";
-otherwise
-    srcText = "ALL";
+
+isOctave = (exist('OCTAVE_VERSION', 'builtin') ~= 0);
+
+if isOctave
+    % used if called by command line
+    arg_list=argv();
+    if ~strcmp(arg_list(1), '--gui');
+        src = str2num(cell2mat(arg_list(1)));
+    else
+        src = str2num(src);
+    end
 end
+srcText = src;
 
 flnm = 'OriginalData/dredgetowbysize7917.csv';
 fprintf('Reading from %s\n', flnm)
-
-isOctave = (exist('OCTAVE_VERSION', 'builtin') ~= 0);
 
 if isOctave
   F=csvreadK(flnm);
@@ -34,7 +39,7 @@ else
   src = table2array(F(:,37));
 end
 
-if srcText == "ALL"
+if srcText == 0
     n=find(size_grp==3);
 else
     n=find(size_grp==3 & src==srcText);
@@ -49,17 +54,16 @@ if isOctave
 else
     recr_t = array2table(transpose(recr),'VariableNames',{'rec'});
 end
-
-if srcText == "ALL"
+if srcText == 0
     j=size_grp==4; M = [F(j,:) recr_t];
 else
     j=size_grp==4 & src==srcText; M = [F(j,:) recr_t];
 end
+
 flnm = 'OriginalData/NewRecruits.csv';
 
 if isOctave
   csvwrite(flnm, M);
 else
   writetable(M,flnm);
-end
 end

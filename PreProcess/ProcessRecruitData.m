@@ -1,16 +1,21 @@
-% "","area","subarea","cruise6","year","month","day","time","stratum","tow",
-% "station","statype","SVGEAR","haul","gearcon","sdefid","newstra","clop","lat","lon",
-%"tnms","setdpth","bottemp","dopdisb","distused","towadj","towdur","sizegrp","catchnu","catchwt",
-%"surv_n","partrecn","fullrecn","surv_b","partrecb","fullrecb","postow","datasource","lwarea","SETLW",
-%"SVSPP","PropChains","AREAKIND","STRATMAP","SQNM","ysta","gperiod","recruit","linf","K",
-%"date","days_from_apr1","sh_apr1","upper","rec""
 function ProcessRecruitData(yrStart, yrEnd)
 
 isOctave = (exist('OCTAVE_VERSION', 'builtin') ~= 0);
+if isOctave
+  % used if called by command line, or gui
+  arg_list=argv();
+  if ~strcmp(arg_list(1), '--gui');
+    yrStart = str2num(cell2mat(arg_list(1)));
+    yrEnd = str2num(cell2mat(arg_list(2)));
+  else
+    yrStart = str2num(yrStart);
+    yrEnd = str2num(yrEnd);
+  end
+end
 
 towArea_sqm = 4516;
 T2M2=1./towArea_sqm;
- 
+
 Detect=.4;
 DetectRS=.27;
 DetectHD=.13;
@@ -28,13 +33,6 @@ depth_col=yr_col+17;
 fprintf('Reading from %s\n', flnm)
 
 if isOctave
-  % used if called by command line
-  if (exist("yrStart", "var") == 0)
-     arg_list = argv();
-     yrStart=str2num(arg_list{1});
-     yrEnd=str2num(arg_list{2});
-  end
-
   F=csvreadK(flnm);
   year=F(:,yr_col);mon=F(:,mon_col);day=F(:,day_col);
 else
@@ -89,14 +87,14 @@ writecsv(M,flnm,['%g, %g, %g, %g, %e'],header);
 %652 (don\u2019t survey anymore- Canada)
 %662 (don\u2019t survey anymore- Canada)
 %Hi Keston,
-%I don't have a rock chain shapefile but I have the shellfish strata shapefile 
-%and that should do?! STRATUM is the strata number. To match the strata numbers 
-%in the shapefile with the rock chain strata numbers below - add a 6 in the front 
-%and if the strata number is two digits, add a 0 at the end. Let me know if you 
+%I don't have a rock chain shapefile but I have the shellfish strata shapefile
+%and that should do?! STRATUM is the strata number. To match the strata numbers
+%in the shapefile with the rock chain strata numbers below - add a 6 in the front
+%and if the strata number is two digits, add a 0 at the end. Let me know if you
 %need anything else. Hope this helps.
 %best,
 %han
- 
+
 RS= [46,47,49,50,51,52,71,72,74,651,661,652,662];
 RSI=[36,37,14,13,11,9 ,5 ,10,17, 4 , 2 , 3 , 1 ];
 MinLon=[-180*ones(1,6),-67.333333*ones(1,5),-180*ones(1,2)];
@@ -229,7 +227,7 @@ if yrStart >= yearMin && yrEnd <= yearMax
     end
     fprintf('Writing to Data/RecruitsYYYYMA.csv  From %i to %i\n\n', yrStart, yrEnd)
 else
-    fprintf('INPUT YEARS OUT OF RANGE: %i to %i', yearMin, yearMax)
+    fprintf('INPUT YEARS OUT OF RANGE: %i to %i : actual %i to %i\n', yearMin, yearMax, yrStart, yrEnd )
 end
 
 %XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX
@@ -262,5 +260,5 @@ if yrStart >= yearMin && yrEnd <= yearMax
     end
     fprintf('Writing to Data/RecruitsYYYYGB.csv  From %i to %i\n\n', yrStart, yrEnd)
 else
-    fprintf('INPUT YEARS OUT OF RANGE: %i to %i', yearMin, yearMax)
-end    
+    fprintf('INPUT YEARS OUT OF RANGE: %i to %i : actual %i to %i\n', yearMin, yearMax, yrStart, yrEnd )
+end

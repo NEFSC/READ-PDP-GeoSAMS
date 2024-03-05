@@ -8,6 +8,7 @@ InputDataError.txt
 *.jpg
 *.fig
 *.asv
+*.pdf
 fort.8
 mod/
 obj/
