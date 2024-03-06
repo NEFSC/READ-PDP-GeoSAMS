@@ -90,7 +90,7 @@ integer, PRIVATE :: num_in_list
 integer, PRIVATE :: max_num_grids
 integer, PRIVATE :: num_grids
 integer, PRIVATE :: num_areas
-character(2), PRIVATE :: domain_name
+character(domain_len), PRIVATE :: domain_name
 real(dp), PRIVATE :: domain_area_sqm
 integer, PRIVATE :: num_time_steps
 integer, PRIVATE :: ts_per_year
@@ -181,7 +181,7 @@ subroutine Set_Mortality(mortality, grid, shell_lengths, dom_name, dom_area, num
     type(Mortality_Class), intent(inout):: mortality(*)
     type(Grid_Data_Class), intent(in) :: grid(*)
     real(dp), intent(in):: shell_lengths(*)
-    character(2), intent(in) :: dom_name
+    character(domain_len), intent(in) :: dom_name
     real(dp), intent(in) :: dom_area
     integer, intent(in) :: num_ts, ts_py
     integer, intent(in) :: ngrids

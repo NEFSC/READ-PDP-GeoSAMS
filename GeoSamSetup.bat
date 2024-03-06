@@ -1,40 +1,31 @@
+
 @echo off
-if [%1] == [] (
-    echo No year inputs
-    echo Expecting: GeoSamSetup.bat YYYYstart YYYYend DataSource#
-    echo Data Source
-    echo NMFS_ALB ==> 1111
-    echo CANADIAN ==> 2222
-    echo F/V_TRAD ==> 3333
-    echo VIMSRSA ==> 4444
-    echo NMFSSHRP ==> 5555
-    echo ALL ==> 0
-    exit /b
+
+set argCount=0
+for %%x in (%*) do (
+   set /A argCount+=1
+   set "argVec[!argCount!]=%%~x"
 )
-if [%2] == [] (
-    echo No year inputs
-    echo Expecting: GeoSamSetup.bat YYYYstart YYYYend DataSource#
-    echo Data Source
-    echo NMFS_ALB ==> 1111
-    echo CANADIAN ==> 2222
-    echo F/V_TRAD ==> 3333
-    echo VIMSRSA ==> 4444
-    echo NMFSSHRP ==> 5555
-    echo ALL ==> 0
+
+if %argCount% NEQ 4 goto args_count_wrong
+goto args_count_ok
+
+:args_count_wrong
+    @echo "Missing arguments"
+    @echo "Expecting: GeoSamSetup.bat YYYYstart YYYYend DataSource# Domain"
+    @echo "Data Source"
+    @echo "    NMFS_ALB ==> 1111"
+    @echo "    CANADIAN ==> 2222"
+    @echo "    F/V_TRAD ==> 3333"
+    @echo "    VIMSRSA ==> 4444"
+    @echo "    NMFSSHRP ==> 5555"
+    @echo "    ALL ==> 0"
+    @echo "Domain"
+    @echo "    'MA'"
+    @echo "    'GB'"
     exit /b
-)
-if [%3] == [] (
-    echo No year inputs
-    echo Expecting: GeoSamSetup.bat YYYYstart YYYYend DataSource#
-    echo Data Source
-    echo NMFS_ALB ==> 1111
-    echo CANADIAN ==> 2222
-    echo F/V_TRAD ==> 3333
-    echo VIMSRSA ==> 4444
-    echo NMFSSHRP ==> 5555
-    echo ALL ==> 0
-    exit /b
-)
+
+:args_count_ok
 
 @REM unzip dredge data
 if not exist OriginalData\dredgetowbysize7917.csv (
@@ -99,22 +90,22 @@ cd ..
 @REM However, vscode does not see it. Either cut&paste here or enter via notepad and cut & paste to here.
 @REM https://stackoverflow.com/questions/2048509/how-to-echo-with-different-colors-in-the-windows-command-line
 @REM https://gist.githubusercontent.com/mlocati/fdabcaeb8071d5c75a2d51712db24011/raw/b710612d6320df7e146508094e84b92b34c77d48/win10colors.cmd
+matlab.exe -batch "addpath mfiles\; addpath mfiles\latlonutm\; addpath PreProcess\; TrawlData5mmbin(%1, %2, %3, '%4'); exit;"
+IF %ERRORLEVEL% NEQ 0 (
+    @echo [31mError in MATLAB TrawlData5mmbin. Stopping[0m
+    exit
+)
 matlab.exe -batch "addpath mfiles\; addpath mfiles\latlonutm\; addpath PreProcess\; PullOutRecruitData(%3); exit;"
 IF %ERRORLEVEL% NEQ 0 (
     @echo [31mError in MATLAB PullOutRecruitData. Stopping[0m
     exit
 )
-matlab.exe -batch "addpath mfiles\; addpath mfiles\latlonutm\; addpath PreProcess\; TrawlData5mmbin(%1, %2, %3); exit;"
-IF %ERRORLEVEL% NEQ 0 (
-    @echo [31mError in MATLAB TrawlData5mmbin. Stopping[0m
-    exit
-)
-matlab.exe -batch "addpath mfiles\; addpath mfiles\latlonutm\; addpath PreProcess\; ProcessRecruitData(%1, %2); exit;"
+matlab.exe -batch "addpath mfiles\; addpath mfiles\latlonutm\; addpath PreProcess\; ProcessRecruitData(%1, %2, '%4'); exit;"
 IF %ERRORLEVEL% NEQ 0 (
     @echo [31mError in MATLAB ProcessRecruitData. Stopping[0m
     exit
 )
-matlab.exe -batch "addpath mfiles\; addpath mfiles\latlonutm\; addpath PreProcess\; NearestNeighborRecInterp(%1, %2); exit;"
+matlab.exe -batch "addpath mfiles\; addpath mfiles\latlonutm\; addpath PreProcess\; NearestNeighborRecInterp(%1, %2, '%4'); exit;"
 IF %ERRORLEVEL% NEQ 0 (
     @echo [31mError in MATLAB NearestNeighborRecInterp. Stopping[0m
     @echo 
@@ -124,21 +115,15 @@ IF %ERRORLEVEL% NEQ 0 (
 @REM Not used with NearestNeighborRecInterp
 @REM python PythonScripts/EstimateRecruitFields.py %1 %2
 
-.\SRC\ScallopPopDensity.exe Scallop.cfg MA %1 %2
+.\SRC\ScallopPopDensity.exe Scallop.cfg %1 %2 %4
 IF %ERRORLEVEL% NEQ 0 (
     @echo [31mError in ScallopPopDensity MA. Stopping[0m
     exit
 )
 
-.\SRC\ScallopPopDensity.exe Scallop.cfg GB %1 %2
-IF %ERRORLEVEL% NEQ 0 (
-    @echo [31mError in ScallopPopDensity GB. Stopping[0m
-    exit
-)
-
-python .\PythonScripts\ProcessResults.py %1 %2
+python .\PythonScripts\ProcessResults.py %1 %2 %4
 IF %ERRORLEVEL% == 0 (
-    python .\PythonScripts\ConcatCsvResults.py %1 %2
+    python .\PythonScripts\ConcatCsvResults.py %1 %2 %4
 ) else (
     @echo [31mError in ProcessResults.py. Stopping[0m
 )

@@ -154,7 +154,7 @@ end type Growth_Class
 ! @private @memberof Growth_Mod
 integer, PRIVATE :: max_num_grids
 integer, PRIVATE :: num_grids
-character(2), PRIVATE :: domain_name
+character(domain_len), PRIVATE :: domain_name
 real(dp), PRIVATE :: domain_area_sqm
 integer, PRIVATE :: num_time_steps
 integer, PRIVATE :: time_steps_year
@@ -187,7 +187,7 @@ subroutine Set_Growth(growth, grid, shell_lengths, num_ts, ts_per_year, dom_name
     real(dp), intent(inout) :: shell_lengths(*)
     integer, intent(in) :: num_ts
     integer, intent(in) :: ts_per_year
-    character(2), intent(in) :: dom_name
+    character(domain_len), intent(in) :: dom_name
     real(dp), intent(out) :: dom_area
     ! need allocated first dimension. Recall that fortran stores by column first.
     ! second dimension provided for clarity, as this is constant

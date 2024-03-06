@@ -22,6 +22,7 @@ integer, parameter :: line_len = tag_len+value_len+comment_len
 integer, parameter :: fname_len = 100
 integer, parameter :: input_str_len = 100
 integer, parameter :: csv_line_len = 2000
+integer, parameter :: domain_len = 2
 
 integer, parameter :: read_dev = 69
 integer, parameter :: write_dev = 63

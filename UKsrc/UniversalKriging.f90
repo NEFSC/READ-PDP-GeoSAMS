@@ -130,7 +130,7 @@ integer nsf, NRand, ncla
 logical IsHiLimit, IsLogT!, IsMatchMean
 character(fname_len) cfg_file_name
 character(fname_len) obsfile, cmd
-character(2) domain_name
+character(domain_len) domain_name
 logical exists
 type(Grid_Data_Class):: grid
 type(Grid_Data_Class):: obs

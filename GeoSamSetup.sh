@@ -1,15 +1,18 @@
 #!/bin/bash
-if [ $# \< 3 ] 
+if [ $# -ne 4 ] 
 then
-    echo No year inputs
-    echo Expecting: GeoSamSetup.sh YYYYstart YYYYend DataSource#
+    echo Missing arguments
+    echo Expecting: GeoSamSetup.sh YYYYstart YYYYend DataSource# Domain
     echo Data Source
-    echo NMFS_ALB ==> 1111
-    echo CANADIAN ==> 2222
-    echo F/V_TRAD ==> 3333
-    echo VIMSRSA ==> 4444
-    echo NMFSSHRP ==> 5555
-    echo ALL ==> 0
+    echo "    NMFS_ALB ==> 1111"
+    echo "    CANADIAN ==> 2222"
+    echo "    F/V_TRAD ==> 3333"
+    echo "    VIMSRSA ==> 4444"
+    echo "    NMFSSHRP ==> 5555"
+    echo "    ALL ==> 0"
+    echo Domain
+    echo "    'MA'"
+    echo "    'GB'"
     exit
 fi
 
@@ -67,7 +70,7 @@ make
 # finish with preprocessing
 cd ..
 
-octave PreProcess/TrawlData5mmbin.m $1 $2 $3
+octave PreProcess/TrawlData5mmbin.m $1 $2 $3 $4
 if [ $? != 0 ]; then
     echo [31mError in MATLAB TrawlData5mmbin. Stopping[0m
     exit
@@ -79,13 +82,13 @@ if [ $? != 0 ]; then
     exit
 fi
 
-octave PreProcess/ProcessRecruitData.m $1 $2
+octave PreProcess/ProcessRecruitData.m $1 $2 $4
 if [ $? != 0 ]; then
     echo [31mError in MATLAB ProcessRecruitData. Stopping[0m
     exit
 fi
 
-octave mfiles/NearestNeighborRecInterp.m $1 $2
+octave mfiles/NearestNeighborRecInterp.m $1 $2 $4
 if [ $? != 0 ]; then
     echo [31mError in MATLAB NearestNeighborRecInterp. Stopping[0m
     exit
@@ -99,21 +102,15 @@ fi
 #     exit
 # fi
 
-./SRC/ScallopPopDensity Scallop.cfg MA $1 $2
+./SRC/ScallopPopDensity Scallop.cfg $1 $2 $4
 if [ $? != 0 ]; then
     echo [31mError in MATLAB ScallopPopDensity MA. Stopping[0m
     exit
 fi
 
-./SRC/ScallopPopDensity Scallop.cfg GB $1 $2
-if [ $? != 0 ]; then
-    echo [31mError in MATLAB ScallopPopDensity GB. Stopping[0m
-    exit
-fi
-
-python3 ./PythonScripts/ProcessResults.py $1 $2
+python3 ./PythonScripts/ProcessResults.py $1 $2 $4
 if [ $? == 0 ]; then
-    python3 ./PythonScripts/ConcatCsvResults.py $1 $2
+    python3 ./PythonScripts/ConcatCsvResults.py $1 $2 $4
 else 
     echo [31mError in ProcessResults.py. Stopping[0m
 fi

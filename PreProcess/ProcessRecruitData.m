@@ -1,4 +1,4 @@
-function ProcessRecruitData(yrStart, yrEnd)
+function ProcessRecruitData(yrStart, yrEnd, domain)
 
 isOctave = (exist('OCTAVE_VERSION', 'builtin') ~= 0);
 if isOctave
@@ -7,10 +7,16 @@ if isOctave
   if ~strcmp(arg_list(1), '--gui');
     yrStart = str2num(cell2mat(arg_list(1)));
     yrEnd = str2num(cell2mat(arg_list(2)));
+    domain = cell2mat(arg_list(3));
   else
     yrStart = str2num(yrStart);
     yrEnd = str2num(yrEnd);
   end
+end
+
+if ~strcmp(domain, 'GB') & ~strcmp(domain, 'MA')
+  fprintf( 'Invalid Domain %s\n',  domain);
+  return;
 end
 
 towArea_sqm = 4516;
@@ -159,11 +165,10 @@ if isOctave % Octave did not need 3rd term
 else
   daspect([1,cos(mean(lat)*pi/180), 1]);
 end
-print -djpeg RockStrata.jpg
+print -djpeg RockStrata.
+
 %XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX
 
-%clear
-%isOctave = (exist('OCTAVE_VERSION', 'builtin') ~= 0);
 flnm='Data/RecruitsRockStrataAdjustment.csv';
 fprintf('Reading from %s\n', flnm)
 if isOctave
@@ -182,25 +187,22 @@ else
   Depth=table2array(F(:,4));
   rec=table2array(F(:,7));
 end
-jMA=find(lon<-70.5);
-jGB=find(lon>-70.5);
-[xMA,yMA]=ll2utm(lat,lon,18);
-[xGB,yGB]=ll2utm(lat,lon,19);
 
-M=[DecYr(jMA),xMA(jMA),yMA(jMA),Depth(jMA),rec(jMA)];
-flnm='Data/RecruitsMA.csv';
+if strcmp(domain, 'MA')
+  j=find(lon<-70.5);
+  [x,y]=ll2utm(lat,lon,18);
+else
+  j=find(lon>=-70.5);
+  [x,y]=ll2utm(lat,lon,19);
+end
+
+M=[DecYr(j), x(j), y(j), Depth(j), rec(j)];
+flnm=['Data/Recruits', domain, '.csv'];
 header='"decmal year", "x utm", "y utm", "bottom depth(m)","recruits per sq m"';
 fprintf('Writing to %s\n', flnm)
 writecsv(M,flnm,'%g, %f, %f, %f, %e',header);
 
-M=[DecYr(jGB),xGB(jGB),yGB(jGB),Depth(jGB),rec(jGB)];
-flnm='Data/RecruitsGB.csv';
-header='"decmal year", "x utm", "y utm", "bottom depth(m)","recruits per sq m"';
-fprintf('Writing to %s\n\n', flnm)
-writecsv(M,flnm,'%g, %f, %f, %f, %e',header);
-%XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX
-flnm='Data/RecruitsMA.csv';
-fprintf('Reading from %s\n', flnm)
+fprintf('Reading from %s\n', flnm);
 if isOctave
   F=csvreadK(flnm);
   DecYr=F(:,1);
@@ -212,7 +214,6 @@ end
 yearMin = min(floor(DecYr));
 yearMax = max(floor(DecYr));
 if yrStart >= yearMin && yrEnd <= yearMax
-
     for yr=yrStart:yrEnd
       j=find(floor(DecYr)==yr);
       if isOctave
@@ -221,44 +222,11 @@ if yrStart >= yearMin && yrEnd <= yearMax
         M=table2array(F(j,:));
       end
       G = LumpDataDx (M,1000.);
-      flnm=['Data/Recruits',int2str(yr),'MA.csv'];
+      flnm=['Data/Recruits',int2str(yr),domain,'.csv'];
       header='"decmal year", "x utm", "y utm", "bottom depth(m)","recruits per sq m"';
       writecsv(G,flnm,'%g, %f, %f, %f, %e',header);
+      fprintf('Writing to %s\n', flnm)
     end
-    fprintf('Writing to Data/RecruitsYYYYMA.csv  From %i to %i\n\n', yrStart, yrEnd)
-else
-    fprintf('INPUT YEARS OUT OF RANGE: %i to %i : actual %i to %i\n', yearMin, yearMax, yrStart, yrEnd )
-end
-
-%XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX
-flnm='Data/RecruitsGB.csv';
-fprintf('Reading from %s\n', flnm)
-if isOctave
-  F=csvreadK(flnm);
-  DecYr=F(:,1);
-else
-  warning('OFF', 'MATLAB:table:ModifiedAndSavedVarnames')
-  F=readtable(flnm,"FileType","text");
-  DecYr=table2array(F(:,1));
-end
-yearMin = min(floor(DecYr));
-yearMax = max(floor(DecYr));
-
-if yrStart >= yearMin && yrEnd <= yearMax
-
-    for yr=yrStart:yrEnd
-      j=find(floor(DecYr)==yr);
-      if isOctave
-        M=F(j,:);
-      else
-        M=table2array(F(j,:));
-      end
-      G = LumpDataDx (M,1000.);
-      flnm=['Data/Recruits',int2str(yr),'GB.csv'];
-      header='"decmal year", "x utm", "y utm", "bottom depth(m)","recruits per sq m"';
-      writecsv(G,flnm,'%g, %f, %f, %f, %e',header);
-    end
-    fprintf('Writing to Data/RecruitsYYYYGB.csv  From %i to %i\n\n', yrStart, yrEnd)
 else
     fprintf('INPUT YEARS OUT OF RANGE: %i to %i : actual %i to %i\n', yearMin, yearMax, yrStart, yrEnd )
 end

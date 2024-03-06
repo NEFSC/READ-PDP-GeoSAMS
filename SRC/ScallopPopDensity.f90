@@ -210,7 +210,7 @@ integer n !> loop count
 logical exists
 
 integer max_num_grids
-character(2) domain_name
+character(domain_len) domain_name
 integer start_year, stop_year
 integer num_time_steps
 integer ts_per_year
@@ -242,7 +242,7 @@ ncla=command_argument_count()
 if (ncla .eq. 0) then
     write(*,*) term_red, 'No configuration file', term_blk
     call get_command(arg)
-    write(*,*) term_blu,'Typical use: $ ', term_yel, trim(arg), ' Scallop.cfg [Domain] [Start Year] [Stop Year]', term_blk
+    write(*,*) term_blu,'Typical use: $ ', term_yel, trim(arg), ' Scallop.cfg [Start Year] [Stop Year] [Domain]' , term_blk
     stop 1
 endif
 
@@ -260,24 +260,24 @@ endif
 !  - I. Read Configuration file 'Scallop.inp'
 !==================================================================================================================
 call Read_Startup_Config(max_num_grids, domain_name, file_name, start_year, stop_year, ts_per_year)
-!override UK.cfg with command line arguments if present. Used by python scripts
-if(ncla.ge.2) call get_command_argument(2, domain_name)
+!override configuration file parameters with command line arguments if present.
+if(ncla.ge.2) then
+    call get_command_argument(2, arg)
+    read(arg,*) start_year
+endif
+
+if(ncla.ge.3) then
+    call get_command_argument(3, arg)
+    read(arg,*) stop_year
+endif
+
+if(ncla.ge.4) call get_command_argument(4, domain_name)
 if (.not. ( any ((/ domain_name.eq.'MA', domain_name.eq.'GB'/)) )) then
     write(*,*) term_red, ' **** INVALID DOMAIN NAME: ', domain_name, term_blk
     stop 1
 endif
 
-if(ncla.ge.3) then
-    call get_command_argument(3, arg)
-    read(arg,*) start_year
-endif
-
-if(ncla.ge.4) then
-    call get_command_argument(4, arg)
-    read(arg,*) stop_year
-endif
-
-
+!==================================================================================================================
 
 ! time parameters
 num_years = stop_year - start_year + 1
@@ -299,7 +299,7 @@ write(buf,'(I4)') start_year
 file_name = 'Data/bin5mm'//buf//domain_name//'.csv'
 call Set_Init_Cond_File_Name(file_name)
 
-call Set_Grid_Manager(max_num_grids, state, grid, num_grids)
+call Set_Grid_Manager(max_num_grids, state, grid, num_grids, domain_name)
 
 
 ! number of grids known, allocated remaining data
@@ -400,7 +400,7 @@ subroutine Read_Startup_Config(max_num_grids, domain_name, file_name, start_year
 
     implicit none
     integer, intent(out) :: max_num_grids
-    character(2),intent(out):: domain_name
+    character(domain_len),intent(out):: domain_name
     character(*),intent(in):: file_name
     integer, intent(out) :: start_year, stop_year, time_steps_per_year ! , num_monte_carlo_iter
 

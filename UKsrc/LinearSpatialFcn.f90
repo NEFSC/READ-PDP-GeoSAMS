@@ -150,7 +150,7 @@ subroutine LSF_Limit_Z(n, f, z, fpeak, Domain)
 integer, intent(in) :: n
 real(dp), intent(in) :: z(*), fpeak
 real(dp), intent(inout) :: f(*)
-character(2), intent(in):: Domain
+character(domain_len), intent(in):: Domain
 real(dp) a, w, zc, fmax 
 integer j, kappa
 

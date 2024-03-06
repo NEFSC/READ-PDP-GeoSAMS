@@ -122,7 +122,7 @@ end type Recruitment_Class
 ! @private @memberof Recruit_Mod
 character(fname_len), PRIVATE :: config_file_name
 integer, PRIVATE :: num_grids
-character(2), PRIVATE :: domain_name
+character(domain_len), PRIVATE :: domain_name
 real(dp), PRIVATE :: domain_area_sqm
 
 logical, PRIVATE :: use_random_rec
@@ -164,7 +164,7 @@ subroutine Set_Recruitment(recruit, n_grids, dom_name, dom_area, L_inf_mu, K_mu,
     use globals
     type(Recruitment_Class), intent(inout) :: recruit(*)
     integer, intent(in) :: n_grids
-    character(2), intent(in) :: dom_name
+    character(domain_len), intent(in) :: dom_name
     real(dp), intent(in) :: dom_area
     real(dp), intent(in) :: L_inf_mu(*)
     real(dp), intent(in) :: K_mu(*)

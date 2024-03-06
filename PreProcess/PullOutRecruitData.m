@@ -30,19 +30,19 @@ if isOctave
   F=csvreadK(flnm);
   size_grp = F(:,27);
   survn = F(:,30);
-  src = F(:,37);
+  dataSrc = F(:,37);
 else
   warning('OFF', 'MATLAB:table:ModifiedAndSavedVarnames')
   F= readtable(flnm,"FileType","text");
   size_grp = table2array(F(:,27));
   survn = table2array(F(:,30));
-  src = table2array(F(:,37));
+  dataSrc = table2array(F(:,37));
 end
 
 if srcText == 0
     n=find(size_grp==3);
 else
-    n=find(size_grp==3 & src==srcText);
+    n=find(size_grp==3 & dataSrc==srcText);
 end
 for k=1:numel(n)
     % sum 3cm to 6 cm
@@ -57,7 +57,7 @@ end
 if srcText == 0
     j=size_grp==4; M = [F(j,:) recr_t];
 else
-    j=size_grp==4 & src==srcText; M = [F(j,:) recr_t];
+    j=size_grp==4 & dataSrc==srcText; M = [F(j,:) recr_t];
 end
 
 flnm = 'OriginalData/NewRecruits.csv';

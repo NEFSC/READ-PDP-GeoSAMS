@@ -105,6 +105,7 @@ integer, PRIVATE :: max_num_grids
 integer, PRIVATE :: num_areas
 integer, PRIVATE :: num_grids
 logical, PRIVATE :: use_spec_access_data
+character(domain_len), PRIVATE :: domain_name
 character(fname_len), PRIVATE :: config_file_name
 character(fname_len), PRIVATE :: init_cond_fname
 character(fname_len), PRIVATE :: special_accesss_fname
@@ -117,17 +118,19 @@ CONTAINS
 !> Initializes growth for startup
 !>
 !==================================================================================================================
-subroutine Set_Grid_Manager(max_ngrids, state, grid, ngrids)
+subroutine Set_Grid_Manager(max_ngrids, state, grid, ngrids, dom_name)
 integer, intent(in) :: max_ngrids
 real(dp), intent(out):: state(1:max_ngrids, 1:num_size_classes)
 type(Grid_Data_Class), intent(out) :: grid(*)
 integer, intent(out) :: ngrids
+character(domain_len), intent(in) :: dom_name
 
 integer n, j
 character(fname_len) fname
 
-! set private variables, needed by private methods
+! set private variables
 max_num_grids = max_ngrids
+domain_name = dom_name
 
 ! Used to verify grid in special access area
 fname = 'Results\SurveyLoc.txt'
@@ -342,8 +345,16 @@ integer function Load_Grid_State(grid, state)
         end if
         read(input_str,*) grid(n)%year, grid(n)%x, grid(n)%y, grid(n)%lat, grid(n)%lon, grid(n)%z, &
         &               is_closed, grid(n)%stratum, state(n,1:num_size_classes)
-        grid(n)%is_closed = (is_closed > 0)
-        grid(n)%special_access_index = 0
+
+        ! if domain is GB, determine if survey data is in GB region
+        if (domain_name .EQ. 'GB') then
+            if (Get_GB_region(grid(n)%lat, grid(n)%lon, grid(n)%stratum) > 0) then
+                grid(n)%is_closed = (is_closed > 0)
+                grid(n)%special_access_index = 0
+            else
+                n = n - 1 ! skip this data
+            endif
+        endif
     end do
     close(63)
     write(*,*) term_blu, 'READ ', n, 'GRIDS', term_blk
@@ -526,5 +537,67 @@ logical function Point_In_Polygon_Vector(polyX, polyY, x, y, nodes)
 
     return
 endfunction Point_In_Polygon_Vector
+
+!--------------------------------------------------------------------------------------------------
+!! Get_GB_region
+!> Returns a region number based on stratum
+!> 0: not used
+!> 1: N North region
+!> 2: S South region
+!> 3: SW Southwest region
+!> 4: W West region
+!> Inputs:
+!> grid: locations of survey data
+!--------------------------------------------------------------------------------------------------
+! Tom Callaghan
+!--------------------------------------------------------------------------------------------------
+integer function Get_GB_region(lat, lon, stratum)
+use globals
+implicit none
+real(dp), intent(in) :: lat, lon, stratum
+integer, parameter :: none=0
+integer, parameter :: N=1
+integer, parameter :: S=2
+integer, parameter :: SW=3
+integer, parameter :: W=4
+
+if( (stratum < 6460._dp) .OR. (stratum .EQ. 6652._dp) .OR. (stratum .EQ. 6662._dp) ) then
+    Get_GB_region = none
+elseif (stratum < 6490._dp) then
+    if ((lat > 40.7_dp) .AND. (lon > -69.35_dp)) then
+        Get_GB_region = W
+    else
+        Get_GB_region = SW
+    endif
+elseif (stratum < 6530._dp) then
+    Get_GB_region = W
+elseif (stratum < 6550._dp) then
+    Get_GB_region = N
+elseif (stratum < 6610._dp) then
+    Get_GB_region = S
+elseif (stratum < 6622._dp) then
+    Get_GB_region = S
+elseif (stratum < 6651._dp) then
+    Get_GB_region = none
+elseif (stratum < 6680._dp) then
+    Get_GB_region = N
+elseif (stratum < 6710._dp) then
+    Get_GB_region = none
+elseif (stratum < 6730._dp) then
+    Get_GB_region = N
+elseif (stratum < 6740._dp) then
+    Get_GB_region = none
+elseif (stratum < 6960._dp) then
+    if (lat > 41.5_dp) then
+        Get_GB_region = N
+    else 
+        Get_GB_region = S
+    endif
+else
+    Get_GB_region = none
+endif
+
+endfunction Get_GB_region
+
 
 endmodule Grid_Manager_Mod
