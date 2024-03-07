@@ -1,10 +1,17 @@
-! common parameters
+!--------------------------------------------------------------------------------------------------
+!> @page page6 Common Parameters
+!>
+!>
+!--------------------------------------------------------------------------------------------------
+! Tom Callaghan (IBSS) 2024
+!--------------------------------------------------------------------------------------------------
 module globals
 implicit none
 integer, parameter :: sp = selected_real_kind(6, 37)
 integer, parameter :: dp = selected_real_kind(15, 307)
 integer, parameter :: qp = selected_real_kind(33, 4931)
 
+integer, parameter :: nDim = 12000
 integer, parameter :: shell_len_max = 150
 integer, parameter :: shell_len_min = 30
 integer, parameter :: shell_len_delta = 5
@@ -20,6 +27,7 @@ integer, parameter :: value_len = 30
 integer, parameter :: comment_len = 80
 integer, parameter :: line_len = tag_len+value_len+comment_len
 integer, parameter :: fname_len = 100
+integer, parameter :: form_len = 20
 integer, parameter :: input_str_len = 100
 integer, parameter :: csv_line_len = 2000
 integer, parameter :: domain_len = 2
@@ -38,9 +46,8 @@ real(dp), Parameter :: feet_per_naut_mile = 6076.12
 real(dp), parameter :: grams_per_metric_ton = 1000000._dp
 real(dp), parameter :: grid_area_sqm = meters_per_naut_mile**2
 
-! from TrawlData5mmbin.m
-real(dp), parameter :: towArea_sqm = 4516._dp
-
+real(dp), parameter :: tow_area_sqm = 4516._dp
+real(dp), parameter :: one_scallop_per_tow = 1.D0 / tow_area_sqm ! 1 scallop per tow, prevents log(0)
 
 ! colors taken from https://i.stack.imgur.com/9UVnC.png
 character(*), parameter :: term_red = ''//achar(27)//'[31m'
@@ -56,10 +63,10 @@ character(*), parameter :: rec_input_dir = 'KrigingEstimates/'
 character(*), parameter :: rec_output_dir = 'RecruitField/'
 character(*), parameter :: output_dir = 'Results/'
 character(*), parameter :: config_dir = 'Configuration/'
+character(*), parameter :: grid_dir = 'Grids/'
 character(*), parameter :: data_dir = 'Data/'
 
 
-character(*), parameter :: sim_input_fname = 'Scallop.inp'
 
 CONTAINS
 

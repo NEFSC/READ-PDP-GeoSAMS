@@ -502,7 +502,7 @@ call Write_Vector_Scalar_Field(num_points, trend, 'SpatialTrend.txt')
 call Write_Vector_Scalar_Field(num_points, eps, 'epsilon.txt')
 call Write_Vector_Scalar_Field(num_spat_fcns, beta, 'beta.txt')
 
-call write_csv(num_spat_fcns, num_spat_fcns, Cbeta, 'CovBeta.csv', num_spat_fcns)
+call Write_CSV(num_spat_fcns, num_spat_fcns, Cbeta, 'CovBeta.csv', num_spat_fcns, .false.)
 
 Fg = Krig_Eval_Spatial_Function(grid, num_spat_fcns, num_points, nlsf, proc_recruits)
 Ceps(1:num_points, 1:num_points) = Ceps(1:num_points, 1:num_points)&
@@ -541,6 +541,10 @@ endsubroutine OutputUK
 !! Purpose: This subroutine only write the interpolated results file for output. Namely, the central 
 !> prediction. The file name is take for the observation file name that resides in the Data
 !> subdirectory and then written to the Results subdirectory. 
+!>
+!> Also want to change the name from X_Y_ (UTM) to Lat_Lon_Grid_ (Navigation)
+!>
+!> That is moving from survey data locations to MA/GB grid locations
 !---------------------------------------------------------------------------------------------------
 subroutine OutputEstimates(num_points, grid, Ceps, IsLogT, IsHiLimit, fmax, SF, domain_name)
 use globals
@@ -567,8 +571,11 @@ if(IsLogT) grid%field_psqm(1:num_points) = SF * exp( grid%field_psqm(1:num_point
 if(IsHiLimit) call LSF_Limit_Z(num_points, grid%field_psqm, grid%z, fmax, domain_name)
 
 fname = Get_Obs_Data_File_Name()
-n = index(fname, '/') + 1
-fname = output_dir//fname(n:)
+! Change output directory and file prefix
+! /X_Y_...
+! n12345
+n = index(fname, '/') + 5
+fname = output_dir//'Lat_Lon_Grid_'//fname(n:)
 fmtstr='(2(ES14.7 : ", ") (ES14.7 : ))'
 
 write(*,*) term_blu, 'Writing ouput to: ', trim(fname), term_blk

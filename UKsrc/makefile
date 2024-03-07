@@ -11,7 +11,7 @@ FFLAGS = -g -Wall -std=f95 -fall-intrinsics
  # -g debug
 #-O3  -mcmodel=medium -funroll-all-loops -ffast-math -msse -msse2 -m3dnow -m64
 
-SRCS = UK_Globals.f90 UK_GridManager.f90 LinearSpatialFcn.f90 NonLinearSpatialFcn.f90 RandomField.f90 KrigingRoutines.f90 UniversalKriging.f90 UK_IORoutines.f90
+SRCS = Globals.f90 UK_GridManager.f90 LinearSpatialFcn.f90 NonLinearSpatialFcn.f90 RandomField.f90 KrigingRoutines.f90 UniversalKriging.f90 IORoutines.f90
 
 ifeq ($(OS), Windows_NT)
 #LIBS = -L/usr/lib/x86_64-linux-gnu -llapack -lblas
@@ -49,10 +49,14 @@ ifeq ($(OS), Windows_NT)
 	del  $(EXEC).exe
 	del .\obj\*.o
 	del .\mod\*.mod
+	copy ..\SRC\IORoutines.f90 .
+	copy ..\SRC\Globals.f90 .
 else
 	rm -fr  $(EXEC)
 	rm -fr $(OBJ_DIR)/*.o
 	rm -fr $(MOD_DIR)/*.mod
+	cp ../SRC/IORoutines.f90 .
+	cp ../SRC/Globals.f90 .
 endif
 
 setup:

@@ -1136,7 +1136,7 @@ elemental subroutine Calc_LPUE(expl_biomass, expl_scallops, lpue_ppd, dredge_tim
     else
         expl_weight_g = 0._dp
     endif
-    expl_biomass_gptow = expl_biomass * towArea_sqm ! exploitable biomass in tow
+    expl_biomass_gptow = expl_biomass * tow_area_sqm ! exploitable biomass in tow
 
     lpue1_ppd = min(lpue_slope2 * expl_biomass_gptow, lpue_slope * expl_biomass_gptow + lpue_intercept)  !piecewise linear relationship between exploitable biomass and lpue_ppd
     lpue_limit_ppd = max_per_day * expl_weight_g / grams_per_pound !Max weight of scallops that can be shucked in one day

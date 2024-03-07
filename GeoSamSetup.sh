@@ -59,6 +59,9 @@ make
 
 # Make UK executables
 cd ../UKsrc
+cp ../SRC/IORoutines.f90 .
+cp ../SRC/Globals.f90 .
+
 if [ ! -d "mod" ]; then
     mkdir mod
 fi

@@ -27,3 +27,5 @@ docsSIM
 VERIFY/
 InitiaCondition/*.txt
 *.code-workspace
+UKsrc/IORoutines.f90
+UKsrc/Globals.f90

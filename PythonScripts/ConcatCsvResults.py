@@ -25,8 +25,7 @@ ncols = year_end - year_start + 3
 print(year_start, year_end)
 years = range(year_start, year_end+1)
 
-domainName = ['MA', 'GB']
-xyString = ['Results/X_Y_EBMS_', 'Results/X_Y_LAND_']
+xyString = ['Results/Lat_Lon_Grid_EBMS_', 'Results/Lat_Lon_Grid_LAND_']
 
 for xyStr in xyString:
     col = []

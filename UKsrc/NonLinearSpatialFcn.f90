@@ -278,7 +278,7 @@ do j = 1, nsf
 enddo
 
 if (proc_recruits) then
-    call write_csv(num_obs_points, nsf, residuals, 'residuals.csv', num_obs_points)
+    call Write_CSV(num_obs_points, nsf, residuals, 'residuals.csv', num_obs_points, .false.)
     open(63, file = 'NLSF_Class.csv')
     do j = 1, nsf
         write(63,*)nlsf(j)%axis, ', ', trim(nlsf(j)%form), ', ', nlsf(j)%f0, ', ', nlsf(j)%lambda
@@ -561,7 +561,7 @@ do while(sum(isfit(1:nsf)).lt.nsflim)
 enddo
 
 if (proc_recruits) then
-    call write_csv(num_obs_points, nsf, residuals, 'residuals.csv', num_obs_points)
+    call Write_CSV(num_obs_points, nsf, residuals, 'residuals.csv', num_obs_points, .false.)
     open(63, file = 'NLSF_Class.csv')
     do j = 1, nsf
         write(63,*)nlsf(j)%axis, ', ', trim(nlsf(j)%form), ', ', nlsf(j)%f0, ', ', nlsf(j)%lambda

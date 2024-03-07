@@ -285,7 +285,7 @@ do j=1,nsf
     endif
 enddo
 
-if (proc_recruits) call write_csv(num_points,num_spat_fcns,Krig_Eval_Spatial_Function,'SpatialFunctions.csv',num_points)
+if (proc_recruits) call Write_CSV(num_points,num_spat_fcns,Krig_Eval_Spatial_Function,'SpatialFunctions.csv',num_points,.false.)
 end function Krig_Eval_Spatial_Function
 
 !--------------------------------------------------------------------------------------------------

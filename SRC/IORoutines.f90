@@ -1,63 +1,7 @@
-
-!XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX
-!XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX
-!-----------------------------------User Subroutines-----------------------------------------------
-!XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX
-
-!-----------------------------------------------------------------------
-!-----------------------------------------------------------------------
-
-!-----------------------------------------------------------------------
-!-----------------------------------------------------------------------
-! subroutine Load_Data(x,y,z,f,vector_len)
-! Load data from CSV file with 4 columns representing an x coordinate, y
-! coordinate, bathymetric depth (z), and a scaller field f.
-!
-! Inputs: 
-! none
-!
-! Outputs:
-! x (real(dp)) x-coordinate of data
-! y (real(dp)) y-coordinate of data
-! z (real(dp)) bathymetric depth at (x,y)
-! f (real(dp)) scalar data at (x,y)
-! vector_len (integer)length of x,y, and z (number of data poinumTimeSteps)
-!
-! Keston Smith (IBSS corp) June-July 2021
-!-----------------------------------------------------------------------
-subroutine Load_Data(x,y,z,f,vector_len,file_name)
-    use globals
-    implicit none
-    real(dp), intent(out):: x(*),y(*),z(*),f(*)
-    integer, intent(out):: vector_len
-    character (*), intent(in)::  file_name
-    real(dp) year
-    integer n,io
-    character(input_str_len) input_str
-
-    !file_name='recruitsOBS.csv'
-    open(read_dev,file=file_name,status='old')
-    n=0
-    read(read_dev,*) input_str
-    do
-     read(read_dev,'(a)',iostat=io) input_str
-     if (io.lt.0) exit
-     n=n+1
-     read(input_str,*) year, x(n),y(n),z(n),f(n)
-    ! read(input_str,*)  x(n),y(n),z(n),f(n)
-    end do
-    close(read_dev)
-    vector_len=n
-    return
-endsubroutine Load_Data
-!-----------------------------------------------------------------------
-!-----------------------------------------------------------------------
-
 !XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX
 !---------------------------------Input/Output Subroutines-----------------------------------------
 !XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX
 !-----------------------------------------------------------------------
-
 !subroutine Read_Scalar_Field(file_name, M, vector_len)
 !Purpose: Read real valued scaler field, M, from file file_name.
 ! The number of data points may be greater than desired, so limits number to vector_len.
@@ -95,9 +39,46 @@ subroutine Read_Scalar_Field(file_name, M, vector_len)
 endsubroutine Read_Scalar_Field
 
 !--------------------------------------------------------------------------------------------------
-
+!> Purpose: Write columns of a matrrix (f) to a series of text files in exponential format.
+!> Inputs:
+!> -    nn    (integer) number of rows in f 
+!> -    nsim(integer) number of columns in f
+!> -   f    (real(dp)) values to write to text file
+!> -   flnm(character(72)) filename to write f to in csv format
+!> -  nndim(integer) leading dimension of f
+!>
+!> @author  Keston Smith (IBSS corp) June-July 2021
 !--------------------------------------------------------------------------------------------------
-!subroutine Write_Scalar_Field(vector_len,f,file_name)
+subroutine Write_2D_Scalar_Field(nn,nsim,f,flnm,nndim)
+use globals
+implicit none
+        
+integer, intent(in):: nn,nsim,nndim
+real(dp), intent(in):: f(nndim,*)
+character (*), intent(in):: flnm
+integer k,n
+character(72) buf,flnm2
+if (nsim.gt.1)then
+    do k=1,nsim
+        write(buf,'(I6)')k
+        flnm2=trim(flnm)//trim(adjustl(buf))//'.txt'
+        open(63,file=flnm2)
+        do n=1,nn
+            write(63,*) f(n,k)
+        end do
+        close(63)
+    enddo
+else
+    open(63,file=flnm)
+    do n=1,nn
+        write(63,*) f(n,1)
+    end do
+    close(63)
+endif
+endsubroutine Write_2D_Scalar_Field
+    
+!--------------------------------------------------------------------------------------------------
+!subroutine Write_Vector_Scalar_Field(vector_len,f,file_name)
 ! Purpose: Write columns of a matrrix (f) to a series of text files in exponential format.
 ! Inputs:
 !  vector_len (integer) number of rows in f 
@@ -106,62 +87,59 @@ endsubroutine Read_Scalar_Field
 !--------------------------------------------------------------------------------------------------
 ! Keston Smith (IBSS corp) June-July 2021
 !--------------------------------------------------------------------------------------------------
-subroutine Write_Scalar_Field(vector_len,f,file_name)
-    use globals
-    implicit none
-    integer, intent(in):: vector_len
-    real(dp), intent(in):: f(*)
-    character (*), intent(in):: file_name
-    integer  n
+subroutine Write_Vector_Scalar_Field(vector_len,f,file_name)
+use globals
+implicit none
+integer, intent(in):: vector_len
+real(dp), intent(in):: f(*)
+character (*), intent(in):: file_name
+integer  n
 
-    !PRINT '(A,A,A,A)', term_blu, ' WRITING FILE: ', file_name, term_blk
-
-    open(write_dev,file=trim(file_name))
-    do n=1,vector_len
-        write(write_dev,*) f(n)
-    end do
-    close(write_dev)
-endsubroutine Write_Scalar_Field
-!--------------------------------------------------------------------------------------------------
+open(write_dev,file=trim(file_name))
+do n=1,vector_len
+    write(write_dev,*) f(n)
+end do
+close(write_dev)
+endsubroutine Write_Vector_Scalar_Field
 
 !--------------------------------------------------------------------------------------------------
-!subroutine Write_CSV(n,m,f,file_name,nndim)
-! Purpose: Write values of a matrix (f) to a csv file in exponential format.
-! Inputs:
-!  n (integer) number of rows in f 
-!  m (integer) number of columns in f
-! f (real(dp)) values to write to csv file
-! file_name (character(72)) filename to write f to in csv format
-!--------------------------------------------------------------------------------------------------
-! Keston Smith (IBSS corp) June-July 2021
+
+!> Purpose: Write values of a matrix (f) to a csv file in exponential format.
+!> Inputs:
+!> -    n    (integer) number of rows in f 
+!> -    m    (integer) number of columns in f
+!> -   f    (real(dp)) values to write to csv file
+!> -   flnm    (character(72)) filename to write f to in csv format
+!>
+!> @author Keston Smith (IBSS corp) June-July 2021
 !--------------------------------------------------------------------------------------------------
 subroutine Write_CSV(n,m,f,file_name,nndim, append)
-    use globals
-    implicit none
-    integer, intent(in):: n,m,nndim
-    real(dp), intent(in):: f(nndim,*)
-    character(*), intent(in)::file_name
-    logical, intent(in) :: append
-    integer k
-    character(fname_len) buf,fmtstr
-    character(1) cr
+use globals
+implicit none
+integer, intent(in):: n,m,nndim
+real(dp), intent(in):: f(nndim,*)
+character(*), intent(in)::file_name
+logical, intent(in) :: append
+integer k
+character(fname_len) buf,fmtstr
+character(1) cr
 
-    k=m-1
-    write(buf,'(I6)')k
-    !
-    ! format for exponential format
-    !
-    if (append) then
-      fmtstr='('//trim(adjustl(buf))//'(ES14.7 : ", ") (ES14.7 : ))'//NEW_LINE(cr)
-      open(69,file=file_name, status="old", position="append", action="write")
-    else
-      fmtstr='('//trim(adjustl(buf))//'(ES14.7 : ", ") (ES14.7 : ))'
-      open(69,file=file_name)
-    endif
-    do k=1,n
-        write(69,fmtstr) f(k,1:m)
-    enddo
-    close(69)
+k=m-1
+write(buf,'(I6)')k
+!
+! format for exponential format
+!
+if (append) then
+    fmtstr='('//trim(adjustl(buf))//'(ES14.7 : ", ") (ES14.7 : ))'//NEW_LINE(cr)
+    open(69,file=file_name, status="old", position="append", action="write")
+else
+    fmtstr='('//trim(adjustl(buf))//'(ES14.7 : ", ") (ES14.7 : ))'
+    open(69,file=file_name)
+endif
+do k=1,n
+    write(69,fmtstr) f(k,1:m)
+enddo
+close(69)
 endsubroutine Write_CSV
 
 !--------------------------------------------------------------------------------------------------

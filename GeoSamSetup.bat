@@ -70,6 +70,8 @@ make
 
 @REM Make UK executables
 cd ..\UKsrc
+copy ..\SRC\IORoutines.f90 .
+copy ..\SRC\Globals.f90 .
 if not exist mod\ (
     mkdir mod\
 )

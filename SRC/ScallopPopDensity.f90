@@ -334,7 +334,7 @@ write(*,*) '========================================================'
 call Write_Lat_Lon_Preamble(num_grids, grid, output_dir//'Lat_Lon_EBMS_'//domain_name//'.csv')
 call Write_Lat_Lon_Preamble(num_grids, grid, output_dir//'Lat_Lon_Feffort_'//domain_name//'.csv')
 
-
+! Write similar data for later interpolation by UK (Universal Kriging)
 call Write_Y_Y_Preamble(num_grids, grid, data_dir//'X_Y_EBMS_'//domain_name//buf//'_0.csv')
 call Write_Y_Y_Preamble(num_grids, grid, data_dir//'X_Y_LAND_'//domain_name//buf//'_0.csv')
 do n = start_year, stop_year

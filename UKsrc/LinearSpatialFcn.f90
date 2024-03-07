@@ -69,8 +69,8 @@ enddo
 call dgesv(m, m, CBetaInv, m, IPIV, CBeta, m, info)
 write(*,*)'LSF_Generalized_Least_Squares  dgesv info=', info
 if (proc_recruits) then
-    call write_csv(m, m, CbetaInv, 'CBeta0.csv', m)
-    call write_csv(n, m, F, 'Fglsa0.csv', n)
+    call Write_CSV(m, m, CbetaInv, 'CBeta0.csv', m, .false.)
+    call Write_CSV(n, m, F, 'Fglsa0.csv', n, .false.)
 endif
 !
 ! beta = inv( F' * Cinv * F ) * F * Cinv * fo

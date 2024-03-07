@@ -241,7 +241,7 @@ subroutine Set_Recruitment(recruit, n_grids, dom_name, dom_area, L_inf_mu, K_mu,
         year_index = year_index + 1
         write(buf,'(I6)')year
         tmp(1:num_grids) = recruit(1:num_grids)%Recruitment(year_index)
-        call Write_Scalar_Field(num_grids,tmp,rec_output_dir//'RecruitFieldIn'//trim(adjustl(buf))//'.txt')
+        call Write_Vector_Scalar_Field(num_grids,tmp,rec_output_dir//'RecruitFieldIn'//trim(adjustl(buf))//'.txt')
     enddo
 
     ! quantize recruitment
