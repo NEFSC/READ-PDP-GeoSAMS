@@ -23,7 +23,6 @@ MC = range(1, 11)
 cfgFile = 'UK.cfg'
 ex = os.path.join('UKsrc', 'UK')
 
-domainName = ['MA', 'GB']
 xyString = ['X_Y_EBMS_', 'X_Y_LAND_']
 
 for xyStr in xyString:
