@@ -2,7 +2,7 @@
 % grid location, <--- grid parameter --->
 % lat, lon, p1, p2, .... , pN
 % Extension is added to fname in script
-function PlotLatLonGrid(fname, yrStart, domain)
+function PlotLatLonGrid(fname, yrStart, domain, byYear)
 
 isOctave = (exist('OCTAVE_VERSION', 'builtin') ~= 0);
 
@@ -41,7 +41,7 @@ saturate = 1e10;
 for n=1:size(h,2)
     total = total + h(n);
     if total > a
-        saturate = 10^n
+        saturate = 10^n;
         break
     end
 end
@@ -59,36 +59,66 @@ end
 % scale data 0+ to 200
 m = max(max(param)) / 200.;
 param = param ./ m;
-max(max(param))
 
-h=figure('Name',[fname '_' int2str(saturate)]);
+% data is ready now plot all years or individually
 
-if isOctave 
-    scatter(lon, lat, param(:,1), cArray(1));
+if byYear
+	s=strfind(fname,'_');
+	useTitle = fname(1:s(5));
+
+	for i=2:c
+		year = yrStart + i - 2;
+		h = figure('Name',[useTitle int2str(year) '_' int2str(saturate)]);
+		if isOctave
+			clr=cArray(i);
+			scatter(lon, lat, param(:,i), clr);
+		else
+			geoscatter(lat, lon, param(:,i), 'o', 'b');
+		end
+		legend(int2str(year))
+    	if ~isOctave; geobasemap streets; end
+
+	    % enlarge figure
+	    if strcmp(domain, 'GB')
+    		h.OuterPosition = [1963.4 -221.4 1500 1087.2];
+	    else
+		    h.OuterPosition = [1963.4 -221.4 1000 1087.2];
+	    end
+
+    	saveas(gcf,[useTitle int2str(year) '_' int2str(saturate) '.pdf'])
+    end
+
 else
-    geoscatter(lat, lon, param(:,1), 'o', cArray(1));
-end
-hold on
-for i=2:c
-    if isOctave
-	    clr=cArray(i);
-    	scatter(lon, lat, param(:,i), clr);
+
+	h=figure('Name',[fname '_' int2str(saturate)]);
+
+	if isOctave 
+		scatter(lon, lat, param(:,1), cArray(1));
 	else
-    	geoscatter(lat, lon, param(:,i), 'o', cArray(i));
+		geoscatter(lat, lon, param(:,1), 'o', cArray(1));
 	end
-end
-leg = {strcat(int2str(yrStart), ' start')};
-for i=2:c
-    leg{i} = int2str(yrStart+i-2);
-end
-legend(leg)
-if ~isOctave; geobasemap streets; end
+	hold on
+	for i=2:c
+		if isOctave
+			clr=cArray(i);
+			scatter(lon, lat, param(:,i), clr);
+		else
+			geoscatter(lat, lon, param(:,i), 'o', cArray(i));
+		end
+	end
+	leg = {strcat(int2str(yrStart), ' start')};
+	for i=2:c
+		leg{i} = int2str(yrStart+i-2);
+	end
+	legend(leg)
+	if ~isOctave; geobasemap streets; end
 
-% enlarge figure
-if strcmp(domain, 'GB')
-    h.OuterPosition = [1963.4 -221.4 1500 1087.2];
-else
-    h.OuterPosition = [1963.4 -221.4 1000 1087.2];
-end
+	% enlarge figure
+	if strcmp(domain, 'GB')
+		h.OuterPosition = [1963.4 -221.4 1500 1087.2];
+	else
+		h.OuterPosition = [1963.4 -221.4 1000 1087.2];
+	end
 
-saveas(gcf,[fname '_' int2str(saturate) '.pdf'])
+	saveas(gcf,[fname '_' int2str(saturate) '.pdf'])
+end
