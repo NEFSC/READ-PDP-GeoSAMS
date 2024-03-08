@@ -177,7 +177,7 @@ subroutine Set_Recruitment(recruit, n_grids, dom_name, dom_area, L_inf_mu, K_mu,
     real(dp) L30mm
 
     ! set default values
-    recr_period_start = 1./365.
+    recr_period_start = 0./365.
     recr_period_stop = 100./365.
     recr_start_year = 1979
     recr_stop_year = 2018

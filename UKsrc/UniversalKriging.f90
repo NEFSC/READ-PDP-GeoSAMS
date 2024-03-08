@@ -129,7 +129,7 @@ real(dp)  fmax, SF
 integer nsf, NRand, ncla
 logical IsHiLimit, IsLogT!, IsMatchMean
 character(fname_len) cfg_file_name
-character(fname_len) obsfile, cmd
+character(fname_len) obsfile, cmd, res_fname
 character(domain_len) domain_name
 logical exists
 type(Grid_Data_Class):: grid
@@ -239,80 +239,97 @@ if (use_posterior_sim) then
     num_obs_points=obs%num_points
     obs%field_psqm(1:num_obs_points)=obs%field_psqm(1:num_obs_points)**alpha
 
-!-------------------------------------------------------------------------  
-! nonlinear curve fitting for spatial functions
-!-------------------------------------------------------------------------  
-nsf = NLSF_Define_Functions(nlsf, grid, .false.)
-!nlsf(1:nsf)%nsflim = nsf
+    !-------------------------------------------------------------------------  
+    ! nonlinear curve fitting for spatial functions
+    !-------------------------------------------------------------------------  
+    nsf = NLSF_Define_Functions(nlsf, grid, .false.)
+    !nlsf(1:nsf)%nsflim = nsf
 
-write(*,*)'num_obs_points=', num_obs_points, 'nsf limit=', Get_NSF_Limit(), ' alpha = ', alpha
-write(*,*)'num_grid_points=', num_points
-write(*,'(A, A, A, I2, A, A)') term_blu, 'Using ', term_blk, nsf, term_blu, ' Spatial Functions'
-write(*,'(A,L2)') 'Is Truncate Range: ', Get_Is_Truncate_Range()
-write(*,'(A,L2)') 'Using Greedy Fit:  ', Get_Use_Greedy_Fit(), term_blk
+    write(*,*)'num_obs_points=', num_obs_points, 'nsf limit=', Get_NSF_Limit(), ' alpha = ', alpha
+    write(*,*)'num_grid_points=', num_points
+    write(*,'(A, A, A, I2, A, A)') term_blu, 'Using ', term_blk, nsf, term_blu, ' Spatial Functions'
+    write(*,'(A,L2)') 'Is Truncate Range: ', Get_Is_Truncate_Range()
+    write(*,'(A,L2)') 'Using Greedy Fit:  ', Get_Use_Greedy_Fit(), term_blk
 
-allocate( Cr(1:num_obs_points, 1:num_obs_points), F(1:num_obs_points, 1:num_spat_fcns), r(1:num_obs_points))
-allocate( trndOBS(1:num_obs_points), resOBS(1:num_obs_points))
-allocate( distance_horiz(1:num_obs_points, 1:num_obs_points), distance_vert(1:num_obs_points, 1:num_obs_points))
-    
-fmax = fmax * maxval(obs%field_psqm(1:num_obs_points))
-!domain_average = Get_Domain_Average(obs, grid)
+    allocate( Cr(1:num_obs_points, 1:num_obs_points), F(1:num_obs_points, 1:num_spat_fcns), r(1:num_obs_points))
+    allocate( trndOBS(1:num_obs_points), resOBS(1:num_obs_points))
+    allocate( distance_horiz(1:num_obs_points, 1:num_obs_points), distance_vert(1:num_obs_points, 1:num_obs_points))
+        
+    fmax = fmax * maxval(obs%field_psqm(1:num_obs_points))
+    !domain_average = Get_Domain_Average(obs, grid)
 
-if(IsLogT) then
-    SF = sum(obs%field_psqm(1:num_obs_points))/float(num_obs_points)
-    SF = SF/5.D0  ! mean / 5 ~ median
-    obs%field_psqm(1:num_obs_points) = log((one_scallop_per_tow + obs%field_psqm(1:num_obs_points)) / SF)
-endif
+    if(IsLogT) then
+        SF = sum(obs%field_psqm(1:num_obs_points))/float(num_obs_points)
+        SF = SF/5.D0  ! mean / 5 ~ median
+        obs%field_psqm(1:num_obs_points) = log((one_scallop_per_tow + obs%field_psqm(1:num_obs_points)) / SF)
+    endif
 
-call NLSF_Select_Fit(obs, nlsf, proc_recruits)
-do j=1, nsf
-    write(*,*)nlsf(j)%axis, ' ', nlsf(j)%form, nlsf(j)%f0, nlsf(j)%lambda
-enddo
+    call NLSF_Select_Fit(obs, nlsf, proc_recruits)
+    do j=1, nsf
+        write(*,*)nlsf(j)%axis, ' ', nlsf(j)%form, nlsf(j)%f0, nlsf(j)%lambda
+    enddo
 
-!-------------------------------------------------------------------------
-! OLS fit with spatial functions
-!-------------------------------------------------------------------------
-Cr(1:num_obs_points, 1:num_obs_points)=0.D0
-do j=1, num_obs_points
-    Cr(j, j)=1.D0
-enddo
-F = Krig_Eval_Spatial_Function(obs, num_spat_fcns, num_obs_points, nlsf, proc_recruits)
-r = LSF_Generalized_Least_Squares(obs%field_psqm, F, Cr, num_obs_points, num_spat_fcns, proc_recruits)
-write(*,*)'OLSres:', sqrt(sum(r(1:num_obs_points)**2)/float(num_obs_points))
+    !-------------------------------------------------------------------------
+    ! OLS fit with spatial functions
+    !-------------------------------------------------------------------------
+    Cr(1:num_obs_points, 1:num_obs_points)=0.D0
+    do j=1, num_obs_points
+        Cr(j, j)=1.D0
+    enddo
+    F = Krig_Eval_Spatial_Function(obs, num_spat_fcns, num_obs_points, nlsf, proc_recruits)
+    r = LSF_Generalized_Least_Squares(obs%field_psqm, F, Cr, num_obs_points, num_spat_fcns, proc_recruits)
+    write(*,*)'OLSres:', sqrt(sum(r(1:num_obs_points)**2)/float(num_obs_points))
 
-!-------------------------------------------------------------------------
-! Fit variogram parameters to OLS residual
-!-------------------------------------------------------------------------
-if (proc_recruits) then
-    call Write_Vector_Scalar_Field(num_obs_points, r, 'OLSresidual.txt')
-    call Write_Vector_Scalar_Field(num_obs_points, obs%field_psqm, 'data.txt')
-endif
-call Krig_Compute_Distance(obs, obs, distance_horiz, distance_vert, num_obs_points)
+    !-------------------------------------------------------------------------
+    ! Fit variogram parameters to OLS residual
+    !-------------------------------------------------------------------------
+    if (proc_recruits) then
+        call Write_Vector_Scalar_Field(num_obs_points, r, 'OLSresidual.txt')
+        call Write_Vector_Scalar_Field(num_obs_points, obs%field_psqm, 'data.txt')
+    endif
+    call Krig_Compute_Distance(obs, obs, distance_horiz, distance_vert, num_obs_points)
 
-call Krig_Comp_Emp_Variogram(num_obs_points, distance_horiz, distance_vert, num_obs_points, r, par, proc_recruits)
+    call Krig_Comp_Emp_Variogram(num_obs_points, distance_horiz, distance_vert, num_obs_points, r, par, proc_recruits)
 
-if (proc_recruits) then
-    open(63, file='KRIGpar.txt')
-    write(63,*)par%sill, par%nugget, par%alpha, par%Wz
-    close(63)
-endif
+    if (proc_recruits) then
+        open(63, file='KRIGpar.txt')
+        write(63,*)par%sill, par%nugget, par%alpha, par%Wz
+        close(63)
+    endif
 
-!-------------------------------------------------------------------------
-! Compute Universal Kriging estimate of field on grid (fest) given
-! observations x_obs, y_obs, z_obs, field_obs. Also returns the estimate of spatial function
-! coeficients, beta, and posterior covariance of beta(Cbeta).
-!-------------------------------------------------------------------------
-call Krig_Generalized_Least_Sq(grid, obs, num_spat_fcns, par, beta, Cbeta, eps, Ceps, nlsf, proc_recruits)
-F = Krig_Eval_Spatial_Function(obs, num_spat_fcns, num_obs_points, nlsf, proc_recruits)
-atmp=1.D0
-btmp=0.D0
-call dgemv('N', num_obs_points, num_spat_fcns, atmp, F, num_obs_points, beta, 1, btmp, trndOBS, 1)
-resOBS(1:num_obs_points) = obs%field_psqm(1:num_obs_points) - trndOBS(1:num_obs_points)
-write(*,*)'GLSres:', sqrt(sum(resOBS(1:num_obs_points)**2) / float(num_obs_points))
+    !-------------------------------------------------------------------------
+    ! Compute Universal Kriging estimate of field on grid (fest) given
+    ! observations x_obs, y_obs, z_obs, field_obs. Also returns the estimate of spatial function
+    ! coeficients, beta, and posterior covariance of beta(Cbeta).
+    !-------------------------------------------------------------------------
+    call Krig_Generalized_Least_Sq(grid, obs, num_spat_fcns, par, beta, Cbeta, eps, Ceps, nlsf, proc_recruits)
+    F = Krig_Eval_Spatial_Function(obs, num_spat_fcns, num_obs_points, nlsf, proc_recruits)
+    atmp=1.D0
+    btmp=0.D0
+    call dgemv('N', num_obs_points, num_spat_fcns, atmp, F, num_obs_points, beta, 1, btmp, trndOBS, 1)
+    resOBS(1:num_obs_points) = obs%field_psqm(1:num_obs_points) - trndOBS(1:num_obs_points)
+    write(*,*)'GLSres:', sqrt(sum(resOBS(1:num_obs_points)**2) / float(num_obs_points))
+
+    !++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+    ! write out lat lon data for plotting
+    ! Get_Obs_Data_File_Name  Data/X_Y_EBMS_MA2005_0.csv  
+    res_fname = Get_Obs_Data_File_Name()
+    ! Change output directory and file prefix
+    ! /X_Y_...
+    ! n12345
+    j = index(res_fname, '/') + 5
+    res_fname = output_dir//'ObsrvResids_'//res_fname(j:)
+    call Write_Column_CSV(num_obs_points, obs%x(1:num_obs_points),          'UTM-x',    res_fname, .false.)
+    call Write_Column_CSV(num_obs_points, obs%y(1:num_obs_points),          'UTM-y',    res_fname, .true.)
+    call Write_Column_CSV(num_obs_points, resOBS(1:num_obs_points),         'Residual', res_fname, .true.)
+    call Write_Column_CSV(num_obs_points, obs%field_psqm(1:num_obs_points), 'Observed', res_fname, .true.)
+    call Write_Column_CSV(num_obs_points, trndOBS(1:num_obs_points),        'Trend',    res_fname, .true.)
+    !++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+
 else 
     ! simulate from user supplied prior estimate of beta, Cbeta, eps, Ceps
     call Krig_User_Estimates(grid, num_spat_fcns, par, beta, Cbeta, eps, Ceps)
-endif
+endif  ! if use_posterior_sim
 
 if (proc_recruits) then
     call OutputUK(num_points, num_spat_fcns, Nrand, grid, nlsf, beta, eps, Ceps, Cbeta, fmax, SF, &

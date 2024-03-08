@@ -35,17 +35,19 @@ fi
 if [ ! -d "KrigingEstimates" ]; then
     mkdir KrigingEstimates
 fi
-dirGB="KrigingEstimates/SimGB"
-dirMA="KrigingEstimates/SimMA"
-#
-for ((i = $(($1)); i <= $(($2)); i++ )); do
-    if [ ! -d $dirGB$i ]; then
-       mkdir $dirGB$i
-    fi
-    if [ ! -d $dirMA$i ]; then
-       mkdir $dirMA$i
-    fi
-done
+# DEPRECATE
+# # Create SimDNYYYY subdirectories
+# dirGB="KrigingEstimates/SimGB"
+# dirMA="KrigingEstimates/SimMA"
+# #
+# for ((i = $(($1)); i <= $(($2)); i++ )); do
+#     if [ ! -d $dirGB$i ]; then
+#        mkdir $dirGB$i
+#     fi
+#     if [ ! -d $dirMA$i ]; then
+#        mkdir $dirMA$i
+#     fi
+# done
 
 # Make GeoSam executables
 cd SRC

@@ -1058,11 +1058,13 @@ call Write_Column_CSV(num_grids, ebms_mt(:), 'EBMS', output_dir//'Lat_Lon_EBMS_'
 if (mod(ts+1, ts_per_year) .eq. 1) then
     write(buf,'(I4)') year
     if (ts .eq. 0) then
-        call Write_Column_CSV(num_grids, ebms_mt(:), 'EBMS', data_dir//'X_Y_EBMS_'//domain_name//buf//'_0.csv', .true.)
+        call Write_Column_CSV(num_grids, ebms_mt(:),         'EBMS',     data_dir//'X_Y_EBMS_'//domain_name//buf//'_0.csv', .true.)
         call Write_Column_CSV(num_grids, landings_by_num(:), 'Landings', data_dir//'X_Y_LAND_'//domain_name//buf//'_0.csv', .true.)
+        call Write_Column_CSV(num_grids, lpue(:),            'LPUE',     data_dir//'X_Y_LPUE_'//domain_name//buf//'_0.csv', .true.)
     else
-        call Write_Column_CSV(num_grids, ebms_mt(:), 'EBMS', data_dir//'X_Y_EBMS_'//domain_name//buf//'.csv', .true.)
+        call Write_Column_CSV(num_grids, ebms_mt(:),         'EBMS',     data_dir//'X_Y_EBMS_'//domain_name//buf//'.csv', .true.)
         call Write_Column_CSV(num_grids, landings_by_num(:), 'Landings', data_dir//'X_Y_LAND_'//domain_name//buf//'.csv', .true.)
+        call Write_Column_CSV(num_grids, lpue(:),            'LPUE',     data_dir//'X_Y_LPUE_'//domain_name//buf//'.csv', .true.)
     endif 
 endif
 

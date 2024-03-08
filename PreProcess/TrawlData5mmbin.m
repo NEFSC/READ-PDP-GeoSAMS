@@ -47,7 +47,7 @@ if isOctave
     %------- new M table ----------------------
 
     lon=-M(:,19);
-    if domain == 'GB'
+    if strcmp(domain, 'GB')
         j=find(lon>-70.5);%GB
     else
         j=find(lon<=-70.5);%MA
@@ -72,7 +72,7 @@ else
     %------- new M table ----------------------
 
     lon = -table2array(M(:,19));
-    if d == 1
+    if strcmp(domain, 'GB')
         j = lon>-70.5;%GB
     else
         j = lon<-70.5;%MA

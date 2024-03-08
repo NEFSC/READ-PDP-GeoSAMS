@@ -95,9 +95,7 @@ PROGRAM ScallopPopDensity
 !! The simulation next instantiates how recruitment will be handled.
 !! @subsubsection ms1p3p1 Recruitment data
 !! @paragraph ms1p3p1p1 For years 1979, 2018
-!! Data is read in from KrigingEstimates/Sim[MA|GB]YYYY/KrigingEstimate.txt
-!! @paragraph ms1p3p1p2 For years 2019, 2025
-!! Data is read in from KrigingEstimates/Sim[MA|GB]Clim//KrigingEstimate.txt
+!! Data is read in from KrigingEstimates/KrigingEstimateDNYYYY.txt
 !!
 !! @subsubsection ms1p3p2 This method is effectively setting
 !! For all years\n
@@ -221,7 +219,7 @@ character(4) buf
 character(fname_len) file_name
 
 real(dp) domain_area
-integer num_grids, ts
+integer num_grids, ts, recr_idx
 
 real(dp) :: shell_length_mm(num_size_classes)
 
@@ -335,16 +333,34 @@ call Write_Lat_Lon_Preamble(num_grids, grid, output_dir//'Lat_Lon_EBMS_'//domain
 call Write_Lat_Lon_Preamble(num_grids, grid, output_dir//'Lat_Lon_Feffort_'//domain_name//'.csv')
 
 ! Write similar data for later interpolation by UK (Universal Kriging)
+write(buf,'(I4)') start_year
 call Write_Y_Y_Preamble(num_grids, grid, data_dir//'X_Y_EBMS_'//domain_name//buf//'_0.csv')
 call Write_Y_Y_Preamble(num_grids, grid, data_dir//'X_Y_LAND_'//domain_name//buf//'_0.csv')
+call Write_Y_Y_Preamble(num_grids, grid, data_dir//'X_Y_LPUE_'//domain_name//buf//'_0.csv')
+call Write_Y_Y_Preamble(num_grids, grid, data_dir//'X_Y_RECR_'//domain_name//buf//'_0.csv')
 do n = start_year, stop_year
     write(buf,'(I4)') n
     call Write_Y_Y_Preamble(num_grids, grid, data_dir//'X_Y_EBMS_'//domain_name//buf//'.csv')
     call Write_Y_Y_Preamble(num_grids, grid, data_dir//'X_Y_LAND_'//domain_name//buf//'.csv')
+    call Write_Y_Y_Preamble(num_grids, grid, data_dir//'X_Y_LPUE_'//domain_name//buf//'.csv')
+    call Write_Y_Y_Preamble(num_grids, grid, data_dir//'X_Y_RECR_'//domain_name//buf//'.csv')
 end do
 !----------------------------------------------------------------------------------------------------------------
 year = start_year
 do ts = 1, num_time_steps
+    !_________________________________________________Ouput Recrutiment Estimates____________________________
+    if (mod(ts, ts_per_year) .eq. 1) then
+        recr_idx = year - start_year + 1
+        write(buf,'(I4)') year
+        if (ts .eq. 1) then
+            file_name = data_dir//'X_Y_RECR_'//domain_name//buf//'_0.csv'
+        else
+            file_name = data_dir//'X_Y_RECR_'//domain_name//buf//'.csv'
+        endif 
+        call Write_Column_CSV(num_grids, recruit(:)%recruitment(recr_idx), 'Recruitment', file_name, .true.)
+    endif
+    !_________________________________________________________________________________________________________
+    
     !- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - 
     !  i. Determine fishing effort
     !- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - 

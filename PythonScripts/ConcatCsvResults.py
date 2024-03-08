@@ -10,7 +10,7 @@ import csv
 
 from collections import defaultdict
 
-if (len(sys.argv) < 4):
+if (len(sys.argv) != 4):
     print ("  Missing command line arguments. Expecting: ")
     print ("  $ EstimateRecruitFields.py StartYear EndYear Domain")
     print()
@@ -25,7 +25,7 @@ ncols = year_end - year_start + 3
 print(year_start, year_end)
 years = range(year_start, year_end+1)
 
-xyString = ['Results/Lat_Lon_Grid_EBMS_', 'Results/Lat_Lon_Grid_LAND_']
+xyString = ['Results/Lat_Lon_Grid_EBMS_', 'Results/Lat_Lon_Grid_LAND_', 'Results/Lat_Lon_Grid_LPUE_', 'Results/Lat_Lon_Grid_RECR_']
 
 for xyStr in xyString:
     col = []

@@ -254,7 +254,7 @@ allocate(rms(1:nsf), RankIndx(1:nsf))
 
 ! initialize residual 0
 residual_vect(:) = obs%field_psqm(1:num_obs_points)
-write(*,'(A,F18.16)') 'residual  0: ', sqrt(sum(residual_vect(1:num_obs_points)**2)/float(num_obs_points))
+write(*,'(A,F20.16)') 'residual  0: ', sqrt(sum(residual_vect(1:num_obs_points)**2)/float(num_obs_points))
 
 do j = 1, nsf
     if (nlsf(j)%pre_cond_fcn_num.eq.0) then
@@ -274,7 +274,7 @@ do j = 1, nsf
     nlsf(j)%rms = sqrt( sum( residual_vect(:)**2 )/float(num_obs_points) )
     rms(j) = nlsf(j)%rms
     residuals(:, j) = residual_vect(:)
-    write(*,'(A,I2,A,F18.16)')'residual ', j, ': ', sqrt(sum(residual_vect(:)**2)/float(num_obs_points))
+    write(*,'(A,I2,A,F20.16)')'residual ', j, ': ', sqrt(sum(residual_vect(:)**2)/float(num_obs_points))
 enddo
 
 if (proc_recruits) then

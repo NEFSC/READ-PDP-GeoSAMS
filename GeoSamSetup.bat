@@ -47,16 +47,18 @@ if not exist RecruitField\ (
 if not exist KrigingEstimates\ (
     mkdir KrigingEstimates\
 )
-set dirGB=KrigingEstimates\SimGB
-set dirMA=KrigingEstimates\SimMA
-for /l %%y in (%1, 1, %2) do (
-    if not exist %dirGB%%%y\ (
-    mkdir %dirGB%%%y\
-    )
-    if not exist %dirMA%%%y\ (
-    mkdir %dirMA%%%y\
-    )
-)
+@REM DEPRECATE
+@REM Create SimDNYYYY subdirectories
+@REM set dirGB=KrigingEstimates\SimGB
+@REM set dirMA=KrigingEstimates\SimMA
+@REM for /l %%y in (%1, 1, %2) do (
+@REM     if not exist %dirGB%%%y\ (
+@REM     mkdir %dirGB%%%y\
+@REM     )
+@REM     if not exist %dirMA%%%y\ (
+@REM     mkdir %dirMA%%%y\
+@REM     )
+@REM )
 
 @REM Make GeoSam executables
 cd SRC
