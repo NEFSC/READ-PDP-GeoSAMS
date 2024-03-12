@@ -20,6 +20,9 @@ for n=1:r
     if param(n,k)==0; param(n,k)=1e-6;end
 end
 end
+% scale data 0+ to 200
+m = max(max(param)) / 50.;
+param = param ./ m;
 
 figure('Name',fname)
 s=geoscatter(lat, lon, param(:,1), 'o', 'r');
@@ -27,6 +30,6 @@ hold on
 s=geoscatter(lat, lon, param(:,14), 'o', 'black');
 s=geoscatter(lat, lon, param(:,27), 'o', 'm');
 s=geoscatter(lat, lon, param(:,40), 'o', 'g');
-s=geoscatter(lat, lon, param(:,53), 'o', 'b');
-legend('2005 start','2005', '2006','2007', '2008')
+%s=geoscatter(lat, lon, param(:,53), 'o', 'b');
+legend('2005 start','2005', '2006','2007')%, '2008')
 geobasemap streets

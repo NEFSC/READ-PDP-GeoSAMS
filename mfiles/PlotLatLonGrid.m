@@ -50,14 +50,13 @@ end
 for k=1:c
 for n=1:r
     % geoscatter does not accept 0.0, must be positive or NaN
-    % assume anything > 1e12 is an outlier
     if param(n,k)<=0 ; param(n,k) = 1e-6; end
     % saturate values
     if param(n,k)> saturate; param(n,k) = 1e-6; end
 end
 end
 % scale data 0+ to 200
-m = max(max(param)) / 200.;
+m = max(max(param)) / 50.;
 param = param ./ m;
 
 % data is ready now plot all years or individually
@@ -66,7 +65,7 @@ if byYear
 	s=strfind(fname,'_');
 	useTitle = fname(1:s(5));
 
-	for i=2:c
+	for i=1:c
 		year = yrStart + i - 2;
 		h = figure('Name',[useTitle int2str(year) '_' int2str(saturate)]);
 		if isOctave
@@ -84,6 +83,16 @@ if byYear
 	    else
 		    h.OuterPosition = [1963.4 -221.4 1000 1087.2];
 	    end
+
+        p = gcf();
+        p.PaperSize = [11 17];
+        p.PaperType  = "tabloid";
+	    if strcmp(domain, 'GB')
+            p.PaperOrientation = "landscape";
+        else
+            p.PaperOrientation = "portrait";
+            p.PaperPosition = [.1 .1 10 16]; 
+        end
 
     	saveas(gcf,[useTitle int2str(year) '_' int2str(saturate) '.pdf'])
     end
@@ -118,7 +127,17 @@ else
 		h.OuterPosition = [1963.4 -221.4 1500 1087.2];
 	else
 		h.OuterPosition = [1963.4 -221.4 1000 1087.2];
-	end
+    end
+
+    p = gcf();
+    p.PaperSize = [11 17];
+    p.PaperType  = "tabloid";
+	if strcmp(domain, 'GB')
+        p.PaperOrientation = "landscape";
+    else
+        p.PaperOrientation = "portrait";
+        p.PaperPosition = [.1 .1 10 16]; 
+    end
 
 	saveas(gcf,[fname '_' int2str(saturate) '.pdf'])
 end
