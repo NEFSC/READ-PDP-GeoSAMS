@@ -786,13 +786,12 @@ function Time_To_Grow(ts, growth, mortality, recruit, state, fishing_effort, yea
     ! adjust population state based on von Bertalanffy growth
     state(1:num_size_classes) = matmul(growth%G(1:num_size_classes, 1:num_size_classes), state(1:num_size_classes))
 
-    t = dfloat(mod(ts,time_steps_year)) * delta_time
-
     ! adjust population state based on recruitment
     ! we want 100% of the recruitment added over the recruitment period
     recr_steps = floor((recruit%rec_stop - recruit%rec_start) / delta_time) ! number of time steps in recruitment period
     ! no recruitment in the first year
     if (ts * delta_time > recruit%rec_stop) then
+        t = dfloat(mod(ts-1,time_steps_year)) * delta_time
         ! Compute increase due to recruitment
         if ( ( t .gt. recruit%rec_start ) .and. ( t .le. recruit%rec_stop) ) then
             state(1:num_size_classes) = state(1:num_size_classes) +  Rec(1:num_size_classes) / recr_steps

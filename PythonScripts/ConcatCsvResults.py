@@ -25,7 +25,11 @@ ncols = year_end - year_start + 3
 print(year_start, year_end)
 years = range(year_start, year_end+1)
 
-xyString = ['Results/Lat_Lon_Grid_EBMS_', 'Results/Lat_Lon_Grid_LAND_', 'Results/Lat_Lon_Grid_LPUE_', 'Results/Lat_Lon_Grid_RECR_']
+xyString = ['Results/Lat_Lon_Grid_EBMS_', 
+            'Results/Lat_Lon_Grid_LAND_', 
+            'Results/Lat_Lon_Grid_LPUE_', 
+            'Results/Lat_Lon_Grid_RECR_',
+            'Results/Lat_Lon_Grid_FEFF_']
 
 for xyStr in xyString:
     col = []

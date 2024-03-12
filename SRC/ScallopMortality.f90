@@ -437,7 +437,7 @@ function Set_Fishing_Effort(year, ts, state, weight_grams, mortality, grid)
         expl_num(loc) = expl_scallops_psqm(loc) * grid_area_sqm
 
         ! selectivity * state - at this location
-        expl_scallops_psqm_at_size(1:num_size_classes) = mortality(loc)%selectivity(:) * state(loc, :)
+        expl_scallops_psqm_at_size(1:num_size_classes) = mortality(loc)%selectivity(:) * state(loc, :) 
         ! dot_product(selectivity * state, weight)
         expl_biomass_gpsqm(loc) = dot_product(expl_scallops_psqm_at_size(1:num_size_classes), &
         &                                      weight_grams(loc,1:num_size_classes))
@@ -1045,45 +1045,56 @@ do loc = 1, num_grids
     bms(loc) = dot_product(state(loc,1:num_size_classes), weight_grams(loc,1:num_size_classes) / grams_per_metric_ton) ! metric tons per sq meter
 enddo
 
-! CSV files (number of timestep by number of grids)
-call Write_CSV(1, num_grids, abundance,           output_dir//'Abundance_psqm_'//domain_name//'.csv',    1, (ts .ne. 0))
-call Write_CSV(1, num_grids, abundance*grid_area_sqm, output_dir//'Abundance_'//domain_name//'.csv',     1, (ts .ne. 0))
-call Write_CSV(1, num_grids, bms,                 output_dir//'BMS_mtpsqm_'//domain_name//'.csv',        1, (ts .ne. 0))
-call Write_CSV(1, num_grids, bms*grid_area_sqm,   output_dir//'BMS_mt_'//domain_name//'.csv',            1, (ts .ne. 0))
-call Write_CSV(1, num_grids, landings_by_num,     output_dir//'NumLandings'//domain_name//'.csv',1, (ts .ne. 0))
 
 ebms_mt(1:num_grids) = expl_biomass_gpsqm(1:num_grids)*grid_area_sqm/grams_per_metric_ton
-call Write_CSV(1, num_grids, ebms_mt(:), output_dir//'ExplBMS_mt_'//domain_name//'.csv',    1, (ts .ne. 0))
-call Write_Column_CSV(num_grids, ebms_mt(:), 'EBMS', output_dir//'Lat_Lon_EBMS_'//domain_name//'.csv',.true.)
+
+! This data is on the survey grid
+! (lat,lon) by ts
+call Write_Column_CSV(num_grids, ebms_mt(:), 'EBMS',             output_dir//'Lat_Lon_Surv_EBMS_'//domain_name//'.csv',.true.)
+call Write_Column_CSV(num_grids, landings_by_num(:), 'Landings', output_dir//'Lat_Lon_Surv_LAND_'//domain_name//'.csv',.true.)
+call Write_Column_CSV(num_grids, lpue(:),            'LPUE',     output_dir//'Lat_Lon_Surv_LPUE_'//domain_name//'.csv',.true.)
+call Write_Column_CSV(num_grids, set_fishing_by_loc(1:num_grids), 'Feffort',&
+&                                                                output_dir//'Lat_Lon_Surv_FEFF_'//domain_name//'.csv',.true.)
+! write annual results, i.e. every ts_per_year
+! This data is later interpolated to MA or GB Grid
 if (mod(ts+1, ts_per_year) .eq. 1) then
     write(buf,'(I4)') year
     if (ts .eq. 0) then
         call Write_Column_CSV(num_grids, ebms_mt(:),         'EBMS',     data_dir//'X_Y_EBMS_'//domain_name//buf//'_0.csv', .true.)
         call Write_Column_CSV(num_grids, landings_by_num(:), 'Landings', data_dir//'X_Y_LAND_'//domain_name//buf//'_0.csv', .true.)
         call Write_Column_CSV(num_grids, lpue(:),            'LPUE',     data_dir//'X_Y_LPUE_'//domain_name//buf//'_0.csv', .true.)
+        call Write_Column_CSV(num_grids, set_fishing_by_loc(1:num_grids),&
+        &                                                    'FEFF',     data_dir//'X_Y_FEFF_'//domain_name//buf//'_0.csv', .true.)
     else
         call Write_Column_CSV(num_grids, ebms_mt(:),         'EBMS',     data_dir//'X_Y_EBMS_'//domain_name//buf//'.csv', .true.)
         call Write_Column_CSV(num_grids, landings_by_num(:), 'Landings', data_dir//'X_Y_LAND_'//domain_name//buf//'.csv', .true.)
         call Write_Column_CSV(num_grids, lpue(:),            'LPUE',     data_dir//'X_Y_LPUE_'//domain_name//buf//'.csv', .true.)
+        call Write_Column_CSV(num_grids, set_fishing_by_loc(1:num_grids),&
+        &                                                    'LPUE',     data_dir//'X_Y_FEFF_'//domain_name//buf//'.csv', .true.)
     endif 
 endif
 
-call Write_CSV(1, num_grids, expl_biomass_gpsqm(1:num_grids)/grams_per_metric_ton,&
-&                                                 output_dir//'ExplBMS_mtpsqm_'//domain_name//'.csv',    1, (ts .ne. 0))
-call Write_CSV(1, num_grids, set_fishing_by_loc,  output_dir//'FishingEffort'//domain_name//'.csv',       1, (ts .ne. 0))
+! ! CSV files (number of timestep by number of grids)
+! call Write_CSV(1, num_grids, ebms_mt(:), output_dir//'ExplBMS_mt_'//domain_name//'.csv',    1, (ts .ne. 0))
+! call Write_CSV(1, num_grids, abundance,           output_dir//'Abundance_psqm_'//domain_name//'.csv',    1, (ts .ne. 0))
+! call Write_CSV(1, num_grids, abundance*grid_area_sqm, output_dir//'Abundance_'//domain_name//'.csv',     1, (ts .ne. 0))
+! call Write_CSV(1, num_grids, bms,                 output_dir//'BMS_mtpsqm_'//domain_name//'.csv',        1, (ts .ne. 0))
+! call Write_CSV(1, num_grids, bms*grid_area_sqm,   output_dir//'BMS_mt_'//domain_name//'.csv',            1, (ts .ne. 0))
+! call Write_CSV(1, num_grids, landings_by_num,     output_dir//'NumLandings'//domain_name//'.csv',1, (ts .ne. 0))
+! call Write_CSV(1, num_grids, expl_biomass_gpsqm(1:num_grids)/grams_per_metric_ton,&
+! &                                                 output_dir//'ExplBMS_mtpsqm_'//domain_name//'.csv',    1, (ts .ne. 0))
+! call Write_CSV(1, num_grids, set_fishing_by_loc,  output_dir//'FishingEffort'//domain_name//'.csv',       1, (ts .ne. 0))
 
-call Write_Column_CSV(num_grids, set_fishing_by_loc(1:num_grids)*10000, 'Feffort',&
-&                                                 output_dir//'Lat_Lon_Feffort_'//domain_name//'.csv',.true.)
 
-call Write_CSV(1, num_grids, F_mort,       output_dir//'FishingMort'//domain_name//'.csv',         1, (ts .ne. 0))
-call Write_CSV(1, num_grids, F_mort_raw,   output_dir//'FishingMortRaw'//domain_name//'.csv',         1, (ts .ne. 0))
-call Write_CSV(1, num_grids, USD_per_sqm*grid_area_sqm,  output_dir//'USD_psqm_'//domain_name//'.csv',1, (ts .ne. 0))
-call Write_CSV(1, num_grids, landings_wgt_grams(1:num_grids)/grams_per_metric_ton, &
-&                                                 output_dir//'WgtLandings_mt'//domain_name//'.csv',1, (ts .ne. 0))
+! call Write_CSV(1, num_grids, F_mort,       output_dir//'FishingMort'//domain_name//'.csv',         1, (ts .ne. 0))
+! call Write_CSV(1, num_grids, F_mort_raw,   output_dir//'FishingMortRaw'//domain_name//'.csv',         1, (ts .ne. 0))
+! call Write_CSV(1, num_grids, USD_per_sqm*grid_area_sqm,  output_dir//'USD_psqm_'//domain_name//'.csv',1, (ts .ne. 0))
+! call Write_CSV(1, num_grids, landings_wgt_grams(1:num_grids)/grams_per_metric_ton, &
+! &                                                 output_dir//'WgtLandings_mt'//domain_name//'.csv',1, (ts .ne. 0))
 
-call Write_CSV(1, num_grids, lpue(1:num_grids),   output_dir//'LPUE_'//domain_name//'.csv',1, (ts .ne. 0))
-call Write_CSV(1, num_grids, dredge_time(1:num_grids), output_dir//'DredgeTime_'//domain_name//'.csv',1, (ts .ne. 0))
-call Write_CSV(1, num_grids, dredge_area(1:num_grids), output_dir//'DredgeArea_'//domain_name//'.csv',1, (ts .ne. 0))
+! call Write_CSV(1, num_grids, lpue(1:num_grids),   output_dir//'LPUE_'//domain_name//'.csv',1, (ts .ne. 0))
+! call Write_CSV(1, num_grids, dredge_time(1:num_grids), output_dir//'DredgeTime_'//domain_name//'.csv',1, (ts .ne. 0))
+! call Write_CSV(1, num_grids, dredge_area(1:num_grids), output_dir//'DredgeArea_'//domain_name//'.csv',1, (ts .ne. 0))
 
             
 deallocate(abundance)

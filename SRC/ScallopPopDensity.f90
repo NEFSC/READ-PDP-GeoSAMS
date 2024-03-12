@@ -329,8 +329,11 @@ write(*,*) '========================================================'
 !==================================================================================================================
 
 ! write latitude and longitude out for later use by Matlab Geographic Scatter Plot ------------------------------
-call Write_Lat_Lon_Preamble(num_grids, grid, output_dir//'Lat_Lon_EBMS_'//domain_name//'.csv')
-call Write_Lat_Lon_Preamble(num_grids, grid, output_dir//'Lat_Lon_Feffort_'//domain_name//'.csv')
+call Write_Lat_Lon_Preamble(num_grids, grid, output_dir//'Lat_Lon_Surv_EBMS_'//domain_name//'.csv')
+call Write_Lat_Lon_Preamble(num_grids, grid, output_dir//'Lat_Lon_Surv_LAND_'//domain_name//'.csv')
+call Write_Lat_Lon_Preamble(num_grids, grid, output_dir//'Lat_Lon_Surv_LPUE_'//domain_name//'.csv')
+call Write_Lat_Lon_Preamble(num_grids, grid, output_dir//'Lat_Lon_Surv_RECR_'//domain_name//'.csv')
+call Write_Lat_Lon_Preamble(num_grids, grid, output_dir//'Lat_Lon_Surv_FEFF_'//domain_name//'.csv')
 
 ! Write similar data for later interpolation by UK (Universal Kriging)
 write(buf,'(I4)') start_year
@@ -338,12 +341,13 @@ call Write_Y_Y_Preamble(num_grids, grid, data_dir//'X_Y_EBMS_'//domain_name//buf
 call Write_Y_Y_Preamble(num_grids, grid, data_dir//'X_Y_LAND_'//domain_name//buf//'_0.csv')
 call Write_Y_Y_Preamble(num_grids, grid, data_dir//'X_Y_LPUE_'//domain_name//buf//'_0.csv')
 call Write_Y_Y_Preamble(num_grids, grid, data_dir//'X_Y_RECR_'//domain_name//buf//'_0.csv')
+call Write_Y_Y_Preamble(num_grids, grid, data_dir//'X_Y_FEFF_'//domain_name//buf//'_0.csv')
 do n = start_year, stop_year
     write(buf,'(I4)') n
     call Write_Y_Y_Preamble(num_grids, grid, data_dir//'X_Y_EBMS_'//domain_name//buf//'.csv')
     call Write_Y_Y_Preamble(num_grids, grid, data_dir//'X_Y_LAND_'//domain_name//buf//'.csv')
     call Write_Y_Y_Preamble(num_grids, grid, data_dir//'X_Y_LPUE_'//domain_name//buf//'.csv')
-    call Write_Y_Y_Preamble(num_grids, grid, data_dir//'X_Y_RECR_'//domain_name//buf//'.csv')
+    call Write_Y_Y_Preamble(num_grids, grid, data_dir//'X_Y_FEFF_'//domain_name//buf//'.csv')
 end do
 !----------------------------------------------------------------------------------------------------------------
 year = start_year
@@ -359,6 +363,8 @@ do ts = 1, num_time_steps
         endif 
         call Write_Column_CSV(num_grids, recruit(:)%recruitment(recr_idx), 'Recruitment', file_name, .true.)
     endif
+    file_name = output_dir//'Lat_Lon_Surv_RECR_'//domain_name//'.csv'
+    call Write_Column_CSV(num_grids, recruit(:)%recruitment(recr_idx), 'Recruitment', file_name, .true.)
     !_________________________________________________________________________________________________________
     
     !- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - 

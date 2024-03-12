@@ -23,7 +23,7 @@ MC = range(1, 11)
 cfgFile = 'UK.cfg'
 ex = os.path.join('UKsrc', 'UK')
 
-xyString = ['X_Y_EBMS_', 'X_Y_LAND_', 'X_Y_LPUE_', 'X_Y_RECR_']
+xyString = ['X_Y_EBMS_', 'X_Y_LAND_', 'X_Y_LPUE_', 'X_Y_RECR_', 'X_Y_FEFF_']
 
 for xyStr in xyString:
     # UK expects input data files to be in subdir Data/
