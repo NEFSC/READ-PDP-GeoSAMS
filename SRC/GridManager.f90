@@ -354,6 +354,9 @@ integer function Load_Grid_State(grid, state)
             else
                 n = n - 1 ! skip this data
             endif
+        else
+            grid(n)%is_closed = (is_closed > 0)
+            grid(n)%special_access_index = 0
         endif
     end do
     close(63)
