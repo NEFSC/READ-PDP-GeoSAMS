@@ -515,7 +515,7 @@ function Set_Fishing_Effort(year, ts, state, weight_grams, mortality, grid)
     end select
 
     ! Report current timestep results
-    call Mortality_Write_At_Timestep(year, ts, state, weight_grams, mortality, Set_Fishing_Effort(:))
+    call Mortality_Write_At_Timestep(year, ts, state, weight_grams, mortality, Set_Fishing_Effort(:), grid)
 
     return
 endfunction Set_Fishing_Effort
@@ -1015,7 +1015,7 @@ end subroutine Read_Configuration
 !> Initializes growth for startup
 !>
 !==================================================================================================================
-subroutine Mortality_Write_At_Timestep(year, ts, state, weight_grams, mortality, set_fishing_by_loc)
+subroutine Mortality_Write_At_Timestep(year, ts, state, weight_grams, mortality, set_fishing_by_loc, grid)
 integer, intent(in) :: year, ts
 ! state is allocated before the number of grids is known
 real(dp), intent(in) :: state(max_num_grids, num_size_classes)
@@ -1023,6 +1023,7 @@ real(dp), intent(in) :: state(max_num_grids, num_size_classes)
 real(dp), intent(in) :: weight_grams(num_grids, num_size_classes)
 type(Mortality_Class), intent(in):: mortality(*)
 real(dp), intent(in) :: set_fishing_by_loc(*)
+type(Grid_Data_Class), intent(in) :: grid(*)
 
 integer loc
 ! character(20) buf
@@ -1030,7 +1031,7 @@ real(dp) :: M(num_size_classes)
 real(dp), allocatable :: abundance(:)
 real(dp), allocatable :: bms(:)
 real(dp), allocatable :: ebms_mt(:)
-character(4) buf
+character(6) buf
 
 allocate(abundance(num_grids))
 allocate(bms(num_grids), ebms_mt(num_grids))
@@ -1058,21 +1059,29 @@ call Write_Column_CSV(num_grids, set_fishing_by_loc(1:num_grids), 'Feffort',&
 ! write annual results, i.e. every ts_per_year
 ! This data is later interpolated to MA or GB Grid
 if (mod(ts+1, ts_per_year) .eq. 1) then
-    write(buf,'(I4)') year
     if (ts .eq. 0) then
-        call Write_Column_CSV(num_grids, ebms_mt(:),         'EBMS',     data_dir//'X_Y_EBMS_'//domain_name//buf//'_0.csv', .true.)
-        call Write_Column_CSV(num_grids, landings_by_num(:), 'Landings', data_dir//'X_Y_LAND_'//domain_name//buf//'_0.csv', .true.)
-        call Write_Column_CSV(num_grids, lpue(:),            'LPUE',     data_dir//'X_Y_LPUE_'//domain_name//buf//'_0.csv', .true.)
-        call Write_Column_CSV(num_grids, set_fishing_by_loc(1:num_grids),&
-        &                                                    'FEFF',     data_dir//'X_Y_FEFF_'//domain_name//buf//'_0.csv', .true.)
+        write(buf,'(I4,A2)') year, '_0'
     else
-        call Write_Column_CSV(num_grids, ebms_mt(:),         'EBMS',     data_dir//'X_Y_EBMS_'//domain_name//buf//'.csv', .true.)
-        call Write_Column_CSV(num_grids, landings_by_num(:), 'Landings', data_dir//'X_Y_LAND_'//domain_name//buf//'.csv', .true.)
-        call Write_Column_CSV(num_grids, lpue(:),            'LPUE',     data_dir//'X_Y_LPUE_'//domain_name//buf//'.csv', .true.)
+        write(buf,'(I4)') year
+    endif
+
+    if (domain_name .EQ. 'MA') then
+        call Write_Column_CSV(num_grids, ebms_mt(:),         'EBMS',     data_dir//'X_Y_EBMS_'//'MA'//trim(buf)//'.csv', .true.)
+        call Write_Column_CSV(num_grids, landings_by_num(:), 'Landings', data_dir//'X_Y_LAND_'//'MA'//trim(buf)//'.csv', .true.)
+        call Write_Column_CSV(num_grids, lpue(:),            'LPUE',     data_dir//'X_Y_LPUE_'//'MA'//trim(buf)//'.csv', .true.)
         call Write_Column_CSV(num_grids, set_fishing_by_loc(1:num_grids),&
-        &                                                    'LPUE',     data_dir//'X_Y_FEFF_'//domain_name//buf//'.csv', .true.)
-    endif 
-endif
+        &                                                    'FEFF',     data_dir//'X_Y_FEFF_'//'MA'//trim(buf)//'.csv', .true.)
+    else
+        call Write_Column_CSV_By_Stratum(num_grids, ebms_mt(:), grid(1:num_grids)%lat, grid(1:num_grids)%lon, &
+        &            grid(1:num_grids)%stratum, 'EBMS', data_dir//'X_Y_EBMS_'//'GB'//trim(buf), .true.)
+        call Write_Column_CSV_By_Stratum(num_grids, ebms_mt(:), grid(1:num_grids)%lat, grid(1:num_grids)%lon, &
+        &            grid(1:num_grids)%stratum, 'LAND', data_dir//'X_Y_LAND_'//'GB'//trim(buf), .true.)
+        call Write_Column_CSV_By_Stratum(num_grids, ebms_mt(:), grid(1:num_grids)%lat, grid(1:num_grids)%lon, &
+        &            grid(1:num_grids)%stratum, 'LPUE', data_dir//'X_Y_LPUE_'//'GB'//trim(buf), .true.)
+        call Write_Column_CSV_By_Stratum(num_grids, ebms_mt(:), grid(1:num_grids)%lat, grid(1:num_grids)%lon, &
+        &            grid(1:num_grids)%stratum, 'FEFF', data_dir//'X_Y_FEFF_'//'GB'//trim(buf), .true.)
+    endif
+endif ! if(mod()) = 1
 
 ! ! CSV files (number of timestep by number of grids)
 ! call Write_CSV(1, num_grids, ebms_mt(:), output_dir//'ExplBMS_mt_'//domain_name//'.csv',    1, (ts .ne. 0))

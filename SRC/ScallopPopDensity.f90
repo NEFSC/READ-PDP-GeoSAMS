@@ -216,6 +216,7 @@ real(dp) delta_time
 integer num_years
 integer year
 character(4) buf
+character(6) buf_0
 character(fname_len) file_name
 
 real(dp) domain_area
@@ -337,17 +338,18 @@ call Write_Lat_Lon_Preamble(num_grids, grid, output_dir//'Lat_Lon_Surv_FEFF_'//d
 
 ! Write similar data for later interpolation by UK (Universal Kriging)
 write(buf,'(I4)') start_year
-call Write_Y_Y_Preamble(num_grids, grid, data_dir//'X_Y_EBMS_'//domain_name//buf//'_0.csv')
-call Write_Y_Y_Preamble(num_grids, grid, data_dir//'X_Y_LAND_'//domain_name//buf//'_0.csv')
-call Write_Y_Y_Preamble(num_grids, grid, data_dir//'X_Y_LPUE_'//domain_name//buf//'_0.csv')
-call Write_Y_Y_Preamble(num_grids, grid, data_dir//'X_Y_RECR_'//domain_name//buf//'_0.csv')
-call Write_Y_Y_Preamble(num_grids, grid, data_dir//'X_Y_FEFF_'//domain_name//buf//'_0.csv')
+call Write_X_Y_Preamble(num_grids, grid, data_dir//'X_Y_EBMS_'//domain_name//buf//'_0.csv', domain_name)
+call Write_X_Y_Preamble(num_grids, grid, data_dir//'X_Y_LAND_'//domain_name//buf//'_0.csv', domain_name)
+call Write_X_Y_Preamble(num_grids, grid, data_dir//'X_Y_LPUE_'//domain_name//buf//'_0.csv', domain_name)
+call Write_X_Y_Preamble(num_grids, grid, data_dir//'X_Y_RECR_'//domain_name//buf//'_0.csv', domain_name)
+call Write_X_Y_Preamble(num_grids, grid, data_dir//'X_Y_FEFF_'//domain_name//buf//'_0.csv', domain_name)
 do n = start_year, stop_year
     write(buf,'(I4)') n
-    call Write_Y_Y_Preamble(num_grids, grid, data_dir//'X_Y_EBMS_'//domain_name//buf//'.csv')
-    call Write_Y_Y_Preamble(num_grids, grid, data_dir//'X_Y_LAND_'//domain_name//buf//'.csv')
-    call Write_Y_Y_Preamble(num_grids, grid, data_dir//'X_Y_LPUE_'//domain_name//buf//'.csv')
-    call Write_Y_Y_Preamble(num_grids, grid, data_dir//'X_Y_FEFF_'//domain_name//buf//'.csv')
+    call Write_X_Y_Preamble(num_grids, grid, data_dir//'X_Y_EBMS_'//domain_name//buf//'.csv', domain_name)
+    call Write_X_Y_Preamble(num_grids, grid, data_dir//'X_Y_LAND_'//domain_name//buf//'.csv', domain_name)
+    call Write_X_Y_Preamble(num_grids, grid, data_dir//'X_Y_LPUE_'//domain_name//buf//'.csv', domain_name)
+    call Write_X_Y_Preamble(num_grids, grid, data_dir//'X_Y_RECR_'//domain_name//buf//'.csv', domain_name)
+    call Write_X_Y_Preamble(num_grids, grid, data_dir//'X_Y_FEFF_'//domain_name//buf//'.csv', domain_name)
 end do
 !----------------------------------------------------------------------------------------------------------------
 year = start_year
@@ -356,12 +358,23 @@ do ts = 1, num_time_steps
     if (mod(ts, ts_per_year) .eq. 1) then
         recr_idx = year - start_year + 1
         write(buf,'(I4)') year
-        if (ts .eq. 1) then
-            file_name = data_dir//'X_Y_RECR_'//domain_name//buf//'_0.csv'
+        if (domain_name .EQ. 'MA') then
+            if (ts .eq. 1) then
+                file_name = data_dir//'X_Y_RECR_'//domain_name//buf//'_0.csv'
+            else
+                file_name = data_dir//'X_Y_RECR_'//domain_name//buf//'.csv'
+            endif 
+            call Write_Column_CSV(num_grids, recruit(:)%recruitment(recr_idx), 'Recruitment', file_name, .true.)
         else
-            file_name = data_dir//'X_Y_RECR_'//domain_name//buf//'.csv'
-        endif 
-        call Write_Column_CSV(num_grids, recruit(:)%recruitment(recr_idx), 'Recruitment', file_name, .true.)
+            if (ts .eq. 1) then
+                write(buf_0,'(I4,A2)') year, '_0'
+            else
+                write(buf_0,'(I4)') year
+            endif
+            call Write_Column_CSV_By_Stratum(num_grids, recruit(:)%recruitment(recr_idx), &
+            &            grid(1:num_grids)%lat, grid(1:num_grids)%lon, grid(1:num_grids)%stratum, &
+            &            'RECR', data_dir//'X_Y_RECR_'//'GB'//trim(buf_0), .true.)
+        endif
     endif
     file_name = output_dir//'Lat_Lon_Surv_RECR_'//domain_name//'.csv'
     call Write_Column_CSV(num_grids, recruit(:)%recruitment(recr_idx), 'Recruitment', file_name, .true.)
@@ -505,17 +518,123 @@ endsubroutine Write_Lat_Lon_Preamble
 !! Read_Startup_Config
 !> @brief Writes year, UTM-X, UTM-Y, and Depth columns with headers to named file
 !--------------------------------------------------------------------------------
-subroutine Write_Y_Y_Preamble(num_grids, grid, fname)
+subroutine Write_X_Y_Preamble(num_grids, grid, fname, domain_name)
 use globals
 use Grid_Manager_Mod
 integer, intent(in) :: num_grids
 type(Grid_Data_Class), intent(in) :: grid(*)
 character(*), intent(in) :: fname
+character(domain_len),intent(out):: domain_name
 
+character(fname_len) file_name
+integer k
+if (domain_name .eq. 'GB') then
+    k = index(fname, '.') -1
+    file_name = fname(1:k)
+    call Write_Column_CSV_By_Stratum(num_grids, grid(1:num_grids)%year, &
+    &                                           grid(1:num_grids)%lat, &
+    &                                           grid(1:num_grids)%lon, &
+    &                                           grid(1:num_grids)%stratum, 'YEAR', trim(file_name),.false.)
+    call Write_Column_CSV_By_Stratum(num_grids, grid(1:num_grids)%x, &
+    &                                           grid(1:num_grids)%lat, &
+    &                                           grid(1:num_grids)%lon, &
+    &                                           grid(1:num_grids)%stratum, 'UTM_X', trim(file_name),.true.)
+    call Write_Column_CSV_By_Stratum(num_grids, grid(1:num_grids)%y, &
+    &                                           grid(1:num_grids)%lat, &
+    &                                           grid(1:num_grids)%lon, &
+    &                                           grid(1:num_grids)%stratum, 'UTM_Y', trim(file_name),.true.)
+    call Write_Column_CSV_By_Stratum(num_grids, grid(1:num_grids)%z, &
+    &                                           grid(1:num_grids)%lat, &
+    &                                           grid(1:num_grids)%lon, &
+    &                                           grid(1:num_grids)%stratum, 'DEPTH', trim(file_name),.true.)
+else
     call Write_Column_CSV(num_grids, grid(1:num_grids)%year, 'YEAR', fname,.false.)
     call Write_Column_CSV(num_grids, grid(1:num_grids)%x,    'UTM_X', fname,.true.)
     call Write_Column_CSV(num_grids, grid(1:num_grids)%y,    'UTM_Y', fname,.true.)
     call Write_Column_CSV(num_grids, grid(1:num_grids)%z,    'DEPTH', fname,.true.)
+endif
 
-endsubroutine Write_Y_Y_Preamble
+endsubroutine Write_X_Y_Preamble
+!--------------------------------------------------------------------------------------------------
+!! Purpose: Write values of a matrix (f) to a csv file in exponential format by column rather than row
+!> Inputs:
+!>  n (integer) number of rows in f 
+!>  m (integer) number of columns in f
+!>  header string to write as a column header
+!>  f (real(dp)) values to write to csv file
+!> file_name (character(72)) filename to write f to in csv format
+!--------------------------------------------------------------------------------------------------
+! Tom Callaghan
+!--------------------------------------------------------------------------------------------------
+subroutine Write_Column_CSV_By_Stratum(n,f, lat, lon, stratum, header,file_name,append)
+use globals
+use Grid_Manager_Mod
+implicit none
+integer, intent(in):: n
+real(dp), intent(in):: f(*), lat(*), lon(*), stratum(*)
+character(*), intent(in) :: header
+character(*), intent(in) ::file_name
+logical, intent(in) :: append
+integer k, io
+character(fname_len) fmtstr
+character(1) cr
+character(5000) input_str
+character(5000) output_str
+integer, parameter :: temp_dev = 70
+integer, parameter :: appd_dev = 80
+integer offset
+character(3) :: rgn(num_GB_regions) = (/ '_N ', '_S ', '_SW', '_W '/)
+if (append) then
+    ! read existing files by region0
+    ! create a temp file by region to write output then move temp to existing file_name
+    ! read and write header row for each temp file
+    do offset = 1, num_GB_regions
+        open(appd_dev+offset, file=file_name//trim(rgn(offset))//'.csv', status='old')
+        open(unit=temp_dev+offset, iostat=io, file=output_dir//'TEMP'//trim(rgn(offset)), status='replace')
+        read(appd_dev+offset,'(A)',iostat=io) input_str
+        write(output_str,'(A,A,A)') trim(input_str),',',header
+        write(temp_dev+offset, '(A)'//NEW_LINE(cr)) trim(output_str)
+    enddo
+    do k=1,n
+        offset = Get_GB_region(lat(k), lon(k), stratum(k))
+        if (offset > 0) then
+            read(appd_dev+offset,'(A)',iostat=io) input_str
+            write(output_str,'(A,A,(ES14.7 : ))') trim(input_str),',',f(k)
+            write(temp_dev+offset, '(A)'//NEW_LINE(cr)) trim(output_str)
+        endif
+    enddo
+    do k = 1, num_GB_regions
+        close(appd_dev+k)
+        close(temp_dev+k)
+    enddo
+    ! copy temp file to file name and delete temp file
+    do offset = 1,num_GB_regions
+        open(temp_dev+offset, file=output_dir//'TEMP'//trim(rgn(offset)), status='old')
+        open(unit=appd_dev+offset, iostat=io, file=file_name//trim(rgn(offset))//'.csv', status='replace')
+        ! number of rows in temp file varies read until no more lines
+        do
+            read(temp_dev+offset,'(A)',iostat=io) input_str
+            if (io.lt.0) exit
+            write(appd_dev+offset,'(A)') trim(input_str)
+        enddo
+        close(appd_dev+offset)
+        close(temp_dev+offset, status='delete')
+    enddo
+else
+    ! empty file, write header to first line
+    fmtstr='(ES14.7 : )'//NEW_LINE(cr)
+    do offset = 1,num_GB_regions
+        open(appd_dev+offset, file=file_name//trim(rgn(offset))//'.csv')
+        write(appd_dev+offset, '(A)') header
+    enddo
     
+    ! write data to first column
+    do k=1,n
+        offset = Get_GB_region(lat(k), lon(k), stratum(k))
+        if (offset>0) write(appd_dev+offset,fmtstr) f(k)
+    enddo
+    do offset = 1,num_GB_regions
+        close(appd_dev+offset)
+    enddo
+endif
+endsubroutine Write_Column_CSV_By_Stratum

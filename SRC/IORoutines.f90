@@ -39,7 +39,7 @@ subroutine Read_Scalar_Field(file_name, M, vector_len)
 endsubroutine Read_Scalar_Field
 
 !--------------------------------------------------------------------------------------------------
-!> Purpose: Write columns of a matrrix (f) to a series of text files in exponential format.
+!> Purpose: Write columns of a matrix (f) to a series of text files in exponential format.
 !> Inputs:
 !> -    nn    (integer) number of rows in f 
 !> -    nsim(integer) number of columns in f

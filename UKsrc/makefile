@@ -6,7 +6,7 @@
 OBJ_DIR = ./obj
 MOD_DIR = ./mod
 FC = gfortran
-FFLAGS = -g -Wall -std=f95 -fall-intrinsics
+FFLAGS = -g -Wall -std=f95 -fall-intrinsics #-fbounds-check
 # -O3  -mcmodel=medium -funroll-all-loops -ffast-math -msse -msse2 -m3dnow -m64
  # -g debug
 #-O3  -mcmodel=medium -funroll-all-loops -ffast-math -msse -msse2 -m3dnow -m64
@@ -49,14 +49,24 @@ ifeq ($(OS), Windows_NT)
 	del  $(EXEC).exe
 	del .\obj\*.o
 	del .\mod\*.mod
+	attrib -R IORoutines.f90
+	attrib -R Globals.f90
 	copy ..\SRC\IORoutines.f90 .
 	copy ..\SRC\Globals.f90 .
+	# prevent modification these file in this directory
+	attrib +R .\IORoutines.f90
+	attrib +R Globals.f90
 else
 	rm -fr  $(EXEC)
 	rm -fr $(OBJ_DIR)/*.o
 	rm -fr $(MOD_DIR)/*.mod
+	chmod 660 IORoutines.f90
+	chmod 660 Globals.f90
 	cp ../SRC/IORoutines.f90 .
 	cp ../SRC/Globals.f90 .
+	# prevent modification these file in this directory
+	chmod 440 IORoutines.f90
+	chmod 440 Globals.f90
 endif
 
 setup:

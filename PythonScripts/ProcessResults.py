@@ -4,43 +4,102 @@ import subprocess
 import socket
 import os
 import sys
+import csv
 
-if (len(sys.argv) != 4):
+from collections import defaultdict
+
+if (len(sys.argv) != 3):
     print ("  Missing command line arguments. Expecting: ")
-    print ("  $ EstimateRecruitFields.py StartYear EndYear Domain")
+    print ("  $ ProcessResults.py StartYear EndYear")
     print()
     quit()
     
+dataDir = 'Data/'
 year_start = int(sys.argv[1])
 year_end = int(sys.argv[2])
-dn = sys.argv[3]
+dn = 'MA'
 print(year_start, year_end, dn)
 
 years = range(year_start, year_end+1)
-MC = range(1, 11)
+
+# Used whil concatenating files
+# number of colums in csv file, starting at 0
+# lat, lon, initial data
+ncols = year_end - year_start + 3
 
 # set configuration file name for UK.exe
 cfgFile = 'UK.cfg'
 ex = os.path.join('UKsrc', 'UK')
 
-xyString = ['X_Y_EBMS_', 'X_Y_LAND_', 'X_Y_LPUE_', 'X_Y_RECR_', 'X_Y_FEFF_']
+paramStr = ['EBMS_', 
+            'LAND_', 
+            'LPUE_', 
+            'FEFF_',
+            'RECR_']
 
-for xyStr in xyString:
+for pStr in paramStr:
     # UK expects input data files to be in subdir Data/
     # UK writes results to subdir Results/
     # using the same file name as provide for observation data.
-    flin = xyStr+dn+str(year_start)+'_0.csv'
+    flin = 'X_Y_' + pStr + dn + str(year_start) + '_0.csv'
     result = subprocess.run([ex, cfgFile, dn, flin, ' F'])
     print([ex, cfgFile, dn, flin, ' F'])
     if (result.returncode != 0):
+        print('[31m' + flin + ' error: ' + hex(result.returncode) + '[0m')
         sys.exit(result.returncode)
+    os.remove(dataDir + flin)
 
     for year in years:
-        flin = xyStr+dn+str(year)+'.csv'
+        flin = 'X_Y_' + pStr + dn + str(year) + '.csv'
         # output all data, proc_recruits='F'
         result = subprocess.run([ex, cfgFile, dn, flin, ' F'])
         print([ex, cfgFile, dn, flin, ' F'])
         if (result.returncode != 0):
+            print('[31m' + flin + ' error: ' + hex(result.returncode) + '[0m')
             sys.exit(result.returncode)
+        os.remove(dataDir + flin)
+
+    # subprocess.run takes in Data/X_Y_* and creates Results/Lat_Lon_Grid*
+    # Concatenate individual year files into a single file
+    col = []
+    col = [defaultdict(list) for i in range(5)]
+    k = 0
+    
+    flin = 'Results/Lat_Lon_Grid_' + pStr + dn + str(year_start) + '_0' + '.csv'
+    with open(flin) as f:
+        reader = csv.reader(f)
+        for row in reader:
+            for (i,v) in enumerate(row):
+                col[k][i].append(v)
+        f.close()
+    os.remove(flin)
+
+    # append remaining years as additional columns to first data set
+    for year in years:
+        k  += 1
+        flin = 'Results/Lat_Lon_Grid_' + pStr + dn + str(year) + '.csv'
+        with open(flin) as f:
+            reader = csv.reader(f)
+            for row in reader:
+                for (i,v) in enumerate(row):
+                    col[k][i].append(v)
+            f.close()
+        os.remove(flin)
+
+        for i in range (len(col[0][0])):    
+            col[0][k + 2].append(col[k][2][i])
+
+    # brute force write out results
+    flout = open('Results/Lat_Lon_Grid_' + pStr + dn + '_' + str(year_start) + '_' + str(year_end) + '.csv', 'w')
+    for row in range(len(col[0][0])):
+        for c in range(ncols):
+            flout.write(col[0][c][row])
+            flout.write(',')
+        flout.write(col[0][ncols][row])
+        flout.write('\n')
+
+    flout.close()
+
+    print('Files concatenated to: ',flout)
 
 sys.exit(0)

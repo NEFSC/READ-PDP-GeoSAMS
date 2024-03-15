@@ -150,20 +150,20 @@ subroutine Krig_Comp_Emp_Variogram(num_points,distance_horiz,distance_vert,n_dim
 type(Krig_Class), intent(inout) :: par
 type(Krig_Class):: parTmp
 
-integer  NIntVD,NPS
-parameter(NIntVD=31,NPS=30)
 integer, intent(in)  :: num_points,n_dim
 real(dp), intent(in) :: distance_horiz(n_dim,*),distance_vert(n_dim,*),f(*)
 logical, intent(in) :: proc_recruits
-real(dp) DintV(NIntVD),DintVm(NIntVD), SIntV(NIntVD)
+real(dp) DintV(n_dim+1),DintVm(n_dim+1), SIntV(n_dim+1)
 real(dp) variogram(n_dim,1)
-real(dp) Pind(NPS),alphaR(NPS),c0R(NPS),cR(NPS),WzR
-integer j,k,n,m,nc,NIntV
+real(dp) Pind(n_dim),alphaR(n_dim),c0R(n_dim),cR(n_dim),WzR
+integer j,k,n,m,nc,NIntV, NPS
 real(dp) dx,cost,costmin,Wz
+
+NPS=n_dim
+NintV = n_dim+1
 
 parTmp%form=par%form
 ! Set up interval and average square of residual for variogram estimation
-NintV=NIntVD
 dx=5000.
 DintV(1)=0.
 do j=2,NIntV
@@ -181,9 +181,7 @@ alphaR(1:NPS)=Pind(1:NPS)*100000.D0
 ! WzR,Wz -  These variables were used to allow anisotropy in the kriging covariance.
 ! they are not used here. WzR(1:NPS)=(Pind(1:NPS)-1./float(NPS))*10000.D0
 WzR=0.D0
-
-NIntV=NIntVD
-Wz=WzR
+Wz=0.D0
 do j=2,NIntV
     SIntV(j-1)=0.
     nc=0
@@ -219,7 +217,7 @@ do j=1,NPS
             parTmp%sill=cR(k)
             parTmp%alpha=alphaR(m)
             parTmp%Wz=WzR
-            variogram = Krig_Compute_Variogram(NintV, 1, DintVm, 0*DintVm, NIntV, parTmp)
+            variogram = Krig_Compute_Variogram(NintV, 1, DintVm, 0*DintVm, n_dim, parTmp)
             cost = sum((SIntV(1:NIntV) - variogram(1:NIntV,1))**2)
             if( cost.lt.costmin )then
                 costmin=cost
@@ -232,7 +230,7 @@ do j=1,NPS
     enddo !k
 enddo !j
 
-variogram = Krig_Compute_Variogram(NintV, 1, DIntVm, 0*DIntV, NIntV, par)
+variogram = Krig_Compute_Variogram(NintV, 1, DIntVm, 0*DIntV, n_dim, par)
 
 if (proc_recruits) then
     call Write_2D_Scalar_Field(NintV,1,variogram,'GammaIntV.txt',NintV)

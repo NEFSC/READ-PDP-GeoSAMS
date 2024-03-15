@@ -26,7 +26,25 @@ goto args_count_ok
     exit /b
 
 :args_count_ok
+if "%3" == "1111" goto continue
+if "%3" == "2222" goto continue
+if "%3" == "3333" goto continue
+if "%3" == "4444" goto continue
+if "%3" == "5555" goto continue
+if "%3" == "0" goto continue
 
+    @echo [31mInvalid SRC[0m
+    @echo "%3"
+    @echo "Data Source"
+    @echo "    NMFS_ALB ==> 1111"
+    @echo "    CANADIAN ==> 2222"
+    @echo "    F/V_TRAD ==> 3333"
+    @echo "    VIMSRSA ==> 4444"
+    @echo "    NMFSSHRP ==> 5555"
+    @echo "    ALL ==> 0"
+    exit
+
+:continue
 @REM unzip dredge data
 if not exist OriginalData\dredgetowbysize7917.csv (
     cd "OriginalData/"
@@ -72,8 +90,14 @@ make
 
 @REM Make UK executables
 cd ..\UKsrc
+attrib -R IORoutines.f90
+attrib -R Globals.f90
 copy ..\SRC\IORoutines.f90 .
 copy ..\SRC\Globals.f90 .
+@REM prevent modification of these file in this directory
+attrib +R .\IORoutines.f90
+attrib +R Globals.f90
+
 if not exist mod\ (
     mkdir mod\
 )
@@ -94,22 +118,22 @@ cd ..
 @REM However, vscode does not see it. Either cut&paste here or enter via notepad and cut & paste to here.
 @REM https://stackoverflow.com/questions/2048509/how-to-echo-with-different-colors-in-the-windows-command-line
 @REM https://gist.githubusercontent.com/mlocati/fdabcaeb8071d5c75a2d51712db24011/raw/b710612d6320df7e146508094e84b92b34c77d48/win10colors.cmd
-matlab.exe -batch "addpath mfiles\; addpath mfiles\latlonutm\; addpath PreProcess\; TrawlData5mmbin(%1, %2, %3, '%4'); exit;"
+matlab.exe -batch "TrawlData5mmbin(%1, %2, %3, '%4'); exit;"
 IF %ERRORLEVEL% NEQ 0 (
     @echo [31mError in MATLAB TrawlData5mmbin. Stopping[0m
     exit
 )
-matlab.exe -batch "addpath mfiles\; addpath mfiles\latlonutm\; addpath PreProcess\; PullOutRecruitData(%3); exit;"
+matlab.exe -batch "PullOutRecruitData(%3); exit;"
 IF %ERRORLEVEL% NEQ 0 (
     @echo [31mError in MATLAB PullOutRecruitData. Stopping[0m
     exit
 )
-matlab.exe -batch "addpath mfiles\; addpath mfiles\latlonutm\; addpath PreProcess\; ProcessRecruitData(%1, %2, '%4'); exit;"
+matlab.exe -batch "ProcessRecruitData(%1, %2, '%4'); exit;"
 IF %ERRORLEVEL% NEQ 0 (
     @echo [31mError in MATLAB ProcessRecruitData. Stopping[0m
     exit
 )
-matlab.exe -batch "addpath mfiles\; addpath mfiles\latlonutm\; addpath PreProcess\; NearestNeighborRecInterp(%1, %2, '%4'); exit;"
+matlab.exe -batch "NearestNeighborRecInterp(%1, %2, '%4'); exit;"
 IF %ERRORLEVEL% NEQ 0 (
     @echo [31mError in MATLAB NearestNeighborRecInterp. Stopping[0m
     @echo 
@@ -125,9 +149,18 @@ IF %ERRORLEVEL% NEQ 0 (
     exit
 )
 
-python .\PythonScripts\ProcessResults.py %1 %2 %4
-IF %ERRORLEVEL% == 0 (
-    python .\PythonScripts\ConcatCsvResults.py %1 %2 %4
-) else (
+if "%4" == "MA" (
+python .\PythonScripts\ProcessResults.py %1 %2
+IF %ERRORLEVEL% NEQ 0 (
     @echo [31mError in ProcessResults.py. Stopping[0m
+    exit
 )
+) else (
+python .\PythonScripts\ProcessGBResults.py %1 %2
+IF %ERRORLEVEL% NEQ 0 (
+    @echo [31mError in ProcessGBResults.py. Stopping[0m
+    exit
+)
+)
+
+.\PlotAllByYear.bat %1 %2 %4

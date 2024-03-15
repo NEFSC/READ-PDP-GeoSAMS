@@ -574,7 +574,7 @@ elseif (stratum < 6490._dp) then
     endif
 elseif (stratum < 6530._dp) then
     Get_GB_region = W
-elseif (stratum < 6550._dp) then
+elseif (stratum < 6560._dp) then
     Get_GB_region = N
 elseif (stratum < 6610._dp) then
     Get_GB_region = S
