@@ -11,7 +11,7 @@ if %argCount% NEQ 4 goto args_count_wrong
 goto args_count_ok
 
 :args_count_wrong
-    @echo "Missing arguments"
+    @echo [31mMissing arguments[0m
     @echo "Expecting: GeoSamSetup.bat YYYYstart YYYYend DataSource# Domain"
     @echo "Data Source"
     @echo "    NMFS_ALB ==> 1111"
@@ -42,7 +42,7 @@ if "%3" == "0" goto continue
     @echo "    VIMSRSA ==> 4444"
     @echo "    NMFSSHRP ==> 5555"
     @echo "    ALL ==> 0"
-    exit
+    exit /b
 
 :continue
 @REM unzip dredge data
@@ -121,23 +121,22 @@ cd ..
 matlab.exe -batch "TrawlData5mmbin(%1, %2, %3, '%4'); exit;"
 IF %ERRORLEVEL% NEQ 0 (
     @echo [31mError in MATLAB TrawlData5mmbin. Stopping[0m
-    exit
+    exit /b
 )
 matlab.exe -batch "PullOutRecruitData(%3); exit;"
 IF %ERRORLEVEL% NEQ 0 (
     @echo [31mError in MATLAB PullOutRecruitData. Stopping[0m
-    exit
+    exit /b
 )
 matlab.exe -batch "ProcessRecruitData(%1, %2, '%4'); exit;"
 IF %ERRORLEVEL% NEQ 0 (
     @echo [31mError in MATLAB ProcessRecruitData. Stopping[0m
-    exit
+    exit /b
 )
 matlab.exe -batch "NearestNeighborRecInterp(%1, %2, '%4'); exit;"
 IF %ERRORLEVEL% NEQ 0 (
     @echo [31mError in MATLAB NearestNeighborRecInterp. Stopping[0m
-    @echo 
-    exit
+    exit /b
 )
 
 @REM Not used with NearestNeighborRecInterp
@@ -146,20 +145,20 @@ IF %ERRORLEVEL% NEQ 0 (
 .\SRC\ScallopPopDensity.exe Scallop.cfg %1 %2 %4
 IF %ERRORLEVEL% NEQ 0 (
     @echo [31mError in ScallopPopDensity MA. Stopping[0m
-    exit
+    exit /b
 )
 
 if "%4" == "MA" (
 python .\PythonScripts\ProcessResults.py %1 %2
 IF %ERRORLEVEL% NEQ 0 (
     @echo [31mError in ProcessResults.py. Stopping[0m
-    exit
+    exit /b
 )
 ) else (
 python .\PythonScripts\ProcessGBResults.py %1 %2
 IF %ERRORLEVEL% NEQ 0 (
     @echo [31mError in ProcessGBResults.py. Stopping[0m
-    exit
+    exit /b
 )
 )
 
