@@ -17,12 +17,12 @@ goto args_count_ok
     @echo "    NMFS_ALB ==> 1111"
     @echo "    CANADIAN ==> 2222"
     @echo "    F/V_TRAD ==> 3333"
-    @echo "    VIMSRSA ==> 4444"
+    @echo "    VIMSRSA  ==> 4444"
     @echo "    NMFSSHRP ==> 5555"
-    @echo "    ALL ==> 0"
+    @echo "    ALL      ==> 0"
     @echo "Domain"
-    @echo "    'MA'"
-    @echo "    'GB'"
+    @echo "    MA"
+    @echo "    GB"
     exit /b
 
 :args_count_ok
@@ -33,15 +33,14 @@ if "%3" == "4444" goto continue
 if "%3" == "5555" goto continue
 if "%3" == "0" goto continue
 
-    @echo [31mInvalid SRC[0m
-    @echo "%3"
+    @echo [31mInvalid SRC: [0m "%3"
     @echo "Data Source"
     @echo "    NMFS_ALB ==> 1111"
     @echo "    CANADIAN ==> 2222"
     @echo "    F/V_TRAD ==> 3333"
-    @echo "    VIMSRSA ==> 4444"
+    @echo "    VIMSRSA  ==> 4444"
     @echo "    NMFSSHRP ==> 5555"
-    @echo "    ALL ==> 0"
+    @echo "    ALL      ==> 0"
     exit /b
 
 :continue
@@ -144,7 +143,7 @@ IF %ERRORLEVEL% NEQ 0 (
 
 .\SRC\ScallopPopDensity.exe Scallop.cfg %1 %2 %4
 IF %ERRORLEVEL% NEQ 0 (
-    @echo [31mError in ScallopPopDensity MA. Stopping[0m
+    @echo [31mError in ScallopPopDensity Stopping[0m
     exit /b
 )
 

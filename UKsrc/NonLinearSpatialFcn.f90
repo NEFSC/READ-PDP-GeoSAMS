@@ -169,7 +169,7 @@ do
             case('C')
                 nlsf(n)%form = 'CosExp'
             case default
-                write(*,*) 'Unrecognized function Form in SpatialFcns.inp:', input_string
+                write(*,*) term_red,'Unrecognized function Form in ', trim(config_file_name) , ': ', term_blk, input_string
                 stop 1
         end select
         j = index(input_string,"precon=",back=.true.)
