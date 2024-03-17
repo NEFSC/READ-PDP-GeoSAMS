@@ -148,9 +148,9 @@ IF %ERRORLEVEL% NEQ 0 (
 )
 
 if "%4" == "MA" (
-python .\PythonScripts\ProcessResults.py %1 %2
+python .\PythonScripts\ProcessMAResults.py %1 %2
 IF %ERRORLEVEL% NEQ 0 (
-    @echo [31mError in ProcessResults.py. Stopping[0m
+    @echo [31mError in ProcessMAResults.py. Stopping[0m
     exit /b
 )
 ) else (

@@ -10,7 +10,7 @@ from collections import defaultdict
 
 if (len(sys.argv) != 3):
     print ("  Missing command line arguments. Expecting: ")
-    print ("  $ ProcessResults.py StartYear EndYear")
+    print ("  $ ProcessMAResults.py StartYear EndYear")
     print()
     quit()
     
@@ -28,7 +28,7 @@ years = range(year_start, year_end+1)
 ncols = year_end - year_start + 3
 
 # set configuration file name for UK.exe
-cfgFile = 'UK.cfg'
+cfgFile = 'UK_MA.cfg'
 ex = os.path.join('UKsrc', 'UK')
 
 paramStr = ['EBMS_', 
@@ -98,8 +98,8 @@ for pStr in paramStr:
         flout.write(col[0][ncols][row])
         flout.write('\n')
 
+    print('Files concatenated to: ',flout.name)
     flout.close()
 
-    print('Files concatenated to: ',flout)
-
+# end for pStr
 sys.exit(0)

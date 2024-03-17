@@ -27,7 +27,7 @@ years = range(year_start, year_end + 1)
 ncols = year_end - year_start + 3
 
 # set configuration file name for UK.exe
-cfgFile = 'UK.cfg'
+cfgFile = 'UK_GB.cfg'
 ex = os.path.join('UKsrc', 'UK')
 
 paramStr = ['EBMS_', 
