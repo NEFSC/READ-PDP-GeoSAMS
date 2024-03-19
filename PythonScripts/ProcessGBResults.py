@@ -34,7 +34,7 @@ ex = os.path.join('UKsrc', 'UK')
 
 paramStr = ['EBMS_', 'LAND_', 'LPUE_', 'FEFF_','RECR_']
 rgn = ['_SW', '_N', '_S', '_W']
-prefix = ['Results/Lat_Lon_Grid_', 'Results/Lat_Lon_Grid_Trend_']
+prefix = ['Results/Lat_Lon_Grid_', 'Results/Lat_Lon_Grid_Trend-']
 
 for pStr in paramStr:
 
@@ -59,7 +59,7 @@ for pStr in paramStr:
             print([ex, cfgFile, dn, flin, gridFile, ' F'])
             os.remove(dataDir + flin)
 
-        for pre in prefix:
+        for pfix in prefix:
             ###########################################################################################
             # subprocess.run takes in Data/X_Y_* and creates both 
             #    Results/Lat_Lon_Grid* 
@@ -70,7 +70,7 @@ for pStr in paramStr:
             col = [defaultdict(list) for i in range(nyears)]
             k = 0
             
-            flin = pre + pStr + dn + str(year_start) + '_0' + r + '.csv'
+            flin = pfix + pStr + dn + str(year_start) + '_0' + r + '.csv'
             with open(flin) as f:
                 reader = csv.reader(f)
                 for row in reader:
@@ -82,7 +82,7 @@ for pStr in paramStr:
             # append remaining years as additional columns to first data set
             for year in years:
                 k  += 1
-                flin = pre + pStr + dn + str(year) + r + '.csv'
+                flin = pfix + pStr + dn + str(year) + r + '.csv'
                 with open(flin) as f:
                     reader = csv.reader(f)
                     for row in reader:
@@ -95,7 +95,7 @@ for pStr in paramStr:
                     col[0][k + 2].append(col[k][2][i])
 
             # brute force write out results
-            flout = open(pre + pStr + dn + r + '.csv', 'w')
+            flout = open(pfix + pStr + dn + r + '.csv', 'w')
             for row in range(len(col[0][0])):
                 for c in range(ncols):
                     flout.write(col[0][c][row])
@@ -103,15 +103,15 @@ for pStr in paramStr:
                 flout.write(col[0][ncols][row])
                 flout.write('\n')
             flout.close()
-        # end for pre
+        # end for pfix
     # end for rgn
 
     # now combine all region files into one file
-    for pre in prefix:
-        flout = pre + pStr + dn + '_' + str(year_start) + '_' + str(year_end) + '.csv'
+    for pfix in prefix:
+        flout = pfix + pStr + dn + '_' + str(year_start) + '_' + str(year_end) + '.csv'
         wrFile = open(flout, 'w')
         for r in rgn:
-            flin = pre + pStr + dn + r + '.csv'
+            flin = pfix + pStr + dn + r + '.csv'
             rdFile = open(flin, 'r')
             lines = rdFile.readlines()
             wrFile.writelines(lines)
@@ -119,5 +119,5 @@ for pStr in paramStr:
             os.remove(flin)
         wrFile.close()
         print('Files concatenated to: ',flout)
-    # end for pre
+    # end for pfix
 # end for pStr

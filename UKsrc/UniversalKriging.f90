@@ -586,7 +586,7 @@ fname = Get_Obs_Data_File_Name()
 ! n12345
 n = index(fname, '/') + 5
 fout = output_dir//'Lat_Lon_Grid_'//fname(n:)
-ftrend = output_dir//'Lat_Lon_Grid_Trend_'//fname(n:)
+ftrend = output_dir//'Lat_Lon_Grid_Trend-'//fname(n:)
 fmtstr='(2(ES14.7 : ", ") (ES14.7 : ))'
 
 write(*,*) term_blu, 'Writing ouput to: ', trim(fout), term_blk

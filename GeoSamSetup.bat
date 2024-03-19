@@ -167,18 +167,10 @@ IF ERRORLEVEL 1 (
     exit /b
 )
 
-if "%4" == "MA" (
-python .\PythonScripts\ProcessMAResults.py %1 %2
+python .\PythonScripts\Process%4Results.py %1 %2
 IF ERRORLEVEL 1 (
-    @echo [31mError in ProcessMAResults.py. Stopping[0m
+    @echo [31mError in Process%4Results.py. Stopping[0m
     exit /b
-)
-) else (
-python .\PythonScripts\ProcessGBResults.py %1 %2
-IF ERRORLEVEL 1 (
-    @echo [31mError in ProcessGBResults.py. Stopping[0m
-    exit /b
-)
 )
 
 .\PlotAllByYear.bat %1 %2 %4

@@ -169,21 +169,11 @@ if [ $? != 0 ]; then
     exit
 fi
 
-if [ "$4" == "MA" ]
+python3 ./PythonScripts/Process$4Results.py $1 $2
+if [ $? != 0 ]
 then
-   python3 ./PythonScripts/ProcessResults.py $1 $2
-   if [ $? != 0 ]
-   then
-       echo [31mError in ProcessResults.py. Stopping[0m
-       exit
-   fi
-else
-   python3 ./PythonScripts/ProcessGBResults.py $1 $2
-   if [ $? != 0 ]
-   then
-       echo [31mError in ProcessGBResults.py. Stopping[0m
-       exit
-   fi
+    echo [31mError in Process$4Results.py. Stopping[0m
+    exit
 fi
 
-.\PlotAllByYear.sh $1 $2 $4
+./PlotAllByYear.sh $1 $2 $4

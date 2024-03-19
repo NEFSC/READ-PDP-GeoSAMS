@@ -3,11 +3,25 @@
 % lat, lon, p1, p2, .... , pN
 
 function PlotLatLonSurvey(fname, tsPerYear, yearStart)
+isOctave = (exist('OCTAVE_VERSION', 'builtin') ~= 0);
+if isOctave
+    % used if called by command line
+    arg_list=argv();
+    if ~strcmp(arg_list(1), '--gui');
+        fname = cell2mat(arg_list(1));
+        tsPerYear = str2num(cell2mat(arg_list(2)));
+        yearStart = str2num(cell2mat(arg_list(3)));
+    end
+end
 
 n=size(fname,2);
 domain = fname(n-1:n);
 
-D=readtable([fname '.csv'],"FileType","spreadsheet");
+if isOctave
+    D=csvreadK([fname '.csv']);
+else
+    D=readtable([fname '.csv'],"FileType","spreadsheet");
+end
 [r, c]=size(D);
 c = c - 2; % deduct for lat, lon
 
@@ -15,16 +29,34 @@ c = c - 2; % deduct for lat, lon
 numCol = floor(c/tsPerYear) + 1;
 param=NaN(r,numCol); % pre-allocate
 
-lat=table2array(D(:,1));
-lon=table2array(D(:,2));
-n=1;
-for k=1:tsPerYear:c
-    param(:,n) =table2array(D(:,k+2));
-    n=n+1;
+if isOctave
+    lat=D(:,1);
+    lon=D(:,2);
+    n=1;
+    for k=1:tsPerYear:c
+        param(:,n) = D(:,k+2);
+        n=n+1;
+    end
+else
+    lat=table2array(D(:,1));
+    lon=table2array(D(:,2));
+    n=1;
+    for k=1:tsPerYear:c
+        param(:,n) =table2array(D(:,k+2));
+        n=n+1;
+    end
 end
-
 edges = [0,10,1e2,1e3,1e4,1e5,1e6,1e7,1e8,1e9,1e10];
-h=histcounts(param,edges);
+if isOctave
+    hh=histc(param,edges);
+    len = size(hh,1);
+    h = zeros(1,len);
+    for n=1:len
+        h(n) = sum(hh(n,:));
+    end
+else
+    h=histcounts(param,edges);
+end
 % looking for % of data
 a=0.9 * r * numCol;
 total = 0;
@@ -52,28 +84,46 @@ param = param ./ m;
 
 for i=1:numCol
 	year = yearStart + i - 2;
-	h = figure('Name',[fname '_' int2str(year) '_' int2str(saturate)]);
-    geoscatter(lat, lon, param(:,i), 'o', 'b');
-	legend(int2str(year))
-	geobasemap streets;
-
-    % enlarge figure
-    if strcmp(domain, 'GB')
-		h.OuterPosition = [1963.4 -221.4 1500 1087.2];
+    if isOctave
+        f = figure('Name',[fname '_' int2str(year) '_' int2str(saturate)]);
+        scatter(lon, lat, param(:,i), 'b');
+        legend(int2str(year))
+        % enlarge figure
+        figure(f,"position",get(0,"screensize"))
+        % now save it to pdf
+        p = gcf();
+        set(p, 'papersize', [11 17]);
+        set(p, 'papertype', "tabloid");
+        if strcmp(domain, 'GB')
+            set(p, 'paperorientation', "landscape");
+        else
+            set(p, 'paperorientation', "portrait");
+            set(p, 'paperposition', [.1 .1 10 16]);
+        end
     else
-	    h.OuterPosition = [1963.4 -221.4 1000 1087.2];
-    end
+        f = figure('Name',[fname '_' int2str(year) '_' int2str(saturate)]);
+        geoscatter(lat, lon, param(:,i), 'o', 'b');
+	    legend(int2str(year))
 
-    p = gcf();
-    p.PaperSize = [11 17];
-    p.PaperType  = "tabloid";
-    if strcmp(domain, 'GB')
-        p.PaperOrientation = "landscape";
-    else
-        p.PaperOrientation = "portrait";
-        p.PaperPosition = [.1 .1 10 16]; 
-    end
+        geobasemap streets;
 
+        % enlarge figure
+        if strcmp(domain, 'GB')
+            f.OuterPosition = [1963.4 -221.4 1500 1087.2];
+        else
+            f.OuterPosition = [1963.4 -221.4 1000 1087.2];
+        end
+
+        p = gcf();
+        p.PaperSize = [11 17];
+        p.PaperType  = "tabloid";
+        if strcmp(domain, 'GB')
+            p.PaperOrientation = "landscape";
+        else
+            p.PaperOrientation = "portrait";
+            p.PaperPosition = [.1 .1 10 16]; 
+        end
+    end
 	saveas(gcf,[fname int2str(year) '_' int2str(saturate) '.pdf'])
 end
 

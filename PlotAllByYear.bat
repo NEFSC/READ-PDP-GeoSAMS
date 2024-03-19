@@ -8,7 +8,7 @@ del Results\*%3*.pdf
 set ts_per_year=13
 
 set gridList=Grid_EBMS Grid_LAND Grid_LPUE Grid_RECR Grid_FEFF ^
-Grid_Trend_EBMS Grid_Trend_LAND Grid_Trend_LPUE Grid_Trend_RECR Grid_Trend_FEFF
+Grid_Trend-EBMS Grid_Trend-LAND Grid_Trend-LPUE Grid_Trend-RECR Grid_Trend-FEFF
 
 set survList=Surv_EBMS Surv_LAND Surv_LPUE Surv_RECR Surv_FEFF
 

@@ -1,31 +1,26 @@
-del Results\*$3*.pdf
+rm Results/*$3*.pdf
 tsPerYear=13
 
-if [ "$3" == "MA" ]
-then
-octave "PlotLatLonGrid('Results/Lat_Lon_Grid_EBMS_MA_$1_$2', $1, 'MA', 1); exit;"
-octave "PlotLatLonGrid('Results/Lat_Lon_Grid_LAND_MA_$1_$2', $1, 'MA', 1); exit;"
-octave "PlotLatLonGrid('Results/Lat_Lon_Grid_LPUE_MA_$1_$2', $1, 'MA', 1); exit;"
-octave "PlotLatLonGrid('Results/Lat_Lon_Grid_RECR_MA_$1_$2', $1, 'MA', 1); exit;"
-octave "PlotLatLonGrid('Results/Lat_Lon_Grid_FEFF_MA_$1_$2', $1, 'MA', 1); exit;"
+gridList="Grid_EBMS Grid_LAND Grid_LPUE Grid_RECR Grid_FEFF "\
+"Grid_Trend-EBMS Grid_Trend-LAND Grid_Trend-LPUE Grid_Trend-RECR Grid_Trend-FEFF"
 
-octave "PlotLatLonSurvey('Results/Lat_Lon_Surv_EBMS_MA', $tsPerYear, $1); exit;"
-octave "PlotLatLonSurvey('Results/Lat_Lon_Surv_LAND_MA', $tsPerYear, $1); exit;"
-octave "PlotLatLonSurvey('Results/Lat_Lon_Surv_LPUE_MA', $tsPerYear, $1); exit;"
-octave "PlotLatLonSurvey('Results/Lat_Lon_Surv_RECR_MA', $tsPerYear, $1); exit;"
-octave "PlotLatLonSurvey('Results/Lat_Lon_Surv_FEFF_MA', $tsPerYear, $1); exit;"
+survList="Surv_EBMS Surv_LAND Surv_LPUE Surv_RECR Surv_FEFF"
 
-else
+ for p in $gridList
+ do
+     echo Results/Lat_Lon_$p\_$3\_$1\_$2
+     octave mfiles/PlotLatLonGrid.m Results/Lat_Lon_$p\_$3\_$1\_$2 $1 $3 1
+     if [ $? != 0 ]; then
+         echo [31m"PlotLatLonGrid('Results/Lat_Lon_$p_$3_$1_$2', $1, '$3', 1)" Stopping[0m
+         exit
+     fi
+ done
 
-octave "PlotLatLonGrid('Results/Lat_Lon_Grid_EBMS_GB_$1_$2', $1, 'GB', 1); exit;"
-octave "PlotLatLonGrid('Results/Lat_Lon_Grid_LAND_GB_$1_$2', $1, 'GB', 1); exit;"
-octave "PlotLatLonGrid('Results/Lat_Lon_Grid_LPUE_GB_$1_$2', $1, 'GB', 1); exit;"
-octave "PlotLatLonGrid('Results/Lat_Lon_Grid_RECR_GB_$1_$2', $1, 'GB', 1); exit;"
-octave "PlotLatLonGrid('Results/Lat_Lon_Grid_FEFF_GB_$1_$2', $1, 'GB', 1); exit;"
-
-octave "PlotLatLonSurvey('Results/Lat_Lon_Surv_EBMS_GB', $tsPerYear, $1); exit;"
-octave "PlotLatLonSurvey('Results/Lat_Lon_Surv_LAND_GB', $tsPerYear, $1); exit;"
-octave "PlotLatLonSurvey('Results/Lat_Lon_Surv_LPUE_GB', $tsPerYear, $1); exit;"
-octave "PlotLatLonSurvey('Results/Lat_Lon_Surv_RECR_GB', $tsPerYear, $1); exit;"
-octave "PlotLatLonSurvey('Results/Lat_Lon_Surv_FEFF_GB', $tsPerYear, $1); exit;"
+for p in $survList
+do
+    octave mfiles/PlotLatLonSurvey.m Results/Lat_Lon_$p\_$3 $tsPerYear $1
+    if [ $? != 0 ]; then
+        echo [31m"PlotLatLonSurvey('Results/Lat_Lon_$p_$3', $tsPerYear, $1)" Stopping[0m
+        exit
 fi
+done

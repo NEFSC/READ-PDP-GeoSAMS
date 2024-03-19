@@ -34,7 +34,7 @@ cfgFile = 'UK_MA.cfg'
 ex = os.path.join('UKsrc', 'UK')
 
 paramStr = ['EBMS_', 'LAND_', 'LPUE_', 'FEFF_','RECR_']
-prefix = ['Results/Lat_Lon_Grid_', 'Results/Lat_Lon_Grid_Trend_']
+prefix = ['Results/Lat_Lon_Grid_', 'Results/Lat_Lon_Grid_Trend-']
 
 for pStr in paramStr:
     # UK expects input data files to be in subdir Data/
