@@ -129,7 +129,7 @@ real(dp)  fmax, SF
 integer nsf, NRand, ncla
 logical IsHiLimit, IsLogT!, IsMatchMean
 character(fname_len) cfg_file_name
-character(fname_len) obsfile, cmd, res_fname
+character(fname_len) obsfile, cmd
 character(domain_len) domain_name
 logical exists
 type(Grid_Data_Class):: grid
@@ -310,22 +310,6 @@ if (use_posterior_sim) then
     resOBS(1:num_obs_points) = obs%field_psqm(1:num_obs_points) - trndOBS(1:num_obs_points)
     write(*,*)'GLSres:', sqrt(sum(resOBS(1:num_obs_points)**2) / float(num_obs_points))
 
-    !++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-    ! write out lat lon data for plotting
-    ! Get_Obs_Data_File_Name  Data/X_Y_EBMS_MA2005_0.csv  
-    res_fname = Get_Obs_Data_File_Name()
-    ! Change output directory and file prefix
-    ! /X_Y_...
-    ! n12345
-    j = index(res_fname, '/') + 5
-    res_fname = output_dir//'ObsrvResids_'//res_fname(j:)
-    call Write_Column_CSV(num_obs_points, obs%x(1:num_obs_points),          'UTM-x',    res_fname, .false.)
-    call Write_Column_CSV(num_obs_points, obs%y(1:num_obs_points),          'UTM-y',    res_fname, .true.)
-    call Write_Column_CSV(num_obs_points, resOBS(1:num_obs_points),         'Residual', res_fname, .true.)
-    call Write_Column_CSV(num_obs_points, obs%field_psqm(1:num_obs_points), 'Observed', res_fname, .true.)
-    call Write_Column_CSV(num_obs_points, trndOBS(1:num_obs_points),        'Trend',    res_fname, .true.)
-    !++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-
 else 
     ! simulate from user supplied prior estimate of beta, Cbeta, eps, Ceps
     call Krig_User_Estimates(grid, num_spat_fcns, par, beta, Cbeta, eps, Ceps)
@@ -335,7 +319,7 @@ if (proc_recruits) then
     call OutputUK(num_points, num_spat_fcns, Nrand, grid, nlsf, beta, eps, Ceps, Cbeta, fmax, SF, &
     &                    IsLogT, IsHiLimit, domain_name, alpha)
 else
-    call OutputEstimates(num_points, grid, Ceps, IsLogT, IsHiLimit, fmax, SF, domain_name)
+    call OutputEstimates(num_points, num_spat_fcns, grid, Ceps, IsLogT, IsHiLimit, fmax, SF, domain_name, nlsf, beta)
 endif
 
 write(*,*)'num_points, num_survey', num_points, num_obs_points
@@ -563,22 +547,31 @@ endsubroutine OutputUK
 !>
 !> That is moving from survey data locations to MA/GB grid locations
 !---------------------------------------------------------------------------------------------------
-subroutine OutputEstimates(num_points, grid, Ceps, IsLogT, IsHiLimit, fmax, SF, domain_name)
+subroutine OutputEstimates(num_points, num_spat_fcns, grid, Ceps, IsLogT, IsHiLimit, fmax, SF, domain_name, nlsf, beta)
 use globals
 use GridManagerMod
+use NLSF_Mod
 use LSF_Mod
+use Krig_Mod
+
 implicit none
-integer, intent(in) :: num_points
+
+integer, intent(in) :: num_points, num_spat_fcns
 type(Grid_Data_Class), intent(inout) :: grid
 real(dp), intent(in) :: Ceps(num_points,*)
 logical, intent(in) ::IsLogT, IsHiLimit
 real(dp), intent(in) :: fmax, SF
 character(2), intent(in) :: domain_name
 
+type(NLSF_Class), intent(in)::nlsf(*)
+real(dp), intent(in) :: beta(*)
+
 integer n
 real(dp) V(num_points)
-character(fname_len) fname
+character(fname_len) fname, fout, ftrend
 character(80) fmtstr
+
+real(dp) trend(num_points), Fg(num_points, num_spat_fcns)
 
 do n=1, num_points
     V(n)=Ceps(n, n)
@@ -592,15 +585,29 @@ fname = Get_Obs_Data_File_Name()
 ! /X_Y_...
 ! n12345
 n = index(fname, '/') + 5
-fname = output_dir//'Lat_Lon_Grid_'//fname(n:)
+fout = output_dir//'Lat_Lon_Grid_'//fname(n:)
+ftrend = output_dir//'Lat_Lon_Grid_Trend_'//fname(n:)
 fmtstr='(2(ES14.7 : ", ") (ES14.7 : ))'
 
-write(*,*) term_blu, 'Writing ouput to: ', trim(fname), term_blk
+write(*,*) term_blu, 'Writing ouput to: ', trim(fout), term_blk
+write(*,*) term_blu, 'Writing ouput to: ', trim(ftrend), term_blk
 
-open(63,file=trim(fname))
-!write(63,'(A)') 'lat, lon, field'
+! This data is the same as what 'KrigingEstimate.txt' held, but now with location information
+open(63,file=trim(fout))
 do n=1, num_points
     write(63, fmtstr) grid%lat(n), grid%lon(n), grid%field_psqm(n)
+enddo
+close(63)
+
+! Now let's save the trend information in the same manner
+Fg = Krig_Eval_Spatial_Function(grid, num_spat_fcns, num_points, nlsf, .false.)
+trend(1:num_points) = matmul( Fg(1:num_points, 1:num_spat_fcns), beta(1:num_spat_fcns)) 
+
+if(IsLogT) trend(1:num_points) = SF*exp(trend(1:num_points))-one_scallop_per_tow
+!call Write_Vector_Scalar_Field(num_points, trend, 'SpatialTrend.txt')
+open(63,file=trim(ftrend))
+do n=1, num_points
+    write(63, fmtstr) grid%lat(n), grid%lon(n), trend(n)
 enddo
 close(63)
 

@@ -1,111 +1,29 @@
+@REM This scripts calls up each CSV file to have matlab plot the results and save to PDF
+@REM At present the sim is running with 13 timestep per year. The Survey results have
+@REM as saved at each timestep so the ts_per_year is used to plot annual results on the 
+@REM survey data grid
+
 @echo off
 del Results\*%3*.pdf
 set ts_per_year=13
 
-if "%3" == "MA" (
-matlab.exe -batch "PlotLatLonGrid('Results/Lat_Lon_Grid_EBMS_MA_%1_%2', %1, 'MA', 1); exit;"
-IF %ERRORLEVEL% NEQ 0 (
-    @echo [31mError in MATLAB "PlotLatLonGrid('Results/Lat_Lon_Grid_EBMS_MA_%1_%2', %1, 'MA', 1)" Stopping[0m
-    exit /b
-)
-matlab.exe -batch "PlotLatLonGrid('Results/Lat_Lon_Grid_LAND_MA_%1_%2', %1, 'MA', 1); exit;"
-IF %ERRORLEVEL% NEQ 0 (
-    @echo [31mError in MATLAB "PlotLatLonGrid('Results/Lat_Lon_Grid_LAND_MA_%1_%2', %1, 'MA', 1)" Stopping[0m
-    exit /b
-)
-matlab.exe -batch "PlotLatLonGrid('Results/Lat_Lon_Grid_LPUE_MA_%1_%2', %1, 'MA', 1); exit;"
-IF %ERRORLEVEL% NEQ 0 (
-    @echo [31mError in MATLAB "PlotLatLonGrid('Results/Lat_Lon_Grid_LPUE_MA_%1_%2', %1, 'MA', 1)" Stopping[0m
-    exit /b
-)
-matlab.exe -batch "PlotLatLonGrid('Results/Lat_Lon_Grid_RECR_MA_%1_%2', %1, 'MA', 1); exit;"
-IF %ERRORLEVEL% NEQ 0 (
-    @echo [31mError in MATLAB "PlotLatLonGrid('Results/Lat_Lon_Grid_RECR_MA_%1_%2', %1, 'MA', 1)" Stopping[0m
-    exit /b
-)
-matlab.exe -batch "PlotLatLonGrid('Results/Lat_Lon_Grid_FEFF_MA_%1_%2', %1, 'MA', 1); exit;"
-IF %ERRORLEVEL% NEQ 0 (
-    @echo [31mError in MATLAB "PlotLatLonGrid('Results/Lat_Lon_Grid_FEFF_MA_%1_%2', %1, 'MA', 1)" Stopping[0m
-    exit /b
+set gridList=Grid_EBMS Grid_LAND Grid_LPUE Grid_RECR Grid_FEFF ^
+Grid_Trend_EBMS Grid_Trend_LAND Grid_Trend_LPUE Grid_Trend_RECR Grid_Trend_FEFF
+
+set survList=Surv_EBMS Surv_LAND Surv_LPUE Surv_RECR Surv_FEFF
+
+for %%p in (%gridList%) do (
+    matlab.exe -batch "PlotLatLonGrid('Results/Lat_Lon_%%p_%3_%1_%2', %1, '%3', 1); exit;"
+    if ERRORLEVEL 1 (
+        @echo [31mError in MATLAB "PlotLatLonGrid('Results/Lat_Lon_%%p_%3_%1_%2', %1, '%3', 1)" Stopping[0m
+        exit /b
+    )
 )
 
-matlab.exe -batch "PlotLatLonSurvey('Results/Lat_Lon_Surv_EBMS_MA', %ts_per_year%, %1); exit;"
-IF %ERRORLEVEL% NEQ 0 (
-    @echo [31mError in MATLAB "PlotLatLonSurvey('Results/Lat_Lon_Surv_EBMS_MA, %ts_per_year%, %1)" Stopping[0m
-    exit /b
-)
-matlab.exe -batch "PlotLatLonSurvey('Results/Lat_Lon_Surv_LAND_MA', %ts_per_year%, %1); exit;"
-IF %ERRORLEVEL% NEQ 0 (
-    @echo [31mError in MATLAB "PlotLatLonSurvey('Results/Lat_Lon_Surv_LAND_MA, %ts_per_year%, %1)" Stopping[0m
-    exit /b
-)
-matlab.exe -batch "PlotLatLonSurvey('Results/Lat_Lon_Surv_LPUE_MA', %ts_per_year%, %1); exit;"
-IF %ERRORLEVEL% NEQ 0 (
-    @echo [31mError in MATLAB "PlotLatLonSurvey('Results/Lat_Lon_Surv_LPUE_MA, %ts_per_year%, %1)" Stopping[0m
-    exit /b
-)
-matlab.exe -batch "PlotLatLonSurvey('Results/Lat_Lon_Surv_RECR_MA', %ts_per_year%, %1); exit;"
-IF %ERRORLEVEL% NEQ 0 (
-    @echo [31mError in MATLAB "PlotLatLonSurvey('Results/Lat_Lon_Surv_RECR_MA, %ts_per_year%, %1)" Stopping[0m
-    exit /b
-)
-matlab.exe -batch "PlotLatLonSurvey('Results/Lat_Lon_Surv_FEFF_MA', %ts_per_year%, %1); exit;"
-IF %ERRORLEVEL% NEQ 0 (
-    @echo [31mError in MATLAB "PlotLatLonSurvey('Results/Lat_Lon_Surv_FEFF_MA, %ts_per_year%, %1)" Stopping[0m
-    exit /b
-)
-
-) else (
-
-matlab.exe -batch "PlotLatLonGrid('Results/Lat_Lon_Grid_EBMS_GB_%1_%2', %1, 'GB', 1); exit;"
-IF %ERRORLEVEL% NEQ 0 (
-    @echo [31mError in MATLAB "PlotLatLonGrid('Results/Lat_Lon_Grid_EBMS_GB_%1_%2', %1, 'GB', 1)" Stopping[0m
-    exit /b
-)
-matlab.exe -batch "PlotLatLonGrid('Results/Lat_Lon_Grid_LAND_GB_%1_%2', %1, 'GB', 1); exit;"
-IF %ERRORLEVEL% NEQ 0 (
-    @echo [31mError in MATLAB "PlotLatLonGrid('Results/Lat_Lon_Grid_LAND_GB_%1_%2', %1, 'GB', 1)" Stopping[0m
-    exit /b
-)
-matlab.exe -batch "PlotLatLonGrid('Results/Lat_Lon_Grid_LPUE_GB_%1_%2', %1, 'GB', 1); exit;"
-IF %ERRORLEVEL% NEQ 0 (
-    @echo [31mError in MATLAB "PlotLatLonGrid('Results/Lat_Lon_Grid_LPUE_GB_%1_%2', %1, 'GB', 1)" Stopping[0m
-    exit /b
-)
-matlab.exe -batch "PlotLatLonGrid('Results/Lat_Lon_Grid_RECR_GB_%1_%2', %1, 'GB', 1); exit;"
-IF %ERRORLEVEL% NEQ 0 (
-    @echo [31mError in MATLAB "PlotLatLonGrid('Results/Lat_Lon_Grid_RECR_GB_%1_%2', %1, 'GB', 1)" Stopping[0m
-    exit /b
-)
-matlab.exe -batch "PlotLatLonGrid('Results/Lat_Lon_Grid_FEFF_GB_%1_%2', %1, 'GB', 1); exit;"
-IF %ERRORLEVEL% NEQ 0 (
-    @echo [31mError in MATLAB "PlotLatLonGrid('Results/Lat_Lon_Grid_FEFF_GB_%1_%2', %1, 'GB', 1)" Stopping[0m
-    exit /b
-)
-
-matlab.exe -batch "PlotLatLonSurvey('Results/Lat_Lon_Surv_EBMS_GB', %ts_per_year%, %1); exit;"
-IF %ERRORLEVEL% NEQ 0 (
-    @echo [31mError in MATLAB "PlotLatLonSurvey('Results/Lat_Lon_Surv_EBMS_GB', %ts_per_year%, %1)" Stopping[0m
-    exit /b
-)
-matlab.exe -batch "PlotLatLonSurvey('Results/Lat_Lon_Surv_LAND_GB', %ts_per_year%, %1); exit;"
-IF %ERRORLEVEL% NEQ 0 (
-    @echo [31mError in MATLAB "PlotLatLonSurvey('Results/Lat_Lon_Surv_LAND_GB', %ts_per_year%, %1)". Stopping[0m
-    exit /b
-)
-matlab.exe -batch "PlotLatLonSurvey('Results/Lat_Lon_Surv_LPUE_GB', %ts_per_year%, %1); exit;"
-IF %ERRORLEVEL% NEQ 0 (
-    @echo [31mError in MATLAB "PlotLatLonSurvey('Results/Lat_Lon_Surv_LPUE_GB', %ts_per_year%, %1)". Stopping[0m
-    exit /b
-)
-matlab.exe -batch "PlotLatLonSurvey('Results/Lat_Lon_Surv_RECR_GB', %ts_per_year%, %1); exit;"
-IF %ERRORLEVEL% NEQ 0 (
-    @echo [31mError in MATLAB "PlotLatLonSurvey('Results/Lat_Lon_Surv_RECR_GB', %ts_per_year%, %1)". Stopping[0m
-    exit /b
-)
-matlab.exe -batch "PlotLatLonSurvey('Results/Lat_Lon_Surv_FEFF_GB', %ts_per_year%, %1); exit;"
-IF %ERRORLEVEL% NEQ 0 (
-    @echo [31mError in MATLAB "PlotLatLonSurvey('Results/Lat_Lon_Surv_FEFF_GB', %ts_per_year%, %1)". Stopping[0m
-    exit /b
-)
+for %%p in (%survList%) do (
+    matlab.exe -batch "PlotLatLonSurvey('Results/Lat_Lon_%%p_%3', %ts_per_year%, %1); exit;"
+    if ERRORLEVEL 1 (
+        @echo [31mError in MATLAB "PlotLatLonSurvey('Results/Lat_Lon_%%p_%3', %ts_per_year%, %1)" Stopping[0m
+        exit /b
+    )
 )

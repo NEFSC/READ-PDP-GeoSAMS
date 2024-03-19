@@ -1,4 +1,27 @@
 #!/bin/bash
+
+# This script will
+#  1) Unzip the dredge data
+#  2) Create the necessary subdirectories
+#  3) Pull out the initial state and recruit data from the dredge survey file.
+#  4) Compile the source code
+#  5) Run the sim to create the growth data
+#  6) Run the UK to interpolate the results to the region grid locations, does this separately for MA and GB
+#  7)Call Octave to plot the data and produce pdf output files located in the Results subdirectory
+#    - Lat_Lon_Grid_AAAA_DN_YYYY_scale.pdf
+#      -- AAAA is
+#        EBMS: exploitable biomass in metric tons
+#        LAND: landings by number
+#        LPUE: Landings per Unit Effort
+#        FEFF: Fishing Effort
+#        RECR: Recruits
+#      -- DN is MA or GB
+#      -- YYYY is the year 2005 - 2008
+#      -- Scale is the maximum value shown. The final plot is scaled to show the range 0 to 50
+#    - Lat_Lon_Surv_AAAA_DN_YYYY_scale.pdf
+#       same as above shows the original data plotted at the survey locations.
+
+
 if [ $# -ne 4 ] 
 then
     echo [31mMissing arguments[0m

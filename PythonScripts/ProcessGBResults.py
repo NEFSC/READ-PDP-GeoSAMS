@@ -25,22 +25,21 @@ years = range(year_start, year_end + 1)
 # number of colums in csv file, starting at 0
 # lat, lon, initial data
 ncols = year_end - year_start + 3
+# number of years plus initial state
+nyears = year_end - year_start + 2
 
 # set configuration file name for UK.exe
 cfgFile = 'UK_GB.cfg'
 ex = os.path.join('UKsrc', 'UK')
 
-paramStr = ['EBMS_', 
-            'LAND_', 
-            'LPUE_', 
-            'FEFF_',
-            'RECR_']
+paramStr = ['EBMS_', 'LAND_', 'LPUE_', 'FEFF_','RECR_']
+rgn = ['_SW', '_N', '_S', '_W']
+prefix = ['Results/Lat_Lon_Grid_', 'Results/Lat_Lon_Grid_Trend_']
 
 for pStr in paramStr:
 
     # Process multiple GB region files
     # .\UKsrc\UK UK.cfg GB X_Y_EBMS_GB2005_0_SW.csv GBxyzLatLonSW.csv F
-    rgn = ['_SW', '_N', '_S', '_W']
     for r in rgn:
         flin = 'X_Y_' + pStr + dn + str(year_start) + '_0' + r + '.csv'
         gridFile = 'GBxyzLatLon' + r + '.csv'
@@ -60,25 +59,18 @@ for pStr in paramStr:
             print([ex, cfgFile, dn, flin, gridFile, ' F'])
             os.remove(dataDir + flin)
 
-        # subprocess.run takes in Data/X_Y_* and creates Results/Lat_Lon_Grid*
-        # Concatenate individual year files into a single file
-        col = []
-        col = [defaultdict(list) for i in range(5)]
-        k = 0
-        
-        flin = 'Results/Lat_Lon_Grid_' + pStr + dn + str(year_start) + '_0' + r + '.csv'
-        with open(flin) as f:
-            reader = csv.reader(f)
-            for row in reader:
-                for (i,v) in enumerate(row):
-                    col[k][i].append(v)
-            f.close()
-        os.remove(flin)
-
-        # append remaining years as additional columns to first data set
-        for year in years:
-            k  += 1
-            flin = 'Results/Lat_Lon_Grid_' + pStr + dn + str(year) + r + '.csv'
+        for pre in prefix:
+            ###########################################################################################
+            # subprocess.run takes in Data/X_Y_* and creates both 
+            #    Results/Lat_Lon_Grid* 
+            #    Results/Lat_Lon_Grid_Trend*
+            # Concatenate individual year files into a single file
+            ###########################################################################################
+            col = []
+            col = [defaultdict(list) for i in range(nyears)]
+            k = 0
+            
+            flin = pre + pStr + dn + str(year_start) + '_0' + r + '.csv'
             with open(flin) as f:
                 reader = csv.reader(f)
                 for row in reader:
@@ -87,32 +79,45 @@ for pStr in paramStr:
                 f.close()
             os.remove(flin)
 
-            for i in range (len(col[0][0])):    
-                col[0][k + 2].append(col[k][2][i])
+            # append remaining years as additional columns to first data set
+            for year in years:
+                k  += 1
+                flin = pre + pStr + dn + str(year) + r + '.csv'
+                with open(flin) as f:
+                    reader = csv.reader(f)
+                    for row in reader:
+                        for (i,v) in enumerate(row):
+                            col[k][i].append(v)
+                    f.close()
+                os.remove(flin)
 
-        # brute force write out results
-        flout = open('Results/Lat_Lon_Grid_' + pStr + dn + r + '.csv', 'w')
-        for row in range(len(col[0][0])):
-            for c in range(ncols):
-                flout.write(col[0][c][row])
-                flout.write(',')
-            flout.write(col[0][ncols][row])
-            flout.write('\n')
+                for i in range (len(col[0][0])):    
+                    col[0][k + 2].append(col[k][2][i])
 
-        flout.close()
+            # brute force write out results
+            flout = open(pre + pStr + dn + r + '.csv', 'w')
+            for row in range(len(col[0][0])):
+                for c in range(ncols):
+                    flout.write(col[0][c][row])
+                    flout.write(',')
+                flout.write(col[0][ncols][row])
+                flout.write('\n')
+            flout.close()
+        # end for pre
     # end for rgn
 
     # now combine all region files into one file
-    flout = 'Results/Lat_Lon_Grid_' + pStr + dn + '_' + str(year_start) + '_' + str(year_end) + '.csv'
-    wrFile = open(flout, 'w')
-    for r in rgn:
-        flin = 'Results/Lat_Lon_Grid_' + pStr + dn + r + '.csv'
-        rdFile = open(flin, 'r')
-        lines = rdFile.readlines()
-        wrFile.writelines(lines)
-        rdFile.close()
-        os.remove(flin)
-    wrFile.close()
-
-    print('Files concatenated to: ',flout)
+    for pre in prefix:
+        flout = pre + pStr + dn + '_' + str(year_start) + '_' + str(year_end) + '.csv'
+        wrFile = open(flout, 'w')
+        for r in rgn:
+            flin = pre + pStr + dn + r + '.csv'
+            rdFile = open(flin, 'r')
+            lines = rdFile.readlines()
+            wrFile.writelines(lines)
+            rdFile.close()
+            os.remove(flin)
+        wrFile.close()
+        print('Files concatenated to: ',flout)
+    # end for pre
 # end for pStr

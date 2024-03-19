@@ -1,3 +1,23 @@
+@REM This script will
+@REM  1) Unzip the dredge data
+@REM  2) Create the necessary subdirectories
+@REM  3) Pull out the initial state and recruit data from the dredge survey file.
+@REM  4) Compile the source code
+@REM  5) Run the sim to create the growth data
+@REM  6) Run the UK to interpolate the results to the region grid locations, does this separately for MA and GB
+@REM  7)Call Octave to plot the data and produce pdf output files located in the Results subdirectory
+@REM    - Lat_Lon_Grid_AAAA_DN_YYYY_scale.pdf
+@REM      -- AAAA is
+@REM        EBMS: exploitable biomass in metric tons
+@REM        LAND: landings by number
+@REM        LPUE: Landings per Unit Effort
+@REM        FEFF: Fishing Effort
+@REM        RECR: Recruits
+@REM      -- DN is MA or GB
+@REM      -- YYYY is the year 2005 - 2008
+@REM      -- Scale is the maximum value shown. The final plot is scaled to show the range 0 to 50
+@REM    - Lat_Lon_Surv_AAAA_DN_YYYY_scale.pdf
+@REM       same as above shows the original data plotted at the survey locations.
 
 @echo off
 
@@ -118,22 +138,22 @@ cd ..
 @REM https://stackoverflow.com/questions/2048509/how-to-echo-with-different-colors-in-the-windows-command-line
 @REM https://gist.githubusercontent.com/mlocati/fdabcaeb8071d5c75a2d51712db24011/raw/b710612d6320df7e146508094e84b92b34c77d48/win10colors.cmd
 matlab.exe -batch "TrawlData5mmbin(%1, %2, %3, '%4'); exit;"
-IF %ERRORLEVEL% NEQ 0 (
+IF ERRORLEVEL 1 (
     @echo [31mError in MATLAB TrawlData5mmbin. Stopping[0m
     exit /b
 )
 matlab.exe -batch "PullOutRecruitData(%3); exit;"
-IF %ERRORLEVEL% NEQ 0 (
+IF ERRORLEVEL 1 (
     @echo [31mError in MATLAB PullOutRecruitData. Stopping[0m
     exit /b
 )
 matlab.exe -batch "ProcessRecruitData(%1, %2, '%4'); exit;"
-IF %ERRORLEVEL% NEQ 0 (
+IF ERRORLEVEL 1 (
     @echo [31mError in MATLAB ProcessRecruitData. Stopping[0m
     exit /b
 )
 matlab.exe -batch "NearestNeighborRecInterp(%1, %2, '%4'); exit;"
-IF %ERRORLEVEL% NEQ 0 (
+IF ERRORLEVEL 1 (
     @echo [31mError in MATLAB NearestNeighborRecInterp. Stopping[0m
     exit /b
 )
@@ -142,20 +162,20 @@ IF %ERRORLEVEL% NEQ 0 (
 @REM python PythonScripts/EstimateRecruitFields.py %1 %2
 
 .\SRC\ScallopPopDensity.exe Scallop.cfg %1 %2 %4
-IF %ERRORLEVEL% NEQ 0 (
+IF ERRORLEVEL 1 (
     @echo [31mError in ScallopPopDensity Stopping[0m
     exit /b
 )
 
 if "%4" == "MA" (
 python .\PythonScripts\ProcessMAResults.py %1 %2
-IF %ERRORLEVEL% NEQ 0 (
+IF ERRORLEVEL 1 (
     @echo [31mError in ProcessMAResults.py. Stopping[0m
     exit /b
 )
 ) else (
 python .\PythonScripts\ProcessGBResults.py %1 %2
-IF %ERRORLEVEL% NEQ 0 (
+IF ERRORLEVEL 1 (
     @echo [31mError in ProcessGBResults.py. Stopping[0m
     exit /b
 )

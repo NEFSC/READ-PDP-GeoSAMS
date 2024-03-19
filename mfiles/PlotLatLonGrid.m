@@ -16,7 +16,7 @@ if isOctave
     end
 end
 
-cArray=['y', 'b', 'r', 'g', 'm', 'k', 'c'];
+cArray=['b', 'k', 'r', 'y', 'm', 'g', 'c'];
 
 if isOctave
     D=csvreadK([fname '.csv']);

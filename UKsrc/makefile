@@ -53,7 +53,7 @@ ifeq ($(OS), Windows_NT)
 	attrib -R Globals.f90
 	copy ..\SRC\IORoutines.f90 .
 	copy ..\SRC\Globals.f90 .
-	# prevent modification these file in this directory
+# prevent modification these file in this directory
 	attrib +R .\IORoutines.f90
 	attrib +R Globals.f90
 else
@@ -64,7 +64,7 @@ else
 	chmod 660 Globals.f90
 	cp ../SRC/IORoutines.f90 .
 	cp ../SRC/Globals.f90 .
-	# prevent modification these file in this directory
+# prevent modification these file in this directory
 	chmod 440 IORoutines.f90
 	chmod 440 Globals.f90
 endif
