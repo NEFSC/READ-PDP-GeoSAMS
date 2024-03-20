@@ -257,7 +257,7 @@ endsubroutine Krig_Comp_Emp_Variogram
 !> @author Keston Smith (IBSS corp) June-July 2021
 !--------------------------------------------------------------------------------------------------
 function Krig_Eval_Spatial_Function(p, num_spat_fcns, n_dim, nlsf, proc_recruits)
-type(Grid_Data_Class):: p
+type(Grid_Data_Class), intent(in) :: p
 type(NLSF_Class), intent(in):: nlsf(*)
 integer, intent(in) :: n_dim
 integer, intent(in) :: num_spat_fcns
