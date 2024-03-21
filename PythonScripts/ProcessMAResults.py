@@ -50,7 +50,7 @@ for pStr in paramStr:
 
     for year in years:
         flin = 'X_Y_' + pStr + dn + str(year) + '.csv'
-        # output all data, proc_recruits='F'
+        # output all data, save_data='F'
         result = subprocess.run([ex, cfgFile, dn, flin, ' F'])
         print([ex, cfgFile, dn, flin, ' F'])
         if (result.returncode != 0):

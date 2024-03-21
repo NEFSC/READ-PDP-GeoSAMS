@@ -28,13 +28,13 @@ CONTAINS
 !>
 !> @author Keston Smith (IBSS corp) June-July 2021
 !--------------------------------------------------------------------------------------------------
-function LSF_Generalized_Least_Squares(y, F, C, n, m, proc_recruits)
+function LSF_Generalized_Least_Squares(y, F, C, n, m, save_data)
 use globals
 implicit none
 integer, intent(in):: n, m
 real(dp), intent(in):: y(*), F(n,*), C(n,*)
 real(dp) :: LSF_Generalized_Least_Squares(n)
-logical, intent(in) :: proc_recruits
+logical, intent(in) :: save_data
 
 real(dp), allocatable:: Cinv(:,:), CbetaInv(:,:), Vtmp(:), Vtmp2(:), Mtmp(:,:), ytr(:)
 real(dp), allocatable:: beta(:), Cbeta(:,:)
@@ -68,7 +68,7 @@ do j=1, m
 enddo
 call dgesv(m, m, CBetaInv, m, IPIV, CBeta, m, info)
 write(*,*)'LSF_Generalized_Least_Squares  dgesv info=', info
-if (proc_recruits) then
+if (save_data) then
     call Write_CSV(m, m, CbetaInv, 'CBeta0.csv', m, .false.)
     call Write_CSV(n, m, F, 'Fglsa0.csv', n, .false.)
 endif
@@ -81,10 +81,11 @@ call dgemv('N', m, m, atmp, Cbeta, m, Vtmp2, 1, btmp, Beta, 1)
 !
 ! compute residual
 !
+! ytr is the "trend" as described by the spatial functions
 call dgemv('N', n, m, atmp, F, n, beta,  1, btmp, ytr, 1)
 LSF_Generalized_Least_Squares(1:n) = y(1:n) - ytr(1:n)
 
-if (proc_recruits) then
+if (save_data) then
     call Write_Vector_Scalar_Field(n,  y(1:n), 'obs.txt')
     call Write_Vector_Scalar_Field(n,  ytr(1:n), 'obs_ytr.txt')
     call Write_Vector_Scalar_Field(n,  y(1:n) - ytr(1:n), 'obs_delta.txt')

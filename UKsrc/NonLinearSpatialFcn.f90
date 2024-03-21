@@ -57,15 +57,15 @@ endfunction Get_NSF
 !>
 !> NOTE: Greedy function takes significantly longer to run
 !-----------------------------------------------------------------------------------------------
-subroutine NLSF_Select_Fit(obs, nlsf, proc_recruits)
+subroutine NLSF_Select_Fit(obs, nlsf, save_data)
 type(Grid_Data_Class):: obs
 type(NLSF_Class)::nlsf(*)
-logical, intent(in) :: proc_recruits
+logical, intent(in) :: save_data
 
 if (use_greedy_fit) then
-    call NLSF_Greedy_Least_Sq_Fit(obs, nlsf, proc_recruits)
+    call NLSF_Greedy_Least_Sq_Fit(obs, nlsf, save_data)
 else
-    call NLSF_Least_Sq_Fit(obs, nlsf, proc_recruits)
+    call NLSF_Least_Sq_Fit(obs, nlsf, save_data)
 endif
 
 endsubroutine NLSF_Select_Fit
@@ -237,10 +237,10 @@ endfunction
 !>
 !> @author keston Smith (IBSS corp) 2022
 !--------------------------------------------------------------------------------------------------
-subroutine NLSF_Least_Sq_Fit(obs, nlsf, proc_recruits)
+subroutine NLSF_Least_Sq_Fit(obs, nlsf, save_data)
 type(Grid_Data_Class), intent(in) :: obs
 type(NLSF_Class), intent(inout) ::nlsf(*)
-logical, intent(in) :: proc_recruits
+logical, intent(in) :: save_data
 
 integer j, num_obs_points, k
 real(dp), allocatable :: residual_vect(:), field_precond(:), residuals(:, :), rms(:)
@@ -277,7 +277,7 @@ do j = 1, nsf
     write(*,'(A,I2,A,F20.16)')'residual ', j, ': ', sqrt(sum(residual_vect(:)**2)/float(num_obs_points))
 enddo
 
-if (proc_recruits) then
+if (save_data) then
     call Write_CSV(num_obs_points, nsf, residuals, 'residuals.csv', num_obs_points, .false.)
     open(63, file = 'NLSF_Class.csv')
     do j = 1, nsf
@@ -495,10 +495,10 @@ endfunction NLSF_Fit_Function
 !>
 !> @author keston Smith (IBSS corp) 2022
 !--------------------------------------------------------------------------------------------------
-subroutine NLSF_Greedy_Least_Sq_Fit(obs, nlsf, proc_recruits)
+subroutine NLSF_Greedy_Least_Sq_Fit(obs, nlsf, save_data)
 type(Grid_Data_Class), intent(in):: obs
 type(NLSF_Class), intent(inout) ::nlsf(*)
-logical, intent(in) :: proc_recruits
+logical, intent(in) :: save_data
 
 integer j, num_obs_points, num_points, k, jBest, notyet, nfi
 real(dp) rmsMin
@@ -560,7 +560,7 @@ do while(sum(isfit(1:nsf)).lt.nsflim)
              'Remaining RMS=', sqrt( sum( residual_vect(1:num_obs_points)**2) / float(num_obs_points) )
 enddo
 
-if (proc_recruits) then
+if (save_data) then
     call Write_CSV(num_obs_points, nsf, residuals, 'residuals.csv', num_obs_points, .false.)
     open(63, file = 'NLSF_Class.csv')
     do j = 1, nsf

@@ -54,7 +54,7 @@ domainName = ['MA', 'GB']
 for dn in domainName:
     for year in years:
         flin = 'Recruits'+str(year)+dn+'.csv'
-        # output all data, proc_recruits='T'
+        # output all data, save_data='T'
         subprocess.run([ex, cfgFile, dn, flin, ' T'])
         print([ex, ' ', dn, ' ', flin, ' T'])
         outdir = os.path.join('KrigingEstimates', 'Sim'+dn+str(year), '')

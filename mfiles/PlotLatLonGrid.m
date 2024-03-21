@@ -66,18 +66,17 @@ for n=1:size(h,2)
    end
 end
 
-
 % clear data limits of 0+ to saturate negative and zero data
 for k=1:c
 for n=1:r
     % geoscatter does not accept 0.0, must be positive or NaN
     if param(n,k)<=0 ; param(n,k) = 1e-6; end
     % saturate values
-    if param(n,k)> saturate; param(n,k) = 1e-6; end
+    if param(n,k)> saturate; param(n,k) = saturate; end
 end
 end
 % scale data 0+ to 200
-m = max(max(param)) / 50.;
+m = max(max(param)) / 50.; %using max(max()) to be compatible w/octave
 param = param ./ m;
 
 % data is ready now plot all years or individually
