@@ -335,6 +335,12 @@ integer,  allocatable:: ipiv(:)
 
 real(dp)     Vinf(1, 1), Dinf(1, 1), atmp, btmp
 integer     j, k, info, nopnf, error, num_points, num_obs_points
+
+! !=======================================================================================
+! character(fname_len) fname, feps, fdata, ftrend
+! character(80) fmtstr
+! !=======================================================================================
+
 num_points=grid%num_points
 num_obs_points=obs%num_points
 nopnf=num_obs_points+num_spat_fcns
@@ -509,6 +515,31 @@ endif
 
 eps(1:num_points)=grid%field_psqm(1:num_points)-ftrnd(1:num_points)
 
+! !=======================================================================================
+! fname = Get_Obs_Data_File_Name()
+! ! Change output directory and file prefix
+! ! /X_Y_...
+! ! n12345
+! j = index(fname, '/') + 5
+! feps = 'Temp/Lat_Lon_Grid_Eps-'//fname(j:)
+! fdata = 'Temp/Lat_Lon_Grid_'//fname(j:)
+! ftrend = 'Temp/Lat_Lon_Grid_Trend-'//fname(j:)
+! fmtstr='(2(ES14.7 : ", ") (ES14.7 : ))'
+
+! open(63,file=trim(feps))
+! open(64,file=trim(fdata))
+! open(65,file=trim(ftrend))
+
+! do j=1, num_points
+!     write(63, fmtstr) grid%lat(j), grid%lon(j), exp(eps(j))
+!     write(64, fmtstr) grid%lat(j), grid%lon(j), exp(grid%field_psqm(j))
+!     write(65, fmtstr) grid%lat(j), grid%lon(j), exp(ftrnd(j))
+! enddo
+! close(65)
+! close(64)
+! close(63)
+! !=======================================================================================
+
 write(*,*)'Krig_Generalized_Least_Sq end'
 deallocate( distance_horiz, distance_vert, W, gamma, Fs, FsT, stat=error )
 deallocate( D0h, D0z, gamma0, Fs0, Fs0T , stat=error)
@@ -516,7 +547,7 @@ deallocate( R, V , stat=error)
 deallocate( CbetaInv, Ceps, Cinv, stat=error )
 deallocate( Mtmp, Vtmp, Vtmp2, Gtmp, ftrnd, stat=error )
 deallocate( ipiv, stat=error)
-deallocate( C0, DGh, DGz,  gammaG, ftrnd, stat=error )
+deallocate( C0, DGh, DGz,  gammaG)!, ftrnd, stat=error )
 
 end subroutine
 

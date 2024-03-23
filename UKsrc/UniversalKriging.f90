@@ -138,8 +138,10 @@ type(Krig_Class):: par
 type(NLSF_Class), allocatable ::nlsf(:)
 real(dp) alpha
 logical save_data
+real(dp) f0_max
 
 par%form='spherical'
+f0_max = 0._dp
 
 write (*,*) term_grn, "PROGRAM STARTING", term_blk
 
@@ -148,6 +150,15 @@ if (ncla .eq. 0) then
     write(*,*) term_red, 'No UK configuration file given', term_blk
     call get_command(cmd)
     write(*,*) term_blu,'Typical use: $ ', term_yel, trim(cmd), ' UK.cfg', term_blk
+
+    write(*,*) term_blu,'       Config File  Domain  ObservFile              ZF0Max(optional)'
+    write(*,*) term_yel,' .\UKsrc\UK UK_MA.cfg  MA   X_Y_EBMS_MA2005_0.csv   0.0 | 70.0'
+    write(*,*) term_blu,'  arg#        1      2              3                  4'
+    write(*,*) term_blu,'                                                    | --- optional but need both ---|'
+    write(*,*) term_blu,'        ConfigFile Domain  ObservFile                GridFile            ZF0Max'
+    write(*,*) term_blu,' [ex,   cfgFile,   dn,     obsFile,                  gridFile,           value'
+    write(*,*) term_yel,' .\UKsrc\UK UK_GB.cfg GB   X_Y_EBMS_GB2005_0_SW.csv  GBxyzLatLon_SW.csv   0.0 | 70.0'
+    write(*,*) term_blu,'  arg#        1     2              3                  4                   5', term_blk
     stop 1
 endif
 
@@ -169,7 +180,7 @@ if(ncla.ge.2) then
         write(*,*) term_red, ' **** INVALID DOMAIN NAME: ', domain_name, term_blk
         stop 1
     endif
-    ! Force Grid file name
+    ! Force default grid file name
     cmd = domain_name//'xyzLatLon.csv'
     Call Set_Grid_Data_File_Name(cmd)
 endif
@@ -179,16 +190,25 @@ if(ncla.ge.3) then
     call Set_Obs_Data_File_Name(obsfile)
 endif
 
+! Typically, for MA, which uses default grid file, only reads f0_max override
 if (ncla .ge. 4) then
     if (ncla .eq. 4) then
         call get_command_argument(4, cmd)
-        save_data = (trim(cmd) .eq. 'T')
+        if (len_trim(cmd) .NE. 0) then
+            ! did not read null spaces
+            read(cmd, *) f0_max
+        endif
     else
+        ! GB breaks up GridFile into four regions
+        ! 1) GBxyzLatLon_N
+        ! 2) GBxyzLatLon_S
+        ! 3) GBxyzLatLon_SW
+        ! 4) GBxyzLatLon_W
         call get_command_argument(4, obsfile)
         call Set_Grid_Data_File_Name(obsfile)
 
         call get_command_argument(5, cmd)
-        save_data = (trim(cmd) .eq. 'T')
+        read(cmd, *) f0_max
     endif
 endif
 
@@ -215,7 +235,7 @@ call random_seed( )
 
 ! Determine how many spatial functions are defined.
 allocate(nlsf(1:1))
-nsf = NLSF_Define_Functions(nlsf, obs, .true.)
+nsf = NLSF_Define_Functions(nlsf, obs, .true., 0._dp)
 deallocate(nlsf)
 
 num_spat_fcns = nsf + 1
@@ -225,7 +245,7 @@ allocate(nlsf(1:nsf))
 !
 ! Initalize grid point coordinates and bathymetry - initialize num_points
 !
-num_points = Load_Grid(grid%x, grid%y, grid%z, grid%lat, grid%lon)!, grid%ManagementRegion) Deprecate
+num_points = Load_Grid(grid%x, grid%y, grid%z, grid%lat, grid%lon)
 grid%num_points = num_points
 
 allocate( eps(1:num_points), Ceps(1:num_points, 1:num_points))
@@ -242,15 +262,20 @@ if (use_posterior_sim) then
     !-------------------------------------------------------------------------  
     ! nonlinear curve fitting for spatial functions
     !-------------------------------------------------------------------------  
-    nsf = NLSF_Define_Functions(nlsf, grid, .false.)
-    !nlsf(1:nsf)%nsflim = nsf
+    nsf = NLSF_Define_Functions(nlsf, grid, .false., f0_max)
 
     write(*,*)'num_obs_points=', num_obs_points, 'nsf limit=', Get_NSF_Limit(), ' alpha = ', alpha
     write(*,*)'num_grid_points=', num_points
     write(*,'(A, A, A, I2, A, A)') term_blu, 'Using ', term_blk, nsf, term_blu, ' Spatial Functions'
     write(*,'(A,L2)') 'Is Truncate Range: ', Get_Is_Truncate_Range()
-    write(*,'(A,L2)') 'Using Greedy Fit:  ', Get_Use_Greedy_Fit(), term_blk
-
+    write(*,'(A,L2)') 'Using Greedy Fit:  ', Get_Use_Greedy_Fit()
+    f0_max = Get_Z_F0_Max()
+    if (f0_max > 0._dp) then
+        write(*,*) 'Using f0_max setting:', f0_max, term_blk
+    else
+        write(*,*) 'Using f0_max setting: Determined by algorithm', term_blk
+    endif
+    
     allocate( Cr(1:num_obs_points, 1:num_obs_points), F(1:num_obs_points, 1:num_spat_fcns), r(1:num_obs_points))
     allocate( trndOBS(1:num_obs_points), resOBS(1:num_obs_points))
     allocate( distance_horiz(1:num_obs_points, 1:num_obs_points), distance_vert(1:num_obs_points, 1:num_obs_points))
@@ -264,7 +289,7 @@ if (use_posterior_sim) then
         obs%field_psqm(1:num_obs_points) = log((one_scallop_per_tow + obs%field_psqm(1:num_obs_points)) / SF)
     endif
 
-    call NLSF_Select_Fit(obs, nlsf, save_data)
+    call NLSF_Select_Fit(obs, nlsf, save_data, (domain_name .EQ. 'MA'))
     do j=1, nsf
         write(*,*)nlsf(j)%axis, ' ', nlsf(j)%form, nlsf(j)%f0, nlsf(j)%lambda
     enddo

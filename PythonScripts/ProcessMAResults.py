@@ -33,30 +33,49 @@ nyears = year_end - year_start + 2
 cfgFile = 'UK_MA.cfg'
 ex = os.path.join('UKsrc', 'UK')
 
-paramStr = ['EBMS_', 'LAND_', 'LPUE_', 'FEFF_','RECR_']
+#paramStr = ['EBMS_', 'LAND_', 'LPUE_', 'FEFF_','RECR_']
+paramStr = ['EBMS_', 'LPUE_', 'RECR_']
 prefix = ['Results/Lat_Lon_Grid_', 'Results/Lat_Lon_Grid_Trend-']
+#          , 'Temp/Lat_Lon_Grid_', 'Temp/Lat_Lon_Grid_Trend-']
 
 for pStr in paramStr:
+    if (pStr == 'RECR_'):
+        zArg = '70.0'
+    else:
+        zArg = ''
+
     # UK expects input data files to be in subdir Data/
     # UK writes results to subdir Results/
     # using the same file name as provide for observation data.
-    flin = 'X_Y_' + pStr + dn + str(year_start) + '_0.csv'
-    result = subprocess.run([ex, cfgFile, dn, flin, ' F'])
-    print([ex, cfgFile, dn, flin, ' F'])
+    #
+    #       Config File  Domain  ObservFile              ZF0Max(optional)
+    # .\UKsrc\UK UK.cfg  MA      X_Y_EBMS_MA2005_0.csv   0.0 | 70.0
+    #  arg#        1      2              3                  4
+
+    #                                                 | --- optional but need both -----|
+    #        ConfigFile Domain  ObservFile                GridFile            ZF0Max
+    # [ex,   cfgFile,   dn,     obsFile,                  gridFile,           value
+    # .\UKsrc\UK UK.cfg GB      X_Y_EBMS_GB2005_0_SW.csv  GBxyzLatLonSW.csv   0.0 | 70.0
+    #  arg#        1     2              3                  4                   5
+
+    obsFile = 'X_Y_' + pStr + dn + str(year_start) + '_0.csv'
+    cmd = [ex, cfgFile, dn, obsFile, zArg]
+    print(cmd)
+    result = subprocess.run(cmd)
     if (result.returncode != 0):
-        print('[31m' + flin + ' error: ' + hex(result.returncode) + '[0m')
+        print('[31m' + ''.join(str(e)+' ' for e in cmd) + ' error: ' + hex(result.returncode) + '[0m')
         sys.exit(result.returncode)
-    os.remove(dataDir + flin)
+    os.remove(dataDir + obsFile)
 
     for year in years:
-        flin = 'X_Y_' + pStr + dn + str(year) + '.csv'
-        # output all data, save_data='F'
-        result = subprocess.run([ex, cfgFile, dn, flin, ' F'])
-        print([ex, cfgFile, dn, flin, ' F'])
+        obsFile = 'X_Y_' + pStr + dn + str(year) + '.csv'
+        cmd = [ex, cfgFile, dn, obsFile, zArg]
+        result = subprocess.run(cmd)
+        print(cmd)
         if (result.returncode != 0):
-            print('[31m' + flin + ' error: ' + hex(result.returncode) + '[0m')
+            print('[31m' + ''.join(str(e)+' ' for e in cmd) + ' error: ' + hex(result.returncode) + '[0m')
             sys.exit(result.returncode)
-        os.remove(dataDir + flin)
+        os.remove(dataDir + obsFile)
 
     for pfix in prefix:
         ###########################################################################################

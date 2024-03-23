@@ -29,6 +29,7 @@ integer, PRIVATE :: nsf
 integer, PRIVATE :: nsflim
 logical, PRIVATE :: is_truncate_range
 logical, PRIVATE :: use_greedy_fit
+real(dp), PRIVATE :: z_f0_max
 
 CONTAINS
 
@@ -51,21 +52,26 @@ integer function Get_NSF()
     Get_NSF = nsf
 endfunction Get_NSF
 
+real(dp) function Get_Z_F0_Max()
+Get_Z_F0_Max = z_f0_max
+endfunction Get_Z_F0_Max
+
 !-----------------------------------------------------------------------------------------------
 !> Determines which function to call to do a brute force least squares fit of nonlinear spatial 
 !> function parameters to data points in obs.
 !>
 !> NOTE: Greedy function takes significantly longer to run
 !-----------------------------------------------------------------------------------------------
-subroutine NLSF_Select_Fit(obs, nlsf, save_data)
+subroutine NLSF_Select_Fit(obs, nlsf, save_data, is_reset)
 type(Grid_Data_Class):: obs
 type(NLSF_Class)::nlsf(*)
 logical, intent(in) :: save_data
+logical, intent(in) :: is_reset
 
 if (use_greedy_fit) then
     call NLSF_Greedy_Least_Sq_Fit(obs, nlsf, save_data)
 else
-    call NLSF_Least_Sq_Fit(obs, nlsf, save_data)
+    call NLSF_Least_Sq_Fit(obs, nlsf, save_data,is_reset)
 endif
 
 endsubroutine NLSF_Select_Fit
@@ -113,15 +119,17 @@ endsubroutine Set_Config_File_Name
 !> In the second call InitiialCallFlag= F and all of the functions are defined.
 !> with precon=0 the nonlinear paraters function is fit in a least
 !--------------------------------------------------------------------------------------------------
-integer function NLSF_Define_Functions(nlsf, p, InitialCallFlag)
+integer function NLSF_Define_Functions(nlsf, p, InitialCallFlag, f0_max)
 type(NLSF_Class) :: nlsf(*)
 type(Grid_Data_Class):: p
 integer j, io, n, num_points
 logical, intent(in):: InitialCallFlag
+real(dp), intent(in) :: f0_max
 character(72) :: input_string
 
 is_truncate_range = .true. !default
 use_greedy_fit = .false.
+z_f0_max = f0_max ! either default to 0.0 or read in on command line
 
 open(69,file=config_file_name)
 n=0
@@ -182,7 +190,17 @@ do
     case ('I')
         j = index(input_string,"=",back=.true.)
         read( input_string(j+1:),* ) is_truncate_range
-    endselect
+
+    case ('Z')
+        j = index(input_string,"=",back=.true.)
+        read( input_string(j+1:),* ) z_f0_max
+        ! if non-zero overwrite config file setting
+        if (f0_max > 0._dp) z_f0_max = f0_max
+
+    case default
+        write(*,*) term_red,'Unrecognized Configuration Item in ', trim(config_file_name) , ': ', term_blk, input_string
+        stop 1
+endselect
  end do
 close(69)
 
@@ -204,7 +222,11 @@ do n = 1, nsf
             nlsf(n)%lambda_min = 5000.
         case ('z')
             nlsf(n)%f0_min = minval(p%z(1:num_points))
-            nlsf(n)%f0_max = maxval(p%z(1:num_points))
+            if (z_f0_max > 0._dp) then
+                nlsf(n)%f0_max = z_f0_max
+            else
+                nlsf(n)%f0_max = maxval(p%z(1:num_points))
+            endif
             nlsf(n)%lambda_min = 5.
         case ('x+y')
             nlsf(n)%f0_min = minval(p%x(1:num_points)+p%y(1:num_points))
@@ -237,14 +259,16 @@ endfunction
 !>
 !> @author keston Smith (IBSS corp) 2022
 !--------------------------------------------------------------------------------------------------
-subroutine NLSF_Least_Sq_Fit(obs, nlsf, save_data)
+subroutine NLSF_Least_Sq_Fit(obs, nlsf, save_data, is_reset)
 type(Grid_Data_Class), intent(in) :: obs
 type(NLSF_Class), intent(inout) ::nlsf(*)
-logical, intent(in) :: save_data
+logical, intent(in) :: save_data, is_reset
 
 integer j, num_obs_points, k
 real(dp), allocatable :: residual_vect(:), field_precond(:), residuals(:, :), rms(:)
 integer, allocatable:: RankIndx(:)
+
+real(dp) mu,rms0
 
 num_obs_points = obs%num_points
 
@@ -257,6 +281,8 @@ residual_vect(:) = obs%field_psqm(1:num_obs_points)
 write(*,'(A,F20.16)') 'residual  0: ', sqrt(sum(residual_vect(1:num_obs_points)**2)/float(num_obs_points))
 
 do j = 1, nsf
+    if(is_reset) residual_vect(:) = obs%field_psqm(1:num_obs_points)
+
     if (nlsf(j)%pre_cond_fcn_num.eq.0) then
         !no preconditioning
         field_precond(:) = 1.D0
@@ -286,9 +312,40 @@ if (save_data) then
     close(63)
 endif
 
-do j = 1, nsf
-    write(*,*)'spatial function', j, 'postfit rms:', rms(j)
-enddo
+if(is_reset) then
+    !sort functions into increasing rms
+    write(*,*)'rms:',rms(1:nsf)
+    do k = 1,nsf
+        j = minloc(rms(1:nsf),1)
+        write(*,*) k, j, rms(j)
+        RankIndx(k) = j
+        rms(j) = huge(1.D0)
+    enddo
+    write(*,*) term_grn, 'function rank:', RankIndx(1:nsf)
+    nlsf(1:nsf) = nlsf(RankIndx(1:nsf))
+    residuals(1:num_obs_points, 1:nsf) = residuals(1:num_obs_points,RankIndx(1:nsf))
+    nsf = min(nsf,nsflim)
+    write(*,*)'function rms:', nlsf(1:nsf)%rms
+
+    mu = sum(obs%field_psqm(1:num_obs_points) / float(num_obs_points))
+    rms0 = sqrt(sum( (obs%field_psqm(1:num_obs_points) - mu)**2) / float(num_obs_points))
+    j = 1
+    !!!!call write_csv(num_obs_points,nsf,residuals,'residuals0.csv',num_obs_points)
+    do while( ( nlsf(j)%rms .lt. 0.9_dp * rms0 + 0.1_dp * nlsf(1)%rms ) .and. (j+1 .lt. nsf) )
+        j = j+1
+        write(*,*)'delta rms:   ', nlsf(j)%rms, rms0, nlsf(1)%rms, 0.9_dp*rms0 + 0.1_dp*nlsf(1)%rms, &
+        & sum((residuals(1:num_obs_points, j+1) - residuals(1:num_obs_points,j))**2 )/float(num_obs_points) 
+    enddo
+    j = j - 1
+    nsflim = j
+    nsf = nsflim
+    write(*,*) 'NLSF limit=', j, term_blk
+else
+    nsflim = nsf
+    do j=1,nsf
+        write(*,*)'spatial function',j,'postfit rms:',rms(j)
+    enddo
+endif
 
 deallocate(residual_vect, field_precond, residuals, rms)
 endsubroutine
