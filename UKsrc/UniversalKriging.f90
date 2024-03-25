@@ -119,7 +119,8 @@ USE RandomFieldMod
 implicit none
 
 real(dp)  atmp, btmp
-real(dp), allocatable :: beta(:), Cbeta(:,:), eps(:), Ceps(:,:), Cr(:,:), F(:,:), r(:), trndOBS(:), resOBS(:)
+real(dp), allocatable :: beta(:), Cbeta(:,:), eps(:), Ceps(:,:), residual_cov(:,:)
+real(dp), allocatable :: spatial_fcn(:,:), residual(:), trndOBS(:), resOBS(:)
 real(dp), allocatable :: distance_horiz(:,:), distance_vert(:,:)
 real(dp), allocatable :: RandomField(:,:)
 integer num_points, num_spat_fcns, num_obs_points, j
@@ -182,12 +183,12 @@ if(ncla.ge.2) then
     endif
     ! Force default grid file name
     cmd = domain_name//'xyzLatLon.csv'
-    Call Set_Grid_Data_File_Name(cmd)
+    Call GridMgr_Set_Grid_Data_File_Name(cmd)
 endif
 
 if(ncla.ge.3) then
     call get_command_argument(3, obsfile)
-    call Set_Obs_Data_File_Name(obsfile)
+    call GridMgr_Set_Obs_Data_File_Name(obsfile)
 endif
 
 ! Typically, for MA, which uses default grid file, only reads f0_max override
@@ -205,7 +206,7 @@ if (ncla .ge. 4) then
         ! 3) GBxyzLatLon_SW
         ! 4) GBxyzLatLon_W
         call get_command_argument(4, obsfile)
-        call Set_Grid_Data_File_Name(obsfile)
+        call GridMgr_Set_Grid_Data_File_Name(obsfile)
 
         call get_command_argument(5, cmd)
         read(cmd, *) f0_max
@@ -214,9 +215,8 @@ endif
 
 write (*,*) term_blu,"Reading ", domain_name
 
-write(*,*) 'Observation file:  ', trim(Get_Obs_Data_File_Name())
+write(*,*) 'Observation file:  ', trim(GridMgr_Get_Obs_Data_File_Name())
 write(*,*) 'Logtransorm', IsLogT
-!write(*,*) 'Match stratified sampling estimate', IsMatchMean ! DEPRECATE
 write(*,*) 'High limit fmax', fmax
 write(*,*) 'Form of variagram: ', par%form
 if (use_posterior_sim) then
@@ -245,7 +245,7 @@ allocate(nlsf(1:nsf))
 !
 ! Initalize grid point coordinates and bathymetry - initialize num_points
 !
-num_points = Load_Grid(grid%x, grid%y, grid%z, grid%lat, grid%lon)
+num_points = GridMgr_Load_Grid(grid%x, grid%y, grid%z, grid%lat, grid%lon)
 grid%num_points = num_points
 
 allocate( eps(1:num_points), Ceps(1:num_points, 1:num_points))
@@ -255,9 +255,9 @@ if (use_posterior_sim) then
     !
     ! Initalize data point coordinates, bathymetry and data - initialize no
     !
-    obs%num_points = Load_Observation_Data(obs%x, obs%y, obs%z, obs%field_psqm)
+    obs%num_points = GridMgr_Load_Observation_Data(obs%x, obs%y, obs%z, obs%field)
     num_obs_points=obs%num_points
-    obs%field_psqm(1:num_obs_points)=obs%field_psqm(1:num_obs_points)**alpha
+    obs%field(1:num_obs_points)=obs%field(1:num_obs_points)**alpha
 
     !-------------------------------------------------------------------------  
     ! nonlinear curve fitting for spatial functions
@@ -276,45 +276,50 @@ if (use_posterior_sim) then
         write(*,*) 'Using f0_max setting: Determined by algorithm', term_blk
     endif
     
-    allocate( Cr(1:num_obs_points, 1:num_obs_points), F(1:num_obs_points, 1:num_spat_fcns), r(1:num_obs_points))
-    allocate( trndOBS(1:num_obs_points), resOBS(1:num_obs_points))
-    allocate( distance_horiz(1:num_obs_points, 1:num_obs_points), distance_vert(1:num_obs_points, 1:num_obs_points))
+    allocate(residual_cov(1:num_obs_points, 1:num_obs_points))
+    allocate(spatial_fcn(1:num_obs_points, 1:num_spat_fcns), residual(1:num_obs_points))
+    allocate(trndOBS(1:num_obs_points), resOBS(1:num_obs_points))
+    allocate(distance_horiz(1:num_obs_points, 1:num_obs_points), distance_vert(1:num_obs_points, 1:num_obs_points))
         
-    fmax = fmax * maxval(obs%field_psqm(1:num_obs_points))
-    !domain_average = Get_Domain_Average(obs, grid)
+    fmax = fmax * maxval(obs%field(1:num_obs_points))
 
     if(IsLogT) then
-        SF = sum(obs%field_psqm(1:num_obs_points))/float(num_obs_points)
+        SF = sum(obs%field(1:num_obs_points))/float(num_obs_points)
         SF = SF/5.D0  ! mean / 5 ~ median
-        obs%field_psqm(1:num_obs_points) = log((one_scallop_per_tow + obs%field_psqm(1:num_obs_points)) / SF)
+        obs%field(1:num_obs_points) = log((one_scallop_per_tow + obs%field(1:num_obs_points)) / SF)
     endif
 
-    call NLSF_Select_Fit(obs, nlsf, save_data, (domain_name .EQ. 'MA'))
+    call NLSF_Select_Fit(obs, nlsf, save_data, .true.)
+    nsf = Get_NSF()
     do j=1, nsf
-        write(*,*)nlsf(j)%axis, ' ', nlsf(j)%form, nlsf(j)%f0, nlsf(j)%lambda
+        write(*,*) nlsf(j)%axis, ' ', nlsf(j)%form, nlsf(j)%f0, nlsf(j)%lambda
     enddo
 
     !-------------------------------------------------------------------------
-    ! OLS fit with spatial functions
+    ! Ordinary Least Square fit with spatial functions
     !-------------------------------------------------------------------------
-    Cr(1:num_obs_points, 1:num_obs_points)=0.D0
+    residual_cov(1:num_obs_points, 1:num_obs_points)=0.D0
     do j=1, num_obs_points
-        Cr(j, j)=1.D0
+        residual_cov(j, j)=1.D0
     enddo
-    F = Krig_Eval_Spatial_Function(obs, num_spat_fcns, num_obs_points, nlsf, save_data)
-    r = LSF_Generalized_Least_Squares(obs%field_psqm, F, Cr, num_obs_points, num_spat_fcns, save_data)
-    write(*,*)'OrdinaryLeastSqResidual:', sqrt(sum(r(1:num_obs_points)**2)/float(num_obs_points))
+
+    ! nsf may have been modified by is_reset in NLSF_Select_Fit
+    num_spat_fcns = nsf + 1
+    spatial_fcn = Krig_Eval_Spatial_Function(obs, num_spat_fcns, num_obs_points, nlsf, save_data)
+    residual = LSF_Generalized_Least_Squares&
+    &       (obs%field, spatial_fcn, residual_cov, num_obs_points, num_spat_fcns, beta, Cbeta, save_data)
+    write(*,*)'Ordinary Least Sq Residual:', sqrt(sum(residual(1:num_obs_points)**2) / float(num_obs_points))
 
     !-------------------------------------------------------------------------
-    ! Fit variogram parameters to OLS residual
+    ! Fit variogram parameters to Ordinary Least Square residual
     !-------------------------------------------------------------------------
     if (save_data) then
-        call Write_Vector_Scalar_Field(num_obs_points, r, 'OLSresidual.txt')
-        call Write_Vector_Scalar_Field(num_obs_points, obs%field_psqm, 'data.txt')
+        call Write_Vector_Scalar_Field(num_obs_points, residual, 'OLSresidual.txt')
+        call Write_Vector_Scalar_Field(num_obs_points, obs%field, 'data.txt')
     endif
     call Krig_Compute_Distance(obs, obs, distance_horiz, distance_vert, num_obs_points)
 
-    call Krig_Comp_Emp_Variogram(num_obs_points, distance_horiz, distance_vert, num_obs_points, r, par, save_data)
+    call Krig_Comp_Emp_Variogram(num_obs_points, distance_horiz, distance_vert, num_obs_points, residual, par, save_data)
 
     if (save_data) then
         open(63, file='KRIGpar.txt')
@@ -328,11 +333,12 @@ if (use_posterior_sim) then
     ! coeficients, beta, and posterior covariance of beta(Cbeta).
     !-------------------------------------------------------------------------
     call Krig_Generalized_Least_Sq(grid, obs, num_spat_fcns, par, beta, Cbeta, eps, Ceps, nlsf, save_data)
-    F = Krig_Eval_Spatial_Function(obs, num_spat_fcns, num_obs_points, nlsf, save_data)
+    spatial_fcn = Krig_Eval_Spatial_Function(obs, num_spat_fcns, num_obs_points, nlsf, save_data)
     atmp=1.D0
     btmp=0.D0
-    call dgemv('N', num_obs_points, num_spat_fcns, atmp, F, num_obs_points, beta, 1, btmp, trndOBS, 1)
-    resOBS(1:num_obs_points) = obs%field_psqm(1:num_obs_points) - trndOBS(1:num_obs_points)
+    !!! same as trndOBS =  matmul(spatial_fcn, beta)
+    call dgemv('N', num_obs_points, num_spat_fcns, atmp, spatial_fcn, num_obs_points, beta, 1, btmp, trndOBS, 1)
+    resOBS(1:num_obs_points) = obs%field(1:num_obs_points) - trndOBS(1:num_obs_points)
     write(*,*)'GLSres:', sqrt(sum(resOBS(1:num_obs_points)**2) / float(num_obs_points))
 
 else 
@@ -354,7 +360,7 @@ deallocate( eps, Ceps)
 deallocate( RandomField)
 
 if (use_posterior_sim) then
-    deallocate( Cr, F, r)
+    deallocate( residual_cov, spatial_fcn, residual)
     deallocate( trndOBS, resOBS)
     deallocate( distance_horiz, distance_vert)
 endif
@@ -422,10 +428,10 @@ do
             endif
             ! Force Grid file name
             value = domain_name//'xyzLatLon.csv'
-            Call Set_Grid_Data_File_Name(value)
+            Call GridMgr_Set_Grid_Data_File_Name(value)
 
         case('Observation File')
-            Call Set_Obs_Data_File_Name(value)
+            Call GridMgr_Set_Obs_Data_File_Name(value)
 
         case('Log Transform')
             read(value,*) IsLogT
@@ -452,16 +458,6 @@ do
 
         case('Use Posterior Sim')
             read(value,*) use_posterior_sim
-
-        !     DEPRECATE
-        ! case('Grid File Name')
-        !     if (domain_name .ne. value(1:2)) then
-        !         write (*,*) term_red, 'Domain Name Mismatch: Expecting ', term_blk, domain_name, term_red, &
-        !         &  ' read ', term_blk, value(1:2)
-        !         stop 1
-        !     endif
-            
-        !     Call Set_Grid_Data_File_Name(value)
 
         case('NLS Spatial Fcn File Name')
             call NLS_Set_Config_File_Name(value)
@@ -512,12 +508,12 @@ write(*,*)'output fmax, SF, A=', fmax, SF, one_scallop_per_tow
 do n=1, num_points
     V(n)=Ceps(n, n)
 enddo
-grid%field_psqm(1:num_points) = grid%field_psqm(1:num_points)**(1./alpha)
+grid%field(1:num_points) = grid%field(1:num_points)**(1./alpha)
 
-logf(1:num_points) = grid%field_psqm(1:num_points)
-if(IsLogT) grid%field_psqm(1:num_points) = SF * exp( grid%field_psqm(1:num_points) + V(1:num_points)/2. ) - one_scallop_per_tow  ! adjusted inverse log(one_scallop_per_tow+f)
-if(IsHiLimit) call LSF_Limit_Z(num_points, grid%field_psqm, grid%z, fmax, domain_name)
-call Write_Vector_Scalar_Field(num_points, grid%field_psqm, 'KrigingEstimate.txt')
+logf(1:num_points) = grid%field(1:num_points)
+if(IsLogT) grid%field(1:num_points) = SF * exp( grid%field(1:num_points) + V(1:num_points)/2. ) - one_scallop_per_tow  ! adjusted inverse log(one_scallop_per_tow+f)
+if(IsHiLimit) call LSF_Limit_Z(num_points, grid%field, grid%z, fmax, domain_name)
+call Write_Vector_Scalar_Field(num_points, grid%field, 'KrigingEstimate.txt')
 
 Fg = Krig_Eval_Spatial_Function(grid, num_spat_fcns, num_points, nlsf, save_data)
 trend(1:num_points) = matmul( Fg(1:num_points, 1:num_spat_fcns), beta(1:num_spat_fcns)) 
@@ -541,7 +537,7 @@ if(IsLogT) call Write_Vector_Scalar_Field(num_points, SF*exp(sqrt(V(1:num_points
 if(.not.IsLogT) call Write_Vector_Scalar_Field(num_points, sqrt(V(1:num_points)), 'KrigSTD.txt')
 
 if(IsLogT) call RandomSampleF(num_points, num_points, NRand, logf(1:n), Ceps, RandomField)
-if(.not.IsLogT) call RandomSampleF(num_points, num_points, NRand, grid%field_psqm(1:n)**alpha, Ceps, RandomField)
+if(.not.IsLogT) call RandomSampleF(num_points, num_points, NRand, grid%field(1:n)**alpha, Ceps, RandomField)
 RandomField(1:num_points, 1:Nrand)=RandomField(1:num_points, 1:Nrand)**(1./alpha)
 do k=1, num_points
     if(IsLogT) adj = SF * exp(sqrt(V(k))) - one_scallop_per_tow
@@ -549,9 +545,9 @@ do k=1, num_points
     EnsMu = sum(RandomField(k, 1:Nrand)) / float(Nrand)
     EnsSTD = sqrt( sum((RandomField(k, 1:Nrand) - EnsMu)**2 ) / float(Nrand) )
     if(EnsSTD.gt.0.) then
-        RandomField(k, 1:Nrand) = grid%field_psqm(k) +( RandomField(k, 1:Nrand) - EnsMu )*adj/EnsSTD
+        RandomField(k, 1:Nrand) = grid%field(k) +( RandomField(k, 1:Nrand) - EnsMu )*adj/EnsSTD
     else
-        RandomField(k, 1:Nrand) = grid%field_psqm(k) + RandomField(k, 1:Nrand) - EnsMu 
+        RandomField(k, 1:Nrand) = grid%field(k) + RandomField(k, 1:Nrand) - EnsMu 
     endif
     if(IsHiLimit) call LSF_Limit_Z(Nrand, RandomField(k, 1:NRand), grid%z(k)+0.*RandomField(k, 1:NRand), &
                             fmax, domain_name)
@@ -602,10 +598,10 @@ do n=1, num_points
     V(n)=Ceps(n, n)
 enddo
     
-if(IsLogT) grid%field_psqm(1:num_points) = SF * exp( grid%field_psqm(1:num_points) + V(1:num_points)/2. ) - one_scallop_per_tow  ! adjusted inverse log(one_scallop_per_tow+f)
-if(IsHiLimit) call LSF_Limit_Z(num_points, grid%field_psqm, grid%z, fmax, domain_name)
+if(IsLogT) grid%field(1:num_points) = SF * exp( grid%field(1:num_points) + V(1:num_points)/2. ) - one_scallop_per_tow  ! adjusted inverse log(one_scallop_per_tow+f)
+if(IsHiLimit) call LSF_Limit_Z(num_points, grid%field, grid%z, fmax, domain_name)
 
-fname = Get_Obs_Data_File_Name()
+fname = GridMgr_Get_Obs_Data_File_Name()
 ! Change output directory and file prefix
 ! /X_Y_...
 ! n12345
@@ -614,13 +610,14 @@ fout = output_dir//'Lat_Lon_Grid_'//fname(n:)
 ftrend = output_dir//'Lat_Lon_Grid_Trend-'//fname(n:)
 fmtstr='(2(ES14.7 : ", ") (ES14.7 : ))'
 
-write(*,*) term_blu, 'Writing ouput to: ', trim(fout), term_blk
-write(*,*) term_blu, 'Writing ouput to: ', trim(ftrend), term_blk
+write(*,*) term_blu, 'output fmax, SF, A=', fmax, SF, one_scallop_per_tow
+write(*,*) 'Writing ouput to: ', trim(fout)
+write(*,*) 'Writing ouput to: ', trim(ftrend), term_blk
 
 ! This data is the same as what 'KrigingEstimate.txt' held, but now with location information
 open(63,file=trim(fout))
 do n=1, num_points
-    write(63, fmtstr) grid%lat(n), grid%lon(n), grid%field_psqm(n)
+    write(63, fmtstr) grid%lat(n), grid%lon(n), grid%field(n)
 enddo
 close(63)
 

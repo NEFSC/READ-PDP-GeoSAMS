@@ -30,7 +30,6 @@
 !> @subsection p3p1p7 Scallops_To_Counts
 !> @subsection p3p1p8 Set_Fishing_Effort_Weight_USD
 !> @subsection p3p1p9 Set_Fishing_Effort_Weight_BMS
-!> @subsection p3p1p10 Get_Total_Catch DEPRECATED
 !> @subsection p3p1p11 Compute_Natural_Mortality
 !> @subsection p3p1p12 Set_Fishing_Mortality
 !> @subsection p3p1p13 Set_Config_File_Name

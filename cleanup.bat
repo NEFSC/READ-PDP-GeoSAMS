@@ -4,7 +4,7 @@ del DIntV.txt
 del epsilon.txt
 del GammaIntV.txt
 del K*.txt
-del obs.txt
+del obs*.txt
 del OLSresidual.txt
 del RandomField*.txt
 del SIntV.txt

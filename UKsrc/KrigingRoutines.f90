@@ -246,6 +246,7 @@ endsubroutine Krig_Comp_Emp_Variogram
 !--------------------------------------------------------------------------------------------------
 !! @public @memberof Krig_Class
 !> Purpose: Computes value of spatial functions at x,y.
+!> Was spatial_function
 !> Inputs:
 !> @param[in]  p      (Grid_Data_Class) - Spatial points to evaluate functions at
 !> @param[in]  n_dim (integer) leading dimension of F
@@ -267,17 +268,16 @@ real(dp) s(n_dim), fpc(n_dim)
 integer num_points,j,k
 integer nsf
 
-! num_spat_fcns is set to allow for N+1
-nsf = num_spat_fcns - 1
+nsf = Get_NSF()
 
 num_points=p%num_points
 Krig_Eval_Spatial_Function(1:num_points,1)=1.
 do j=1,nsf
     s(:) = NLSF_Evaluate_Fcn(p, nlsf(j))
-    if (nlsf(j)%pre_cond_fcn_num .eq. 0) then
+    if (nlsf(j)%precon .eq. 0) then
         Krig_Eval_Spatial_Function(1:num_points,j+1) = s(1:num_points)
     else
-        k = nlsf(j)%pre_cond_fcn_num
+        k = nlsf(j)%precon
         fpc(:) = NLSF_Evaluate_Fcn(p, nlsf(k))
         Krig_Eval_Spatial_Function(1:num_points,j+1) = s(1:num_points) * fpc(1:num_points)
     endif
@@ -408,7 +408,7 @@ do j=1, num_points
 enddo
 atmp=1.
 btmp=0.
-call dgemv('N', num_points, num_obs_points, atmp, W, num_points, obs%field_psqm, 1, btmp, grid%field_psqm, 1)
+call dgemv('N', num_points, num_obs_points, atmp, W, num_points, obs%field, 1, btmp, grid%field, 1)
 !
 ! compute posterior trend statistics
 !
@@ -447,7 +447,7 @@ endif
 !
 ! beta_gls = inv( F' * Cinv * F ) * F * Cinv * fo
 !
-Vtmp(1:num_obs_points)=matmul(Cinv(1:num_obs_points, 1:num_obs_points), obs%field_psqm(1:num_obs_points))
+Vtmp(1:num_obs_points)=matmul(Cinv(1:num_obs_points, 1:num_obs_points), obs%field(1:num_obs_points))
 Vtmp2(1:num_spat_fcns)=matmul(transpose(Fs(1:num_obs_points, 1:num_spat_fcns)), Vtmp(1:num_obs_points))
 beta(1:num_spat_fcns)=matmul(Cbeta(1:num_spat_fcns, 1:num_spat_fcns), Vtmp2(1:num_spat_fcns))
 ! call dgemv('T', num_obs_points, num_spat_fcns, atmp, Fs, num_obs_points, Vtmp, 1, btmp, Vtmp2,1) ! Vtmp2 = F^T C^{-1} y
@@ -513,10 +513,10 @@ if (info > 0) then
     stop 1
 endif
 
-eps(1:num_points)=grid%field_psqm(1:num_points)-ftrnd(1:num_points)
+eps(1:num_points) = grid%field(1:num_points) - ftrnd(1:num_points)
 
 ! !=======================================================================================
-! fname = Get_Obs_Data_File_Name()
+! fname = GridMgr_Get_Obs_Data_File_Name()
 ! ! Change output directory and file prefix
 ! ! /X_Y_...
 ! ! n12345
@@ -532,7 +532,7 @@ eps(1:num_points)=grid%field_psqm(1:num_points)-ftrnd(1:num_points)
 
 ! do j=1, num_points
 !     write(63, fmtstr) grid%lat(j), grid%lon(j), exp(eps(j))
-!     write(64, fmtstr) grid%lat(j), grid%lon(j), exp(grid%field_psqm(j))
+!     write(64, fmtstr) grid%lat(j), grid%lon(j), exp(grid%field(j))
 !     write(65, fmtstr) grid%lat(j), grid%lon(j), exp(ftrnd(j))
 ! enddo
 ! close(65)

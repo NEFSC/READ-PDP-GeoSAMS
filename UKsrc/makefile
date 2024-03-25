@@ -6,10 +6,18 @@
 OBJ_DIR = ./obj
 MOD_DIR = ./mod
 FC = gfortran
-FFLAGS = -g -Wall -std=f95 -fall-intrinsics #-fbounds-check
-# -O3  -mcmodel=medium -funroll-all-loops -ffast-math -msse -msse2 -m3dnow -m64
- # -g debug
-#-O3  -mcmodel=medium -funroll-all-loops -ffast-math -msse -msse2 -m3dnow -m64
+# For release use these flags
+# Expect this warning
+# Warning: 'ceps.dim[1].stride' may be used uninitialized in this function
+# See:
+# https://gcc.gnu.org/bugzilla/show_bug.cgi?id=105937
+# ... generates bogus warnings if compiled with -Wall AND -O1(or higher optimizations).
+# Fixed in version 12.2.1
+# This is written with currently using: GNU Fortran (GCC) 11.3.0
+FFLAGS = -Wall -std=f95 -fall-intrinsics -O3  -mcmodel=medium -funroll-all-loops -ffast-math -msse -msse2 -m3dnow -m64
+
+# For debug use these flags
+#FFLAGS = -g -Wall -std=f95 -fall-intrinsics #-fbounds-check
 
 SRCS = Globals.f90 UK_GridManager.f90 LinearSpatialFcn.f90 NonLinearSpatialFcn.f90 RandomField.f90 KrigingRoutines.f90 UniversalKriging.f90 IORoutines.f90
 

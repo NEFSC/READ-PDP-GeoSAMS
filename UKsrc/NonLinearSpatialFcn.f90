@@ -16,12 +16,11 @@ type NLSF_Class
     real(dp) lambda, f0
     real(dp) lambda_min, lambda_max
     real(dp) f0_min, f0_max
-    real(dp) f_range(2)
     real(dp) rms
     character(12) form
     character(3) axis
-    !integer nsf, pre_cond_fcn_num, IsTruncateRange, UseGreedyFit, nsflim
-    integer pre_cond_fcn_num
+    !integer nsf, precon, IsTruncateRange, UseGreedyFit, nsflim
+    integer precon
 end type NLSF_Class
 
 character(fname_len), PRIVATE :: config_file_name
@@ -181,7 +180,7 @@ do
                 stop 1
         end select
         j = index(input_string,"precon=",back=.true.)
-        read( input_string(j+7:),* )nlsf(n)%pre_cond_fcn_num
+        read( input_string(j+7:),* )nlsf(n)%precon
 
     case ('G')
         j = index(input_string,"=",back=.true.)
@@ -237,8 +236,6 @@ do n = 1, nsf
             stop 1
     end select
     nlsf(n)%lambda_max = nlsf(n)%f0_max - nlsf(n)%f0_min
-    nlsf(n)%f_range(1) = nlsf(n)%f0_min
-    nlsf(n)%f_range(2) = nlsf(n)%f0_max
 enddo
 endfunction
 
@@ -269,25 +266,31 @@ real(dp), allocatable :: residual_vect(:), field_precond(:), residuals(:, :), rm
 integer, allocatable:: RankIndx(:)
 
 real(dp) mu,rms0
+integer nsf_local, nsflim_local
+
+nsf_local = nsf
+nsflim_local = nsflim
 
 num_obs_points = obs%num_points
 
-write(*,*)'NLSF_Least_Sq_Fit', num_obs_points, nsf
-allocate(residual_vect(1:num_obs_points), field_precond(1:num_obs_points), residuals(1:num_obs_points, 1:nsf))
-allocate(rms(1:nsf), RankIndx(1:nsf))
+write(*,'(A,A,A,I5,A,A,A,I3)') term_blu, 'NLSF_Least_Sq_Fit: Number Obs Points: ', term_blk, num_obs_points, &
+&                             term_blu,'  Number Spatial Functions: ', term_blk, nsf_local
+         
+allocate(residual_vect(1:num_obs_points), field_precond(1:num_obs_points), residuals(1:num_obs_points, 1:nsf_local))
+allocate(rms(1:nsf_local), RankIndx(1:nsf_local))
 
 ! initialize residual 0
-residual_vect(:) = obs%field_psqm(1:num_obs_points)
+residual_vect(:) = obs%field(1:num_obs_points)
 write(*,'(A,F20.16)') 'residual  0: ', sqrt(sum(residual_vect(1:num_obs_points)**2)/float(num_obs_points))
 
-do j = 1, nsf
-    if(is_reset) residual_vect(:) = obs%field_psqm(1:num_obs_points)
+do j = 1, nsf_local
+    if(is_reset) residual_vect(:) = obs%field(1:num_obs_points)
 
-    if (nlsf(j)%pre_cond_fcn_num.eq.0) then
+    if (nlsf(j)%precon.eq.0) then
         !no preconditioning
         field_precond(:) = 1.D0
     else
-        k = nlsf(j)%pre_cond_fcn_num
+        k = nlsf(j)%precon
         if (k.ge.j)then
             write(*,'(A, I2, I3)') 'Preconditiong function must be indexed first:', k, j
             stop 1
@@ -304,9 +307,9 @@ do j = 1, nsf
 enddo
 
 if (save_data) then
-    call Write_CSV(num_obs_points, nsf, residuals, 'residuals.csv', num_obs_points, .false.)
+    call Write_CSV(num_obs_points, nsf_local, residuals, 'residuals.csv', num_obs_points, .false.)
     open(63, file = 'NLSF_Class.csv')
-    do j = 1, nsf
+    do j = 1, nsf_local
         write(63,*)nlsf(j)%axis, ', ', trim(nlsf(j)%form), ', ', nlsf(j)%f0, ', ', nlsf(j)%lambda
     enddo
     close(63)
@@ -314,34 +317,42 @@ endif
 
 if(is_reset) then
     !sort functions into increasing rms
-    write(*,*)'rms:',rms(1:nsf)
-    do k = 1,nsf
-        j = minloc(rms(1:nsf),1)
+    write(*,*)'rms:',rms(1:nsf_local)
+    do k = 1,nsf_local
+        j = minloc(rms(1:nsf_local),1)
         write(*,*) k, j, rms(j)
         RankIndx(k) = j
         rms(j) = huge(1.D0)
     enddo
-    write(*,*) term_grn, 'function rank:', RankIndx(1:nsf)
-    nlsf(1:nsf) = nlsf(RankIndx(1:nsf))
-    residuals(1:num_obs_points, 1:nsf) = residuals(1:num_obs_points,RankIndx(1:nsf))
-    nsf = min(nsf,nsflim)
-    write(*,*)'function rms:', nlsf(1:nsf)%rms
+    write(*,*) term_grn, 'function rank:', RankIndx(1:nsf_local)
+    nlsf(1:nsf_local) = nlsf(RankIndx(1:nsf_local))
+    residuals(1:num_obs_points, 1:nsf_local) = residuals(1:num_obs_points,RankIndx(1:nsf_local))
+    nsf_local = min(nsf_local,nsflim_local)
+    write(*,*)'function rms:', nlsf(1:nsf_local)%rms
 
-    mu = sum(obs%field_psqm(1:num_obs_points) / float(num_obs_points))
-    rms0 = sqrt(sum( (obs%field_psqm(1:num_obs_points) - mu)**2) / float(num_obs_points))
+    mu = sum(obs%field(1:num_obs_points) / float(num_obs_points))
+    rms0 = sqrt(sum( (obs%field(1:num_obs_points) - mu)**2) / float(num_obs_points))
     j = 1
-    !!!!call write_csv(num_obs_points,nsf,residuals,'residuals0.csv',num_obs_points)
-    do while( ( nlsf(j)%rms .lt. 0.9_dp * rms0 + 0.1_dp * nlsf(1)%rms ) .and. (j+1 .lt. nsf) )
+    !!!!call write_csv(num_obs_points,nsf_local,residuals,'residuals0.csv',num_obs_points, .false.)
+    do while( ( nlsf(j)%rms .lt. 0.9_dp * rms0 + 0.1_dp * nlsf(1)%rms ) .and. (j+1 .lt. nsf_local) )
         j = j+1
-        write(*,*)'delta rms:   ', nlsf(j)%rms, rms0, nlsf(1)%rms, 0.9_dp*rms0 + 0.1_dp*nlsf(1)%rms, &
-        & sum((residuals(1:num_obs_points, j+1) - residuals(1:num_obs_points,j))**2 )/float(num_obs_points) 
+        write(*,*)'                nlsf(j)%rms               rms0',&
+        &          '                      nlsf(1)%rms          0.9_dp*rms0 + 0.1_dp*nlsf(1)%rms'
+        write(*,*)'delta rms:   ', nlsf(j)%rms, rms0, nlsf(1)%rms, 0.9_dp*rms0 + 0.1_dp*nlsf(1)%rms
+        ! TODO Nothing is done with sum, why compute it?
+        ! write(*,*)'delta rms:   ', nlsf(j)%rms, rms0, nlsf(1)%rms, 0.9_dp*rms0 + 0.1_dp*nlsf(1)%rms, &
+        ! & sum((residuals(1:num_obs_points, j+1) - residuals(1:num_obs_points,j))**2 )/float(num_obs_points) 
     enddo
     j = j - 1
     nsflim = j
-    nsf = nsflim
-    write(*,*) 'NLSF limit=', j, term_blk
+    nsf = j
+    write(*,*) term_blk, 'NLSF j =', j
+    write(*,*) 'NLSF   =',nsf
+    write(*,*) 'NLSF limit=',nsflim
+
 else
-    nsflim = nsf
+    nsflim_local = nsf_local
+    nsf = nsf_local
     do j=1,nsf
         write(*,*)'spatial function',j,'postfit rms:',rms(j)
     enddo
@@ -389,8 +400,8 @@ end select
 !Bound interpolation range to observed range 
 if (is_truncate_range) then
     do j = 1, num_points
-        if(x(j).lt.nlsf%f_range(1)) x(j) = nlsf%f_range(1)
-        if(x(j).gt.nlsf%f_range(2)) x(j) = nlsf%f_range(2)
+        if(x(j).lt.nlsf%f0_min) x(j) = nlsf%f0_min
+        if(x(j).gt.nlsf%f0_max) x(j) = nlsf%f0_max
     enddo
 endif
 
@@ -445,6 +456,8 @@ case ('SinExp')
 case ('CosExp')
     NLSF_Smooth_Penalty = (1.D0/32.D0)*sqrt(2.D0*pi)*(43.D0-3.D0/exp(-.5D0)) / nlsf%lambda**3
 
+case default ! remove unintialized warning
+    NLSF_Smooth_Penalty = (1.D0/30.D0) / nlsf%lambda**3
 end select
 endfunction NLSF_Smooth_Penalty
 
@@ -568,7 +581,7 @@ write(*,*)'FNLSF', num_obs_points, num_points, nsf
 allocate(residual_vect(1:num_obs_points), res(1:num_obs_points), field_precond(1:num_obs_points))
 allocate(residuals(1:num_obs_points, 1:nsf), rms(1:nsf), isfit(1:nsf))
 allocate(nlsfTmp(1:nsf), RankIndx(1:nsf))
-residual_vect(1:num_obs_points) = obs%field_psqm(1:num_obs_points)
+residual_vect(1:num_obs_points) = obs%field(1:num_obs_points)
 write(*,*)'res0:', sqrt(sum(residual_vect(1:num_obs_points)**2) / float(num_obs_points))
 isfit(1:nsf) = 0
 nfi = 0
@@ -576,11 +589,11 @@ do while(sum(isfit(1:nsf)).lt.nsflim)
     do j = 1, nsf
         notyet = 0
         if (isfit(j).eq.0)then
-            if (nlsf(j)%pre_cond_fcn_num.eq.0)then
+            if (nlsf(j)%precon.eq.0)then
                 !no preconditioning
                 field_precond(1:num_obs_points) = 1.D0
             else
-                k = nlsf(j)%pre_cond_fcn_num
+                k = nlsf(j)%precon
                 if(isfit(k).eq.1)then
                     field_precond(:) = NLSF_Evaluate_Fcn (obs, nlsf(k))
                 else

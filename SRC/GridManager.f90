@@ -136,7 +136,6 @@ domain_name = dom_name
 fname = 'Results\SurveyLoc.txt'
 open(70, file=trim(fname))
 
-!!init_cond_fname = "" ! DEPRECATED
 ! default value if 'Special Access Config File' is not specified
 use_spec_access_data = .false.
 
@@ -285,9 +284,6 @@ subroutine Read_Configuration()
             value =  trim(adjustl(input_string(j+1:k-1)))
 
             select case(tag)
-            ! DEPRECATED
-            ! case('Initial Conditions')
-            !     call Set_Init_Cond_File_Name(trim(adjustl(value)))
 
             case('Special Access Config File')
                 call Set_Special_Access_File_Name(trim(adjustl(value)))

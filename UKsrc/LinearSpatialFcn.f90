@@ -28,23 +28,22 @@ CONTAINS
 !>
 !> @author Keston Smith (IBSS corp) June-July 2021
 !--------------------------------------------------------------------------------------------------
-function LSF_Generalized_Least_Squares(y, F, C, n, m, save_data)
+function LSF_Generalized_Least_Squares(y, F, C, n, m, beta, Cbeta, save_data)
 use globals
 implicit none
 integer, intent(in):: n, m
 real(dp), intent(in):: y(*), F(n,*), C(n,*)
 real(dp) :: LSF_Generalized_Least_Squares(n)
+real(dp), intent(out):: beta(*), Cbeta(m,m)
 logical, intent(in) :: save_data
 
 real(dp), allocatable:: Cinv(:,:), CbetaInv(:,:), Vtmp(:), Vtmp2(:), Mtmp(:,:), ytr(:)
-real(dp), allocatable:: beta(:), Cbeta(:,:)
 integer, allocatable:: ipiv(:)
 
 real(dp) atmp, btmp
 integer j, info, error
 
 allocate( Cinv(1:n, 1:n), CbetaInv(1:m, 1:m), ytr(1:n), Mtmp(1:n, 1:m), Vtmp(1:n), Vtmp2(1:m) ) 
-allocate(beta(1:m), Cbeta(1:m, 1:m))
 allocate( ipiv(1:n), stat=error)
 
 atmp=1.
@@ -92,7 +91,6 @@ if (save_data) then
 endif
 
 deallocate(ipiv)
-deallocate(beta, Cbeta)
 deallocate(Cinv, CbetaInv, ytr, Mtmp, Vtmp, Vtmp2)
 
 endfunction LSF_Generalized_Least_Squares
@@ -122,13 +120,14 @@ real(dp) :: LSF_Simple_Linear_Regression(1:n)
 
 real(dp) alpha, beta
 real(dp) Sxy, Sx, Sy, Sx2
-Sxy=sum(x(1:n)*y(1:n))
-Sx=sum(x(1:n))
-Sy=sum(y(1:n))
-Sx2=sum(x(1:n)*x(1:n))
-beta=(n * Sxy - Sx * Sy) / ( n * Sx2 -Sx * Sx )
+Sxy = sum(x(1:n) * y(1:n))
+Sx  = sum(x(1:n))
+Sy  = sum(y(1:n))
+Sx2 = sum(x(1:n) * x(1:n))
+
+beta = (n * Sxy - Sx * Sy) / ( n * Sx2 - Sx * Sx)
 alpha=(Sy / n) - (beta*Sx / n)
-LSF_Simple_Linear_Regression(1:n)=alpha + beta * x(1:n)
+LSF_Simple_Linear_Regression(1:n) = alpha + beta * x(1:n)
 end function LSF_Simple_Linear_Regression
 
 !----------------------------------------------------------------------------------------

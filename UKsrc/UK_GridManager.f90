@@ -14,10 +14,10 @@ type Grid_Data_Class
     real(dp) x(NDim)
     real(dp) y(NDim)
     real(dp) z(nDim)
-    real(dp) field_psqm(nDim)
+    real(dp) field(nDim)
     real(dp) lat(NDim)
     real(dp) lon(NDim)
-        integer num_points, num_squares
+    integer num_points, num_squares
     integer E(4, nDim)
 end type Grid_Data_Class
 
@@ -33,7 +33,7 @@ CONTAINS
 !> 
 !> Sets file names for main grid parameters, x, y, lat, lon, depth
 !-----------------------------------------------------------------------------------------------
-subroutine Set_Grid_Data_File_Name(fname)
+subroutine GridMgr_Set_Grid_Data_File_Name(fname)
     character(*), intent(in) :: fname
     logical exists
 
@@ -46,7 +46,7 @@ subroutine Set_Grid_Data_File_Name(fname)
         PRINT *, term_red, trim(grid_data_file_name), ' NOT FOUND', term_blk
         stop 1
     endif
-endsubroutine Set_Grid_Data_File_Name
+endsubroutine GridMgr_Set_Grid_Data_File_Name
 
 !-----------------------------------------------------------------------------------------------
 !! @public @memberof Grid_Data_Class
@@ -55,7 +55,7 @@ endsubroutine Set_Grid_Data_File_Name
 !> 
 !> Sets file names for initial state data
 !-----------------------------------------------------------------------------------------------
-subroutine Set_Obs_Data_File_Name(fname)
+subroutine GridMgr_Set_Obs_Data_File_Name(fname)
     character(*), intent(in) :: fname
     logical exists
 
@@ -68,11 +68,11 @@ subroutine Set_Obs_Data_File_Name(fname)
         PRINT *, term_red, trim(obs_data_file_name), ' NOT FOUND', term_blk
         stop 1
     endif
-endsubroutine Set_Obs_Data_File_Name
+endsubroutine GridMgr_Set_Obs_Data_File_Name
 
-character(fname_len) function Get_Obs_Data_File_Name()
-    Get_Obs_Data_File_Name = obs_data_file_name
-endfunction Get_Obs_Data_File_Name
+character(fname_len) function GridMgr_Get_Obs_Data_File_Name()
+    GridMgr_Get_Obs_Data_File_Name = obs_data_file_name
+endfunction GridMgr_Get_Obs_Data_File_Name
 
 !-----------------------------------------------------------------------
 !! @public @memberof Grid_Data_Class
@@ -95,7 +95,7 @@ endfunction Get_Obs_Data_File_Name
 !>
 !> @author Keston Smith (IBSS corp) June-July 2021
 !>-----------------------------------------------------------------------
-integer function Load_Grid(x, y, z, lat, lon)
+integer function GridMgr_Load_Grid(x, y, z, lat, lon)
 real(dp) lat(*), lon(*), x(*), y(*), z(*)
 integer n, io
 character(csv_line_len) input_str
@@ -110,7 +110,7 @@ do
     read(input_str,*) x(n), y(n), z(n), lat(n), lon(n)
 end do
 close(63)
-Load_Grid = n
+GridMgr_Load_Grid = n
 
 end function
 
@@ -131,7 +131,7 @@ end function
 !>
 !> @author Keston Smith (IBSS corp) June-July 2021
 !-----------------------------------------------------------------------
-integer function Load_Observation_Data(x, y, z, f)
+integer function GridMgr_Load_Observation_Data(x, y, z, f)
 
 real(dp), intent(out):: x(*), y(*), z(*), f(*)
 real(dp) year
@@ -149,7 +149,7 @@ do
             read(input_str,*) year, x(n), y(n), z(n), f(n)
         end do
 close(63)
-Load_Observation_Data = n
+GridMgr_Load_Observation_Data = n
 end function
 
 end module GridManagerMod

@@ -61,6 +61,12 @@ end subroutine
 !>
 !> Requires: LAPACK and BLAS libraries for Cholesky factorization of C and matrix vector multiplication.
 !>
+!> INFO is INTEGER
+!> = 0:  successful exit
+!> < 0:  if INFO = -i, the i-th argument had an illegal value
+!> > 0:  if INFO = i, the leading minor of order i is not positive definite, 
+!>       and the factorization could not be completed.
+!>
 !> @author Keston Smith (IBSS corp) June-July 2021
 !--------------------------------------------------------------------------------------------------
 subroutine RandomSampleF(nndim, num_points, Nsample, mu, C, X)
@@ -74,18 +80,18 @@ allocate( R(1:num_points, 1:Nsample), S(1:num_points, 1:num_points))
 !
 ! S<-C for cholesky decomposition
 !
-    S(1:num_points, 1:num_points)=C(1:num_points, 1:num_points)
+S(1:num_points, 1:num_points)=C(1:num_points, 1:num_points)
 !
 ! S<-Cholesky(C) so that C = S * S^T
 !
-    call dpotrf('L', num_points, S, num_points, info )
-    write(*,*)'dpotrf in RandomSample, info=', info
+call dpotrf('L', num_points, S, num_points, info )
+write(*,*)'dpotrf in RandomSample, info=', info
 !
 ! set upper triangular portion of S to 0.
 !
-    do k=1, num_points-1
+do k=1, num_points-1
     S(k, k+1:num_points)=0.
-    enddo
+enddo
 
 atmp=1.
 btmp=0.
