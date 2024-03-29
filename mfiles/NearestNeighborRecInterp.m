@@ -20,7 +20,7 @@ if ~strcmp(domain, 'GB') & ~strcmp(domain, 'MA')
 end
   
 fl0=strcat('Data/Recruits',int2str(yrStart),domain,'.csv');
-fl2=strcat('KrigingEstimates/KrigingEstimate',domain,int2str(yrStart),'.txt');
+fl2=strcat('RecruitEstimates/RecruitEstimate',domain,int2str(yrStart),'.txt');
 if isOctave
     D=csvreadK(fl0);
     dyr0=D(:,1);
@@ -66,7 +66,7 @@ for yr=yrStart+1:yrEnd
         [m,j]=min(dist);
         recs05(k)=recs(j);
     end
-    fl2=strcat('KrigingEstimates/KrigingEstimate',domain,int2str(yr),'.txt');
+    fl2=strcat('RecruitEstimates/RecruitEstimate',domain,int2str(yr),'.txt');
     fprintf('Writing to %s\n', fl2)
     if isOctave
         fid=fopen(fl2,'w');

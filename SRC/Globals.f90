@@ -60,7 +60,7 @@ character(*), parameter :: term_blk = ''//achar(27)//'[0m'
 
 character(*), parameter :: init_cond_dir = 'InitialCondition/'
 character(*), parameter :: growth_out_dir = 'GrowthOutput/'
-character(*), parameter :: rec_input_dir = 'KrigingEstimates/'
+character(*), parameter :: rec_input_dir = 'RecruitEstimates/'
 character(*), parameter :: rec_output_dir = 'RecruitField/'
 character(*), parameter :: output_dir = 'Results/'
 character(*), parameter :: config_dir = 'Configuration/'

@@ -95,13 +95,13 @@ PROGRAM ScallopPopDensity
 !! The simulation next instantiates how recruitment will be handled.
 !! @subsubsection ms1p3p1 Recruitment data
 !! @paragraph ms1p3p1p1 For years 1979, 2018
-!! Data is read in from KrigingEstimates/KrigingEstimateDNYYYY.txt
+!! Data is read in from RecruitEstimates/RecruitEstimateDNYYYY.txt
 !!
 !! @subsubsection ms1p3p2 This method is effectively setting
 !! For all years\n
 !!  - Year_index = year - 1978
 !!  - for year_index in [1..max]
-!!      -recruitment(year_index) = KrigingEstimate
+!!      -recruitment(year_index) = RecruitEstimate
 !!      - year(year_index) = year
 !!      - rec_start = 1/365, or January 1st
 !!      - rec_stop = 100/365, or April 10

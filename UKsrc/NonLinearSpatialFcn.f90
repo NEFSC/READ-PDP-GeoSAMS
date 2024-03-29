@@ -333,11 +333,9 @@ if(is_reset) then
     mu = sum(obs%field(1:num_obs_points) / float(num_obs_points))
     rms0 = sqrt(sum( (obs%field(1:num_obs_points) - mu)**2) / float(num_obs_points))
     j = 1
-    !!!!call write_csv(num_obs_points,nsf_local,residuals,'residuals0.csv',num_obs_points, .false.)
+    if (save_data) call write_csv(num_obs_points,nsf_local,residuals,'residuals0.csv',num_obs_points, .false.)
     do while( ( nlsf(j)%rms .lt. 0.9_dp * rms0 + 0.1_dp * nlsf(1)%rms ) .and. (j+1 .lt. nsf_local) )
         j = j+1
-        write(*,*)'                nlsf(j)%rms               rms0',&
-        &          '                      nlsf(1)%rms          0.9_dp*rms0 + 0.1_dp*nlsf(1)%rms'
         write(*,*)'delta rms:   ', nlsf(j)%rms, rms0, nlsf(1)%rms, 0.9_dp*rms0 + 0.1_dp*nlsf(1)%rms
         ! TODO Nothing is done with sum, why compute it?
         ! write(*,*)'delta rms:   ', nlsf(j)%rms, rms0, nlsf(1)%rms, 0.9_dp*rms0 + 0.1_dp*nlsf(1)%rms, &

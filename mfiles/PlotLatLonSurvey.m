@@ -27,14 +27,14 @@ c = c - 2; % deduct for lat, lon
 
 % We are only going to plot annual data, so every tsPerYear columns
 numCol = floor(c/tsPerYear) + 1;
-param=NaN(r,numCol); % pre-allocate
+field=NaN(r,numCol); % pre-allocate
 
 if isOctave
     lat=D(:,1);
     lon=D(:,2);
     n=1;
     for k=1:tsPerYear:c
-        param(:,n) = D(:,k+2);
+        field(:,n) = D(:,k+2);
         n=n+1;
     end
 else
@@ -42,20 +42,20 @@ else
     lon=table2array(D(:,2));
     n=1;
     for k=1:tsPerYear:c
-        param(:,n) =table2array(D(:,k+2));
+        field(:,n) =table2array(D(:,k+2));
         n=n+1;
     end
 end
 edges = [0,10,1e2,1e3,1e4,1e5,1e6,1e7,1e8,1e9,1e10];
 if isOctave
-    hh=histc(param,edges);
+    hh=histc(field,edges);
     len = size(hh,1);
     h = zeros(1,len);
     for n=1:len
         h(n) = sum(hh(n,:));
     end
 else
-    h=histcounts(param,edges);
+    h=histcounts(field,edges);
 end
 % looking for % of data
 a=0.9 * r * numCol;
@@ -73,20 +73,20 @@ end
 for k=1:numCol
 for n=1:r
     % geoscatter does not accept 0.0, must be positive or NaN
-    if param(n,k)<=0 ; param(n,k) = 1e-6; end
+    if field(n,k)<=0 ; field(n,k) = 1e-6; end
     % saturate values
-    if param(n,k)> saturate; param(n,k) = 1e-6; end
+    if field(n,k)> saturate; field(n,k) = 1e-6; end
 end
 end
 % scale data 0+ to 50
-m = max(max(param)) / 50.;
-param = param ./ m;
+m = max(max(field)) / 50.;
+field = field ./ m;
 
 for i=1:numCol
 	year = yearStart + i - 2;
     if isOctave
         f = figure('Name',[fname '_' int2str(year) '_' int2str(saturate)]);
-        scatter(lon, lat, param(:,i), 'b');
+        scatter(lon, lat, field(:,i), 'b');
         legend(int2str(year))
         % enlarge figure
         figure(f,"position",get(0,"screensize"))
@@ -102,7 +102,7 @@ for i=1:numCol
         end
     else
         f = figure('Name',[fname '_' int2str(year) '_' int2str(saturate)]);
-        geoscatter(lat, lon, param(:,i), 'o', 'b');
+        geoscatter(lat, lon, field(:,i), 'o', 'b');
 	    legend(int2str(year))
 
         geobasemap streets;

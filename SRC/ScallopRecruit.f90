@@ -3,7 +3,7 @@
 !>
 !> @section Rsec1 Recruitment Class
 !> Recruitment is treated as a spatially correlated random variable.  Recruit estimates at each node are read in from 
-!> files stored in directories KrigingEstimates/SimDNYYYY/KrigingEstimate.txt, where DN is ['MA', 'GB'] and YY is the
+!> files stored in directories RecruitEstimates/RecruitEstimateDNYYYY.txt, where DN is ['MA', 'GB'] and YY is the
 !> year 1979 - 2019
 !> 
 !> Within the Population Dynamics portion 
@@ -198,7 +198,7 @@ subroutine Set_Recruitment(recruit, n_grids, dom_name, dom_area, L_inf_mu, K_mu,
     ! This next section is effectively setting
     ! For all j in [1..num_grids]
     !   for year_index in [1..max]
-    !       recruitment(year_index) = KrigingEstimate
+    !       recruitment(year_index) = RecruitEstimate
     !       year(year_index) = year, i.e. 1979 + (year_idx - 1)
     !       rec_start = 1/365, or January 1st
     !       rec_stop = 100/365, or April 10 
@@ -212,7 +212,7 @@ subroutine Set_Recruitment(recruit, n_grids, dom_name, dom_area, L_inf_mu, K_mu,
             ! TODO replace magic number 100
             tmp = Random_Recruits(year, year, 100, use_random_rec)
         else
-            call Read_Scalar_Field(rec_input_dir//'KrigingEstimate'//domain_name//trim(adjustl(buf))//'.txt', tmp, num_grids)
+            call Read_Scalar_Field(rec_input_dir//'RecruitEstimate'//domain_name//trim(adjustl(buf))//'.txt', tmp, num_grids)
         endif
         do j = 1,num_grids
             recruit(j)%recruitment(year_index) = tmp(j)

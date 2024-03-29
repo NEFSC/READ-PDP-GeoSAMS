@@ -13,7 +13,6 @@ set ts_per_year=13
 
 set gridList=EBMS LPUE RECR ^
 Trend-EBMS Trend-LPUE Trend-RECR
-set survList=EBMS LPUE RECR
 
 for %%p in (%gridList%) do (
     matlab.exe -batch "PlotLatLonGrid('Results/Lat_Lon_Grid_%%p_%3_%1_%2', %1, '%3'); exit;"
@@ -23,10 +22,3 @@ for %%p in (%gridList%) do (
     )
 )
 
-for %%p in (%survList%) do (
-    matlab.exe -batch "PlotLatLonSurvey('Results/Lat_Lon_Surv_%%p_%3', %ts_per_year%, %1); exit;"
-    if ERRORLEVEL 1 (
-        @echo [31mError in MATLAB "PlotLatLonSurvey('Results/Lat_Lon_Surv_%%p_%3', %ts_per_year%, %1)" Stopping[0m
-        exit /b
-    )
-)

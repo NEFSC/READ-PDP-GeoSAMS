@@ -80,19 +80,9 @@ fi
 if [ ! -d "KrigingEstimates" ]; then
     mkdir KrigingEstimates
 fi
-# DEPRECATE
-# # Create SimDNYYYY subdirectories
-# dirGB="KrigingEstimates/SimGB"
-# dirMA="KrigingEstimates/SimMA"
-# #
-# for ((i = $(($1)); i <= $(($2)); i++ )); do
-#     if [ ! -d $dirGB$i ]; then
-#        mkdir $dirGB$i
-#     fi
-#     if [ ! -d $dirMA$i ]; then
-#        mkdir $dirMA$i
-#     fi
-# done
+if [ ! -d "RecruitEstimates" ]; then
+    mkdir RecruitEstimates
+fi
 
 # startup.m is for use with MATLAB, not used by octave instead see .octaverc
 mv startup.m startup.xxx
