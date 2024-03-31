@@ -12,7 +12,6 @@ if isOctave
         fname = cell2mat(arg_list(1));
         yrStart = str2num(cell2mat(arg_list(2)));
         domain = cell2mat(arg_list(3));
-        byYear = str2num(cell2mat(arg_list(4)));
     end
 end
 
@@ -69,7 +68,7 @@ for n=1:size(h,2)
    end
 end
 
-% 
+%
 for k=1:c
 for n=1:r
     % geoscatter does not accept 0.0, must be positive or NaN
@@ -79,31 +78,13 @@ for n=1:r
 end
 end
 
-if isOctave
-    % Matlab is using colorbar so is more legible than varying circles
-    % scale data 0+ to 50
-    m = max(max(field)) / 50.; %using max(max()) to be compatible w/octave
-    field = field ./ m;
-    % data is ready now plot all years or individually
-else
-    N=saturate;
-    % White to Magenta
-    %Color1 = [ones(N,1), (N-1:-1:0)'/(N-1),ones(N,1)];
-    % White to black
-    %Color1 = [(N-1:-1:0)'/(N-1), (N-1:-1:0)'/(N-1), (N-1:-1:0)'/(N-1)];
-    % Lime to Blue
-    Color1 = [ones(N,1)/4, (N-1:-1:0)'/(N-1), 3*ones(N,1)/4];
-
-    lat_t=array2table(lat,'VariableNames',{'Latitude'});
-    lon_t=array2table(lon,'VariableNames',{'Longitude'});
-end
-
 for i=1:c
     year = yrStart + i - 2;
     if isOctave
         f = figure('Name',[useTitle int2str(year) '_' int2str(saturate)]);
-        scatter(lon, lat, field(:,i), 'b');
-        legend(int2str(year))
+        s=scatter(lon, lat, field(:,i), field(:,i), "filled");
+        set(s,'sizedata',5)
+        colorbar();
 
         % enlarge figure
         figure(f,"position",get(0,"screensize"))
@@ -118,14 +99,10 @@ for i=1:c
             set(p, 'paperposition', [.1 .1 10 16]);
         end
     else
-        field_t=array2table(field(:,i),'VariableNames',{'Field'});
-        tbl = [lat_t, lon_t, field_t]; 
         f = figure('Name',[useTitle int2str(year) '_' int2str(saturate)]);
-        colormap(Color1)
-        s=geoscatter(tbl,"Latitude", "Longitude", "filled");
+        s=geoscatter(lat, lon, field(:,i), field(:,i), "filled");
         geobasemap streets
-        s.SizeData = 20; % size of dots
-        s.ColorVariable = "Field";
+        s.SizeData = 5; % size of dots
         c = colorbar;
         c.Label.String = "Field";
 

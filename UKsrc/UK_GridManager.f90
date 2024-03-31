@@ -146,8 +146,8 @@ do
     read(63, '(a)', iostat = io) input_str
     if (io.lt.0) exit
     n = n + 1
-            read(input_str,*) year, x(n), y(n), z(n), f(n)
-        end do
+    read(input_str,*) year, x(n), y(n), z(n), f(n)
+end do
 close(63)
 GridMgr_Load_Observation_Data = n
 end function

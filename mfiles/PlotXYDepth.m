@@ -1,12 +1,15 @@
 % Reads in data From DNxyzLatLon and converts it to a table
 % Then plots depth using color grid
 
-function PlotLatLonDepth(fname)
+function PlotXYDepth(fname)
 D=readtable(fname,"FileType","spreadsheet");
 
-lat=array2table(table2array(D(:,4)),'VariableNames',{'Latitude'});
-lon=array2table(table2array(D(:,5)),'VariableNames',{'Longitude'});
-depth=array2table(table2array(D(:,3)),'VariableNames',{'Depth'});
+X=table2array(D(:,2));
+Y=table2array(D(:,3));
+[lat, lon] = utm2ll(X,Y,19);
+depth=array2table(table2array(D(:,5)),'VariableNames',{'Depth'});
+lon = array2table(lon,'VariableNames',{'Longitude'});
+lat = array2table(lat,'VariableNames',{'Latitude'});
 tbl = [lat, lon, depth];
 
 %figure('Name',fname)

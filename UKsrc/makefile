@@ -14,7 +14,10 @@ FC = gfortran
 # ... generates bogus warnings if compiled with -Wall AND -O1(or higher optimizations).
 # Fixed in version 12.2.1
 # This is written with currently using: GNU Fortran (GCC) 11.3.0
-FFLAGS = -Wall -std=f95 -fall-intrinsics -O3  -mcmodel=medium -funroll-all-loops -ffast-math -msse -msse2 -m3dnow -m64
+# -mcmodel=medium -msse -msse2 -m3dnow not supported on MAC
+#FFLAGS = -Wall -std=f95 -fall-intrinsics -O3  -mcmodel=medium -funroll-all-loops -ffast-math -msse -msse2 -m3dnow -m64
+FFLAGS = -Wall -std=f95 -fall-intrinsics -O3  -funroll-all-loops -ffast-math -m64
+
 
 # For debug use these flags
 #FFLAGS = -g -Wall -std=f95 -fall-intrinsics #-fbounds-check
