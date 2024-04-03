@@ -15,9 +15,11 @@ tbl = [lat, lon, depth];
 %figure('Name',fname)
 s=geoscatter(tbl,"Latitude", "Longitude", "filled");
 hold on
-geobasemap streets
+geobasemap darkwater;
 
 s.SizeData = 5; % size of dots
 s.ColorVariable = "Depth";
+c=hot(100);
+colormap(c);
 c = colorbar;
 c.Label.String = "Depth";

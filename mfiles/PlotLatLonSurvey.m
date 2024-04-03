@@ -78,9 +78,6 @@ for n=1:r
     if field(n,k)> saturate; field(n,k) = 1e-6; end
 end
 end
-% scale data 0+ to 50
-m = max(max(field)) / 50.;
-field = field ./ m;
 
 for i=1:numCol
 	year = yearStart + i - 2;
@@ -102,17 +99,15 @@ for i=1:numCol
         end
     else
         f = figure('Name',[fname '_' int2str(year) '_' int2str(saturate)]);
-        geoscatter(lat, lon, field(:,i), 'o', 'b');
-	    legend(int2str(year))
+        s=geoscatter(lat, lon, field(:,i), field(:,i), "filled");
+        geobasemap bluegreen;
+        title([fname '_' int2str(year)], 'Interpreter', 'none');
+        s.SizeData = 25; % size of dots
+        c=hot(100);
+        colormap(c);
+        c = colorbar;
+        c.Label.String = "Field";
 
-        geobasemap streets;
-
-        % enlarge figure
-        if strcmp(domain, 'GB')
-            f.OuterPosition = [1963.4 -221.4 1500 1087.2];
-        else
-            f.OuterPosition = [1963.4 -221.4 1000 1087.2];
-        end
 
         p = gcf();
         p.PaperSize = [11 17];

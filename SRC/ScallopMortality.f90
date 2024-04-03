@@ -94,6 +94,7 @@ real(dp), PRIVATE :: domain_area_sqm
 integer, PRIVATE :: num_time_steps
 integer, PRIVATE :: ts_per_year
 real(dp), PRIVATE :: delta_time
+logical, PRIVATE :: save_by_stratum
 
 ! configuration parameters
 real(dp), PRIVATE :: fishing_mort
@@ -174,7 +175,7 @@ endsubroutine Destructor
 !> @param[in] domain_area,Size of domain under consideration in square meters
 !> 
 !==================================================================================================================
-subroutine Set_Mortality(mortality, grid, shell_lengths, dom_name, dom_area, num_ts, ts_py, ngrids, max_ngrids)
+subroutine Set_Mortality(mortality, grid, shell_lengths, dom_name, dom_area, num_ts, ts_py, ngrids, max_ngrids, save_by_strat)
     implicit none
     
     type(Mortality_Class), intent(inout):: mortality(*)
@@ -185,6 +186,7 @@ subroutine Set_Mortality(mortality, grid, shell_lengths, dom_name, dom_area, num
     integer, intent(in) :: num_ts, ts_py
     integer, intent(in) :: ngrids
     integer, intent(in) :: max_ngrids
+    logical, intent(in) :: save_by_strat
     integer yr_index, j, num_years, year
     real(dp) fishing_by_region(max_num_years, 4), length_0
     real(dp) cull_size, discard
@@ -199,6 +201,7 @@ subroutine Set_Mortality(mortality, grid, shell_lengths, dom_name, dom_area, num
     num_time_steps = num_ts
     ts_per_year = ts_py
     delta_time = 1._dp / dfloat(ts_per_year)
+    save_by_stratum = save_by_strat
 
     ! default values
     ma_cull_size_mm = 90.
@@ -1064,21 +1067,22 @@ if (mod(ts+1, ts_per_year) .eq. 1) then
         write(buf,'(I4)') year
     endif
 
-    if (domain_name .EQ. 'MA') then
-        call Write_Column_CSV(num_grids, ebms_mt(:),         'EBMS',     data_dir//'X_Y_EBMS_'//'MA'//trim(buf)//'.csv', .true.)
-        call Write_Column_CSV(num_grids, landings_by_num(:), 'Landings', data_dir//'X_Y_LAND_'//'MA'//trim(buf)//'.csv', .true.)
-        call Write_Column_CSV(num_grids, lpue(:),            'LPUE',     data_dir//'X_Y_LPUE_'//'MA'//trim(buf)//'.csv', .true.)
-        call Write_Column_CSV(num_grids, set_fishing_by_loc(1:num_grids),&
-        &                                                    'FEFF',     data_dir//'X_Y_FEFF_'//'MA'//trim(buf)//'.csv', .true.)
+    if (save_by_stratum) then
+        call Write_Column_CSV_By_Stratum(num_grids, ebms_mt(:), grid(1:num_grids)%lat, grid(1:num_grids)%lon, &
+        &            grid(1:num_grids)%stratum, 'EBMS', data_dir//'X_Y_EBMS_'//domain_name//trim(buf), .true.)
+        call Write_Column_CSV_By_Stratum(num_grids, ebms_mt(:), grid(1:num_grids)%lat, grid(1:num_grids)%lon, &
+        &            grid(1:num_grids)%stratum, 'LAND', data_dir//'X_Y_LAND_'//domain_name//trim(buf), .true.)
+        call Write_Column_CSV_By_Stratum(num_grids, ebms_mt(:), grid(1:num_grids)%lat, grid(1:num_grids)%lon, &
+        &            grid(1:num_grids)%stratum, 'LPUE', data_dir//'X_Y_LPUE_'//domain_name//trim(buf), .true.)
+        call Write_Column_CSV_By_Stratum(num_grids, ebms_mt(:), grid(1:num_grids)%lat, grid(1:num_grids)%lon, &
+        &            grid(1:num_grids)%stratum, 'FEFF', data_dir//'X_Y_FEFF_'//domain_name//trim(buf), .true.)
     else
-        call Write_Column_CSV_By_Stratum(num_grids, ebms_mt(:), grid(1:num_grids)%lat, grid(1:num_grids)%lon, &
-        &            grid(1:num_grids)%stratum, 'EBMS', data_dir//'X_Y_EBMS_'//'GB'//trim(buf), .true.)
-        call Write_Column_CSV_By_Stratum(num_grids, ebms_mt(:), grid(1:num_grids)%lat, grid(1:num_grids)%lon, &
-        &            grid(1:num_grids)%stratum, 'LAND', data_dir//'X_Y_LAND_'//'GB'//trim(buf), .true.)
-        call Write_Column_CSV_By_Stratum(num_grids, ebms_mt(:), grid(1:num_grids)%lat, grid(1:num_grids)%lon, &
-        &            grid(1:num_grids)%stratum, 'LPUE', data_dir//'X_Y_LPUE_'//'GB'//trim(buf), .true.)
-        call Write_Column_CSV_By_Stratum(num_grids, ebms_mt(:), grid(1:num_grids)%lat, grid(1:num_grids)%lon, &
-        &            grid(1:num_grids)%stratum, 'FEFF', data_dir//'X_Y_FEFF_'//'GB'//trim(buf), .true.)
+        call Write_Column_CSV(num_grids, ebms_mt(:), 'EBMS', data_dir//'X_Y_EBMS_'//domain_name//trim(buf)//'.csv', .true.)
+        call Write_Column_CSV(num_grids, landings_by_num(:), 'Landings', &
+        &                                                    data_dir//'X_Y_LAND_'//domain_name//trim(buf)//'.csv', .true.)
+        call Write_Column_CSV(num_grids, lpue(:), 'LPUE',    data_dir//'X_Y_LPUE_'//domain_name//trim(buf)//'.csv', .true.)
+        call Write_Column_CSV(num_grids, set_fishing_by_loc(1:num_grids), 'FEFF',&
+        &                                                    data_dir//'X_Y_FEFF_'//domain_name//trim(buf)//'.csv', .true.)
     endif
 endif ! if(mod()) = 1
 

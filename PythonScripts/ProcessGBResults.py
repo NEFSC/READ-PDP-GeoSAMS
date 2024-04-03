@@ -1,17 +1,16 @@
 #subprocess.run([ex, dn, flin])
 
 import subprocess
-import socket
 import os
 import sys
 import csv
 
 from collections import defaultdict
 
-
-if (len(sys.argv) != 3):
+nargs = len(sys.argv)
+if (nargs < 3 or nargs > 4):
     print ("  Missing command line arguments. Expecting: ")
-    print ("  $ ProcessGBResults.py StartYear EndYear")
+    print ("  $ ProcessGBResults.py StartYear EndYear [SavedByStratum]")
     print()
     quit()
 
@@ -21,6 +20,12 @@ year_start = int(sys.argv[1])
 year_end = int(sys.argv[2])
 years = range(year_start, year_end + 1)
 
+if (nargs == 4):
+    savedByStratum = sys.argv[3] == 'T'
+else:
+    savedByStratum = False
+
+print('Process stratum: ', savedByStratum)
 # Used whil concatenating files
 # number of colums in csv file, starting at 0
 # lat, lon, initial data
@@ -34,7 +39,11 @@ ex = os.path.join('UKsrc', 'UK')
 
 #paramStr = ['EBMS_', 'LAND_', 'LPUE_', 'FEFF_','RECR_']
 paramStr = ['EBMS_', 'LPUE_', 'RECR_']
-rgn = ['_SW', '_N', '_S', '_W']
+if savedByStratum:
+    rgn = ['_SW', '_N', '_S', '_W']
+else:
+    rgn = ['']
+
 prefix = ['Results/Lat_Lon_Grid_', 'Results/Lat_Lon_Grid_Trend-']
 
 for pStr in paramStr:
@@ -107,7 +116,10 @@ for pStr in paramStr:
                     col[0][k + 2].append(col[k][2][i])
 
             # brute force write out results
-            flout = open(pfix + pStr + dn + r + '.csv', 'w')
+            if savedByStratum:
+                flout = open(pfix + pStr + dn + r + '.csv', 'w')
+            else:
+                flout = open(pfix + pStr + dn + '_' + str(year_start) + '_' + str(year_end) + '.csv', 'w')
             for row in range(len(col[0][0])):
                 for c in range(ncols):
                     flout.write(col[0][c][row])
@@ -118,18 +130,23 @@ for pStr in paramStr:
         # end for pfix
     # end for rgn
 
-    # now combine all region files into one file
-    for pfix in prefix:
-        flout = pfix + pStr + dn + '_' + str(year_start) + '_' + str(year_end) + '.csv'
-        wrFile = open(flout, 'w')
-        for r in rgn:
-            flin = pfix + pStr + dn + r + '.csv'
-            rdFile = open(flin, 'r')
-            lines = rdFile.readlines()
-            wrFile.writelines(lines)
-            rdFile.close()
-            os.remove(flin)
-        wrFile.close()
-        print('Files concatenated to: ',flout)
-    # end for pfix
+    if savedByStratum:
+        # now combine all region files into one file
+        for pfix in prefix:
+            flout = pfix + pStr + dn + '_' + str(year_start) + '_' + str(year_end) + '.csv'
+            wrFile = open(flout, 'w')
+            for r in rgn:
+                flin = pfix + pStr + dn + r + '.csv'
+                rdFile = open(flin, 'r')
+                lines = rdFile.readlines()
+                wrFile.writelines(lines)
+                rdFile.close()
+                os.remove(flin)
+            wrFile.close()
+            print('Files concatenated to: ',flout)
+        # end for pfix
+    else:
+        print('Files concatenated to: ',flout.name)
+
+    # end savedByStratum
 # end for pStr

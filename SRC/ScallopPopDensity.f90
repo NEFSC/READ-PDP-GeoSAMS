@@ -212,6 +212,7 @@ character(domain_len) domain_name
 integer start_year, stop_year
 integer num_time_steps
 integer ts_per_year
+logical save_by_stratum
 real(dp) delta_time
 integer num_years
 integer year
@@ -258,7 +259,7 @@ endif
 !==================================================================================================================
 !  - I. Read Configuration file 'Scallop.inp'
 !==================================================================================================================
-call Read_Startup_Config(max_num_grids, domain_name, file_name, start_year, stop_year, ts_per_year)
+call Read_Startup_Config(max_num_grids, domain_name, file_name, start_year, stop_year, ts_per_year, save_by_stratum)
 !override configuration file parameters with command line arguments if present.
 if(ncla.ge.2) then
     call get_command_argument(2, arg)
@@ -311,7 +312,7 @@ call Set_Growth(growth, grid, shell_length_mm, num_time_steps, ts_per_year, doma
 call Set_Recruitment(recruit, num_grids, domain_name, domain_area, &
 &                    growth(1:num_grids)%L_inf_mu, growth(1:num_grids)%K_mu, shell_length_mm, start_year, stop_year)
 call Set_Mortality(mortality, grid, shell_length_mm, domain_name, domain_area, num_time_steps, &
-&                    ts_per_year, num_grids, max_num_grids)
+&                    ts_per_year, num_grids, max_num_grids, save_by_stratum)
 
 write(*,*) '========================================================'
 write(*,'(A,I6)') ' Max Expected #grids ', max_num_grids
@@ -321,6 +322,7 @@ write(*,'(A,I6)') ' Stop Year:          ', stop_year
 write(*,'(A,A6)') ' Fishing Type:       ', Get_Fishing_Type()
 write(*,'(A,I6,A,F7.4)') ' Time steps/year:', ts_per_year, ' delta ', delta_time
 write(*,'(A,I6,A,F7.4)') ' Total number time steps:', num_time_steps
+write(*,*) ' Saving Output by Stratum: ', save_by_stratum
 write(*,*) '========================================================'
 
 
@@ -338,18 +340,18 @@ call Write_Lat_Lon_Preamble(num_grids, grid, output_dir//'Lat_Lon_Surv_FEFF_'//d
 
 ! Write similar data for later interpolation by UK (Universal Kriging)
 write(buf,'(I4)') start_year
-call Write_X_Y_Preamble(num_grids, grid, data_dir//'X_Y_EBMS_'//domain_name//buf//'_0.csv', domain_name)
-call Write_X_Y_Preamble(num_grids, grid, data_dir//'X_Y_LAND_'//domain_name//buf//'_0.csv', domain_name)
-call Write_X_Y_Preamble(num_grids, grid, data_dir//'X_Y_LPUE_'//domain_name//buf//'_0.csv', domain_name)
-call Write_X_Y_Preamble(num_grids, grid, data_dir//'X_Y_RECR_'//domain_name//buf//'_0.csv', domain_name)
-call Write_X_Y_Preamble(num_grids, grid, data_dir//'X_Y_FEFF_'//domain_name//buf//'_0.csv', domain_name)
+call Write_X_Y_Preamble(num_grids, grid, data_dir//'X_Y_EBMS_'//domain_name//buf//'_0.csv', save_by_stratum)
+call Write_X_Y_Preamble(num_grids, grid, data_dir//'X_Y_LAND_'//domain_name//buf//'_0.csv', save_by_stratum)
+call Write_X_Y_Preamble(num_grids, grid, data_dir//'X_Y_LPUE_'//domain_name//buf//'_0.csv', save_by_stratum)
+call Write_X_Y_Preamble(num_grids, grid, data_dir//'X_Y_RECR_'//domain_name//buf//'_0.csv', save_by_stratum)
+call Write_X_Y_Preamble(num_grids, grid, data_dir//'X_Y_FEFF_'//domain_name//buf//'_0.csv', save_by_stratum)
 do n = start_year, stop_year
     write(buf,'(I4)') n
-    call Write_X_Y_Preamble(num_grids, grid, data_dir//'X_Y_EBMS_'//domain_name//buf//'.csv', domain_name)
-    call Write_X_Y_Preamble(num_grids, grid, data_dir//'X_Y_LAND_'//domain_name//buf//'.csv', domain_name)
-    call Write_X_Y_Preamble(num_grids, grid, data_dir//'X_Y_LPUE_'//domain_name//buf//'.csv', domain_name)
-    call Write_X_Y_Preamble(num_grids, grid, data_dir//'X_Y_RECR_'//domain_name//buf//'.csv', domain_name)
-    call Write_X_Y_Preamble(num_grids, grid, data_dir//'X_Y_FEFF_'//domain_name//buf//'.csv', domain_name)
+    call Write_X_Y_Preamble(num_grids, grid, data_dir//'X_Y_EBMS_'//domain_name//buf//'.csv', save_by_stratum)
+    call Write_X_Y_Preamble(num_grids, grid, data_dir//'X_Y_LAND_'//domain_name//buf//'.csv', save_by_stratum)
+    call Write_X_Y_Preamble(num_grids, grid, data_dir//'X_Y_LPUE_'//domain_name//buf//'.csv', save_by_stratum)
+    call Write_X_Y_Preamble(num_grids, grid, data_dir//'X_Y_RECR_'//domain_name//buf//'.csv', save_by_stratum)
+    call Write_X_Y_Preamble(num_grids, grid, data_dir//'X_Y_FEFF_'//domain_name//buf//'.csv', save_by_stratum)
 end do
 !----------------------------------------------------------------------------------------------------------------
 year = start_year
@@ -358,14 +360,7 @@ do ts = 1, num_time_steps
     if (mod(ts, ts_per_year) .eq. 1) then
         recr_idx = year - start_year + 1
         write(buf,'(I4)') year
-        if (domain_name .EQ. 'MA') then
-            if (ts .eq. 1) then
-                file_name = data_dir//'X_Y_RECR_'//domain_name//buf//'_0.csv'
-            else
-                file_name = data_dir//'X_Y_RECR_'//domain_name//buf//'.csv'
-            endif 
-            call Write_Column_CSV(num_grids, recruit(:)%recruitment(recr_idx), 'Recruitment', file_name, .true.)
-        else
+        if (save_by_stratum) then
             if (ts .eq. 1) then
                 write(buf_0,'(I4,A2)') year, '_0'
             else
@@ -373,7 +368,14 @@ do ts = 1, num_time_steps
             endif
             call Write_Column_CSV_By_Stratum(num_grids, recruit(:)%recruitment(recr_idx), &
             &            grid(1:num_grids)%lat, grid(1:num_grids)%lon, grid(1:num_grids)%stratum, &
-            &            'RECR', data_dir//'X_Y_RECR_'//'GB'//trim(buf_0), .true.)
+            &            'RECR', data_dir//'X_Y_RECR_'//domain_name//trim(buf_0), .true.)
+        else
+            if (ts .eq. 1) then
+                file_name = data_dir//'X_Y_RECR_'//domain_name//buf//'_0.csv'
+            else
+                file_name = data_dir//'X_Y_RECR_'//domain_name//buf//'.csv'
+            endif 
+            call Write_Column_CSV(num_grids, recruit(:)%recruitment(recr_idx), 'Recruitment', file_name, .true.)
         endif
     endif
     file_name = output_dir//'Lat_Lon_Surv_RECR_'//domain_name//'.csv'
@@ -427,7 +429,7 @@ END PROGRAM ScallopPopDensity
 !> @param[out] time_steps_per_year Number of times steps to evaluate growth
 !> @param[out] num_monte_carlo_iter Number of iterations for Monte Carlo simulation
 !-----------------------------------------------------------------------
-subroutine Read_Startup_Config(max_num_grids, domain_name, file_name, start_year, stop_year, time_steps_per_year)
+subroutine Read_Startup_Config(max_num_grids, domain_name, file_name, start_year, stop_year, time_steps_per_year, save_by_stratum)
     use globals
     use Mortality_Mod, only : Mortality_Set_Config_File_Name => Set_Config_File_Name
     use Recruit_Mod, only : Recruit_Set_Config_File_Name => Set_Config_File_Name
@@ -438,11 +440,17 @@ subroutine Read_Startup_Config(max_num_grids, domain_name, file_name, start_year
     character(domain_len),intent(out):: domain_name
     character(*),intent(in):: file_name
     integer, intent(out) :: start_year, stop_year, time_steps_per_year ! , num_monte_carlo_iter
+    logical, intent(out) :: save_by_stratum
 
     integer j, k, io
     character(line_len) input_string
     character(tag_len) tag
     character(value_len) value
+
+    ! default values
+    max_num_grids = 1000
+    save_by_stratum = .false.
+    time_steps_per_year = 13
 
     open(read_dev,file=file_name)
     do
@@ -486,6 +494,9 @@ subroutine Read_Startup_Config(max_num_grids, domain_name, file_name, start_year
 
             case('Max Number of Grids')
                 read(value,*) max_num_grids
+            
+            case('Save By Stratum')
+                read(value,*) save_by_stratum
 
             case default
                 write(*,*) term_red, 'Unrecognized line in ',file_name
@@ -518,17 +529,17 @@ endsubroutine Write_Lat_Lon_Preamble
 !! Read_Startup_Config
 !> @brief Writes year, UTM-X, UTM-Y, and Depth columns with headers to named file
 !--------------------------------------------------------------------------------
-subroutine Write_X_Y_Preamble(num_grids, grid, fname, domain_name)
+subroutine Write_X_Y_Preamble(num_grids, grid, fname, save_by_stratum)
 use globals
 use Grid_Manager_Mod
 integer, intent(in) :: num_grids
 type(Grid_Data_Class), intent(in) :: grid(*)
 character(*), intent(in) :: fname
-character(domain_len),intent(out):: domain_name
+logical, intent(in) :: save_by_stratum
 
 character(fname_len) file_name
 integer k
-if (domain_name .eq. 'GB') then
+if (save_by_stratum) then
     k = index(fname, '.') -1
     file_name = fname(1:k)
     call Write_Column_CSV_By_Stratum(num_grids, grid(1:num_grids)%year, &

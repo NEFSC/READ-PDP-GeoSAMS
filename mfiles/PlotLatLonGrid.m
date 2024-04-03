@@ -80,9 +80,10 @@ end
 
 for i=1:c
     year = yrStart + i - 2;
+    thisTitle = [useTitle int2str(year) '_' int2str(saturate)];
     if isOctave
-        f = figure('Name',[useTitle int2str(year) '_' int2str(saturate)]);
-        s=scatter(lon, lat, field(:,i), field(:,i), "filled");
+        f = figure('Name', thisTitle);
+        s=scatter(lon, lat, field(), field(:,i), "filled");
         set(s,'sizedata',5)
         colorbar();
 
@@ -99,19 +100,15 @@ for i=1:c
             set(p, 'paperposition', [.1 .1 10 16]);
         end
     else
-        f = figure('Name',[useTitle int2str(year) '_' int2str(saturate)]);
+        f = figure('Name', thisTitle);
         s=geoscatter(lat, lon, field(:,i), field(:,i), "filled");
-        geobasemap streets
+        geobasemap bluegreen;
+        title([useTitle int2str(year)], 'Interpreter', 'none');
         s.SizeData = 5; % size of dots
+        c=hot(100);
+        colormap(c);
         c = colorbar;
         c.Label.String = "Field";
-
-        % enlarge figure
-        if strcmp(domain, 'GB')
-            f.OuterPosition = [1963.4 -221.4 1500 1087.2];
-        else
-            f.OuterPosition = [1963.4 -221.4 1000 1087.2];
-        end
 
         p = gcf();
         p.PaperSize = [11 17];
@@ -124,6 +121,6 @@ for i=1:c
         end
     end
 
-    saveas(gcf,[useTitle int2str(year) '_' int2str(saturate) '.pdf'])
+    saveas(gcf,[thisTitle '.pdf'])
 end
 
