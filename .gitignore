@@ -30,3 +30,7 @@ InitiaCondition/*.txt
 *.code-workspace
 UKsrc/IORoutines.f90
 UKsrc/Globals.f90
+ScallopPopDensity
+UK
+RockStrata*
+.DS_Store

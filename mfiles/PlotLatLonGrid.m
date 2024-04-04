@@ -25,7 +25,6 @@ if isOctave
 else
     D=readtable([fname '.csv'],"FileType","spreadsheet");
 end
-
 [r, c]=size(D);
 c = c - 2; % deduct for lat, lon
 field=NaN(r,c); % pre-allocate
@@ -83,9 +82,14 @@ for i=1:c
     thisTitle = [useTitle int2str(year) '_' int2str(saturate)];
     if isOctave
         f = figure('Name', thisTitle);
-        s=scatter(lon, lat, field(), field(:,i), "filled");
+        s=scatter(lon, lat, field(:,i), field(:,i), "filled");
+        %set(gca, 'color', [193 245 247]/255) %RGB as a fraction
+        % however background color does not save to pdf
         set(s,'sizedata',5)
-        colorbar();
+
+        c=cool(100);
+        colormap(c);
+        c = colorbar;
 
         % enlarge figure
         figure(f,"position",get(0,"screensize"))
