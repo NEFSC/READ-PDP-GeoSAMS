@@ -142,7 +142,8 @@ logical save_data
 logical is_reset
 real(dp) f0_max
 
-par%form='spherical'
+par = Krig_Class(0.0, 0.0, 0.0, 0.0, 'spherical')
+
 f0_max = 0._dp
 
 write (*,*) term_grn, "PROGRAM STARTING", term_blk

@@ -17,8 +17,7 @@ type Grid_Data_Class
     real(dp) field(nDim)
     real(dp) lat(NDim)
     real(dp) lon(NDim)
-    integer num_points, num_squares
-    integer E(4, nDim)
+    integer num_points
 end type Grid_Data_Class
 
 character(fname_len), PRIVATE :: grid_data_file_name

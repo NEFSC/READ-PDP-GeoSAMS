@@ -317,7 +317,7 @@ if (save_data) then
     close(63)
 endif
 
-if(is_reset) then
+if ((is_reset) .AND. (nsf>0)) then
     !sort functions into increasing rms
     write(buf,'(I3)') nsf_local
     write(*,'(A,A,'//trim(buf)//'(F10.6))') term_grn, 'rms:',rms(1:nsf_local)

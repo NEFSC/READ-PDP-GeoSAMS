@@ -130,10 +130,18 @@ write(buf,'(I6)')k
 ! format for exponential format
 !
 if (append) then
-    fmtstr='('//trim(adjustl(buf))//'(ES14.7 : ", ") (ES14.7 : ))'//NEW_LINE(cr)
+    if (k.LE.0) then
+        fmtstr='(ES14.7 : )'//NEW_LINE(cr)
+    else
+        fmtstr='('//trim(adjustl(buf))//'(ES14.7 : ", ") (ES14.7 : ))'//NEW_LINE(cr)
+    endif
     open(69,file=file_name, status="old", position="append", action="write")
 else
-    fmtstr='('//trim(adjustl(buf))//'(ES14.7 : ", ") (ES14.7 : ))'
+    if (k.LE.0) then
+        fmtstr='(ES14.7 : )'
+    else
+        fmtstr='('//trim(adjustl(buf))//'(ES14.7 : ", ") (ES14.7 : ))'
+    endif
     open(69,file=file_name)
 endif
 do k=1,n
