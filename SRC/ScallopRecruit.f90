@@ -145,7 +145,7 @@ recr_stop_year = value
 recr_all_rand_stop = value ! TODO is this correct. Not using random recruits at this time
 endsubroutine Set_Stop_Year
         
-        !==================================================================================================================
+!==================================================================================================================
 !! @public @memberof Recruitment_Class
 !> Set_Recruitment
 !> @brief Sets recruitment parameters
@@ -289,7 +289,7 @@ function Random_Recruits(start_year, stop_year, num_sim, rescale)
             mu = -3.5329
             sig = 1.0036
         endif
-        mus = sum(Random_Recruits(1:num_grids)) / float(num_grids)
+        mus = Compute_MEAN(Random_Recruits(1:num_grids), num_grids)
         call random_number(p(1:2))
         mur = mu + sig * p(1)
         Random_Recruits(1:num_grids) = Random_Recruits(1:num_grids) * exp(mur) / mus

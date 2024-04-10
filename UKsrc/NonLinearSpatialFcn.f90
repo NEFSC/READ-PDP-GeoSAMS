@@ -143,10 +143,10 @@ if (InitialCallFlag) then
         if(input_string(1:1).eq.'F') n = n+1
     end do
     close(69)
-    if (n .eq. 0) then
-        write(*,*) term_red, 'No spatial functions are defined. Cannot proceed.', term_blk
-        stop 1
-    endif
+    ! if (n .eq. 0) then
+    !     write(*,*) term_red, 'No spatial functions are defined. Cannot proceed.', term_blk
+    !     stop 1
+    ! endif
     NLSF_Define_Functions = n
     return
 endif
@@ -268,6 +268,8 @@ integer, allocatable:: RankIndx(:)
 real(dp) mu,rms0
 integer nsf_local, nsflim_local
 
+character(10) buf
+
 nsf_local = nsf
 nsflim_local = nsflim
 
@@ -281,7 +283,7 @@ allocate(rms(1:nsf_local), RankIndx(1:nsf_local))
 
 ! initialize residual 0
 residual_vect(:) = obs%field(1:num_obs_points)
-write(*,'(A,F20.16)') 'residual  0: ', sqrt(sum(residual_vect(1:num_obs_points)**2)/float(num_obs_points))
+write(*,'(A,F10.6)') 'residual  0: ', Compute_RMS(residual_vect(:), num_obs_points)
 
 do j = 1, nsf_local
     if(is_reset) residual_vect(:) = obs%field(1:num_obs_points)
@@ -300,10 +302,10 @@ do j = 1, nsf_local
     endif
     residual_vect = NLSF_Fit_Function(obs, nlsf(j), residual_vect, field_precond)
 
-    nlsf(j)%rms = sqrt( sum( residual_vect(:)**2 )/float(num_obs_points) )
+    nlsf(j)%rms = Compute_RMS(residual_vect(:), num_obs_points)
     rms(j) = nlsf(j)%rms
     residuals(:, j) = residual_vect(:)
-    write(*,'(A,I2,A,F20.16)')'residual ', j, ': ', sqrt(sum(residual_vect(:)**2)/float(num_obs_points))
+    write(*,'(A,I2,A,F10.6)')'residual ', j, ': ', rms(j)
 enddo
 
 if (save_data) then
@@ -317,42 +319,40 @@ endif
 
 if(is_reset) then
     !sort functions into increasing rms
-    write(*,*)'rms:',rms(1:nsf_local)
+    write(buf,'(I3)') nsf_local
+    write(*,'(A,A,'//trim(buf)//'(F10.6))') term_grn, 'rms:',rms(1:nsf_local)
     do k = 1,nsf_local
         j = minloc(rms(1:nsf_local),1)
-        write(*,*) k, j, rms(j)
+        write(*,'(I3,I3,F10.6)') k, j, rms(j)
         RankIndx(k) = j
         rms(j) = huge(1.D0)
     enddo
-    write(*,*) term_grn, 'function rank:', RankIndx(1:nsf_local)
+    write(buf,'(I3)') nsf_local
+    write(*,'(A,'//trim(buf)//'(I2))') 'function rank:', RankIndx(1:nsf_local)
     nlsf(1:nsf_local) = nlsf(RankIndx(1:nsf_local))
     residuals(1:num_obs_points, 1:nsf_local) = residuals(1:num_obs_points,RankIndx(1:nsf_local))
     nsf_local = min(nsf_local,nsflim_local)
-    write(*,*)'function rms:', nlsf(1:nsf_local)%rms
 
-    mu = sum(obs%field(1:num_obs_points) / float(num_obs_points))
-    rms0 = sqrt(sum( (obs%field(1:num_obs_points) - mu)**2) / float(num_obs_points))
+    write(*,'(A,'//trim(buf)//'F10.6)') 'function rms:', nlsf(1:nsf_local)%rms
+    mu = Compute_MEAN(obs%field(1:num_obs_points), num_obs_points)
+    rms0 = Compute_RMS(obs%field(:) - mu, num_obs_points)
     j = 1
     if (save_data) call write_csv(num_obs_points,nsf_local,residuals,'residuals0.csv',num_obs_points, .false.)
     do while( ( nlsf(j)%rms .lt. 0.9_dp * rms0 + 0.1_dp * nlsf(1)%rms ) .and. (j+1 .lt. nsf_local) )
         j = j+1
-        write(*,*)'delta rms:   ', nlsf(j)%rms, rms0, nlsf(1)%rms, 0.9_dp*rms0 + 0.1_dp*nlsf(1)%rms
-        ! TODO Nothing is done with sum, why compute it?
-        ! write(*,*)'delta rms:   ', nlsf(j)%rms, rms0, nlsf(1)%rms, 0.9_dp*rms0 + 0.1_dp*nlsf(1)%rms, &
-        ! & sum((residuals(1:num_obs_points, j+1) - residuals(1:num_obs_points,j))**2 )/float(num_obs_points) 
+        write(*,'(A,5F10.6)')'delta rms:   ', nlsf(j)%rms, rms0, nlsf(1)%rms, 0.9_dp*rms0 + 0.1_dp*nlsf(1)%rms, &
+        & sum((residuals(1:num_obs_points, j+1) - residuals(1:num_obs_points,j))**2 )/float(num_obs_points), term_blk
     enddo
     j = j - 1
     nsflim = j
     nsf = j
-    write(*,*) term_blk, 'NLSF j =', j
-    write(*,*) 'NLSF   =',nsf
     write(*,*) 'NLSF limit=',nsflim
 
 else
     nsflim_local = nsf_local
     nsf = nsf_local
     do j=1,nsf
-        write(*,*)'spatial function',j,'postfit rms:',rms(j)
+        write(*,'(A,I3,A,F10.6)')'spatial function',j,'  postfit rms: ',rms(j)
     enddo
 endif
 
@@ -488,7 +488,7 @@ type(NLSF_Class), intent(inout) ::nlsf
 real(dp), intent(in):: y(*), f(*)
 real(dp) :: NLSF_Fit_Function(1:obs%num_points)
 
-real(dp)  ErrMin, Err, x0hat, lambdahat, smoothness_penalty, SPF, RMS
+real(dp)  err_min, err, x0hat, lambdahat, smoothness_penalty, spf, rms
 integer j, k, num_points
 real(dp), allocatable :: s(:), p(:), x0(:), lambda(:), lpr(:), pg(:)
 integer, parameter :: np = 500
@@ -503,18 +503,18 @@ enddo
 
 !----------------------------------------------
 ! set smoothness to dominate below lambda_min
-! SPF: penalizes integral [d2 f /d x2 f(x)]^2
-! set SPF=0 for no roughness penalty
+! spf: penalizes integral [d2 f /d x2 f(x)]^2
+! set spf=0 for no roughness penalty
 !----------------------------------------------
-RMS = sqrt( sum( y(1:num_points)**2 )/float(num_points) )
+rms = Compute_RMS(y(1:num_points), num_points)
 nlsf%lambda = nlsf%lambda_min
 smoothness_penalty = NLSF_Smooth_Penalty(nlsf)
-SPF = RMS/smoothness_penalty
+spf = rms/smoothness_penalty
 x0(1:np) = nlsf%f0_min + ( nlsf%f0_max - nlsf%f0_min ) * p(1:np)
 lambda(1:np) = nlsf%lambda_min + (nlsf%lambda_max - nlsf%lambda_min) * p(1:np)
 !----------------------------------------------
 
-ErrMin = Huge(1.D0)
+err_min = Huge(1.D0)
 x0hat = x0(1)
 lambdahat = lambda(1)
 ! index x0
@@ -525,12 +525,12 @@ do j = 1, np
         nlsf%lambda = lambda(k)
         s(:) = NLSF_Evaluate_Fcn(obs, nlsf)
         lpr = LSF_Simple_Linear_Regression(y(1:num_points), s(1:num_points) * f(1:num_points), num_points)
-        RMS = sqrt( sum( (y(1:num_points) - lpr(1:num_points))**2) / float(num_points) )
+        rms = Compute_RMS(y(1:num_points) - lpr(1:num_points), num_points)
         smoothness_penalty = NLSF_Smooth_Penalty(nlsf) ! penalize roughness analytic approximation
-        Err = RMS + SPF * smoothness_penalty
-        if (Err.lt.ErrMin)then
-            ! write(*,*)nlsf%form, Err, RMS, SPF*smoothness_penalty
-            ErrMin = err
+        err = rms + spf * smoothness_penalty
+        if (err.lt.err_min)then
+            ! write(*,*)nlsf%form, err, rms, spf*smoothness_penalty
+            err_min = err
             x0hat = x0(j)
             lambdahat = lambda(k)
         endif
@@ -580,7 +580,7 @@ allocate(residual_vect(1:num_obs_points), res(1:num_obs_points), field_precond(1
 allocate(residuals(1:num_obs_points, 1:nsf), rms(1:nsf), isfit(1:nsf))
 allocate(nlsfTmp(1:nsf), RankIndx(1:nsf))
 residual_vect(1:num_obs_points) = obs%field(1:num_obs_points)
-write(*,*)'res0:', sqrt(sum(residual_vect(1:num_obs_points)**2) / float(num_obs_points))
+write(*,*)'res0:', Compute_RMS(residual_vect(:), num_obs_points)
 isfit(1:nsf) = 0
 nfi = 0
 do while(sum(isfit(1:nsf)).lt.nsflim)
@@ -602,9 +602,9 @@ do while(sum(isfit(1:nsf)).lt.nsflim)
             endif
             if(notyet.eq.0)then
                 res = NLSF_Fit_Function(obs, nlsf(j), residual_vect, field_precond)
-                nlsf(j)%rms = sqrt( sum( res(1:num_obs_points)**2) / float(num_obs_points) )
+                nlsf(j)%rms = Compute_RMS(res(:), num_obs_points)
                 residuals(1:num_obs_points, j) = res(1:num_obs_points)
-                rms(j) = sqrt( sum( res(1:num_obs_points)**2) / float(num_obs_points) )
+                rms(j) = Compute_RMS(res(:), num_obs_points)
             endif
         else
             rms(j) = huge(1.D0)
@@ -625,7 +625,7 @@ do while(sum(isfit(1:nsf)).lt.nsflim)
     RankIndx(nfi) = Jbest
     residual_vect(1:num_obs_points) = res(1:num_obs_points)
     write(*,*)'Fit function number', Jbest, float(sum(isfit(1:nsf))) / float(nsf), &
-             'Remaining RMS=', sqrt( sum( residual_vect(1:num_obs_points)**2) / float(num_obs_points) )
+             'Remaining RMS=', Compute_RMS(residual_vect(:), num_obs_points)
 enddo
 
 if (save_data) then

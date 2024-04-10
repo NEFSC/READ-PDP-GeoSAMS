@@ -54,7 +54,10 @@ do j=1, n
     Cinv(j, j)=1.
 enddo
 call dgesv(n, n, C, n, IPIV, Cinv, n, info)
-write(*,*)'LSF_Generalized_Least_Squares', info
+if (info .NE. 0) then
+    write(*,*) term_red, 'LSF_Generalized_Least_Squares (a) dgesv solution could not be computed. info=', info, term_blk
+    stop 1
+endif
 !
 ! cov(beta)) =  inv (F' Cinv F )
 !
@@ -66,7 +69,10 @@ do j=1, m
     CBeta(j, j)=1.
 enddo
 call dgesv(m, m, CBetaInv, m, IPIV, CBeta, m, info)
-write(*,*)'LSF_Generalized_Least_Squares  dgesv info=', info
+if (info .NE. 0) then
+    write(*,*) term_red, 'LSF_Generalized_Least_Squares (b) dgesv solution could not be computed. info=', info, term_blk
+    stop 1
+endif
 if (save_data) then
     call Write_CSV(m, m, CbetaInv, 'CBeta0.csv', m, .false.)
     call Write_CSV(n, m, F, 'Fglsa0.csv', n, .false.)

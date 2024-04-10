@@ -2,13 +2,21 @@
 % grid location, <--- grid parameter --->
 % lat, lon, p1, p2, .... , pN
 % Extension is added to gridFname in script
-function PlotLatLonGridSurvey(surveyFname, gridFname, yrStart, tsPerYear, domain)
+%
+% Typically, the processing covers a span of years. But this script will handle a single year
+% surveyFname: File name containing survey lat, lon and processed data
+% gridFname:   File name containing lat, lon coordinates to which survey data was interpolated
+% yrStart:     Starting year of span
+% tsPerYear:   Number of time samples per year
+% yrSelect:    Used to identify a single year
+
+function PlotLatLonGridSurvey(surveyFname, gridFname, yrStart, tsPerYear, domain, yrSelect)
 
 isOctave = (exist('OCTAVE_VERSION', 'builtin') ~= 0);
 if isOctave
     % used if called by command line
     arg_list=argv();
-    if ~strcmp(arg_list(1), '--gui');
+    if ~strcmp(arg_list(1), '--gui')
         surveyFname = cell2mat(arg_list(1));
         gridFname = cell2mat(arg_list(2));
         yrStart = str2num(cell2mat(arg_list(3)));
@@ -24,7 +32,13 @@ end
 % Expected name is in the form:
 % Lat_Lon_Grid_FIELD_DN_YYST_YYSP
 s=strfind(gridFname,'_');
-useTitle = gridFname(1:s(5));
+
+if size(s,2) < 5
+    % plotting a single year
+    useTitle = gridFname;
+else
+    useTitle = gridFname(1:s(5));
+end
 
 if isOctave
     D=csvreadK([gridFname '.csv']);
@@ -189,19 +203,27 @@ end
 %
 % Ready to plot
 %
+if c == 1
+    % then grid file is only a single year 
+    % select offset for survey data
+    offset = yrSelect - yrStart + 1;
+else
+    offset = 0;
+end
+
 
 % plot figure for each year
 for i=1:c
-    year = yrStart + i - 2;
+    year = yrStart + i - 2 + offset;
     thisTitle = [useTitle int2str(year) '_' int2str(saturate)];
     if strcmp(domain, 'MA'); thisTitle = [thisTitle '_Upper']; end
     f = figure('Name', thisTitle);
 
     if isOctave
         if strcmp(domain, 'MA')
-            p_surv = scatter(lon_s_u, lat_s_u, survey_u(:,i), survey_u(:,i), "filled");
+            p_surv = scatter(lon_s_u, lat_s_u, survey_u(:,i+offset), survey_u(:,i+offset), "filled");
         else
-            p_surv = scatter(lon_s, lat_s, survey(:,i), survey(:,i), "filled");
+            p_surv = scatter(lon_s, lat_s, survey(:,i+offset), survey(:,i+offset), "filled");
         end
         set(p_surv, 'sizedata', 10); % size of dots
         hold on
@@ -231,6 +253,14 @@ for i=1:c
             p_grid = geoscatter(lat_g, lon_g, grid(:,i), grid(:,i), "filled");
         end
         p_grid.SizeData = 3; % size of dots
+
+   	    % enlarge figure
+	    if strcmp(domain, 'GB')
+    		f.OuterPosition = [1963.4 -221.4 1500 1087.2];
+	    else
+		    f.OuterPosition = [1963.4 -221.4 1000 1087.2];
+	    end
+
     end
 
     title([useTitle int2str(year)], 'Interpreter', 'none');

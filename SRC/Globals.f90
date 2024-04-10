@@ -91,6 +91,30 @@ logical function Is_Leap_Year (yr)
     endif
 endfunction
 
+!---------------------------------------------------------------------------------------------------
+!> Purpose: Computes SQRT( SUM( X(1:N)^2 / N) )
+!> @param[in] x a real array 
+!> @param[in] n the number of elements in x
+!---------------------------------------------------------------------------------------------------
+real(dp) function Compute_RMS(x, n)
+    implicit none
+    integer, intent(in) :: n
+    real(dp), intent(in) :: x(:)
+    Compute_RMS = sqrt(sum(x(1:n)**2) / float(n))
+endfunction Compute_RMS
+
+!---------------------------------------------------------------------------------------------------
+!> Purpose: Computes Artithmetic Mean
+!> @param[in] x a real array 
+!> @param[in] n the number of elements in x
+!---------------------------------------------------------------------------------------------------
+real(dp) function Compute_MEAN(x, n)
+    implicit none
+    integer, intent(in) :: n
+    real(dp), intent(in) :: x(:)
+    Compute_MEAN = sum(x(1:n) / float(n))
+endfunction Compute_MEAN
+
 !==============================
 ! Changes a string to upper case
 !==============================

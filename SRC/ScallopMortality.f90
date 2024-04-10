@@ -558,6 +558,10 @@ real(dp) function Dollars_Per_SqM(year, meat_weight_grams)
 
     ! Find index into ScallopPrice for the current year
     indx = minloc( abs( float(year)-ScallopPrice(1:NPriceYears, 1)  ), 1  )
+    if ((year-ScallopPrice(indx, 1)) .NE. 0) then
+        write(*,*) term_red, 'Scallop Price Year not found in Data/ScallopPrice.csv', year, term_blk
+        stop 1
+    endif
 
     ! Find total dollar amount of scallops
     Dollars_Per_SqM = cnt10 * ScallopPrice(indx, 2)+cnt10to20 * ScallopPrice(indx, 3)+&

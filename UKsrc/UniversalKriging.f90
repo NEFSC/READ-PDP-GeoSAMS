@@ -139,6 +139,7 @@ type(Krig_Class):: par
 type(NLSF_Class), allocatable ::nlsf(:)
 real(dp) alpha
 logical save_data
+logical is_reset
 real(dp) f0_max
 
 par%form='spherical'
@@ -173,7 +174,8 @@ else
     stop 1
 endif
 
-call Read_Startup_Config(cfg_file_name, domain_name, use_posterior_sim, Nrand, IsLogT, IsHiLimit, fmax, par, alpha, save_data)
+call Read_Startup_Config(cfg_file_name, domain_name, use_posterior_sim, Nrand, &
+&   IsLogT, IsHiLimit, fmax, par, alpha, save_data, is_reset)
 !override UK.cfg with command line arguments if present. Used by python scripts
 if(ncla.ge.2) then 
     call get_command_argument(2, domain_name)
@@ -229,6 +231,11 @@ if (save_data) then
 else
     write(*,*) 'Only resulting estimate is saved'
 endif
+if (is_reset) then
+    write(*,*) 'Force 1D fit to original data'
+else
+    write(*,*) 'Force 1D fit to residual data'
+endif 
 write(*,*) term_blk
 
 call random_seed( )
@@ -284,17 +291,22 @@ if (use_posterior_sim) then
     fmax = fmax * maxval(obs%field(1:num_obs_points))
 
     if(IsLogT) then
-        SF = sum(obs%field(1:num_obs_points))/float(num_obs_points)
+        SF = Compute_MEAN(obs%field(1:num_obs_points), num_obs_points)
         SF = SF/5.D0  ! mean / 5 ~ median
         obs%field(1:num_obs_points) = log((one_scallop_per_tow + obs%field(1:num_obs_points)) / SF)
     endif
 
-    call NLSF_Select_Fit(obs, nlsf, save_data, .true.)
+    call NLSF_Select_Fit(obs, nlsf, save_data, is_reset)
     nsf = Get_NSF()
-    do j=1, nsf
-        write(*,*) nlsf(j)%axis, ' ', nlsf(j)%form, nlsf(j)%f0, nlsf(j)%lambda
-    enddo
-
+    if (nsf>0) then
+        write(*,*)
+        write(*,*) 'ax   Form               f0            lambda'
+        write(*,*) '-- ----------   ---------------  --------------'
+        do j=1, nsf
+            write(*,'(A4,A12,2F16.6)') nlsf(j)%axis, nlsf(j)%form, nlsf(j)%f0, nlsf(j)%lambda
+        enddo
+        write(*,*)
+    endif
     !-------------------------------------------------------------------------
     ! Ordinary Least Square fit with spatial functions
     !-------------------------------------------------------------------------
@@ -308,7 +320,7 @@ if (use_posterior_sim) then
     spatial_fcn = Krig_Eval_Spatial_Function(obs, num_spat_fcns, num_obs_points, nlsf, save_data)
     residual = LSF_Generalized_Least_Squares&
     &       (obs%field, spatial_fcn, residual_cov, num_obs_points, num_spat_fcns, beta, Cbeta, save_data)
-    write(*,*)'Ordinary Least Sq Residual:', sqrt(sum(residual(1:num_obs_points)**2) / float(num_obs_points))
+    write(*,'(A,F10.6)')'Ordinary Least Sq Residual:', Compute_RMS( residual(:), num_obs_points)
 
     !-------------------------------------------------------------------------
     ! Fit variogram parameters to Ordinary Least Square residual
@@ -319,7 +331,7 @@ if (use_posterior_sim) then
     endif
     call Krig_Compute_Distance(obs, obs, distance_horiz, distance_vert, num_obs_points)
 
-    call Krig_Comp_Emp_Variogram(num_obs_points, distance_horiz, distance_vert, num_obs_points, residual, par, save_data)
+    call Krig_Comp_Emp_Variogram(num_obs_points, distance_horiz, distance_vert, num_obs_points, residual, par)
 
     if (save_data) then
         open(63, file='KRIGpar.txt')
@@ -339,7 +351,7 @@ if (use_posterior_sim) then
     !!! same as trndOBS =  matmul(spatial_fcn, beta)
     call dgemv('N', num_obs_points, num_spat_fcns, atmp, spatial_fcn, num_obs_points, beta, 1, btmp, trndOBS, 1)
     resOBS(1:num_obs_points) = obs%field(1:num_obs_points) - trndOBS(1:num_obs_points)
-    write(*,*)'GLSres:', sqrt(sum(resOBS(1:num_obs_points)**2) / float(num_obs_points))
+    write(*,'(A,F10.6)')'GLSres:', Compute_RMS(resOBS(:), num_obs_points)
 
 else 
     ! simulate from user supplied prior estimate of beta, Cbeta, eps, Ceps
@@ -379,7 +391,8 @@ endprogram
 !--------------------------------------------------------------------------------------------------
 ! Keston Smith, Tom Callaghan (IBSS) 2024
 !--------------------------------------------------------------------------------------------------
-subroutine Read_Startup_Config(cfg_file_name,domain_name,use_posterior_sim,NRand,IsLogT,IsHiLimit,fmax,par,alpha,save_data)
+subroutine Read_Startup_Config(cfg_file_name,domain_name,use_posterior_sim,NRand,IsLogT,&
+    & IsHiLimit,fmax,par,alpha,save_data,is_reset)
 use globals
 use Krig_Mod
 use NLSF_Mod, only : NLS_Set_Config_File_Name => Set_Config_File_Name
@@ -397,13 +410,15 @@ character(tag_len) tag
 character(value_len) value
 real(dp),intent(out)::  fmax,alpha
 logical, intent(out) :: save_data
+logical, intent(out) :: is_reset
 
 ! set default values for parameters not in file
 IsLogT=.true.
 IsHiLimit=.false.
-!IsMatchMean=.true.
 alpha=1.D0
 use_posterior_sim = .true.
+save_data = .false.
+is_reset = .true.
 
 open(69,file=cfg_file_name)
 do
@@ -464,6 +479,9 @@ do
 
         case('Save Data')
             read(value,*) save_data
+
+        case('Is Reset')
+            read(value,*) is_reset
 
         case default
             write(*,*) term_yel, 'ReadInput: Unrecognized line in UK.cfg'
@@ -542,8 +560,8 @@ RandomField(1:num_points, 1:Nrand)=RandomField(1:num_points, 1:Nrand)**(1./alpha
 do k=1, num_points
     if(IsLogT) adj = SF * exp(sqrt(V(k))) - one_scallop_per_tow
     if(.not.IsLogT) adj = sqrt(V(k))
-    EnsMu = sum(RandomField(k, 1:Nrand)) / float(Nrand)
-    EnsSTD = sqrt( sum((RandomField(k, 1:Nrand) - EnsMu)**2 ) / float(Nrand) )
+    EnsMu = Compute_MEAN(RandomField(k, :), Nrand)
+    EnsSTD = Compute_RMS(RandomField(k,:)-EnsMu, Nrand)
     if(EnsSTD.gt.0.) then
         RandomField(k, 1:Nrand) = grid%field(k) +( RandomField(k, 1:Nrand) - EnsMu )*adj/EnsSTD
     else
@@ -610,11 +628,11 @@ fout = output_dir//'Lat_Lon_Grid_'//fname(n:)
 ftrend = output_dir//'Lat_Lon_Grid_Trend-'//fname(n:)
 fmtstr='(2(ES14.7 : ", ") (ES14.7 : ))'
 
-write(*,*) term_blu, 'output fmax, SF, A=', fmax, SF, one_scallop_per_tow
+write(*,'(A,A,3F12.6)') term_blu, 'output fmax, SF, A=', fmax, SF, one_scallop_per_tow
 write(*,*) 'Writing ouput to: ', trim(fout)
 write(*,*) 'Writing ouput to: ', trim(ftrend), term_blk
 
-! This data is the same as what 'KrigingEstimate.txt' held, but now with location information
+! Save results along with location information
 open(63,file=trim(fout))
 do n=1, num_points
     write(63, fmtstr) grid%lat(n), grid%lon(n), grid%field(n)
