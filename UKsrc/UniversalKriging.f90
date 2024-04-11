@@ -81,7 +81,7 @@
 !> Where @f$S(\lambda,x_0)=\int_{-\infty}^\infty f''(x) ^2 d x= S(\lambda)@f$ is a roughness penalty, @f$a@f$ and @f$b@f$ are 
 !> temporarily assigned (by least squares) constants fit to minimize @f$J@f$.  @f$S@f$ is proportional to @f$\lambda^{-3}@f$ 
 !> for all examples used here (see subroutine @a NLSF_Smooth_Penalty).  Other one dimensional function forms can be added to the 
-!> software in subroutine @a NLSF_Eval_Semi_Variance and @a NLSFFuncPen.
+!> software in subroutine @a NLSF_Eval_Semivariance and @a NLSFFuncPen.
 !> 
 !> A smoothness penalty is imposed for each function based on the analytic 
 !> 
@@ -106,7 +106,7 @@
 !> @f]
 !> Where @f$S(\lambda,x_0)=\int_{-\infty}^\infty f''(x) ^2 d x@f$ is a roughness penalty, @f$a@f$ and @f$b@f$ are temporarily 
 !> assigned constants fit to minimize @f$J@f$.  @f$S@f$ is proportional to @f$\lambda^{-3}@f$ for all examples used here.  
-!> Other one dimensional function forms can be added to the software in subroutine @a NLSF_Eval_Semi_Variance and @a NLSFFuncPen.
+!> Other one dimensional function forms can be added to the software in subroutine @a NLSF_Eval_Semivariance and @a NLSFFuncPen.
 !> 
 !-----------------------------------------------------------------------
 program UKsimulation

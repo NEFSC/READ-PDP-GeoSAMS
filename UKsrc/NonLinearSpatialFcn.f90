@@ -299,7 +299,7 @@ if (nsf > 0) then
                 stop 1
             endif
             write(*,'(A, I2, I3)') 'Preconditioning Function Number', k, j
-            field_precond(:) = NLSF_Eval_Semi_Variance(obs, nlsf(k))
+            field_precond(:) = NLSF_Eval_Semivariance(obs, nlsf(k))
         endif
         residual_vect = NLSF_Fit_Function(obs, nlsf(j), residual_vect, field_precond)
 
@@ -374,10 +374,10 @@ endsubroutine
 !> - f: p%num_points length vector of values of nlsf at points defined in p.
 !> @author keston Smith (IBSS corp) 2022
 !--------------------------------------------------------------------------------------------------
-function NLSF_Eval_Semi_Variance (p, nlsf)
+function NLSF_Eval_Semivariance (p, nlsf)
 type(Grid_Data_Class), intent(in):: p
 type(NLSF_Class), intent(in)::nlsf
-real(dp) :: NLSF_Eval_Semi_Variance(1:p%num_points)
+real(dp) :: NLSF_Eval_Semivariance(1:p%num_points)
 real(dp), allocatable :: x(:)
 integer num_points, j
 num_points = p%num_points
@@ -408,16 +408,16 @@ endif
 
 select case (trim(nlsf%form))
 case ('Logistic')
-    NLSF_Eval_Semi_Variance(:) = 1.D0 / ( 1.D0 + exp( - ( x(:) - nlsf%f0 ) / nlsf%lambda ) )
+    NLSF_Eval_Semivariance(:) = 1.D0 / ( 1.D0 + exp( - ( x(:) - nlsf%f0 ) / nlsf%lambda ) )
 
 case ('Gaussian')
-    NLSF_Eval_Semi_Variance(:) = exp( - ( (x(:) - nlsf%f0) / nlsf%lambda )**2 )
+    NLSF_Eval_Semivariance(:) = exp( - ( (x(:) - nlsf%f0) / nlsf%lambda )**2 )
 
 case ('SinExp')
-    NLSF_Eval_Semi_Variance(:) = sin((x(:)-nlsf%f0)/nlsf%lambda ) * exp(-((x(:) - nlsf%f0)/nlsf%lambda )**2)
+    NLSF_Eval_Semivariance(:) = sin((x(:)-nlsf%f0)/nlsf%lambda ) * exp(-((x(:) - nlsf%f0)/nlsf%lambda )**2)
 
 case ('CosExp')
-    NLSF_Eval_Semi_Variance(:) = cos((x(:)-nlsf%f0)/nlsf%lambda ) * exp(-((x(:) - nlsf%f0)/(2.*nlsf%lambda))**2)
+    NLSF_Eval_Semivariance(:) = cos((x(:)-nlsf%f0)/nlsf%lambda ) * exp(-((x(:) - nlsf%f0)/(2.*nlsf%lambda))**2)
 
 case default ! this should not occur as the variable values have already been checked
     write(*,*) 'Error unkown spatial form in nlsf(a):', trim(nlsf%form)
@@ -425,7 +425,7 @@ case default ! this should not occur as the variable values have already been ch
 end select
 
 deallocate(x)
-endfunction NLSF_Eval_Semi_Variance
+endfunction NLSF_Eval_Semivariance
 
 !----------------------------------------------------------------------------------------
 !> Purpose: Calculate smoothing penalty for nonlinear spatial function fit.  Penalty is 
@@ -526,7 +526,7 @@ do j = 1, np
     do k = 1, np
         nlsf%f0 = x0(j)
         nlsf%lambda = lambda(k)
-        s(:) = NLSF_Eval_Semi_Variance(obs, nlsf)
+        s(:) = NLSF_Eval_Semivariance(obs, nlsf)
         lpr = LSF_Simple_Linear_Regression(y(1:num_points), s(1:num_points) * f(1:num_points), num_points)
         rms = Compute_RMS(y(1:num_points) - lpr(1:num_points), num_points)
         smoothness_penalty = NLSF_Smooth_Penalty(nlsf) ! penalize roughness analytic approximation
@@ -541,7 +541,7 @@ do j = 1, np
 enddo
 nlsf%f0 = x0hat
 nlsf%lambda = lambdahat
-s(:) = NLSF_Eval_Semi_Variance(obs, nlsf)
+s(:) = NLSF_Eval_Semivariance(obs, nlsf)
 lpr = LSF_Simple_Linear_Regression(y, s(1:num_points) * f(1:num_points), num_points)
 NLSF_Fit_Function(1:num_points) = y(1:num_points) - lpr(1:num_points)
 
@@ -596,7 +596,7 @@ do while(sum(isfit(1:nsf)).lt.nsflim)
             else
                 k = nlsf(j)%precon
                 if(isfit(k).eq.1)then
-                    field_precond(:) = NLSF_Eval_Semi_Variance(obs, nlsf(k))
+                    field_precond(:) = NLSF_Eval_Semivariance(obs, nlsf(k))
                 else
                 ! dont fit function if preconditioning function not set
                     rms(j) = huge(1.D0)
