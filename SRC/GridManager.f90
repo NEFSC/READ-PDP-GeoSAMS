@@ -59,29 +59,21 @@ implicit none
 type Grid_Data_Class
     ! used for column padding in csv files
     real(dp) year
-    !> @public @memberof Grid_Data_Class
-    !> UTM Easting
+    ! UTM Easting
     real(dp) x
-    !> @public @memberof Grid_Data_Class
-    !> UTM Northing
+    ! UTM Northing
     real(dp) y
-    !> @public @memberof Grid_Data_Class
-    !> Longitude
+    ! Longitude
     real(dp) lon
-    !> @public @memberof Grid_Data_Class
-    !> Latitude
+    ! Latitude
     real(dp) lat
-    !> @public @memberof Grid_Data_Class
-    !> bathymetric depth at (x,y)
+    ! bathymetric depth at (x,y)
     real(dp) z
-    !> @public @memberof Grid_Data_Class
-    !> Indicates if grid is closed for fishing
+    ! Indicates if grid is closed for fishing
     logical is_closed
-    !> @public @memberof Grid_Data_Class
-    !> Number of station where survey occured
+    ! Number of station where survey occured
     real(dp) stratum
-    !> @public @memberof Grid_Data_Class
-    !> Indexed special access
+    ! Indexed special access
     integer special_access_index
 end type Grid_Data_Class
 
@@ -102,7 +94,7 @@ end type LonLatVector
 
 type(LonLatVector), PRIVATE :: area(max_num_areas)
 integer, PRIVATE :: max_num_grids
-integer, PRIVATE :: num_areas
+integer, PRIVATE :: num_areas ! number of special access areas
 integer, PRIVATE :: num_grids
 logical, PRIVATE :: use_spec_access_data
 character(domain_len), PRIVATE :: domain_name
@@ -113,7 +105,7 @@ character(fname_len), PRIVATE :: special_accesss_fname
 CONTAINS
 
 !==================================================================================================================
-!> @public @memberof GridManager
+!! @public @memberof GridManager
 !>
 !> Initializes growth for startup
 !>
@@ -171,7 +163,7 @@ close(70)
 endsubroutine Set_Grid_Manager
 
 !-----------------------------------------------------------------------------------------------
-!> @public @memberof GridManager
+!! @public @memberof GridManager
 !> Used during instantiation to set the name of the file to read to for configuration parameters
 !> @brief Read Input File
 !> 
@@ -193,7 +185,7 @@ subroutine Set_Config_File_Name(fname)
 endsubroutine Set_Config_File_Name
 
 !-----------------------------------------------------------------------------------------------
-!> @public @memberof GridManager
+!! @public @memberof GridManager
 !> Used during instantiation to set the name of the file to read to for grid locations, state
 !> @brief Read Input File
 !> 
@@ -215,7 +207,7 @@ subroutine Set_Init_Cond_File_Name(fname)
 endsubroutine Set_Init_Cond_File_Name
 
 !-----------------------------------------------------------------------------------------------
-!> @public @memberof GridManager
+!! @public @memberof GridManager
 !> Used during instantiation to set the name of the file to special access coordinates
 !> @brief Read Input File
 !> 
@@ -245,7 +237,7 @@ subroutine Set_Special_Access_File_Name(fname)
 endsubroutine Set_Special_Access_File_Name
 
 !-----------------------------------------------------------------------
-!> @public @memberof GridManager
+!! @public @memberof GridManager
 !> Get'r function for private member num_areas
 !-----------------------------------------------------------------------
 integer function Get_Num_Of_Areas()
@@ -253,7 +245,7 @@ integer function Get_Num_Of_Areas()
 endfunction
 
 !-----------------------------------------------------------------------
-!> @public @memberof GridManager
+!! @public @memberof GridManager
 !> Read_Configuration
 !> @brief Read Input File
 !> 
@@ -300,7 +292,7 @@ subroutine Read_Configuration()
 end subroutine Read_Configuration
 
 !==================================================================================================================
-!> @public @memberof Grid_Manager_Mod
+!! @public @memberof Grid_Manager_Mod
 !>
 !> This function is used to set the grid parameters and the initial state to start the simulation. 
 !>
@@ -363,7 +355,7 @@ integer function Load_Grid_State(grid, state)
 endfunction Load_Grid_State
 
 !==================================================================================================================
-!> @public @memberof Grid_Manager_Mod
+!! @public @memberof Grid_Manager_Mod
 !==================================================================================================================
 integer function Load_Area_Coordinates()
     ! 10 edges time 12 characters, SXX.XXXXXX, plus padding
@@ -429,7 +421,7 @@ integer function Load_Area_Coordinates()
 endfunction
 
 !==================================================================================================================
-!> @public @memberof Grid_Manager_Mod
+!! @public @memberof Grid_Manager_Mod
 !==================================================================================================================
 integer function Is_Grid_In_Special_Access(lon, lat)
     real(dp), intent(in) :: lon, lat
@@ -448,7 +440,7 @@ integer function Is_Grid_In_Special_Access(lon, lat)
 endfunction Is_Grid_In_Special_Access
 
 !==================================================================================================================
-!> @public @memberof Grid_Manager_Mod
+!! @public @memberof Grid_Manager_Mod
 !> @param poly Array of LonLatPoint coordinates that define polygram,
 !> @param point LonLatPoint coordinate of point we wish to determine if inside polygram
 !> @param nodes the number of corners, edges, that define the polygon
@@ -467,7 +459,7 @@ logical function Point_In_Polygon_Points(poly, point, nodes)
 endfunction Point_In_Polygon_Points
 
 !==================================================================================================================
-!> @public @memberof Grid_Manager_Mod
+!! @public @memberof Grid_Manager_Mod
 !> @param poly Array of x,y coordinates that define polygram,
 !> @param point x,y coordinate of point we wish to determine if inside polygram
 !> @param nodes the number of corners, edges, that define the polygon
@@ -486,7 +478,7 @@ logical function Point_In_Polygon_Array(poly, point, nodes)
 endfunction Point_In_Polygon_Array
 
 !==================================================================================================================
-!> @public @memberof Grid_Manager_Mod
+!! @public @memberof Grid_Manager_Mod
 !>
 !> First of all, notice that each iteration considers two adjacent points and the target point. 
 !> Then the if statement evaluates two conditions:

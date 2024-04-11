@@ -5,7 +5,7 @@
 !--------------------------------------------------------------------------------------------------
 ! Keston Smith, Tom Callaghan (IBSS) 2024
 !--------------------------------------------------------------------------------------------------
-module RandomFieldMod
+module Random_Field_Mod
 
 use globals
 implicit none
@@ -14,7 +14,7 @@ implicit none
 CONTAINS
 
 !--------------------------------------------------------------------------------------------------
-!> Purpose: Generate independent standard normal samples in a (n x m) matrix (R)
+!! Purpose: Generate independent standard normal samples in a (n x m) matrix (R)
 !>
 !> Inputs:
 !> - n    (integer) number of rows in R
@@ -45,7 +45,7 @@ deallocate(U1, U2)
 end subroutine
 
 !--------------------------------------------------------------------------------------------------
-!> Generate random sample from a multivariate gaussian distribution N(mu, C)
+!! Generate random sample from a multivariate gaussian distribution N(mu, C)
 !> where mu is the distribution mean C is the covariance. The number of
 !> independent samples drawn is Nsample which are stored in the columns of X.
 !>
@@ -113,4 +113,4 @@ enddo
 deallocate(R, S)
 end subroutine
 
-end module RandomFieldMod
+end module Random_Field_Mod

@@ -79,7 +79,7 @@
 !> @f]
 !> Where @f$S(\lambda,x_0)=\int_{-\infty}^\infty f''(x) ^2 d x= S(\lambda)@f$ is a roughness penalty, @f$a@f$ and @f$b@f$ are temporarily 
 !> assigned (by least squares) constants fit to minimize @f$J@f$.  @f$S@f$ is proportional to @f$\lambda^{-3}@f$ for all examples used here 
-!> (see subroutine @f${\it NLSFuncPen}@f$).  Other one dimensional function forms can be added to the software in subroutine NLSF_Evaluate_Fcn and 
+!> (see subroutine @f${\it NLSFuncPen}@f$).  Other one dimensional function forms can be added to the software in subroutine NLSF_Eval_Semi_Variance and 
 !> NLSFFuncPen.
 !> 
 !> A smoothness penalty is imposed for each function based on the analytic 
@@ -104,17 +104,11 @@ integer, parameter :: max_n_year = 50
 !! 
 !! Subroutines that determine expected growth of scallops
 type Recruitment_Class
-    !> @public @memberof Recruitment_Class
     real(dp) recruitment(max_n_year)
-    !> @public @memberof Recruitment_Class
     real(dp) rec_start
-    !> @public @memberof Recruitment_Class
     real(dp) rec_stop
-    !> @public @memberof Recruitment_Class
     integer year(max_n_year)
-    !> @public @memberof Recruitment_Class
     integer n_year
-    !> @public @memberof Recruitment_Class
     !! max_rec_ind is the largest size class treated as a recruit
     integer max_rec_ind
 end type Recruitment_Class

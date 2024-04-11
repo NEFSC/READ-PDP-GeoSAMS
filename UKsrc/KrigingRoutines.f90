@@ -10,9 +10,9 @@
 module Krig_Mod
 
 use globals
-use GridManagerMod
+use Grid_Manager_Mod
 use NLSF_Mod
-use RandomFieldMod
+use Random_Field_Mod
 implicit none
 
 type Krig_Class
@@ -243,7 +243,7 @@ endsubroutine Krig_Comp_Emp_Variogram
 !--------------------------------------------------------------------------------------------------
 !! @public @memberof Krig_Class
 !> Purpose: Computes value of spatial functions at x,y.
-!> Was spatial_function
+!> 
 !> Inputs:
 !> @param[in]  p      (Grid_Data_Class) - Spatial points to evaluate functions at
 !> @param[in]  n_dim (integer) leading dimension of F
@@ -270,12 +270,12 @@ nsf = Get_NSF()
 num_points=p%num_points
 Krig_Eval_Spatial_Function(1:num_points,1)=1.
 do j=1,nsf
-    s(:) = NLSF_Evaluate_Fcn(p, nlsf(j))
+    s(:) = NLSF_Eval_Semi_Variance(p, nlsf(j))
     if (nlsf(j)%precon .eq. 0) then
         Krig_Eval_Spatial_Function(1:num_points,j+1) = s(1:num_points)
     else
         k = nlsf(j)%precon
-        fpc(:) = NLSF_Evaluate_Fcn(p, nlsf(k))
+        fpc(:) = NLSF_Eval_Semi_Variance(p, nlsf(k))
         Krig_Eval_Spatial_Function(1:num_points,j+1) = s(1:num_points) * fpc(1:num_points)
     endif
 enddo

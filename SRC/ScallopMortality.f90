@@ -1179,7 +1179,7 @@ elemental subroutine Calc_LPUE(expl_biomass, expl_scallops, lpue_ppd, dredge_tim
 endsubroutine Calc_LPUE
 
 !==================================================================================================================
-!> @public @memberof Mortality_Class
+!! @public @memberof Mortality_Class
 !>
 !==================================================================================================================
 function Get_Fishing_Type()

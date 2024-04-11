@@ -5,7 +5,7 @@
 !--------------------------------------------------------------------------------------------------
 ! Keston Smith, Tom Callaghan (IBSS) 2024
 !--------------------------------------------------------------------------------------------------
-module GridManagerMod
+module Grid_Manager_Mod
 use globals
 implicit none
 
@@ -151,4 +151,4 @@ close(63)
 GridMgr_Load_Observation_Data = n
 end function
 
-end module GridManagerMod
+end module Grid_Manager_Mod

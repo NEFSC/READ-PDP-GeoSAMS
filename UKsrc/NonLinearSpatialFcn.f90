@@ -8,7 +8,7 @@
 
 module NLSF_Mod
 use globals
-use GridManagerMod
+use Grid_Manager_Mod
 use LSF_Mod
 implicit none
 
@@ -244,7 +244,7 @@ endfunction
 !> obs.
 !>
 !> inputs:
-!> - obs: GridManagerMod(see UniversalKriging.f90) Defines observations to be fit. 
+!> - obs: Grid_Manager_Mod(see UniversalKriging.f90) Defines observations to be fit. 
 !> - the residual from the preceeding function is fit. 
 !>
 !> inputs/output:
@@ -270,93 +270,96 @@ integer nsf_local, nsflim_local
 
 character(10) buf
 
-nsf_local = nsf
-nsflim_local = nsflim
+if (nsf > 0) then
+    nsf_local = nsf
+    nsflim_local = nsflim
 
-num_obs_points = obs%num_points
+    num_obs_points = obs%num_points
 
-write(*,'(A,A,A,I5,A,A,A,I3)') term_blu, 'NLSF_Least_Sq_Fit: Number Obs Points: ', term_blk, num_obs_points, &
-&                             term_blu,'  Number Spatial Functions: ', term_blk, nsf_local
-         
-allocate(residual_vect(1:num_obs_points), field_precond(1:num_obs_points), residuals(1:num_obs_points, 1:nsf_local))
-allocate(rms(1:nsf_local), RankIndx(1:nsf_local))
+    write(*,'(A,A,A,I5,A,A,A,I3)') term_blu, 'NLSF_Least_Sq_Fit: Number Obs Points: ', term_blk, num_obs_points, &
+    &                             term_blu,'  Number Spatial Functions: ', term_blk, nsf_local
+            
+    allocate(residual_vect(1:num_obs_points), field_precond(1:num_obs_points), residuals(1:num_obs_points, 1:nsf_local))
+    allocate(rms(1:nsf_local), RankIndx(1:nsf_local))
 
-! initialize residual 0
-residual_vect(:) = obs%field(1:num_obs_points)
-write(*,'(A,F10.6)') 'residual  0: ', Compute_RMS(residual_vect(:), num_obs_points)
+    ! initialize residual 0
+    residual_vect(:) = obs%field(1:num_obs_points)
+    write(*,'(A,F10.6)') 'residual  0: ', Compute_RMS(residual_vect(:), num_obs_points)
 
-do j = 1, nsf_local
-    if(is_reset) residual_vect(:) = obs%field(1:num_obs_points)
-
-    if (nlsf(j)%precon.eq.0) then
-        !no preconditioning
-        field_precond(:) = 1.D0
-    else
-        k = nlsf(j)%precon
-        if (k.ge.j)then
-            write(*,'(A, I2, I3)') 'Preconditiong function must be indexed first:', k, j
-            stop 1
-        endif
-        write(*,'(A, I2, I3)') 'Preconditioning Function Number', k, j
-        field_precond(:) = NLSF_Evaluate_Fcn (obs, nlsf(k))
-    endif
-    residual_vect = NLSF_Fit_Function(obs, nlsf(j), residual_vect, field_precond)
-
-    nlsf(j)%rms = Compute_RMS(residual_vect(:), num_obs_points)
-    rms(j) = nlsf(j)%rms
-    residuals(:, j) = residual_vect(:)
-    write(*,'(A,I2,A,F10.6)')'residual ', j, ': ', rms(j)
-enddo
-
-if (save_data) then
-    call Write_CSV(num_obs_points, nsf_local, residuals, 'residuals.csv', num_obs_points, .false.)
-    open(63, file = 'NLSF_Class.csv')
     do j = 1, nsf_local
-        write(63,*)nlsf(j)%axis, ', ', trim(nlsf(j)%form), ', ', nlsf(j)%f0, ', ', nlsf(j)%lambda
-    enddo
-    close(63)
-endif
+        if(is_reset) residual_vect(:) = obs%field(1:num_obs_points)
 
-if ((is_reset) .AND. (nsf>0)) then
-    !sort functions into increasing rms
-    write(buf,'(I3)') nsf_local
-    write(*,'(A,A,'//trim(buf)//'(F10.6))') term_grn, 'rms:',rms(1:nsf_local)
-    do k = 1,nsf_local
-        j = minloc(rms(1:nsf_local),1)
-        write(*,'(I3,I3,F10.6)') k, j, rms(j)
-        RankIndx(k) = j
-        rms(j) = huge(1.D0)
-    enddo
-    write(buf,'(I3)') nsf_local
-    write(*,'(A,'//trim(buf)//'(I2))') 'function rank:', RankIndx(1:nsf_local)
-    nlsf(1:nsf_local) = nlsf(RankIndx(1:nsf_local))
-    residuals(1:num_obs_points, 1:nsf_local) = residuals(1:num_obs_points,RankIndx(1:nsf_local))
-    nsf_local = min(nsf_local,nsflim_local)
+        if (nlsf(j)%precon.eq.0) then
+            !no preconditioning
+            field_precond(:) = 1.D0
+        else
+            k = nlsf(j)%precon
+            if (k.ge.j)then
+                write(*,'(A, I2, I3)') 'Preconditiong function must be indexed first:', k, j
+                stop 1
+            endif
+            write(*,'(A, I2, I3)') 'Preconditioning Function Number', k, j
+            field_precond(:) = NLSF_Eval_Semi_Variance(obs, nlsf(k))
+        endif
+        residual_vect = NLSF_Fit_Function(obs, nlsf(j), residual_vect, field_precond)
 
-    write(*,'(A,'//trim(buf)//'F10.6)') 'function rms:', nlsf(1:nsf_local)%rms
-    mu = Compute_MEAN(obs%field(1:num_obs_points), num_obs_points)
-    rms0 = Compute_RMS(obs%field(:) - mu, num_obs_points)
-    j = 1
-    if (save_data) call write_csv(num_obs_points,nsf_local,residuals,'residuals0.csv',num_obs_points, .false.)
-    do while( ( nlsf(j)%rms .lt. 0.9_dp * rms0 + 0.1_dp * nlsf(1)%rms ) .and. (j+1 .lt. nsf_local) )
-        j = j+1
-        write(*,'(A,5F10.6)')'delta rms:   ', nlsf(j)%rms, rms0, nlsf(1)%rms, 0.9_dp*rms0 + 0.1_dp*nlsf(1)%rms, &
-        & sum((residuals(1:num_obs_points, j+1) - residuals(1:num_obs_points,j))**2 )/float(num_obs_points), term_blk
+        nlsf(j)%rms = Compute_RMS(residual_vect(:), num_obs_points)
+        rms(j) = nlsf(j)%rms
+        residuals(:, j) = residual_vect(:)
+        write(*,'(A,I2,A,F10.6)')'residual ', j, ': ', rms(j)
     enddo
-    j = j - 1
-    nsflim = j
-    nsf = j
-    write(*,*) 'NLSF limit=',nsflim
 
-else
-    nsflim_local = nsf_local
-    nsf = nsf_local
-    do j=1,nsf
-        write(*,'(A,I3,A,F10.6)')'spatial function',j,'  postfit rms: ',rms(j)
-    enddo
-endif
+    if (save_data) then
+        call Write_CSV(num_obs_points, nsf_local, residuals, 'residuals.csv', num_obs_points, .false.)
+        open(63, file = 'NLSF_Class.csv')
+        do j = 1, nsf_local
+            write(63,*)nlsf(j)%axis, ', ', trim(nlsf(j)%form), ', ', nlsf(j)%f0, ', ', nlsf(j)%lambda
+        enddo
+        close(63)
+    endif
 
-deallocate(residual_vect, field_precond, residuals, rms)
+    if (is_reset) then
+        !sort functions into increasing rms
+        write(buf,'(I3)') nsf_local
+        write(*,'(A,A,'//trim(buf)//'(F10.6))') term_grn, 'rms:',rms(1:nsf_local)
+        do k = 1,nsf_local
+            j = minloc(rms(1:nsf_local),1)
+            write(*,'(I3,I3,F10.6)') k, j, rms(j)
+            RankIndx(k) = j
+            rms(j) = huge(1.D0)
+        enddo
+        write(buf,'(I3)') nsf_local
+        write(*,'(A,'//trim(buf)//'(I2))') 'function rank:', RankIndx(1:nsf_local)
+        nlsf(1:nsf_local) = nlsf(RankIndx(1:nsf_local))
+        residuals(1:num_obs_points, 1:nsf_local) = residuals(1:num_obs_points,RankIndx(1:nsf_local))
+        nsf_local = min(nsf_local,nsflim_local)
+
+        write(*,'(A,'//trim(buf)//'F10.6)') 'function rms:', nlsf(1:nsf_local)%rms
+        mu = Compute_MEAN(obs%field(1:num_obs_points), num_obs_points)
+        rms0 = Compute_RMS(obs%field(:) - mu, num_obs_points)
+        j = 1
+        if (save_data) call write_csv(num_obs_points,nsf_local,residuals,'residuals0.csv',num_obs_points, .false.)
+        do while( ( nlsf(j)%rms .lt. 0.9_dp * rms0 + 0.1_dp * nlsf(1)%rms ) .and. (j+1 .lt. nsf_local) )
+            j = j+1
+            write(*,'(A,5F10.6)')'delta rms:   ', nlsf(j)%rms, rms0, nlsf(1)%rms, 0.9_dp*rms0 + 0.1_dp*nlsf(1)%rms, &
+            & sum((residuals(1:num_obs_points, j+1) - residuals(1:num_obs_points,j))**2 )/float(num_obs_points), term_blk
+        enddo
+        j = j - 1
+        nsflim = j
+        nsf = j
+        write(*,*) 'NLSF limit=',nsflim
+
+    else
+    !    nsflim_local = nsf_local
+        nsf = nsf_local
+        do j=1,nsf
+            write(*,'(A,I3,A,F10.6)')'spatial function',j,'  postfit rms: ',rms(j)
+        enddo
+    endif
+
+    deallocate(residual_vect, field_precond, residuals, rms, RankIndx)
+
+endif ! nsf > 0
 endsubroutine
 
 !--------------------------------------------------------------------------------------------------
@@ -364,17 +367,17 @@ endsubroutine
 !> returned in vector f.
 !>
 !> inputs:
-!> - p: GridManagerMod(see UniversalKriging.f90) Defines spatial point grid/field 
+!> - p: Grid_Manager_Mod(see UniversalKriging.f90) Defines spatial point grid/field 
 !> - nlsf: Nonlinear spatial function(see UniversalKriging.f90) Defines a nonlinear spatial function 
 !>
 !> outputs: 
 !> - f: p%num_points length vector of values of nlsf at points defined in p.
 !> @author keston Smith (IBSS corp) 2022
 !--------------------------------------------------------------------------------------------------
-function NLSF_Evaluate_Fcn (p, nlsf)
+function NLSF_Eval_Semi_Variance (p, nlsf)
 type(Grid_Data_Class), intent(in):: p
 type(NLSF_Class), intent(in)::nlsf
-real(dp) :: NLSF_Evaluate_Fcn(1:p%num_points)
+real(dp) :: NLSF_Eval_Semi_Variance(1:p%num_points)
 real(dp), allocatable :: x(:)
 integer num_points, j
 num_points = p%num_points
@@ -405,16 +408,16 @@ endif
 
 select case (trim(nlsf%form))
 case ('Logistic')
-    NLSF_Evaluate_Fcn(:) = 1.D0 / ( 1.D0 + exp( - ( x(:) - nlsf%f0 ) / nlsf%lambda ) )
+    NLSF_Eval_Semi_Variance(:) = 1.D0 / ( 1.D0 + exp( - ( x(:) - nlsf%f0 ) / nlsf%lambda ) )
 
 case ('Gaussian')
-    NLSF_Evaluate_Fcn(:) = exp( - ( (x(:) - nlsf%f0) / nlsf%lambda )**2 )
+    NLSF_Eval_Semi_Variance(:) = exp( - ( (x(:) - nlsf%f0) / nlsf%lambda )**2 )
 
 case ('SinExp')
-    NLSF_Evaluate_Fcn(:) = sin((x(:)-nlsf%f0)/nlsf%lambda ) * exp(-((x(:) - nlsf%f0)/nlsf%lambda )**2)
+    NLSF_Eval_Semi_Variance(:) = sin((x(:)-nlsf%f0)/nlsf%lambda ) * exp(-((x(:) - nlsf%f0)/nlsf%lambda )**2)
 
 case ('CosExp')
-    NLSF_Evaluate_Fcn(:) = cos((x(:)-nlsf%f0)/nlsf%lambda ) * exp(-((x(:) - nlsf%f0)/(2.*nlsf%lambda))**2)
+    NLSF_Eval_Semi_Variance(:) = cos((x(:)-nlsf%f0)/nlsf%lambda ) * exp(-((x(:) - nlsf%f0)/(2.*nlsf%lambda))**2)
 
 case default ! this should not occur as the variable values have already been checked
     write(*,*) 'Error unkown spatial form in nlsf(a):', trim(nlsf%form)
@@ -422,7 +425,7 @@ case default ! this should not occur as the variable values have already been ch
 end select
 
 deallocate(x)
-endfunction NLSF_Evaluate_Fcn
+endfunction NLSF_Eval_Semi_Variance
 
 !----------------------------------------------------------------------------------------
 !> Purpose: Calculate smoothing penalty for nonlinear spatial function fit.  Penalty is 
@@ -468,7 +471,7 @@ endfunction NLSF_Smooth_Penalty
 !> between (nlsf%f0_min and nlsf%f0_max) and (nlsf%f0_min and  nlsf%f0_max) respectivly.
 !>
 !> inputs:
-!> - obs: GridManagerMod(see UniversalKriging.f90) Defines spatial observation points
+!> - obs: Grid_Manager_Mod(see UniversalKriging.f90) Defines spatial observation points
 !> - y: vector of observation values
 !> - f: vector of function values (a preconditioning function) at obs.
 !>
@@ -523,7 +526,7 @@ do j = 1, np
     do k = 1, np
         nlsf%f0 = x0(j)
         nlsf%lambda = lambda(k)
-        s(:) = NLSF_Evaluate_Fcn(obs, nlsf)
+        s(:) = NLSF_Eval_Semi_Variance(obs, nlsf)
         lpr = LSF_Simple_Linear_Regression(y(1:num_points), s(1:num_points) * f(1:num_points), num_points)
         rms = Compute_RMS(y(1:num_points) - lpr(1:num_points), num_points)
         smoothness_penalty = NLSF_Smooth_Penalty(nlsf) ! penalize roughness analytic approximation
@@ -538,7 +541,7 @@ do j = 1, np
 enddo
 nlsf%f0 = x0hat
 nlsf%lambda = lambdahat
-s(:) = NLSF_Evaluate_Fcn(obs, nlsf)
+s(:) = NLSF_Eval_Semi_Variance(obs, nlsf)
 lpr = LSF_Simple_Linear_Regression(y, s(1:num_points) * f(1:num_points), num_points)
 NLSF_Fit_Function(1:num_points) = y(1:num_points) - lpr(1:num_points)
 
@@ -552,7 +555,7 @@ endfunction NLSF_Fit_Function
 !> Functions are (nescerailly) fit to the remaining residual after fitting the preceeding functions.
 !>
 !> inputs:
-!> - obs: GridManagerMod(see UniversalKriging.f90) Defines observations to be fit. 
+!> - obs: Grid_Manager_Mod(see UniversalKriging.f90) Defines observations to be fit. 
 !>
 !> inputs/output:
 !> - nlsf: Nonlinear spatial function(see UniversalKriging.f90). Defines a vector of nonlinear 
@@ -593,7 +596,7 @@ do while(sum(isfit(1:nsf)).lt.nsflim)
             else
                 k = nlsf(j)%precon
                 if(isfit(k).eq.1)then
-                    field_precond(:) = NLSF_Evaluate_Fcn (obs, nlsf(k))
+                    field_precond(:) = NLSF_Eval_Semi_Variance(obs, nlsf(k))
                 else
                 ! dont fit function if preconditioning function not set
                     rms(j) = huge(1.D0)
@@ -638,7 +641,7 @@ if (save_data) then
 endif
 write(*,*)'function rank:', RankIndx(1:nsf)
 nlsf(1:nsf) = nlsf(RankIndx(1:nsf))
-deallocate(residual_vect, field_precond, residuals, rms, res, nlsfTmp)
+deallocate(residual_vect, field_precond, residuals, rms, res, nlsfTmp, RankIndx)
 
 endsubroutine
 
