@@ -688,7 +688,7 @@ function Set_Fishing_Effort_Weight_BMS(is_closed, catch, catch_open, catch_close
 
     if (domain_name .eq. 'MA') then
         do j = 1, num_grids
-            tmp = 0;
+            tmp = 0._dp
             do n = 1, num_grids
                 if (expl_scallops_psqm(n).eq.0.0) then
                     tmp = tmp + expl_biomass_gpsqm(n) * expl_biomass_gpsqm(n)
@@ -697,8 +697,7 @@ function Set_Fishing_Effort_Weight_BMS(is_closed, catch, catch_open, catch_close
                 endif
             enddo
             ! 
-            Set_Fishing_Effort_Weight_BMS(j) = &
-            &   (expl_biomass_gpsqm(j) * catch / expl_scallops_psqm(j) ) / (tmp  * grid_area_sqm)
+            Set_Fishing_Effort_Weight_BMS(j) = (expl_biomass_gpsqm(j) * catch ) / (tmp  * grid_area_sqm)
         enddo
     else
         exp_bms_open = sum( Logic_To_Double(.NOT. is_closed(1:num_grids)) * expl_biomass_gpsqm(:))

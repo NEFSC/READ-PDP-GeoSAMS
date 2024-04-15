@@ -178,7 +178,7 @@ subroutine Set_Recruitment(recruit, n_grids, dom_name, dom_area, L_inf_mu, K_mu,
     recr_all_rand_stop = 2025
 
     call Read_Configuration()
-    ! Force recruitment years
+    ! Force recruitment years from main command line
     call Set_Start_Year(yr_start)
     call Set_Stop_Year(yr_stop)
 

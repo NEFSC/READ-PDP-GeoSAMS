@@ -158,8 +158,8 @@ IF ERRORLEVEL 1 (
     exit /b
 )
 
-@REM T if domain is GB and data is separated into subregions
-python .\PythonScripts\Process%4Results.py %1 %2 T
+@REM F if domain is GB and data is not separated into subregions, default is T
+python .\PythonScripts\Process%4Results.py %1 %2
 IF ERRORLEVEL 1 (
     @echo [31mError in Process%4Results.py. Stopping[0m
     exit /b

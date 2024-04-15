@@ -288,17 +288,15 @@ if (nsf > 0) then
 
     do j = 1, nsf_local
         if(is_reset) residual_vect(:) = obs%field(1:num_obs_points)
-
-        if (nlsf(j)%precon.eq.0) then
+        k = nlsf(j)%precon
+        if (k.eq.0) then
             !no preconditioning
             field_precond(:) = 1.D0
         else
-            k = nlsf(j)%precon
             if (k.ge.j)then
-                write(*,'(A, I2, I3)') 'Preconditiong function must be indexed first:', k, j
+                write(*,'(A, I2, I2)') 'Preconditiong function must be indexed first:', k, j
                 stop 1
             endif
-            write(*,'(A, I2, I3)') 'Preconditioning Function Number', k, j
             field_precond(:) = NLSF_Eval_Semivariance(obs, nlsf(k))
         endif
         residual_vect = NLSF_Fit_Function(obs, nlsf(j), residual_vect, field_precond)
@@ -306,7 +304,8 @@ if (nsf > 0) then
         nlsf(j)%rms = Compute_RMS(residual_vect(:), num_obs_points)
         rms(j) = nlsf(j)%rms
         residuals(:, j) = residual_vect(:)
-        write(*,'(A,I2,A,F10.6)')'residual ', j, ': ', rms(j)
+        write(*,'(A,I2,A,F10.6, A, A3, A, I2, A, I2)')'residual ', j, ': ', nlsf(j)%rms, &
+        &    '  Precon Axis: ', trim(nlsf(j)%axis), '  Precon Number', k, '  Function Number', j
     enddo
 
     if (save_data) then
@@ -318,44 +317,45 @@ if (nsf > 0) then
         close(63)
     endif
 
-    if (is_reset) then
-        !sort functions into increasing rms
-        write(buf,'(I3)') nsf_local
-        write(*,'(A,A,'//trim(buf)//'(F10.6))') term_grn, 'rms:',rms(1:nsf_local)
-        do k = 1,nsf_local
-            j = minloc(rms(1:nsf_local),1)
-            write(*,'(I3,I3,F10.6)') k, j, rms(j)
-            RankIndx(k) = j
-            rms(j) = huge(1.D0)
-        enddo
-        write(buf,'(I3)') nsf_local
-        write(*,'(A,'//trim(buf)//'(I2))') 'function rank:', RankIndx(1:nsf_local)
-        nlsf(1:nsf_local) = nlsf(RankIndx(1:nsf_local))
-        residuals(1:num_obs_points, 1:nsf_local) = residuals(1:num_obs_points,RankIndx(1:nsf_local))
-        nsf_local = min(nsf_local,nsflim_local)
+    ! if (is_reset) then
+    !     !sort functions into increasing rms
+    !     write(buf,'(I3)') nsf_local
+    !     write(*,'(A,A,'//trim(buf)//'(F10.6))') term_grn, 'rms:',rms(1:nsf_local)
+    !     do k = 1,nsf_local
+    !         j = minloc(rms(1:nsf_local),1)
+    !         write(*,'(I3,I3,F10.6)') k, j, rms(j)
+    !         RankIndx(k) = j
+    !         rms(j) = huge(1.D0)
+    !     enddo
+    !     write(buf,'(I3)') nsf_local
+    !     write(*,'(A,'//trim(buf)//'(I2))') 'function rank:', RankIndx(1:nsf_local)
+    !     nlsf(1:nsf_local) = nlsf(RankIndx(1:nsf_local))
+    !     residuals(1:num_obs_points, 1:nsf_local) = residuals(1:num_obs_points,RankIndx(1:nsf_local))
+    !     nsf_local = min(nsf_local,nsflim_local)
 
-        write(*,'(A,'//trim(buf)//'F10.6)') 'function rms:', nlsf(1:nsf_local)%rms
-        mu = Compute_MEAN(obs%field(1:num_obs_points), num_obs_points)
-        rms0 = Compute_RMS(obs%field(:) - mu, num_obs_points)
-        j = 1
-        if (save_data) call write_csv(num_obs_points,nsf_local,residuals,'residuals0.csv',num_obs_points, .false.)
-        do while( ( nlsf(j)%rms .lt. 0.9_dp * rms0 + 0.1_dp * nlsf(1)%rms ) .and. (j+1 .lt. nsf_local) )
-            j = j+1
-            write(*,'(A,5F10.6)')'delta rms:   ', nlsf(j)%rms, rms0, nlsf(1)%rms, 0.9_dp*rms0 + 0.1_dp*nlsf(1)%rms, &
-            & sum((residuals(1:num_obs_points, j+1) - residuals(1:num_obs_points,j))**2 )/float(num_obs_points), term_blk
-        enddo
-        j = j - 1
-        nsflim = j
-        nsf = j
-        write(*,*) 'NLSF limit=',nsflim
+    !     write(*,'(A,'//trim(buf)//'F10.6)') 'function rms:', nlsf(1:nsf_local)%rms
+    !     mu = Compute_MEAN(obs%field(1:num_obs_points), num_obs_points)
+    !     rms0 = Compute_RMS(obs%field(:) - mu, num_obs_points)
+    !     j = 1
+    !     if (save_data) call write_csv(num_obs_points,nsf_local,residuals,'residuals0.csv',num_obs_points, .false.)
+    !     do while( ( nlsf(j)%rms .lt. 0.9_dp * rms0 + 0.1_dp * nlsf(1)%rms ) .and. (j+1 .lt. nsf_local) )
+    !         j = j+1
+    !         write(*,'(A,5F10.6)')'delta rms:   ', nlsf(j)%rms, rms0, nlsf(1)%rms, 0.9_dp*rms0 + 0.1_dp*nlsf(1)%rms, &
+    !         & sum((residuals(1:num_obs_points, j+1) - residuals(1:num_obs_points,j))**2 )/float(num_obs_points)
+    !     enddo
+    !     write(*,*) term_blk
+    !     j = j - 1
+    !     nsflim = j
+    !     nsf = j
+    !     write(*,*) 'NLSF limit=',nsflim
 
-    else
+    ! else
     !    nsflim_local = nsf_local
         nsf = nsf_local
         do j=1,nsf
             write(*,'(A,I3,A,F10.6)')'spatial function',j,'  postfit rms: ',rms(j)
         enddo
-    endif
+    ! endif
 
     deallocate(residual_vect, field_precond, residuals, rms, RankIndx)
 

@@ -290,6 +290,12 @@ for i=1:c
 
             p_grid = geoscatter(lat_g_l, lon_g_l, grid_l(:,i), grid_l(:,i), "filled");
             p_grid.SizeData = 3; % size of dots
+       	    % enlarge figure
+	        if strcmp(domain, 'GB')
+    	    	f.OuterPosition = [1963.4 -221.4 1500 1087.2];
+	        else
+		        f.OuterPosition = [1963.4 -221.4 1000 1087.2];
+	        end
         end
         title([useTitle int2str(year) '_Lower'], 'Interpreter', 'none');
         SetColorbar(isOctave)

@@ -271,13 +271,15 @@ num_points=p%num_points
 Krig_Eval_Spatial_Function(1:num_points,1)=1.
 do j=1,nsf
     s(:) = NLSF_Eval_Semivariance(p, nlsf(j))
-    if (nlsf(j)%precon .eq. 0) then
+    k = nlsf(j)%precon
+    if (k .eq. 0) then
         Krig_Eval_Spatial_Function(1:num_points,j+1) = s(1:num_points)
     else
-        k = nlsf(j)%precon
         fpc(:) = NLSF_Eval_Semivariance(p, nlsf(k))
         Krig_Eval_Spatial_Function(1:num_points,j+1) = s(1:num_points) * fpc(1:num_points)
     endif
+    write(*,'(A, A3, A, I2, A, I2)')  'Krig_Eval_Spatial_Function: Precon Axis: ', &
+    &     trim(nlsf(j)%axis), '  Precon Number', k, '  Function Number', j
 enddo
 
 if (save_data) call Write_CSV(num_points,num_spat_fcns,Krig_Eval_Spatial_Function,'SpatialFunctions.csv',num_points,.false.)
@@ -332,6 +334,7 @@ integer,  allocatable:: ipiv(:)
 
 real(dp)     Vinf(1, 1), Dinf(1, 1), atmp, btmp
 integer     j, k, info, nopnf, error, num_points, num_obs_points
+integer n, p
 
 ! !=======================================================================================
 ! character(fname_len) fname, feps, fdata, ftrend
@@ -363,9 +366,10 @@ allocate( ftrnd(1:num_points), ipiv(1:nopnf), stat=error)
 call Krig_Compute_Distance(obs, obs, distance_horiz, distance_vert, num_obs_points)
 Gamma = Krig_Compute_Variogram(num_obs_points, num_obs_points, distance_horiz, distance_vert, num_obs_points, par)
 Fs = Krig_Eval_Spatial_Function(obs, num_spat_fcns, num_obs_points, nlsf, save_data)
-!
+
+!------------------------------------------------------------------------------
 ! Ceps <- covariance between observation points (from variogram)
-!
+!------------------------------------------------------------------------------
 
 !
 ! Compute variogram between observation points and grid points and spatial
@@ -373,134 +377,142 @@ Fs = Krig_Eval_Spatial_Function(obs, num_spat_fcns, num_obs_points, nlsf, save_d
 !
 call Krig_Compute_Distance(obs, grid, D0h, D0z, num_obs_points)
 gamma0 = Krig_Compute_Variogram(num_obs_points, num_points, D0h, D0z, num_obs_points, par)
-Fs0 = Krig_Eval_Spatial_Function(grid, num_spat_fcns, num_points, nlsf, save_data)
-!
+!------------------------------------------------------------------------------
 !Compute the Univeral Kriging linear estimate of f following Cressie 1993
 !pages 151-154
-!
-Fs0T=transpose(Fs0)
-FsT=transpose(Fs)
-R(1:num_obs_points+num_spat_fcns, 1:num_obs_points+num_spat_fcns) = 0._dp
-R(1:num_obs_points, 1:num_obs_points) = gamma(1:num_obs_points, 1:num_obs_points)
-R(1:num_obs_points, num_obs_points+1:num_obs_points+num_spat_fcns) = Fs(1:num_obs_points, 1:num_spat_fcns)
-R(num_obs_points+1:num_obs_points+num_spat_fcns, 1:num_obs_points) = FsT(1:num_spat_fcns, 1:num_obs_points)
+!------------------------------------------------------------------------------
+Fs0 = Krig_Eval_Spatial_Function(grid, num_spat_fcns, num_points, nlsf, save_data)
+Fs0T = transpose(Fs0)
+FsT  = transpose(Fs)
+! R = 
+! gamma (s_i - s_j ),  i = 1, ... , N;       j = 1,   ... , N
+! f_j-1-N(s_i ),       i = 1, ... , N;       j = N+1, ... , N+p+1
+! 0,                   i = N+1, ... , N+p+1; j = N+1, ... , N+p+1
+n = num_obs_points
+p = num_spat_fcns  ! = nsf+1
+R(1:n,     1:n)     = gamma(1:n, 1:n)
+R(1:n,     n+1:n+p) = Fs(1:n, 1:p)
+R(n+1:n+p, 1:n)     = FsT(1:p, 1:n)
+R(n+1:n+p, n+1:n+p)= 0._dp
 
-V(1:num_obs_points, 1:num_points) = gamma0(1:num_obs_points, 1:num_points)
-V(num_obs_points+1:num_obs_points+num_spat_fcns, 1:num_points) = Fs0T(1:num_spat_fcns, 1:num_points)
+V(1:n,     1:num_points) = gamma0(1:n, 1:num_points)
+V(n+1:n+p, 1:num_points) = Fs0T(1:p,   1:num_points)
 
+!------------------------------------------------------------------------------
+! Solves the equation Rx = V for x
+! m = n+p
+!    V(1:m, 1:num_points) = x(1:m, 1:num_points)
+!------------------------------------------------------------------------------
 call dgesv(nopnf, num_points, R, nopnf, IPIV, V, nopnf, info)
 if (info .NE. 0) then
     write(*,*) term_red, 'Krig_Generalized_Least_Sq (a) dgesv solution could not be computed: info=', info , term_blk
     stop 1
 endif
-!
+
+!------------------------------------------------------------------------------
 ! compute best linear estimate of the field on the grid points x, y
 ! f = W f_obs
-!
+!------------------------------------------------------------------------------
 do j=1, num_points
     do k=1, num_obs_points
     W(j, k)=V(k, j)
     enddo
 enddo
-atmp=1.
-btmp=0.
+atmp = 1._dp
+btmp = 0._dp
+! Computes grid%field(1:num_points) = matmul(W(1:num_points, 1:num_obs_points), obs%field(1:num_obs_points))
 call dgemv('N', num_points, num_obs_points, atmp, W, num_points, obs%field, 1, btmp, grid%field, 1)
-!
+
+!------------------------------------------------------------------------------
 ! compute posterior trend statistics
-!
-Dinf(1, 1)=10.**10
+!------------------------------------------------------------------------------
+Dinf(1, 1)=10._dp**10
 Vinf = Krig_Compute_Variogram(1, 1, Dinf, Dinf, 1, par)
-!
+!------------------------------------------------------------------------------
 ! Ceps <- covariance between observation points (from variogram)
-!
-Ceps(1:num_obs_points, 1:num_obs_points)=Vinf(1, 1)-gamma(1:num_obs_points, 1:num_obs_points)
-!
+!------------------------------------------------------------------------------
+Ceps(1:num_obs_points, 1:num_obs_points) = Vinf(1, 1) - gamma(1:num_obs_points, 1:num_obs_points)
+!------------------------------------------------------------------------------
 ! Cinv = inv( Ceps )
-!
-Cinv(1:num_obs_points, 1:num_obs_points)=0.
+!------------------------------------------------------------------------------
+Cinv(1:num_obs_points, 1:num_obs_points) = 0._dp
 do j=1, num_obs_points
-    Cinv(j, j)=1.
+    Cinv(j, j)=1._dp
 enddo
+!------------------------------------------------------------------------------
+! Solves the equation Ceps * x = Cinv for x
+!    Cinv(1:n, 1:n) = x(1:n, 1:n)
+!------------------------------------------------------------------------------
 call dgesv(num_obs_points, num_obs_points, Ceps, num_obs_points, IPIV, Cinv, num_obs_points, info)
-!
-! cov(beta_gls) = inv (F' Cinv F )
-!
-call dgemm('N', 'N', num_obs_points, num_spat_fcns, num_obs_points, atmp, Cinv, num_obs_points, Fs,   num_obs_points, &
-&          btmp, Mtmp,     num_obs_points )
-call dgemm('T', 'N', num_spat_fcns, num_spat_fcns, num_obs_points, atmp,  Fs, num_obs_points, Mtmp , num_obs_points, &
-&          btmp, CbetaInv, num_spat_fcns )
-CBeta(1:num_spat_fcns, 1:num_spat_fcns) = 0.
-do j=1, num_spat_fcns
-    CBeta(j, j)=1.
-enddo
-call dgesv(num_spat_fcns, num_spat_fcns, CBetaInv, num_spat_fcns, IPIV, CBeta, num_spat_fcns, info)
 if (info .NE. 0) then
     write(*,*) term_red, 'Krig_Generalized_Least_Sq (b) dgesv solution could not be computed. info=', info, term_blk
     stop 1
 endif
 
-!
-! beta_gls = inv( F' * Cinv * F ) * F * Cinv * fo
-!
-Vtmp(1:num_obs_points)=matmul(Cinv(1:num_obs_points, 1:num_obs_points), obs%field(1:num_obs_points))
-Vtmp2(1:num_spat_fcns)=matmul(transpose(Fs(1:num_obs_points, 1:num_spat_fcns)), Vtmp(1:num_obs_points))
-beta(1:num_spat_fcns)=matmul(Cbeta(1:num_spat_fcns, 1:num_spat_fcns), Vtmp2(1:num_spat_fcns))
-! call dgemv('T', num_obs_points, num_spat_fcns, atmp, Fs, num_obs_points, Vtmp, 1, btmp, Vtmp2,1) ! Vtmp2 = F^T C^{-1} y
-! write(*,*)'Krig_Generalized_Least_Sq (c) dgesv info=', info
-! call dgemv('N', num_spat_fcns, num_spat_fcns, atmp, Cbeta, num_spat_fcns, Vtmp2, 1, btmp, Beta, 1) ! beta = Cbeta F^t C^{-1} y
-! write(*,*)'Krig_Generalized_Least_Sq (d) dgesv info=', info
+!------------------------------------------------------------------------------
+! cov(beta_gls) = inv (F' Cinv F )
+!------------------------------------------------------------------------------
+! dgemm( transa, transb, m, n, k, alpha, A, lda, B, ldb, beta, C, ldc)
+! 'N', 'N', computes   C = alpha * A(m, k) * B(k , n)   + beta*C(m, n), where we set alpha = 1.0 and beta = 0.0 
+! Mtmp(num_obs_points, num_spat_fcns) = Cinv(num_obs_points, num_obs_points) * Fs(num_obs_points, num_spat_fcns) 
+call dgemm('N', 'N', num_obs_points, num_spat_fcns, num_obs_points, atmp, Cinv, num_obs_points, Fs, num_obs_points, &
+&          btmp, Mtmp, num_obs_points )
 
-!
+! 'T', 'N', computes   C = alpha * A**T(m, k) * B(k , n)   + beta*C(m, n), where we set alpha = 1.0 and beta = 0.0
+! CbetaInv(num_spat_fcns, num_spat_fcns) = Fs**T(num_spat_fcns, num_obs_points) * Mtmp(num_obs_points, num_spat_fcns)
+call dgemm('T', 'N', num_spat_fcns, num_spat_fcns, num_obs_points, atmp,  Fs, num_obs_points, Mtmp , num_obs_points, &
+&          btmp, CbetaInv, num_spat_fcns )
+
+CBeta(1:num_spat_fcns, 1:num_spat_fcns) = 0._dp
+do j=1, num_spat_fcns
+    CBeta(j, j)=1._dp
+enddo
+!------------------------------------------------------------------------------
+! Solves the equation CBetaInv * x = CBeta for x
+!    CBeta(1:n, 1:n) = x(1:n, 1:n)
+!------------------------------------------------------------------------------
+call dgesv(num_spat_fcns, num_spat_fcns, CBetaInv, num_spat_fcns, IPIV, CBeta, num_spat_fcns, info)
+if (info .NE. 0) then
+    write(*,*) term_red, 'Krig_Generalized_Least_Sq (c) dgesv solution could not be computed. info=', info, term_blk
+    stop 1
+endif
+
+!------------------------------------------------------------------------------
+! beta_gls = inv( F' * Cinv * F ) * F * Cinv * fo
+!------------------------------------------------------------------------------
+Vtmp(1:num_obs_points) = matmul(Cinv(1:num_obs_points, 1:num_obs_points), obs%field(1:num_obs_points))
+Vtmp2(1:num_spat_fcns) = matmul(transpose(Fs(1:num_obs_points, 1:num_spat_fcns)), Vtmp(1:num_obs_points))
+beta(1:num_spat_fcns)  = matmul(Cbeta(1:num_spat_fcns, 1:num_spat_fcns), Vtmp2(1:num_spat_fcns))
+
+!------------------------------------------------------------------------------
 ! Posterior covariance for residual
-!
+!------------------------------------------------------------------------------
 call Krig_Compute_Distance(grid, grid, DGh, DGz, num_points)
-if (info .NE. 0) then
-    write(*,*) term_red, 'Krig_Generalized_Least_Sq (e) dgesv solution could not be computed. info=', info, term_blk
-    stop 1
-endif
 gammaG = Krig_Compute_Variogram(num_points, num_points, DGh, DGz, num_points, par)
-if (info .NE. 0) then
-    write(*,*) term_red, 'Krig_Generalized_Least_Sq (f) dgesv solution could not be computed. info=', info, term_blk
-    stop 1
-endif
-CepsG(1:num_points, 1:num_points)=Vinf(1, 1)-gammaG(1:num_points, 1:num_points)
-C0(1:num_obs_points, 1:num_points)=Vinf(1, 1)-gamma0(1:num_obs_points, 1:num_points)
-!
+CepsG(1:num_points, 1:num_points)  = Vinf(1, 1) - gammaG(1:num_points, 1:num_points)
+C0(1:num_obs_points, 1:num_points) = Vinf(1, 1) - gamma0(1:num_obs_points, 1:num_points)
+!------------------------------------------------------------------------------
 ! CepsG <== CepsPostG = CepsG - C0v' * inv(C_obs) * C0v
-!
-if (info .NE. 0) then
-    write(*,*) term_red, 'Krig_Generalized_Least_Sq (g) dgesv solution could not be computed. info=', info, term_blk
-    stop 1
-endif
+!------------------------------------------------------------------------------
+! dgemm( transa, transb, m, n, k, alpha, A, lda, B, ldb, beta, C, ldc)
+! 'N', 'N', computes   C = alpha * A(m, k) * B(k , n)   + beta*C(m, n), where we set alpha = 1.0 and beta = 0.0 
+! Gtmp(num_obs_points, num_points) = Cinv(num_obs_points, num_obs_points) * C0(num_obs_points, num_points) 
 call dgemm('N', 'N', num_obs_points, num_points, num_obs_points, atmp, Cinv, num_obs_points, C0, num_obs_points, &
 &           btmp, Gtmp, num_obs_points )
-if (info .NE. 0) then
-    write(*,*) term_red, 'Krig_Generalized_Least_Sq (h) dgesv solution could not be computed. info=', info, term_blk
-    stop 1
-endif
+! 'T', 'N', computes   C = alpha * A**T(m, k) * B(k , n)   + beta*C(m, n), where we set alpha = 1.0 and beta = 0.0
+! gammaG(num_points, num_points) = C0**T(num_points, num_obs_points) * Gtmp(num_obs_points, num_points)
 call dgemm('T', 'N', num_points, num_points, num_obs_points, atmp, C0, num_obs_points, Gtmp, num_obs_points, &
 &           btmp, gammaG, num_points )
 ! note: gamma variogram<== C0' * Cinv * C0 no longer represents variogram for the grid!
-if (info .NE. 0) then
-    write(*,*) term_red, 'Krig_Generalized_Least_Sq (i) dgesv solution could not be computed. info=', info, term_blk
-    stop 1
-endif
 
 CepsG(1:num_points, 1:num_points) = CepsG(1:num_points, 1:num_points) - gammaG(1:num_points, 1:num_points)
-!
+!------------------------------------------------------------------------------
 ! Compute posterior mean of epsilon.  This is the difference between unbiased estimate of f and
 ! the mean of the trend.  Thus the mean of the total distribution is the kriging estimate. 
 !
-if (info .NE. 0) then
-    write(*,*) term_red, 'Krig_Generalized_Least_Sq (j) dgesv solution could not be computed. info=', info, term_blk
-    stop 1
-endif
+! Computes ftrnd(1:num_points) = matmul( Fs0(1:num_points, 1:num_spat_fcns), beta(1:num_spat_fcns))
+!------------------------------------------------------------------------------
 call dgemv('N', num_points, num_spat_fcns, atmp, Fs0, num_points, beta, 1, btmp, ftrnd, 1)
-if (info .NE. 0) then
-    write(*,*) term_red, 'Krig_Generalized_Least_Sq (k) dgesv solution could not be computed. info=', info, term_blk
-    stop 1
-endif
-
 eps(1:num_points) = grid%field(1:num_points) - ftrnd(1:num_points)
 
 ! !=======================================================================================

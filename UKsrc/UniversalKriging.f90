@@ -141,12 +141,17 @@ real(dp) alpha
 logical save_data
 logical is_reset
 real(dp) f0_max
+real e, etime, t(2)
+e = etime(t)         !  Startup etime - do not use result
+
+e = etime(t)
 
 par = Krig_Class(0.0, 0.0, 0.0, 0.0, 'spherical')
 
 f0_max = 0._dp
 
-write (*,*) term_grn, "PROGRAM STARTING", term_blk
+write (*,*) term_grn, "PROGRAM STARTING  ", &
+& 'elapsed:', term_yel, e, term_grn, ', user:', term_yel, t(1), term_grn, ', sys:', term_yel, t(2), term_blk
 
 ncla=command_argument_count()
 if (ncla .eq. 0) then
@@ -377,6 +382,9 @@ if (use_posterior_sim) then
     deallocate( trndOBS, resOBS)
     deallocate( distance_horiz, distance_vert)
 endif
+e = etime(t)
+write (*,*) term_grn, "PROGRAM STOP  ", &
+& 'elapsed:', term_yel, e, term_grn, ', user:', term_yel, t(1), term_grn, ', sys:', term_yel, t(2), term_blk
 
 stop 0
 endprogram

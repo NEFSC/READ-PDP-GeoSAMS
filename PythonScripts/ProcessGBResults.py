@@ -23,10 +23,10 @@ years = range(year_start, year_end + 1)
 if (nargs == 4):
     savedByStratum = sys.argv[3] == 'T'
 else:
-    savedByStratum = False
+    savedByStratum = True
 
 print('Process stratum: ', savedByStratum)
-# Used whil concatenating files
+# Used while concatenating files
 # number of colums in csv file, starting at 0
 # lat, lon, initial data
 ncols = year_end - year_start + 3

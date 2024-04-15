@@ -113,6 +113,12 @@ for i=1:c
         colormap(c);
         c = colorbar;
         c.Label.String = "Field";
+        % enlarge figure
+        if strcmp(domain, 'GB')
+            f.OuterPosition = [1963.4 -221.4 1500 1087.2];
+        else
+            f.OuterPosition = [1963.4 -221.4 1000 1087.2];
+        end
 
         p = gcf();
         p.PaperSize = [11 17];

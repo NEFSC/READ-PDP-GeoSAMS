@@ -277,6 +277,9 @@ if (.not. ( any ((/ domain_name.eq.'MA', domain_name.eq.'GB'/)) )) then
     stop 1
 endif
 
+! For now, MA does not sort survey data by stratum. Force value to be false
+if (domain_name.eq.'MA') save_by_stratum = .false.
+
 !==================================================================================================================
 
 ! time parameters
