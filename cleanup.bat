@@ -10,3 +10,4 @@ del RandomField*.txt
 del SIntV.txt
 del SpatialTrend.txt
 del *.csv
+del RockStrata

@@ -158,7 +158,7 @@ IF ERRORLEVEL 1 (
     exit /b
 )
 
-@REM F if domain is GB and data is not separated into subregions, default is T
+@REM If domain is GB F for whole region, T for subregion, i.e. by stratum
 python .\PythonScripts\Process%4Results.py %1 %2
 IF ERRORLEVEL 1 (
     @echo [31mError in Process%4Results.py. Stopping[0m

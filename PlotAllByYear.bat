@@ -11,22 +11,31 @@ set ts_per_year=13
 @REM Trend-EBMS Trend-LAND Trend-LPUE Trend-RECR Trend-FEFF
 @REM set survList=EBMS LAND LPUE RECR FEFF
 
-set gridList=EBMS LPUE RECR ^
-Trend-EBMS Trend-LPUE Trend-RECR
+@REM set gridList=EBMS LPUE RECR ^
+@REM Trend-EBMS Trend-LPUE Trend-RECR
+set gridList=EBMS LPUE RECR
 set survList=EBMS LPUE RECR
 
-for %%p in (%gridList%) do (
-    matlab.exe -batch "PlotLatLonGrid('Results/Lat_Lon_Grid_%%p_%3_%1_%2', %1, '%3'); exit;"
-    if ERRORLEVEL 1 (
-        @echo [31mError in MATLAB "PlotLatLonGrid('Results/Lat_Lon_Grid_%%p_%3_%1_%2', %1, '%3')" Stopping[0m
-        exit /b
-    )
-)
+@REM for %%p in (%gridList%) do (
+@REM     matlab.exe -batch "PlotLatLonGrid('Results/Lat_Lon_Grid_%%p_%3_%1_%2', %1, '%3'); exit;"
+@REM     if ERRORLEVEL 1 (
+@REM         @echo [31mError in MATLAB "PlotLatLonGrid('Results/Lat_Lon_Grid_%%p_%3_%1_%2', %1, '%3')" Stopping[0m
+@REM         exit /b
+@REM     )
+@REM )
 
-for %%p in (%survList%) do (
-    matlab.exe -batch "PlotLatLonSurvey('Results/Lat_Lon_Surv_%%p_%3', %ts_per_year%, %1); exit;"
+@REM for %%p in (%survList%) do (
+@REM     matlab.exe -batch "PlotLatLonSurvey('Results/Lat_Lon_Surv_%%p_%3', %ts_per_year%, %1); exit;"
+@REM     if ERRORLEVEL 1 (
+@REM         @echo [31mError in MATLAB "PlotLatLonSurvey('Results/Lat_Lon_Surv_%%p_%3', %ts_per_year%, %1)" Stopping[0m
+@REM         exit /b
+@REM     )
+@REM )
+
+for %%p in (%gridList%) do (
+    matlab.exe -batch "PlotLatLonGridSurvey('Results/Lat_Lon_Surv_%%p_%3', 'Results/Lat_Lon_Grid_%%p_%3_%1_%2', %1, %ts_per_year%, '%3')
     if ERRORLEVEL 1 (
-        @echo [31mError in MATLAB "PlotLatLonSurvey('Results/Lat_Lon_Surv_%%p_%3', %ts_per_year%, %1)" Stopping[0m
+        @echo [31mError in MATLAB "PlotLatLonGridSurvey()" Stopping[0m
         exit /b
     )
 )

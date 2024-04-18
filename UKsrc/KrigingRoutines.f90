@@ -19,7 +19,6 @@ type Krig_Class
     real(dp) alpha
     real(dp) nugget
     real(dp) sill
-    real(dp) Wz
     character(form_len) form
 end type Krig_Class
    
@@ -72,13 +71,13 @@ end subroutine
 !>    
 !> @author Keston Smith (IBSS corp) June-July 2021
 !--------------------------------------------------------------------------------------------------
-function Krig_Compute_Variogram(num_points,num_cols,distance_horiz,distance_vert,n_dim,par)
+function Krig_Compute_Variogram(num_points,num_cols,distance_horiz,n_dim,par)
 type(Krig_Class), intent(in) :: par
 integer, intent(in) :: num_points,num_cols,n_dim
-real(dp), intent(in) :: distance_horiz(n_dim,*),distance_vert(n_dim,*)
+real(dp), intent(in) :: distance_horiz(n_dim,*)
 real(dp) :: Krig_Compute_Variogram(n_dim,num_cols)
 integer j,k,error
-real(dp) sill,nugget,alpha,Wz
+real(dp) sill,nugget,alpha
 real(dp) kap
 character(form_len) form
 real(dp), allocatable:: D(:,:)
@@ -88,10 +87,8 @@ allocate( D(1:num_points,1:num_cols) )
 nugget = par%nugget
 sill = par%sill
 alpha = par%alpha
-Wz = par%Wz
 form=par%form
-D(1:num_points,1:num_cols) = sqrt( distance_horiz(1:num_points,1:num_cols)**2 &
-&                                + (Wz * distance_vert(1:num_points,1:num_cols))**2)
+D(1:num_points,1:num_cols) = distance_horiz(1:num_points,1:num_cols)
 if (trim(form).eq.'spherical')then
     do j=1,num_points
         do k=1,num_cols
@@ -146,23 +143,30 @@ endfunction Krig_Compute_Variogram
 !> 
 !> @author Keston Smith (IBSS corp) June-July 2021
 !--------------------------------------------------------------------------------------------------
-subroutine Krig_Comp_Emp_Variogram(num_points,distance_horiz,distance_vert,n_dim,f,par)
+subroutine Krig_Comp_Emp_Variogram(num_points,distance_horiz,n_dim,f,par)
 type(Krig_Class), intent(inout) :: par
+integer, intent(in)  :: num_points,n_dim
+real(dp), intent(in) :: distance_horiz(n_dim,*),f(*)
 type(Krig_Class):: parTmp
 
-integer, intent(in)  :: num_points,n_dim
-real(dp), intent(in) :: distance_horiz(n_dim,*),distance_vert(n_dim,*),f(*)
-real(dp) DintV(n_dim+1),DintVm(n_dim+1), SIntV(n_dim+1)
+integer NIntVD,NPS
 real(dp) variogram(n_dim,1)
-real(dp) Pind(n_dim),alphaR(n_dim),c0R(n_dim),cR(n_dim),WzR
-integer j,k,n,m,nc,NIntV, NPS
-real(dp) dx,cost,costmin,Wz
+real(dp), allocatable :: DintV(:), DintVm(:), SIntV(:)
+real(dp), allocatable :: Pind(:),alphaR(:),c0R(:),cR(:)
 
-NPS=n_dim
-NintV = n_dim+1
+integer j,k,n,m,nc,NIntV
+real(dp) dx,cost,costmin
+character(fname_len) fname
+
+NPS = min( num_points-2, 30)
+NIntVD = NPS + 1
+
+allocate(DintV(NIntVD),DintVm(NIntVD), SIntV(NIntVD))
+allocate(Pind(NPS),alphaR(NPS),c0R(NPS),cR(NPS))
 
 parTmp%form=par%form
 ! Set up interval and average square of residual for variogram estimation
+NintV=NIntVD
 dx=5000.
 DintV(1)=0.
 do j=2,NIntV
@@ -177,67 +181,72 @@ enddo
 
 costmin=huge(1.)
 alphaR(1:NPS)=Pind(1:NPS)*100000.D0
-! WzR,Wz -  These variables were used to allow anisotropy in the kriging covariance.
-! they are not used here. WzR(1:NPS)=(Pind(1:NPS)-1./float(NPS))*10000.D0
-WzR=0.D0
-Wz=0.D0
 do j=2,NIntV
     SIntV(j-1)=0.
     nc=0
     do n=1,num_points
         do m=1,num_points
-            if ((distance_horiz(n,m) + Wz * distance_vert(n,m) .ge. DintV(j-1)) &
-            &   .and. (distance_horiz(n,m) + Wz*distance_vert(n,m) .le. DintV(j))) then
+            if ((distance_horiz(n,m) .ge. DintV(j-1)) &
+            &   .and. (distance_horiz(n,m) .le. DintV(j))) then
                 SIntV(j-1)=SIntV(j-1)+(f(n)-f(m))**2
                 nc=nc+1
             endif
         enddo
     enddo
     if (nc.gt.0)then
-        SIntV(j-1)=SIntV(j-1)/(1.D0*nc)
+        SIntV(j-1) = SIntV(j-1) / (1.D0*nc)
     else
-        SIntV(j-1)=0.
+        SIntV(j-1) = 0._dp
     endif
 enddo
-NIntV=NIntV-1
+NIntV = NIntV - 1
 !set upper bounds for kriging parameter search
-!if(nz.eq.1)then ! set bounds with isotropic distance
-cR(1:NPS)=Pind(1:NPS)*maxval(SIntV(1:NIntV))
+cR(1:NPS) = Pind(1:NPS) * maxval(SIntV(1:NIntV))
 if(minval(SIntV(1:NIntV)).gt.0.)then
-    c0R(1:NPS)=Pind(1:NPS)*minval(SIntV(1:NIntV))
+    c0R(1:NPS) = Pind(1:NPS) * minval(SIntV(1:NIntV))
 else
-    c0R(1:NPS)=Pind(1:NPS)*cR(1)
+    c0R(1:NPS) = Pind(1:NPS) * cR(1)
 endif
-!endif
+
 do j=1,NPS
     do k=1,NPS
         do m=1,NPS
             parTmp%nugget=c0R(j)
             parTmp%sill=cR(k)
             parTmp%alpha=alphaR(m)
-            parTmp%Wz=WzR
-            variogram = Krig_Compute_Variogram(NintV, 1, DintVm, 0*DintVm, n_dim, parTmp)
+            variogram = Krig_Compute_Variogram(NintV, 1, DintVm, n_dim, parTmp)
             cost = sum((SIntV(1:NIntV) - variogram(1:NIntV,1))**2)
             if( cost.lt.costmin )then
                 costmin=cost
                 par%nugget=c0R(j)
                 par%sill=cR(k)
                 par%alpha=alphaR(m)
-                par%Wz=WzR
             endif
         enddo !m
     enddo !k
 enddo !j
 
-variogram = Krig_Compute_Variogram(NintV, 1, DIntVm, 0*DIntV, n_dim, par)
+variogram = Krig_Compute_Variogram(NintV, 1, DIntVm, n_dim, par)
 
-call Write_2D_Scalar_Field(NintV,1,variogram, output_dir//'GammaIntV.txt',NintV)
-call Write_2D_Scalar_Field(NintV,1,DIntVm, output_dir//'DIntV.txt',NintV)
-call Write_2D_Scalar_Field(NintV,1,SIntV, output_dir//'SIntV.txt',NintV)
+fname = GridMgr_Get_Obs_Data_File_Name()
+! Change output directory and file prefix
+! /X_Y_...
+! n12345
+n = index(fname, '/') + 5
+m = index(fname, '.') - 1
+fname = fname(n:m)
+
+call Write_2D_Scalar_Field(NintV,1,variogram, output_dir//trim(fname)//'_GammaIntV.txt',NintV)
+call Write_2D_Scalar_Field(NintV,1,DIntVm, output_dir//trim(fname)//'_DIntV.txt',NintV)
+call Write_2D_Scalar_Field(NintV,1,SIntV, output_dir//trim(fname)//'_SIntV.txt',NintV)
 
 write(*,'(A,3F15.6,A)') 'Bounds alpha: [', alphaR(1), par%alpha, alphaR(NPS),']'
 write(*,'(A,3F15.6,A)') 'Bounds nugget:[', c0R(1), par%nugget, c0R(NPS),']'
 write(*,'(A,3F15.6,A)') 'Bounds sill:  [', cR(1), par%sill, cR(NPS),']'
+
+deallocate(DintV, DintVm, SIntV)
+deallocate(Pind, alphaR, c0R, cR)
+
 endsubroutine Krig_Comp_Emp_Variogram
 
 !--------------------------------------------------------------------------------------------------
@@ -268,7 +277,7 @@ integer nsf
 nsf = Get_NSF()
 
 num_points=p%num_points
-Krig_Eval_Spatial_Function(1:num_points,1)=1.
+Krig_Eval_Spatial_Function(1:num_points,1) = 1._dp
 do j=1,nsf
     s(:) = NLSF_Eval_Semivariance(p, nlsf(j))
     k = nlsf(j)%precon
@@ -278,8 +287,6 @@ do j=1,nsf
         fpc(:) = NLSF_Eval_Semivariance(p, nlsf(k))
         Krig_Eval_Spatial_Function(1:num_points,j+1) = s(1:num_points) * fpc(1:num_points)
     endif
-    write(*,'(A, A3, A, I2, A, I2)')  'Krig_Eval_Spatial_Function: Precon Axis: ', &
-    &     trim(nlsf(j)%axis), '  Precon Number', k, '  Function Number', j
 enddo
 
 if (save_data) call Write_CSV(num_points,num_spat_fcns,Krig_Eval_Spatial_Function,'SpatialFunctions.csv',num_points,.false.)
@@ -364,7 +371,7 @@ allocate( ftrnd(1:num_points), ipiv(1:nopnf), stat=error)
 ! observation points
 !
 call Krig_Compute_Distance(obs, obs, distance_horiz, distance_vert, num_obs_points)
-Gamma = Krig_Compute_Variogram(num_obs_points, num_obs_points, distance_horiz, distance_vert, num_obs_points, par)
+Gamma = Krig_Compute_Variogram(num_obs_points, num_obs_points, distance_horiz, num_obs_points, par)
 Fs = Krig_Eval_Spatial_Function(obs, num_spat_fcns, num_obs_points, nlsf, save_data)
 
 !------------------------------------------------------------------------------
@@ -376,7 +383,7 @@ Fs = Krig_Eval_Spatial_Function(obs, num_spat_fcns, num_obs_points, nlsf, save_d
 ! functions at grid points
 !
 call Krig_Compute_Distance(obs, grid, D0h, D0z, num_obs_points)
-gamma0 = Krig_Compute_Variogram(num_obs_points, num_points, D0h, D0z, num_obs_points, par)
+gamma0 = Krig_Compute_Variogram(num_obs_points, num_points, D0h, num_obs_points, par)
 !------------------------------------------------------------------------------
 !Compute the Univeral Kriging linear estimate of f following Cressie 1993
 !pages 151-154
@@ -415,7 +422,7 @@ endif
 !------------------------------------------------------------------------------
 do j=1, num_points
     do k=1, num_obs_points
-    W(j, k)=V(k, j)
+        W(j,k) = V(k,j)
     enddo
 enddo
 atmp = 1._dp
@@ -427,7 +434,7 @@ call dgemv('N', num_points, num_obs_points, atmp, W, num_points, obs%field, 1, b
 ! compute posterior trend statistics
 !------------------------------------------------------------------------------
 Dinf(1, 1)=10._dp**10
-Vinf = Krig_Compute_Variogram(1, 1, Dinf, Dinf, 1, par)
+Vinf = Krig_Compute_Variogram(1, 1, Dinf, 1, par)
 !------------------------------------------------------------------------------
 ! Ceps <- covariance between observation points (from variogram)
 !------------------------------------------------------------------------------
@@ -488,7 +495,7 @@ beta(1:num_spat_fcns)  = matmul(Cbeta(1:num_spat_fcns, 1:num_spat_fcns), Vtmp2(1
 ! Posterior covariance for residual
 !------------------------------------------------------------------------------
 call Krig_Compute_Distance(grid, grid, DGh, DGz, num_points)
-gammaG = Krig_Compute_Variogram(num_points, num_points, DGh, DGz, num_points, par)
+gammaG = Krig_Compute_Variogram(num_points, num_points, DGh, num_points, par)
 CepsG(1:num_points, 1:num_points)  = Vinf(1, 1) - gammaG(1:num_points, 1:num_points)
 C0(1:num_obs_points, 1:num_points) = Vinf(1, 1) - gamma0(1:num_obs_points, 1:num_points)
 !------------------------------------------------------------------------------
@@ -547,62 +554,6 @@ deallocate( CbetaInv, Ceps, Cinv, stat=error )
 deallocate( Mtmp, Vtmp, Vtmp2, Gtmp, ftrnd, stat=error )
 deallocate( ipiv, stat=error)
 deallocate( C0, DGh, DGz,  gammaG)!, ftrnd, stat=error )
-
-end subroutine
-
-!--------------------------------------------------------------------------------------------------
-!! @public @memberof Krig_Class
-!> Assign values needed to simulate random fields from a Universal Kriging 
-!> model.
-!>
-!> Inputs: 
-!>  - grid   (real(dp)) Data point structure defining interpolation points 
-!>  - num_spat_fcns  (integer) number of spatial functions
-!>  - par variogram parameter structure
-!>
-!> Outputs:
-!>  - beta(real(dp))  mean of spatial function coefficients
-!>  - Cbeta(real(dp)) covariance of spatial function coefficients
-!>  - eps(real(dp))   mean of residual
-!>  - Ceps(real(dp))  covariance of residual
-!> @author Keston Smith (IBSS corp) June-July 2021
-!> @todo need to fix dimensioning (1/10/2022)!
-!-----------------------------------------------------------------------
-subroutine Krig_User_Estimates(grid, num_spat_fcns, par, beta, Cbeta, eps, Ceps)
-type(Grid_Data_Class):: grid
-type(Krig_Class):: par
-integer,  intent(in):: num_spat_fcns
-real(dp), intent(out):: beta(*), Cbeta(num_spat_fcns,*), eps(*), Ceps(grid%num_points,*) 
-
-real(dp), allocatable:: distance_horiz(:,:), distance_vert(:,:), gamma(:,:)
-
-real(dp) Vinf(1, 1), Dinf(1, 1)
-integer  error, num_points
-num_points=grid%num_points
-allocate( distance_horiz(1:num_points, 1:num_points), stat=error)
-allocate( distance_vert(1:num_points, 1:num_points), stat=error)
-allocate( gamma(1:num_points, 1:num_points), stat=error )
-!
-! Assign mean and Covariance for epsilon
-!
-call Krig_Compute_Distance(grid, grid, distance_horiz, distance_vert, num_points)
-gamma = Krig_Compute_Variogram(num_points, num_points, distance_horiz, distance_vert, num_points, par)
-Dinf(1, 1)=10.**10
-Vinf = Krig_Compute_Variogram(1, 1, Dinf, Dinf, 1, par)
-Ceps(1:num_points, 1:num_points)=Vinf(1, 1)-gamma(1:num_points, 1:num_points)
-eps(1:num_points)=0.
-!
-! Assign mean and Covariance for beta
-!
-beta(1:num_spat_fcns)=0.
-Cbeta(1:num_spat_fcns, 1:num_spat_fcns)=0.
-beta(1:4)= (/ 52.399839511692335, 1.0935428391808943E-004, -3.1615155809229245E-003, 1.2116283255694471E-002  /)
-Cbeta(1, 1:4)= (/270.60028747602928, 1.5366756312328578E-003, 7.9881962338312195E-003, -6.0292972962538195E-002 /)
-Cbeta(2, 1:4)= (/1.5366756312270658E-003, 1.7247639913097469E-005, 1.3324610875859451E-006, -2.3045855632454535E-007 /)
-Cbeta(3, 1:4)= (/7.9881962338509589E-003, 1.3324610875862412E-006, 5.5464689237415081E-006, -2.4207894889311469E-006 /)
-Cbeta(4, 1:4)= (/-6.0292972962540783E-002, -2.3045855632585232E-007, -2.4207894889268253E-006, 1.3517389449680424E-005 /)
-
-deallocate( distance_horiz, distance_vert, gamma, stat=error )
 
 end subroutine
 

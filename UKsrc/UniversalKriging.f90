@@ -146,7 +146,7 @@ e = etime(t)         !  Startup etime - do not use result
 
 e = etime(t)
 
-par = Krig_Class(0.0, 0.0, 0.0, 0.0, 'spherical')
+par = Krig_Class(0.0, 0.0, 0.0, 'spherical')
 
 f0_max = 0._dp
 
@@ -264,105 +264,104 @@ grid%num_points = num_points
 allocate( eps(1:num_points), Ceps(1:num_points, 1:num_points))
 allocate( RandomField(1:num_points, 1:Nrand))
 
-if (use_posterior_sim) then
-    !
-    ! Initalize data point coordinates, bathymetry and data - initialize no
-    !
-    obs%num_points = GridMgr_Load_Observation_Data(obs%x, obs%y, obs%z, obs%field)
-    num_obs_points=obs%num_points
-    obs%field(1:num_obs_points)=obs%field(1:num_obs_points)**alpha
+!
+! Initalize data point coordinates, bathymetry and data - initialize no
+!
+obs%num_points = GridMgr_Load_Observation_Data(obs%x, obs%y, obs%z, obs%field)
+num_obs_points=obs%num_points
+obs%field(1:num_obs_points)=obs%field(1:num_obs_points)**alpha
 
-    !-------------------------------------------------------------------------  
-    ! nonlinear curve fitting for spatial functions
-    !-------------------------------------------------------------------------  
-    nsf = NLSF_Define_Functions(nlsf, grid, .false., f0_max)
+!-------------------------------------------------------------------------  
+! nonlinear curve fitting for spatial functions
+!-------------------------------------------------------------------------  
+nsf = NLSF_Define_Functions(nlsf, grid, .false., f0_max)
 
-    write(*,*)'num_obs_points=', num_obs_points, 'nsf limit=', Get_NSF_Limit(), ' alpha = ', alpha
-    write(*,*)'num_grid_points=', num_points
-    write(*,'(A, A, A, I2, A, A)') term_blu, 'Using ', term_blk, nsf, term_blu, ' Spatial Functions'
-    write(*,'(A,L2)') 'Is Truncate Range: ', Get_Is_Truncate_Range()
-    write(*,'(A,L2)') 'Using Greedy Fit:  ', Get_Use_Greedy_Fit()
-    f0_max = Get_Z_F0_Max()
-    if (f0_max > 0._dp) then
-        write(*,*) 'Using f0_max setting:', f0_max, term_blk
-    else
-        write(*,*) 'Using f0_max setting: Determined by algorithm', term_blk
-    endif
+write(*,*)'num_obs_points=', num_obs_points, 'nsf limit=', Get_NSF_Limit(), ' alpha = ', alpha
+write(*,*)'num_grid_points=', num_points
+!write(*,'(A, A, A, I2, A, A)') term_blu, 'Using ', term_blk, nsf, term_blu, ' Spatial Functions'
+write(*,'(A,L2)') 'Is Truncate Range: ', Get_Is_Truncate_Range()
+write(*,'(A,L2)') 'Using Greedy Fit:  ', Get_Use_Greedy_Fit()
+f0_max = Get_Z_F0_Max()
+if (f0_max > 0._dp) then
+    write(*,*) 'Using f0_max setting:', f0_max, term_blk
+else
+    write(*,*) 'Using f0_max setting: Determined by algorithm', term_blk
+endif
+
+allocate(residual_cov(1:num_obs_points, 1:num_obs_points))
+allocate(residual(1:num_obs_points))
+allocate(trndOBS(1:num_obs_points), resOBS(1:num_obs_points))
+allocate(distance_horiz(1:num_obs_points, 1:num_obs_points), distance_vert(1:num_obs_points, 1:num_obs_points))
     
-    allocate(residual_cov(1:num_obs_points, 1:num_obs_points))
-    allocate(spatial_fcn(1:num_obs_points, 1:num_spat_fcns), residual(1:num_obs_points))
-    allocate(trndOBS(1:num_obs_points), resOBS(1:num_obs_points))
-    allocate(distance_horiz(1:num_obs_points, 1:num_obs_points), distance_vert(1:num_obs_points, 1:num_obs_points))
-        
-    fmax = fmax * maxval(obs%field(1:num_obs_points))
+fmax = fmax * maxval(obs%field(1:num_obs_points))
 
-    if(IsLogT) then
-        SF = Compute_MEAN(obs%field(1:num_obs_points), num_obs_points)
-        SF = SF/5.D0  ! mean / 5 ~ median
-        obs%field(1:num_obs_points) = log((one_scallop_per_tow + obs%field(1:num_obs_points)) / SF)
-    endif
+if(IsLogT) then
+    SF = Compute_MEAN(obs%field(1:num_obs_points), num_obs_points)
+    SF = SF/5.D0  ! mean / 5 ~ median
+    obs%field(1:num_obs_points) = log((one_scallop_per_tow + obs%field(1:num_obs_points)) / SF)
+endif
 
-    call NLSF_Select_Fit(obs, nlsf, save_data, is_reset)
-    nsf = Get_NSF()
-    if (nsf>0) then
-        write(*,*)
-        write(*,*) 'ax   Form               f0            lambda'
-        write(*,*) '-- ----------   ---------------  --------------'
-        do j=1, nsf
-            write(*,'(A4,A12,2F16.6)') nlsf(j)%axis, nlsf(j)%form, nlsf(j)%f0, nlsf(j)%lambda
-        enddo
-        write(*,*)
-    endif
-    !-------------------------------------------------------------------------
-    ! Ordinary Least Square fit with spatial functions
-    !-------------------------------------------------------------------------
-    residual_cov(1:num_obs_points, 1:num_obs_points)=0.D0
-    do j=1, num_obs_points
-        residual_cov(j, j)=1.D0
+call NLSF_Select_Fit(obs, nlsf, save_data, is_reset)
+nsf = Get_NSF()
+if (nsf>0) then
+    write(*,*)
+    write(*,*) 'ax   Form               f0            lambda'
+    write(*,*) '-- ----------   ---------------  --------------'
+    do j=1, nsf
+        write(*,'(A4,A12,2F16.6)') nlsf(j)%axis, nlsf(j)%form, nlsf(j)%f0, nlsf(j)%lambda
     enddo
+    write(*,*)
+endif
+!-------------------------------------------------------------------------
+! Ordinary Least Square fit with spatial functions
+!-------------------------------------------------------------------------
+residual_cov(1:num_obs_points, 1:num_obs_points)=0.D0
+do j=1, num_obs_points
+    residual_cov(j, j)=1.D0
+enddo
 
-    ! nsf may have been modified by is_reset in NLSF_Select_Fit
-    num_spat_fcns = nsf + 1
-    spatial_fcn = Krig_Eval_Spatial_Function(obs, num_spat_fcns, num_obs_points, nlsf, save_data)
-    residual = LSF_Generalized_Least_Squares&
-    &       (obs%field, spatial_fcn, residual_cov, num_obs_points, num_spat_fcns, beta, Cbeta, save_data)
-    write(*,'(A,F10.6)')'Ordinary Least Sq Residual:', Compute_RMS( residual(:), num_obs_points)
+! nsf may have been modified by is_reset in NLSF_Select_Fit
+! Also, with -fbounds-check enabled at compile time flags the call to Krig_Eval_Spatial_Function 
+! if num_spat_fcns in arg 2 does not match the allocation of spatial_fcn dimension 2
+num_spat_fcns = nsf + 1
+allocate(spatial_fcn(1:num_obs_points, 1:num_spat_fcns))
+spatial_fcn = Krig_Eval_Spatial_Function(obs, num_spat_fcns, num_obs_points, nlsf, save_data)
+residual = LSF_Generalized_Least_Squares&
+&       (obs%field, spatial_fcn, residual_cov, num_obs_points, num_spat_fcns, beta, Cbeta, save_data)
+write(*,'(A,F10.6)')'Ordinary Least Sq Residual:', Compute_RMS( residual(:), num_obs_points)
 
-    !-------------------------------------------------------------------------
-    ! Fit variogram parameters to Ordinary Least Square residual
-    !-------------------------------------------------------------------------
-    if (save_data) then
-        call Write_Vector_Scalar_Field(num_obs_points, residual, 'OLSresidual.txt')
-        call Write_Vector_Scalar_Field(num_obs_points, obs%field, 'data.txt')
-    endif
-    call Krig_Compute_Distance(obs, obs, distance_horiz, distance_vert, num_obs_points)
+!-------------------------------------------------------------------------
+! Fit variogram parameters to Ordinary Least Square residual
+!-------------------------------------------------------------------------
+if (save_data) then
+    call Write_Vector_Scalar_Field(num_obs_points, residual, 'OLSresidual.txt')
+    call Write_Vector_Scalar_Field(num_obs_points, obs%field, 'data.txt')
+endif
+call Krig_Compute_Distance(obs, obs, distance_horiz, distance_vert, num_obs_points)
 
-    call Krig_Comp_Emp_Variogram(num_obs_points, distance_horiz, distance_vert, num_obs_points, residual, par)
+! call Krig_Comp_Emp_Variogram(num_obs_points, distance_horiz, distance_vert, num_obs_points, residual, par)
+call Krig_Comp_Emp_Variogram(num_obs_points, distance_horiz, num_obs_points, residual, par)
 
-    if (save_data) then
-        open(63, file='KRIGpar.txt')
-        write(63,*)par%sill, par%nugget, par%alpha, par%Wz
-        close(63)
-    endif
+if (save_data) then
+    open(63, file='KRIGpar.txt')
+    write(63,*)par%sill, par%nugget, par%alpha
+    close(63)
+endif
 
-    !-------------------------------------------------------------------------
-    ! Compute Universal Kriging estimate of field on grid (fest) given
-    ! observations x_obs, y_obs, z_obs, field_obs. Also returns the estimate of spatial function
-    ! coeficients, beta, and posterior covariance of beta(Cbeta).
-    !-------------------------------------------------------------------------
-    call Krig_Generalized_Least_Sq(grid, obs, num_spat_fcns, par, beta, Cbeta, eps, Ceps, nlsf, save_data)
-    spatial_fcn = Krig_Eval_Spatial_Function(obs, num_spat_fcns, num_obs_points, nlsf, save_data)
-    atmp=1.D0
-    btmp=0.D0
-    !!! same as trndOBS =  matmul(spatial_fcn, beta)
-    call dgemv('N', num_obs_points, num_spat_fcns, atmp, spatial_fcn, num_obs_points, beta, 1, btmp, trndOBS, 1)
-    resOBS(1:num_obs_points) = obs%field(1:num_obs_points) - trndOBS(1:num_obs_points)
-    write(*,'(A,F10.6)')'GLSres:', Compute_RMS(resOBS(:), num_obs_points)
+!-------------------------------------------------------------------------
+! Compute Universal Kriging estimate of field on grid (fest) given
+! observations x_obs, y_obs, z_obs, field_obs. Also returns the estimate of spatial function
+! coeficients, beta, and posterior covariance of beta(Cbeta).
+!-------------------------------------------------------------------------
+call Krig_Generalized_Least_Sq(grid, obs, num_spat_fcns, par, beta, Cbeta, eps, Ceps, nlsf, save_data)
+spatial_fcn = Krig_Eval_Spatial_Function(obs, num_spat_fcns, num_obs_points, nlsf, save_data)
+atmp=1.D0
+btmp=0.D0
+!!! same as trndOBS =  matmul(spatial_fcn, beta)
+call dgemv('N', num_obs_points, num_spat_fcns, atmp, spatial_fcn, num_obs_points, beta, 1, btmp, trndOBS, 1)
+resOBS(1:num_obs_points) = obs%field(1:num_obs_points) - trndOBS(1:num_obs_points)
+write(*,'(A,F10.6)')'GLSres:', Compute_RMS(resOBS(:), num_obs_points)
 
-else 
-    ! simulate from user supplied prior estimate of beta, Cbeta, eps, Ceps
-    call Krig_User_Estimates(grid, num_spat_fcns, par, beta, Cbeta, eps, Ceps)
-endif  ! if use_posterior_sim
 
 if (save_data) then
     call OutputUK(num_points, num_spat_fcns, Nrand, grid, nlsf, beta, eps, Ceps, Cbeta, fmax, SF, &

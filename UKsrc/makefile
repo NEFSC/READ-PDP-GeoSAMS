@@ -20,7 +20,7 @@ FFLAGS = -Wall -std=f95 -fall-intrinsics -O3  -funroll-all-loops -ffast-math -m6
 
 
 # For debug use these flags
-#FFLAGS = -g -Wall -std=f95 -fall-intrinsics #-fbounds-check
+#FFLAGS = -g -Wall -std=f95 -fall-intrinsics -fbounds-check
 
 SRCS = Globals.f90 UK_GridManager.f90 LinearSpatialFcn.f90 NonLinearSpatialFcn.f90 RandomField.f90 KrigingRoutines.f90 UniversalKriging.f90 IORoutines.f90
 
