@@ -149,6 +149,83 @@ do k=1,n
 enddo
 close(69)
 endsubroutine Write_CSV
+!===========================================================================================================
+! Only used for debugging special access settings
+!-----------------------------------------------------------------------------------------------------------
+! subroutine Write_CSV_Logical(n,m,f,file_name,nndim, append)
+! use globals
+! implicit none
+! integer, intent(in):: n,m,nndim
+! logical, intent(in):: f(nndim,*)
+! character(*), intent(in)::file_name
+! logical, intent(in) :: append
+! integer k
+! character(fname_len) buf,fmtstr
+! character(1) cr
+    
+! k=m-1
+! write(buf,'(I6)')k
+! !
+! ! format for exponential format
+! !
+! if (append) then
+!     if (k.LE.0) then
+!         fmtstr='(L1 : )'//NEW_LINE(cr)
+!     else
+!         fmtstr='('//trim(adjustl(buf))//'(L1 : ", ") (L1 : ))'//NEW_LINE(cr)
+!     endif
+!     open(69,file=file_name, status="old", position="append", action="write")
+! else
+!     if (k.LE.0) then
+!         fmtstr='(L1 : )'
+!     else
+!         fmtstr='('//trim(adjustl(buf))//'(L1 : ", ") (L1 : ))'
+!     endif
+!     open(69,file=file_name)
+! endif
+! do k=1,n
+!     write(69,fmtstr) f(k,1:m)
+! enddo
+! close(69)
+! endsubroutine Write_CSV_Logical
+
+! subroutine Write_CSV_Int(n,m,f,file_name,nndim, append)
+! use globals
+! implicit none
+! integer, intent(in):: n,m,nndim
+! integer, intent(in):: f(nndim,*)
+! character(*), intent(in)::file_name
+! logical, intent(in) :: append
+! integer k
+! character(fname_len) buf,fmtstr
+! character(1) cr
+    
+! k=m-1
+! write(buf,'(I6)')k
+! !
+! ! format for exponential format
+! !
+! if (append) then
+!     if (k.LE.0) then
+!         fmtstr='(I2 : )'//NEW_LINE(cr)
+!     else
+!         fmtstr='('//trim(adjustl(buf))//'(I2 : ", ") (I2 : ))'//NEW_LINE(cr)
+!     endif
+!     open(69,file=file_name, status="old", position="append", action="write")
+! else
+!     if (k.LE.0) then
+!         fmtstr='(I2 : )'
+!     else
+!         fmtstr='('//trim(adjustl(buf))//'(I2 : ", ") (I2 : ))'
+!     endif
+!     open(69,file=file_name)
+! endif
+! do k=1,n
+!     write(69,fmtstr) f(k,1:m)
+! enddo
+! close(69)
+! endsubroutine Write_CSV_Int
+!===========================================================================================================
 
 !--------------------------------------------------------------------------------------------------
 !subroutine Write_Column_CSV(n,m,f,file_name,nndim)

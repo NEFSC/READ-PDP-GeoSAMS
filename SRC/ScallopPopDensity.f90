@@ -5,23 +5,29 @@ PROGRAM ScallopPopDensity
 !! @section ms1 Initialize Simulation Parameters
 !! @subsection ms1p1 Read Input
 !! Values are read in from file name given on command line, e.g. ScallopPopDensity.exe @b Scallop.cfg
-!!  - Maximum Number of Grids: Largest number of grids expected by intialization files
-!!  - Domain Name: MA or GB
-!!  - Beging Year: Four digit year, YYYY
-!!  - Ending Year: Four digit year, YYYY
-!!  - Fishing type: One of USD, BMS, or CAS
 !!  - Time steps per Year: number of time steps each year
+!!  - Save By Stratum: Used in GB to make break up region into smoother shapes, i.e. rather than clover leaf.
 !!
 !! The following are used to name configuration files used by other modules
 !!  - Mortality Config File
 !!  - Recruit Config File
 !!  - Grid Manager Config File
 !!
+!! Additional parameters are placed on the command line to facilitate batch processing
+!! - Start Year
+!! - Stop Year
+!! - Domain Abbreviation
+!!   - MA, or
+!!   - GB
+!!
 !! @subsection ms1p2 Instantiate Growth Module
 !! The simulation then instantiates parameters that define how growth occurs
 !!
 !! @subsubsection ms1p2p1 Load Grid and Initial State
-!! The data in each file, Data/bin5mmYYYY[MA|GB].csv has grid information of where each grid is located and its depth. 
+!! The initial state is defined by a hardcode data file named as follows:
+!! - Data/bin5mmYYYY[MA|GB].csv\n
+!!  where the year, YYYY, is defined by the Start Year and MA or GB is specified by the given domain name.
+!! The data in each file, Data/bin5mmYYYY[MA|GB].csv has grid information for where each grid is located and its depth. 
 !! Data in the same row is used for the initial state, in units of scallop count per square for each size classs.
 !!
 !! @subsubsection ms1p2p2 For each class: Define shell_lengths weight conversion
@@ -47,13 +53,13 @@ PROGRAM ScallopPopDensity
 !!
 !! where @a isClosed is 1 if closed or 0 if open
 !!
-!! @subsubsection ms1p2p3 Computes Growth Parameters, given depth, latitude, and isClosed
+!! @subsubsection ms1p2p3 Compute Growth Parameters, given depth, latitude, and isClosed
 !! - @f$L_{\infty_\mu}@f$
 !! - @f$L_{\infty_\sigma}@f$
 !! - @f$K_\mu@f$
 !! - @f$K_\sigma@f$
 !!
-!! @subsubsection ms1p2p4 Computes G matrix for given growth parameters
+!! @subsubsection ms1p2p4 Compute G matrix for given growth parameters
 !!
 !> From MN18 p. 1312, 1313
 !! @f[
@@ -94,17 +100,17 @@ PROGRAM ScallopPopDensity
 !!
 !! The simulation next instantiates how recruitment will be handled.
 !! @subsubsection ms1p3p1 Recruitment data
-!! @paragraph ms1p3p1p1 For years 1979, 2018
+!! @paragraph ms1p3p1p1 For years start_year to stop_year
 !! Data is read in from RecruitEstimates/RecruitEstimateDNYYYY.txt
 !!
 !! @subsubsection ms1p3p2 This method is effectively setting
-!! For all years\n
-!!  - Year_index = year - 1978
-!!  - for year_index in [1..max]
+!! For year in start_year to stop_year
+!!  - Year_index = year - start_year + 1
+!!  - for year_index in [1..max]\n
 !!      -recruitment(year_index) = RecruitEstimate
 !!      - year(year_index) = year
-!!      - rec_start = 1/365, or January 1st
-!!      - rec_stop = 100/365, or April 10
+!!      - rec_start = Start Period, typically 0/365, or January 1st
+!!      - rec_stop = Stop Period, typically 100/365, or April 10
 !!
 !! @subsubsection ms1p3p3 It then quantizes recruitment,
 !! For each grid, n
@@ -113,7 +119,7 @@ PROGRAM ScallopPopDensity
 !!      - If (length(n) <= L30mm) recruit(n).max_rec_ind = j
 !!
 !! @subsection ms1p4 Instantiate Mortality
-!! The simulation next instantiates how mortality is defined.
+!! The simulation next sets mortality values.
 !!
 !! <table>
 !! <caption id="multi_row">Mortality</caption>
@@ -123,18 +129,64 @@ PROGRAM ScallopPopDensity
 !! </table>
 !! @subsubsection ms1p4p1 Compute alpha
 !! @f[
-!! \alpha(l) = 1-\frac{1}{1+e^{- a( l/10.0-l_0 )}}
+!! \alpha(l) = 1-\frac{1}{1+e^{-(l-l_0)/10.0}}
 !! @f]
 !!
 !! @subsubsection ms1p4p2 Compute Fishing Effort
 !!
-!! This Fishing Effort is used by a CAS simulation. Fishing effort is defined by year and region 
-!! from past history @a Data/FYrGBcGBoMA.csv
+!! @paragraph ms1p4p2p1 Compute landings at size for each grid location
+!!
+!! Given
+!! The number of scallops per square meter:
+!! @f[
+!! \vec{scallops} = \vec{selectivity_{loc}} \cdot \vec{state_{loc}}
+!! @f]
+!! and the exploitable biomass in grams per square meter
+!! @f[
+!! EBMS_{loc} = \vec{scallops} \cdot \vec{weight_{loc}}
+!! @f]
+!!
+!! @f[
+!! \vec{landings_{size}} = (1.0 - e^{(-F_{{mort}_{loc}} * \delta_))} * \vec{state_{loc}} * gridArea * \vec{selectivity_{loc}}
+!! @f]
+!!
+!! @paragraph ms1p4p2p2 Compute landings by weight
+!!
+!! @f[
+!! \vec{landings_{wgt}} = \vec{landings_{size}} \cdot \vec{weight} = catch
+!! @f]
+!! This is also considered total_catch
+!!
+!! @paragraph ms1p4p2p3 Total catch is used compute fishing effort
+!!
+!! @f[
+!! rms = \sum_{loc=1}^{n} \frac{EBMS(loc)^2}{scallops(loc))}
+!! @f]
+!!
+!! @f[
+!! FishingEffort = \frac{ \vec{EBMS} * catch / \vec{scallops}}{rms * gridArea}
+!! @f]
+!!
+!! @paragraph ms1p4p2p4 CAS Fishing Effort
+!! Fishing effort is defined by year and region 
+!! from past history @a Data/FYrGBcGBoMA.csv. Otherwise, fishing effort is computed. 
 !! 
 !! <table>
-!! <caption id="multi_row">Fishing Effort</caption>
+!! <caption id="multi_row">Fishing Effort (partial)</caption>
 !! <tr><th>Year<th>GB Closed<th>GB Open<th>MA
-!! <tr><td>2000<td>0.07<td>0.54<td>0.42
+!! <tr><td>2005<td>0.14<td>0.36<td>0.55
+!! <tr><td>2006<td>0.24<td>0.94<td>0.25
+!! <tr><td>2007<td>0.15<td>0.76<td>0.5
+!! <tr><td>2008<td>0.07<td>0.73<td>0.57
+!! <tr><td>2009<td>0.05<td>0.55<td>0.61
+!! <tr><td>2010<td>0.09<td>0.28<td>0.53
+!! <tr><td>2011<td>0.21<td>0.19<td>0.54
+!! <tr><td>2012<td>0.31<td>0.44<td>0.43
+!! <tr><td>2013<td>0.1 <td>0.85<td>0.26
+!! <tr><td>2014<td>0.07<td>0.48<td>0.33
+!! <tr><td>2015<td>0   <td>0.75<td>0.36
+!! <tr><td>2016<td>0   <td>0.51<td>0.4
+!! <tr><td>2017<td>0.11<td>0.17<td>0.34
 !! </table>
 !!
 !! @section ms2 Main Loop
@@ -205,15 +257,12 @@ use Mortality_Mod
 implicit none
 
 integer n !> loop count
-logical exists
 
-integer max_num_grids
 character(domain_len) domain_name
 integer start_year, stop_year
 integer num_time_steps
 integer ts_per_year
 logical save_by_stratum
-real(dp) delta_time
 integer num_years
 integer year
 character(4) buf
@@ -234,63 +283,18 @@ type(Recruitment_Class), allocatable :: recruit(:)
 real(dp), allocatable :: weight_grams(:,:)
 real(dp), allocatable :: fishing_effort(:) ! rate of fishing mortality
 
-character(fname_len) :: arg
 integer pct_comp
-integer ncla
-
-ncla=command_argument_count()
-if (ncla .eq. 0) then
-    write(*,*) term_red, 'No configuration file', term_blk
-    call get_command(arg)
-    write(*,*) term_blu,'Typical use: $ ', term_yel, trim(arg), ' Scallop.cfg [Start Year] [Stop Year] [Domain]' , term_blk
-    stop 1
-endif
-
-if(ncla.ge.1) call get_command_argument(1, arg)
-file_name = config_dir//trim(arg)
-inquire(file=file_name, exist=exists)
-if (exists) then
-    PRINT *, term_blu, trim(file_name), ' FOUND', term_blk
-else
-    PRINT *, term_red, trim(file_name), ' NOT FOUND', term_blk
-    stop 1
-endif
 
 !==================================================================================================================
 !  - I. Read Configuration file 'Scallop.inp'
 !==================================================================================================================
-call Read_Startup_Config(max_num_grids, domain_name, file_name, start_year, stop_year, ts_per_year, save_by_stratum)
-!override configuration file parameters with command line arguments if present.
-if(ncla.ge.2) then
-    call get_command_argument(2, arg)
-    read(arg,*) start_year
-endif
-
-if(ncla.ge.3) then
-    call get_command_argument(3, arg)
-    read(arg,*) stop_year
-endif
-
-if(ncla.ge.4) call get_command_argument(4, domain_name)
-if (.not. ( any ((/ domain_name.eq.'MA', domain_name.eq.'GB'/)) )) then
-    write(*,*) term_red, ' **** INVALID DOMAIN NAME: ', domain_name, term_blk
-    stop 1
-endif
-
-! For now, MA does not sort survey data by stratum. Force value to be false
-if (domain_name.eq.'MA') save_by_stratum = .false.
+call Read_Startup_Config(ts_per_year, save_by_stratum, start_year, stop_year, domain_name)
 
 !==================================================================================================================
 
 ! time parameters
 num_years = stop_year - start_year + 1
 num_time_steps = num_years * ts_per_year + 1 ! +1 to capture last data from last step
-delta_time = 1._dp / dfloat(ts_per_year)
-
-
-! allow for maximum expected number of grids
-allocate(grid(1:max_num_grids))
-allocate(state(1:max_num_grids,1:num_size_classes))
 
 !==================================================================================================================
 !  - II. Instantiate mods, that is objects
@@ -302,8 +306,12 @@ write(buf,'(I4)') start_year
 file_name = 'Data/bin5mm'//buf//domain_name//'.csv'
 call Set_Init_Cond_File_Name(file_name)
 
-call Set_Grid_Manager(max_num_grids, state, grid, num_grids, domain_name)
+! First read to see how many records are defined. Read again later in GridManager::Load_Grid_State
+num_grids = Set_Num_Grids()
+allocate(grid(1:num_grids))
+allocate(state(1:num_grids,1:num_size_classes))
 
+call Set_Grid_Manager(state, grid, num_grids, domain_name)
 
 ! number of grids known, allocated remaining data
 allocate(growth(1:num_grids), mortality(1:num_grids), recruit(1:num_grids) )
@@ -311,19 +319,19 @@ allocate(weight_grams(1:num_grids,1:num_size_classes))
 allocate(fishing_effort(1:num_grids))
 
 call Set_Growth(growth, grid, shell_length_mm, num_time_steps, ts_per_year, domain_name, domain_area,&
-&              state, weight_grams, num_grids, max_num_grids)
+&              state, weight_grams, num_grids)
 call Set_Recruitment(recruit, num_grids, domain_name, domain_area, &
 &                    growth(1:num_grids)%L_inf_mu, growth(1:num_grids)%K_mu, shell_length_mm, start_year, stop_year)
 call Set_Mortality(mortality, grid, shell_length_mm, domain_name, domain_area, num_time_steps, &
-&                    ts_per_year, num_grids, max_num_grids, save_by_stratum)
+&                    ts_per_year, num_grids, save_by_stratum)
 
 write(*,*) '========================================================'
-write(*,'(A,I6)') ' Max Expected #grids ', max_num_grids
+write(*,'(A,I6)') ' Working with #grids ', num_grids
 write(*,'(A,A6)') ' Domain:             ', domain_name
 write(*,'(A,I6)') ' Start Year:         ', start_year
 write(*,'(A,I6)') ' Stop Year:          ', stop_year
 write(*,'(A,A6)') ' Fishing Type:       ', Get_Fishing_Type()
-write(*,'(A,I6,A,F7.4)') ' Time steps/year:', ts_per_year, ' delta ', delta_time
+write(*,'(A,I6,A,F7.4)') ' Time steps/year:', ts_per_year
 write(*,'(A,I6,A,F7.4)') ' Total number time steps:', num_time_steps
 write(*,*) ' Saving Output by Stratum: ', save_by_stratum
 write(*,*) '========================================================'
@@ -359,7 +367,7 @@ end do
 !----------------------------------------------------------------------------------------------------------------
 year = start_year
 do ts = 1, num_time_steps
-    !_________________________________________________Ouput Recrutiment Estimates____________________________
+    !_________________________________________________Ouput Recruitment Estimates____________________________
     if (mod(ts, ts_per_year) .eq. 1) then
         recr_idx = year - start_year + 1
         write(buf,'(I4)') year
@@ -388,7 +396,7 @@ do ts = 1, num_time_steps
     !- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - 
     !  i. Determine fishing effort
     !- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - 
-    fishing_effort(1:num_grids) = Set_Fishing_Effort(year, ts-1, state, weight_grams, mortality, grid)
+    fishing_effort(1:num_grids) = Set_Fishing_Effort(year, ts, state, weight_grams, mortality, grid)
 
     !- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - 
     !  ii. For each grid, evaluate growth state for this time step
@@ -432,28 +440,53 @@ END PROGRAM ScallopPopDensity
 !> @param[out] time_steps_per_year Number of times steps to evaluate growth
 !> @param[out] num_monte_carlo_iter Number of iterations for Monte Carlo simulation
 !-----------------------------------------------------------------------
-subroutine Read_Startup_Config(max_num_grids, domain_name, file_name, start_year, stop_year, time_steps_per_year, save_by_stratum)
+subroutine Read_Startup_Config(time_steps_per_year, save_by_stratum, start_year, stop_year, domain_name)
     use globals
     use Mortality_Mod, only : Mortality_Set_Config_File_Name => Set_Config_File_Name
     use Recruit_Mod, only : Recruit_Set_Config_File_Name => Set_Config_File_Name
     use Grid_Manager_Mod, only : GridMgr_Set_Config_File_Name => Set_Config_File_Name
 
     implicit none
-    integer, intent(out) :: max_num_grids
-    character(domain_len),intent(out):: domain_name
-    character(*),intent(in):: file_name
-    integer, intent(out) :: start_year, stop_year, time_steps_per_year ! , num_monte_carlo_iter
+    integer, intent(out) :: time_steps_per_year ! , num_monte_carlo_iter
     logical, intent(out) :: save_by_stratum
+    integer, intent(out) :: start_year, stop_year
+    character(domain_len), intent(out) :: domain_name
 
     integer j, k, io
     character(line_len) input_string
     character(tag_len) tag
     character(value_len) value
 
+    integer ncla
+    logical exists
+    character(fname_len) file_name
+    character(fname_len) arg
+
     ! default values
-    max_num_grids = 1000
     save_by_stratum = .false.
     time_steps_per_year = 13
+
+    !----------------------------------------------------------------------------
+    ! First consider command line arguments
+    !----------------------------------------------------------------------------
+    ncla=command_argument_count()
+    if (ncla .lt. 4) then
+        write(*,*) term_red, 'Missing parameters', term_blk
+        call get_command(arg)
+        write(*,*) term_blu,'Typical use: $ ', term_yel, &
+        &    '.\SRC\ScallopPopDensity.exe Scallop.cfg StartYear StopYear Domain' , term_blk
+        stop 1
+    endif
+
+    call get_command_argument(1, arg)
+    file_name = config_dir//trim(arg)
+    inquire(file=file_name, exist=exists)
+    if (exists) then
+        PRINT *, term_blu, trim(file_name), ' FOUND', term_blk
+    else
+        PRINT *, term_red, trim(file_name), ' NOT FOUND', term_blk
+        stop 1
+    endif
 
     open(read_dev,file=file_name)
     do
@@ -470,18 +503,21 @@ subroutine Read_Startup_Config(max_num_grids, domain_name, file_name, start_year
             value =  trim(adjustl(input_string(j+1:k-1)))
 
             select case (tag)
-            case('Domain Name')
-                domain_name = trim(adjustl(value))
-                if (.not. ( any ((/ domain_name.eq.'MA', domain_name.eq.'GB'/)) )) then
-                    write(*,*) term_red, ' **** INVALID DOMAIN NAME: ', domain_name, term_blk
-                    stop 1
-                endif
+            ! DEPRECATE --------------------------------------------------------------------------------
+            ! Now read via command line to assist batch processing
+            ! case('Domain Name')
+            !     domain_name = trim(adjustl(value))
+            !     if (.not. ( any ((/ domain_name.eq.'MA', domain_name.eq.'GB'/)) )) then
+            !         write(*,*) term_red, ' **** INVALID DOMAIN NAME: ', domain_name, term_blk
+            !         stop 1
+            !     endif
 
-            case('Beginning Year')
-                read(value,*) start_year
+            ! case('Beginning Year')
+            !     read(value,*) start_year
 
-            case('Ending Year')
-                read(value,*) stop_year
+            ! case('Ending Year')
+            !     read(value,*) stop_year
+            ! ------------------------------------------------------------------------------------------
 
             case('Time steps per Year')
                 read(value,*) time_steps_per_year
@@ -495,9 +531,6 @@ subroutine Read_Startup_Config(max_num_grids, domain_name, file_name, start_year
             case('Recruit Config File')
                 call Recruit_Set_Config_File_Name(trim(adjustl(value)))
 
-            case('Max Number of Grids')
-                read(value,*) max_num_grids
-            
             case('Save By Stratum')
                 read(value,*) save_by_stratum
 
@@ -509,11 +542,30 @@ subroutine Read_Startup_Config(max_num_grids, domain_name, file_name, start_year
         endif
     end do
     close(read_dev)
+
+    ! override configuration file parameters
+    ! to aid batch processing, get remaining parameters from command line
+    call get_command_argument(2, arg)
+    read(arg,*) start_year
+    
+    call get_command_argument(3, arg)
+    read(arg,*) stop_year
+    
+    call get_command_argument(4, domain_name)
+    if (.not. ( any ((/ domain_name.eq.'MA', domain_name.eq.'GB'/)) )) then
+        write(*,*) term_red, ' **** INVALID DOMAIN NAME: ', domain_name, term_blk
+        stop 1
+    endif
+    
+    ! For now, MA does not sort survey data by stratum. Force value to be false
+    if (domain_name.eq.'MA') save_by_stratum = .false.
+    
+    
     return
 end subroutine Read_Startup_Config
 
 !--------------------------------------------------------------------------------
-!! Read_Startup_Config
+!! Write_Lat_Lon_Preamble
 !> @brief Writes lat and lon columns with headers to named file
 !--------------------------------------------------------------------------------
 subroutine Write_Lat_Lon_Preamble(num_grids, grid, fname)
@@ -529,7 +581,7 @@ call Write_Column_CSV(num_grids, grid(1:num_grids)%lon, 'LON', fname,.true.)
 endsubroutine Write_Lat_Lon_Preamble
 
 !--------------------------------------------------------------------------------
-!! Read_Startup_Config
+!! Write_X_Y_Preamble
 !> @brief Writes year, UTM-X, UTM-Y, and Depth columns with headers to named file
 !--------------------------------------------------------------------------------
 subroutine Write_X_Y_Preamble(num_grids, grid, fname, save_by_stratum)

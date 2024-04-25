@@ -35,25 +35,25 @@ CONTAINS
 !-----------------------------------------------------------------------------------------------
 !> Getter functions
 !-----------------------------------------------------------------------------------------------
-logical function Get_Use_Greedy_Fit()
-    Get_Use_Greedy_Fit = use_greedy_fit
-endfunction Get_Use_Greedy_Fit
+logical function NLSF_Get_Use_Greedy_Fit()
+    NLSF_Get_Use_Greedy_Fit = use_greedy_fit
+endfunction NLSF_Get_Use_Greedy_Fit
 
-logical function Get_Is_Truncate_Range()
-    Get_Is_Truncate_Range = is_truncate_range
-endfunction Get_Is_Truncate_Range
+logical function NLSF_Get_Is_Truncate_Range()
+    NLSF_Get_Is_Truncate_Range = is_truncate_range
+endfunction NLSF_Get_Is_Truncate_Range
 
-integer function Get_NSF_Limit()
-    Get_NSF_Limit = nsflim
-endfunction Get_NSF_Limit
+integer function NLSF_Get_NSF_Limit()
+    NLSF_Get_NSF_Limit = nsflim
+endfunction NLSF_Get_NSF_Limit
 
-integer function Get_NSF()
-    Get_NSF = nsf
-endfunction Get_NSF
+integer function NLSF_Get_NSF()
+    NLSF_Get_NSF = nsf
+endfunction NLSF_Get_NSF
 
-real(dp) function Get_Z_F0_Max()
-Get_Z_F0_Max = z_f0_max
-endfunction Get_Z_F0_Max
+real(dp) function NLSF_Get_Z_F0_Max()
+NLSF_Get_Z_F0_Max = z_f0_max
+endfunction NLSF_Get_Z_F0_Max
 
 !-----------------------------------------------------------------------------------------------
 !> Determines which function to call to do a brute force least squares fit of nonlinear spatial 
@@ -98,6 +98,32 @@ subroutine Set_Config_File_Name(fname)
 endsubroutine Set_Config_File_Name
 
 !--------------------------------------------------------------------------------------------------
+!! Count the number of defined spatial functions
+!> 
+!--------------------------------------------------------------------------------------------------
+integer function NLSF_Count_Defined_Functions()
+integer n, io
+character(input_str_len) :: input_string
+
+open(69,file=config_file_name)
+n = 0
+do
+    input_string = ""
+    read(69,'(a)',iostat=io) input_string
+    if (io.lt.0) exit
+    if(input_string(1:1).eq.'F') n = n+1
+end do
+close(69)
+! if (n .eq. 0) then
+!     write(*,*) term_red, 'No spatial functions are defined. Cannot proceed.', term_blk
+!     stop 1
+! endif
+NLSF_Count_Defined_Functions = n
+nsf = n
+return
+endfunction NLSF_Count_Defined_Functions
+
+!--------------------------------------------------------------------------------------------------
 !> Define non linear spatial functions(NLSF) and paramater search range.
 !>
 !> The file "SpatialFcns.cfg" contains a set of lines of the form
@@ -118,13 +144,12 @@ endsubroutine Set_Config_File_Name
 !> In the second call InitiialCallFlag= F and all of the functions are defined.
 !> with precon=0 the nonlinear paraters function is fit in a least
 !--------------------------------------------------------------------------------------------------
-integer function NLSF_Define_Functions(nlsf, p, InitialCallFlag, f0_max)
+integer function NLSF_Define_Functions(nlsf, p, f0_max)
 type(NLSF_Class) :: nlsf(*)
 type(Grid_Data_Class):: p
 integer j, io, n, num_points
-logical, intent(in):: InitialCallFlag
 real(dp), intent(in) :: f0_max
-character(72) :: input_string
+character(input_str_len) :: input_string
 
 is_truncate_range = .true. !default
 use_greedy_fit = .false.
@@ -132,26 +157,6 @@ z_f0_max = f0_max ! either default to 0.0 or read in on command line
 
 open(69,file=config_file_name)
 n=0
-
-!-------------------------------------------------------------------------------------
-if (InitialCallFlag) then
-    ! only counting the number of defined 'Function n'
-    do
-        input_string = ""
-        read(69,'(a)',iostat=io) input_string
-        if (io.lt.0) exit
-        if(input_string(1:1).eq.'F') n = n+1
-    end do
-    close(69)
-    ! if (n .eq. 0) then
-    !     write(*,*) term_red, 'No spatial functions are defined. Cannot proceed.', term_blk
-    !     stop 1
-    ! endif
-    NLSF_Define_Functions = n
-    return
-endif
-
-!-------------------------------------------------------------------------------------
 do
     input_string = ""
     read(69, '(a)', iostat=io) input_string
@@ -204,7 +209,10 @@ endselect
 close(69)
 
 ! set private variables to the number of detected spatial functions
-nsf = n
+if (n.NE.nsf) then
+    write(*,*) term_red, 'OOPS, something is wrong, Number of Spatial Functions do no match', term_blk, n, nsf
+    STOP 1
+endif
 nsflim = n
 NLSF_Define_Functions = n
 

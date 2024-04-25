@@ -12,8 +12,9 @@
 !> This routine initializes private variables. Calls @a @b Read_Configuration that reads in the Grid Manger configuration 
 !> file as given by the main configuration and set via @a @b Set_Config_File_Name.
 !>
-!> @a @b Load_Grid_State loads the grid data from the file given in @a @b Initial_Conditions. This establishes the
-!> number of grids, @a num_grids, and the initial state of the scallop density, @ state.
+!> @a @b Load_Grid_State loads the grid data from the file defined by the start year and domain.
+!> - Data/bin5mmYYYYDN.csv\n
+!> This establishes the number of grids, @a num_grids, and the initial state of the scallop density, @ state.
 !>
 !> If a special access area definitions are provided, these are loaded via @a @b Load_Area_Coordinates. 
 !> Each grid location if then checked if it is in a special access area and identified as such by setting 
@@ -93,7 +94,6 @@ integer n_sides
 end type LonLatVector
 
 type(LonLatVector), PRIVATE :: area(max_num_areas)
-integer, PRIVATE :: max_num_grids
 integer, PRIVATE :: num_areas ! number of special access areas
 integer, PRIVATE :: num_grids
 logical, PRIVATE :: use_spec_access_data
@@ -106,22 +106,48 @@ CONTAINS
 
 !==================================================================================================================
 !! @public @memberof GridManager
+!> Determines the expected number of grids by simply counting the number of lines with text in the initial state
+!> file. It does not perform any error checking, only counting the number of lines with text and stopping at the 
+!> first blank line.
+!>
+!> @returns The expected number of grids to process.
+!==================================================================================================================
+integer function Set_Num_Grids()
+
+integer nlines, io
+character(csv_line_len) input_str
+
+nlines = 0
+
+OPEN (1, file = init_cond_fname)
+DO
+    READ (1,'(A)', iostat=io, END=10) input_str
+    if (io.lt.0) exit
+    ! check for blank lines
+    if (trim(input_str) .EQ. '') exit
+    nlines = nlines + 1
+END DO
+10 CLOSE (1)
+
+Set_Num_Grids = nlines
+endfunction Set_Num_Grids
+
+!==================================================================================================================
+!! @public @memberof GridManager
 !>
 !> Initializes growth for startup
 !>
 !==================================================================================================================
-subroutine Set_Grid_Manager(max_ngrids, state, grid, ngrids, dom_name)
-integer, intent(in) :: max_ngrids
-real(dp), intent(out):: state(1:max_ngrids, 1:num_size_classes)
+subroutine Set_Grid_Manager(state, grid, ngrids, dom_name)
+integer, intent(inout) :: ngrids
+real(dp), intent(out):: state(1:ngrids, 1:num_size_classes)
 type(Grid_Data_Class), intent(out) :: grid(*)
-integer, intent(out) :: ngrids
 character(domain_len), intent(in) :: dom_name
 
 integer n, j
 character(fname_len) fname
 
 ! set private variables
-max_num_grids = max_ngrids
 domain_name = dom_name
 
 ! Used to verify grid in special access area
@@ -133,12 +159,16 @@ use_spec_access_data = .false.
 
 call Read_Configuration()
 
+! save in private variable as it is used to dimension arrays
+num_grids = ngrids
 ! Load Grid. 
 ! read in grid and state from file_name
 ngrids = Load_Grid_State(grid, state)
 
-! set private variable
-num_grids = ngrids
+if (num_grids .NE. ngrids) then
+    PRINT *, term_red, 'OOPS something went wrong', term_blk, num_grids, term_red, ' does not match ', term_blk, ngrids
+    STOP 1
+endif
 
 num_areas = Load_Area_Coordinates()
 write(*,*) '========================================================'
@@ -158,6 +188,15 @@ do n = 1, num_grids
         &   ' location (lat, lon) (', grid(n)%lat, ',', grid(n)%lon, ' )  Is Closed:', grid(n)%is_closed
     endif
 enddo
+! Only used for debugging special access settings
+! call Write_CSV_Logical(1, num_grids, grid(1:num_grids)%is_closed,&
+! &           output_dir//'FishingMort'//domain_name//'.csv', 1,.false.)
+! call Write_CSV_Logical(1, num_grids, grid(1:num_grids)%is_closed,&
+! &           output_dir//'FishingMortRaw'//domain_name//'.csv', 1,.false.)
+! call Write_CSV_Int(1, num_grids, grid(1:num_grids)%special_access_index,&
+! &           output_dir//'FishingMort'//domain_name//'.csv',1,.true.)
+! call Write_CSV_Int(1, num_grids, grid(1:num_grids)%special_access_index,&
+! &           output_dir//'FishingMortRaw'//domain_name//'.csv',1,.true.)
 
 close(70)
 endsubroutine Set_Grid_Manager
@@ -308,7 +347,7 @@ end subroutine Read_Configuration
 !==================================================================================================================
 integer function Load_Grid_State(grid, state)
     type(Grid_Data_Class), intent(out) :: grid(*)
-    real(dp), intent(out):: state(1:max_num_grids, 1:num_size_classes)
+    real(dp), intent(out):: state(1:num_grids, 1:num_size_classes)
 
     character(csv_line_len) input_str
     integer n, io, is_closed
@@ -325,12 +364,9 @@ integer function Load_Grid_State(grid, state)
     do
         read(63,'(a)',iostat=io) input_str
         if (io.lt.0) exit
+        ! also stop at first blank line
+        if (trim(input_str) .EQ. '') exit
         n=n+1
-        if (n>max_num_grids) then
-            write(*,'(A,A, I5, A, I5)') term_red, 'MAX NUMBER OF GRIDS EXCEEDED, AT ', n, ' EXPECTED ', max_num_grids
-            write(*,*) 'CHANGE "Max Number of Grids" IN CONFIGURATION FILE', term_blk
-            stop 1
-        end if
         read(input_str,*) grid(n)%year, grid(n)%x, grid(n)%y, grid(n)%lat, grid(n)%lon, grid(n)%z, &
         &               is_closed, grid(n)%stratum, state(n,1:num_size_classes)
 

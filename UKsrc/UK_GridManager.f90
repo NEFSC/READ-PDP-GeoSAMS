@@ -27,6 +27,36 @@ CONTAINS
 
 !-----------------------------------------------------------------------------------------------
 !! @public @memberof Grid_Data_Class
+!> Initialize survey and grid location data
+!> 
+!-----------------------------------------------------------------------------------------------
+subroutine GridMgr_Set_Grid_Manager(obs, grid, alpha, nobs, ngrid, fmax)
+type(Grid_Data_Class), intent(out):: grid
+type(Grid_Data_Class), intent(out):: obs
+real(dp), intent(in) :: alpha
+integer, intent(out) :: nobs, ngrid
+real(dp), intent(inout) :: fmax
+
+!
+! Initalize data point coordinates, bathymetry and data - initialize no
+!
+obs%num_points = GridMgr_Load_Observation_Data(obs%x, obs%y, obs%z, obs%field)
+nobs = obs%num_points
+obs%field(1:nobs) = obs%field(1:nobs)**alpha
+
+!
+! Initalize grid point coordinates and bathymetry - initialize num_points
+!
+ngrid = GridMgr_Load_Grid(grid%x, grid%y, grid%z, grid%lat, grid%lon)
+grid%num_points = ngrid
+
+! Used if IsHiLimit is true
+fmax = fmax * maxval(obs%field(1:nobs))
+
+endsubroutine
+
+!-----------------------------------------------------------------------------------------------
+!! @public @memberof Grid_Data_Class
 !> Used during instantiation to set the name of the file to read to for main grid data points
 !> @brief Read Input File
 !> 

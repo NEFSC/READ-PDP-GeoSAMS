@@ -128,17 +128,6 @@ real(dp), PRIVATE :: recr_period_stop  ! day of year as a fraction of year, Apr 
 
 CONTAINS
 
-subroutine Set_Start_Year(value)
-integer, intent(in) :: value
-recr_start_year = value
-endsubroutine Set_Start_Year
-    
-subroutine Set_Stop_Year(value)
-integer, intent(in) :: value
-recr_stop_year = value
-recr_all_rand_stop = value ! TODO is this correct. Not using random recruits at this time
-endsubroutine Set_Stop_Year
-        
 !==================================================================================================================
 !! @public @memberof Recruitment_Class
 !> Set_Recruitment
@@ -173,15 +162,12 @@ subroutine Set_Recruitment(recruit, n_grids, dom_name, dom_area, L_inf_mu, K_mu,
     ! set default values
     recr_period_start = 0./365.
     recr_period_stop = 100./365.
-    recr_start_year = 1979
-    recr_stop_year = 2018
-    recr_all_rand_stop = 2025
 
     call Read_Configuration()
-    ! Force recruitment years from main command line
-    call Set_Start_Year(yr_start)
-    call Set_Stop_Year(yr_stop)
-
+    ! recruitment years same as growth years from main command line
+    recr_start_year = yr_start
+    recr_stop_year  = yr_stop
+    recr_all_rand_stop = recr_stop_year ! TODO is this correct. Not using random recruits at this time
 
     !! initalize private members
     num_grids = n_grids
@@ -347,14 +333,16 @@ subroutine Read_Configuration()
             value =  trim(adjustl(input_string(j+1:k-1)))
 
             select case (tag)
-            case('Start Year')
-                read(value, *) recr_start_year
+            ! DEPRECATE --------------------------------------------------------------------------------
+            ! case('Start Year')
+            !     read(value, *) recr_start_year
 
-            case('Stop Year')
-                read(value, *)recr_stop_year
+            ! case('Stop Year')
+            !     read(value, *)recr_stop_year
 
-            case('All Random Stop Year')
-                read(value, *)recr_all_rand_stop
+            ! case('All Random Stop Year')
+            !     read(value, *)recr_all_rand_stop
+            ! ------------------------------------------------------------------------------------------
 
             case('Start Period')
                 read(value, *) recr_period_start
