@@ -1,7 +1,69 @@
 !--------------------------------------------------------------------------------------------------
-!> @page page2 Non Linear Spatial Functions
+!> @page page2 Non Linear Spatial Functions, NLSF
 !>
+!> TBD - More information on what these methods do.
 !>
+!> To easily change how the NLSF functions perform a configuration file is used. 
+!> The NLSF configuration file is named by the UK configuration file, configuration item 
+!> <b>NLS Spatial Fcn File Name</b>. The subroutine <em><b>NLSF::Set_Config_File_Name</b></em> is 
+!> called to set this value. When UK first starts is must call <em><b>NLSF_Count_Defined_Functions</b></em> 
+!> to determine how many spatial functions are defined.
+!>
+!> The following configuration items are defined.
+!> * Function String
+!> * Greedy nonlinear parameter fit (not used)
+!> * IsTruncateRange
+!> * ZF0Max [optional]
+!> * Use Original Data [optional]
+!>
+!> @section m3p1 Function String
+!>
+!> @subsection m3p1p1 Function
+!> Define non linear spatial functions and paramater search range.
+!>
+!> - "Function 1, dim=z, shape=Logistic, precon=0 "
+!> - "Function 2, dim=z, shape=Gaussian, precon=0 "
+!> - "Function 3, dim=x, shape=Logistic, precon=1 "
+!>
+!> These define spatial functions for setting the spatial trend in the universal kriging algorithm. 
+!>
+!> The precon=0 term means that the function is not multiplied by another function. For example,\n
+!> @verbatim
+!>    "Function 3, dim=x, shape=Logistic, precon=1 "\n
+!> @endverbatim
+!> indicates that the third function is multiplied by the first function.  
+!> This is true for fitting the nonlinear parameters of function 3 hence 
+!> the parameters of function 1 must be fit before the parameters of function 3.
+!>
+!> @subsection m3p1p2 dim
+!> * 'x'
+!> * 'y'
+!> * 'z'
+!> * 'x+y'
+!>
+!> @subsection m3p1p3 shape
+!> Let @f$\vec{A} = \vec{dim} - f0@f$
+!> * 'Gaussian': @f$exp( - ( \vec{A} / \lambda )^2 )@f$
+!> * 'Logistic': @f$1 / \left( 1 + exp( - \vec{A} / \lambda ) \right)@f$
+!> * 'SinExp': @f$sin(\vec{A}/\lambda ) * exp(-(\vec{A}/\lambda )^2)@f$
+!> * 'CosExp': @f$cos(\vec{A}/\lambda ) * exp(-(\vec{A}/\lambda )^2)@f$
+!>
+!> @section m3p2 Greedy Fit
+!>
+!> Takes longer to execute, not truly used or verified.
+!>
+!> @section m3p3 IsTruncateRange
+!> * Set to F to extrapolate beyond observation range
+!> * Set to T to restrict within observation range
+!>
+!> @section m3p4 ZF0Max
+!> This configuration item is optional. The default is blank which then allows the algorithm to set
+!> the maximum value for Z, i.e. depth. A nonzero value will limit the z value to that setting.
+!> This configuration item can also be set on the command line.
+!>
+!> @section m3p5 Use Original Data
+!> On each loop for the least squares fit, if true, the algorithm restores the data to the original data.
+!> If false, the algorithm will used the residual data.
 !--------------------------------------------------------------------------------------------------
 ! Keston Smith (IBSS) 2024
 !--------------------------------------------------------------------------------------------------
@@ -28,6 +90,7 @@ integer, PRIVATE :: nsf
 integer, PRIVATE :: nsflim
 logical, PRIVATE :: is_truncate_range
 logical, PRIVATE :: use_greedy_fit
+logical, PRIVATE :: use_orig_data
 real(dp), PRIVATE :: z_f0_max
 
 CONTAINS
@@ -42,6 +105,10 @@ endfunction NLSF_Get_Use_Greedy_Fit
 logical function NLSF_Get_Is_Truncate_Range()
     NLSF_Get_Is_Truncate_Range = is_truncate_range
 endfunction NLSF_Get_Is_Truncate_Range
+
+logical function NLSF_Get_Use_Orig_Data()
+    NLSF_Get_Use_Orig_Data = use_orig_data
+endfunction NLSF_Get_Use_Orig_Data
 
 integer function NLSF_Get_NSF_Limit()
     NLSF_Get_NSF_Limit = nsflim
@@ -61,16 +128,16 @@ endfunction NLSF_Get_Z_F0_Max
 !>
 !> NOTE: Greedy function takes significantly longer to run
 !-----------------------------------------------------------------------------------------------
-subroutine NLSF_Select_Fit(obs, nlsf, save_data, is_reset)
+subroutine NLSF_Select_Fit(obs, nlsf, save_data)
 type(Grid_Data_Class):: obs
 type(NLSF_Class)::nlsf(*)
 logical, intent(in) :: save_data
-logical, intent(in) :: is_reset
 
+! check private member variable to determine which least squares fit to use
 if (use_greedy_fit) then
     call NLSF_Greedy_Least_Sq_Fit(obs, nlsf, save_data)
 else
-    call NLSF_Least_Sq_Fit(obs, nlsf, save_data,is_reset)
+    call NLSF_Least_Sq_Fit(obs, nlsf, save_data)
 endif
 
 endsubroutine NLSF_Select_Fit
@@ -152,6 +219,7 @@ real(dp), intent(in) :: f0_max
 character(input_str_len) :: input_string
 
 is_truncate_range = .true. !default
+use_orig_data = .true.
 use_greedy_fit = .false.
 z_f0_max = f0_max ! either default to 0.0 or read in on command line
 
@@ -201,11 +269,15 @@ do
         ! if non-zero overwrite config file setting
         if (f0_max > 0._dp) z_f0_max = f0_max
 
+    case ('U')
+        j = index(input_string,"=",back=.true.)
+        read( input_string(j+1:),* ) use_orig_data
+
     case default
         write(*,*) term_red,'Unrecognized Configuration Item in ', trim(config_file_name) , ': ', term_blk, input_string
         stop 1
 endselect
- end do
+end do
 close(69)
 
 ! set private variables to the number of detected spatial functions
@@ -264,10 +336,10 @@ endfunction
 !>
 !> @author keston Smith (IBSS corp) 2022
 !--------------------------------------------------------------------------------------------------
-subroutine NLSF_Least_Sq_Fit(obs, nlsf, save_data, is_reset)
+subroutine NLSF_Least_Sq_Fit(obs, nlsf, save_data)
 type(Grid_Data_Class), intent(in) :: obs
 type(NLSF_Class), intent(inout) ::nlsf(*)
-logical, intent(in) :: save_data, is_reset
+logical, intent(in) :: save_data
 
 integer j, num_obs_points, k
 real(dp), allocatable :: residual_vect(:), field_precond(:), residuals(:, :), rms(:)
@@ -296,7 +368,7 @@ if (nsf > 0) then
     write(*,'(A,F10.6)') 'residual  0: ', Compute_RMS(residual_vect(:), num_obs_points)
 
     do j = 1, nsf_local
-        if(is_reset) residual_vect(:) = obs%field(1:num_obs_points)
+        if(use_orig_data) residual_vect(:) = obs%field(1:num_obs_points)
         k = nlsf(j)%precon
         if (k.eq.0) then
             !no preconditioning
@@ -326,7 +398,7 @@ if (nsf > 0) then
         close(63)
     endif
 
-    if ((is_reset) .and. sort) then
+    if ((use_orig_data) .and. sort) then
         !sort functions into increasing rms
         write(buf,'(I3)') nsf_local
         write(*,'(A,A,'//trim(buf)//'(F10.6))') term_grn, 'rms:',rms(1:nsf_local)

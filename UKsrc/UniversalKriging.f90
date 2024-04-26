@@ -89,7 +89,6 @@ type(Krig_Class):: par
 type(NLSF_Class), allocatable ::nlsf(:)
 real(dp) alpha
 logical save_data
-logical is_reset
 real(dp) f0_max
 real e, etime, t(2)
 e = etime(t)         !  Startup etime - do not use result
@@ -101,10 +100,30 @@ par = Krig_Class(0.0, 0.0, 0.0, 'spherical')
 write (*,*) term_grn, "PROGRAM STARTING  ", &
 & 'elapsed:', term_yel, e, term_grn, ', user:', term_yel, t(1), term_grn, ', sys:', term_yel, t(2), term_blk
 
-call Read_Startup_Config(domain_name, NRand, IsLogT, IsHiLimit, fmax, par, alpha, save_data, is_reset, f0_max)
+call Read_Startup_Config(domain_name, NRand, IsLogT, IsHiLimit, fmax, par, alpha, save_data, f0_max)
+
+call random_seed( )
+
+!--------------------------------------------------------------------------
+! Get observation data and regional grid data
+!--------------------------------------------------------------------------
+call GridMgr_Set_Grid_Manager(obs, grid, alpha, num_obs_points, num_points, fmax)
+
+allocate( eps(1:num_points), Ceps(1:num_points, 1:num_points))
+allocate(residual_cov(1:num_obs_points, 1:num_obs_points))
+allocate(residual(1:num_obs_points))
+allocate(trndOBS(1:num_obs_points), resOBS(1:num_obs_points))
+allocate(distance_horiz(1:num_obs_points, 1:num_obs_points), distance_vert(1:num_obs_points, 1:num_obs_points))
+
+!-------------------------------------------------------------------------  
+! nonlinear curve fitting for spatial functions
+!-------------------------------------------------------------------------  
+! Determine how many spatial functions are defined.
+nsf = NLSF_Count_Defined_Functions()
+allocate(nlsf(1:nsf))
+nsf = NLSF_Define_Functions(nlsf, grid, f0_max)
 
 write (*,*) term_blu,"Reading ", domain_name
-
 write(*,*) 'Observation file:  ', trim(GridMgr_Get_Obs_Data_File_Name())
 write(*,*) 'Logtransorm:       ', IsLogT
 write(*,*) 'Using High Limit:  ', IsHiLimit
@@ -115,27 +134,12 @@ if (save_data) then
 else
     write(*,*) 'Only resulting estimate is saved'
 endif
-if (is_reset) then
+if (NLSF_Get_Use_Orig_Data()) then
     write(*,*) 'Force 1D fit to original data'
 else
     write(*,*) 'Force 1D fit to residual data'
 endif 
 write(*,*) term_blk
-
-call random_seed( )
-
-call GridMgr_Set_Grid_Manager(obs, grid, alpha, num_obs_points, num_points, fmax)
-
-allocate( eps(1:num_points), Ceps(1:num_points, 1:num_points))
-
-!-------------------------------------------------------------------------  
-! nonlinear curve fitting for spatial functions
-!-------------------------------------------------------------------------  
-! Determine how many spatial functions are defined.
-nsf = NLSF_Count_Defined_Functions()
-allocate(nlsf(1:nsf))
-nsf = NLSF_Define_Functions(nlsf, grid, f0_max)
-
 write(*,*)'num_obs_points=', num_obs_points, 'nsf limit=', NLSF_Get_NSF_Limit(), ' alpha = ', alpha
 write(*,*)'num_grid_points=', num_points
 !write(*,'(A, A, A, I2, A, A)') term_blu, 'Using ', term_blk, nsf, term_blu, ' Spatial Functions'
@@ -147,12 +151,7 @@ if (f0_max > 0._dp) then
 else
     write(*,*) 'Using f0_max setting: Determined by algorithm', term_blk
 endif
-
-allocate(residual_cov(1:num_obs_points, 1:num_obs_points))
-allocate(residual(1:num_obs_points))
-allocate(trndOBS(1:num_obs_points), resOBS(1:num_obs_points))
-allocate(distance_horiz(1:num_obs_points, 1:num_obs_points), distance_vert(1:num_obs_points, 1:num_obs_points))
-    
+   
 if(IsLogT) then
     SF = Compute_MEAN(obs%field(1:num_obs_points), num_obs_points)
     SF = SF/5.D0  ! mean / 5 ~ median
@@ -162,8 +161,8 @@ endif
 !-----------------------------------------------------------------------------------------------------
 ! Performs a brute force least squares fit of nonlinear spatial function parameters to data points in obs.
 !-----------------------------------------------------------------------------------------------------
-call NLSF_Select_Fit(obs, nlsf, save_data, is_reset)
-! nsf may have been modified by is_reset in NLSF_Select_Fit
+call NLSF_Select_Fit(obs, nlsf, save_data)
+! nsf may have been modified during NLSF_Select_Fit
 nsf = NLSF_Get_NSF()
 if (nsf>0) then
     write(*,*)
@@ -189,17 +188,15 @@ spatial_fcn = Krig_Eval_Spatial_Function(obs, num_spat_fcns, num_obs_points, nls
 residual = LSF_Generalized_Least_Squares&
 &       (obs%field, spatial_fcn, residual_cov, num_obs_points, num_spat_fcns, beta, Cbeta, save_data)
 write(*,'(A,F10.6)')'Ordinary Least Sq Residual:', Compute_RMS( residual(:), num_obs_points)
-
-!-------------------------------------------------------------------------
-! Fit variogram parameters to Ordinary Least Square residual
-!-------------------------------------------------------------------------
 if (save_data) then
     call Write_Vector_Scalar_Field(num_obs_points, residual, 'OLSresidual.txt')
     call Write_Vector_Scalar_Field(num_obs_points, obs%field, 'data.txt')
 endif
-call Krig_Compute_Distance(obs, obs, distance_horiz, distance_vert, num_obs_points)
 
-! call Krig_Comp_Emp_Variogram(num_obs_points, distance_horiz, distance_vert, num_obs_points, residual, par)
+!-------------------------------------------------------------------------
+! Fit variogram parameters to Ordinary Least Square residual
+!-------------------------------------------------------------------------
+call Krig_Compute_Distance(obs, obs, distance_horiz, distance_vert, num_obs_points)
 call Krig_Comp_Emp_Variogram(num_obs_points, distance_horiz, num_obs_points, residual, par)
 
 if (save_data) then
@@ -246,13 +243,21 @@ endprogram
 !> to be read from UK.cfg are identified by tag before '='.  Values are read from the 
 !> line to the right of an "=" character. Logical variables are read from 'T','F'.
 !>
+!> This method also considers arguments passed on the command line that determine
+!> * Name of the configuration file
+!> * Name of the observation file
+!> Or to override config file settings used in batch mode
+!> * Domain
+!> * Grid File
+!> * Z f0 max
+!>
 !> outputs: 
 !>       all variables
 !>
 !--------------------------------------------------------------------------------------------------
 ! Keston Smith, Tom Callaghan (IBSS) 2024
 !--------------------------------------------------------------------------------------------------
-subroutine Read_Startup_Config(domain_name, NRand, IsLogT, IsHiLimit, fmax, par, alpha, save_data, is_reset, f0_max)
+subroutine Read_Startup_Config(domain_name, NRand, IsLogT, IsHiLimit, fmax, par, alpha, save_data, f0_max)
 use globals
 use Krig_Mod
 use NLSF_Mod, only : NLS_Set_Config_File_Name => Set_Config_File_Name
@@ -268,7 +273,6 @@ character(tag_len) tag
 character(value_len) value
 real(dp),intent(out)::  fmax,alpha
 logical, intent(out) :: save_data
-logical, intent(out) :: is_reset
 real(dp), intent(out) :: f0_max
 
 integer ncla
@@ -281,7 +285,6 @@ IsLogT=.true.
 IsHiLimit=.false.
 alpha=1.D0
 save_data = .false.
-is_reset = .true.
 f0_max = 0._dp
 
 ! Check what was entered on command line
@@ -367,9 +370,6 @@ do
 
         case('Save Data')
             read(value,*) save_data
-
-        case('Is Reset')
-            read(value,*) is_reset
 
         case default
             write(*,*) term_red, 'ReadInput: Unrecognized line in UK.cfg'

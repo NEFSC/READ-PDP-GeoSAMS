@@ -1,12 +1,12 @@
 !--------------------------------------------------------------------------------------------------
 !> @page page1 Kriging Routines
 !>
-!> @section m1p1 Implementation of Interpolation
+!> @section m2p1 Implementation of Interpolation
 !>
-!> @subsection m1p1p1 Interpolation Algorithm
+!> @subsection m2p1p1 Interpolation Algorithm
 !> The interpolation of geospatial data is carried out via an Universal Kriging (UK) algorithm. 
 !>
-!> @subsubsection m1p1p1p1 Universal Kriging
+!> @subsubsection m2p1p1p1 Universal Kriging
 !> Universal kriging (UK) is a generalization of ordinary kriging in which a set of spatial functions are used to model the
 !> trend of a set of point observations.  The underlying model is:
 !> @f[
@@ -16,7 +16,7 @@
 !> process with semi-variogram @f$\gamma(s)@f$. For a summary of UK see @cite Cressie 1993, pages 151 -180.\n
 !> The spatially variable @f$x@f$ here is taken to include latitude, longitude and, bathymetric depth(@f$x=[lat,lon,z(lat,lon)]@f$). 
 !> 
-!> @subsubsection m1p1p1p2 Spatial functions
+!> @subsubsection m2p1p1p2 Spatial functions
 !> The spatial functions (SF) used here are  a set of one dimensional, bounded, C-infinity functions with two parameters, 
 !> 
 !> Gaussian Bump:
@@ -51,7 +51,7 @@
 !> @f]
 !> where @f$\beta_i@f$ are coefficients for the spatial functions and @f$\epsilon@f$ is the zero mean noise process associated with UK.
 !> 
-!> @subsubsection m1p1p1p3 Fitting non-linear parameters
+!> @subsubsection m2p1p1p3 Fitting non-linear parameters
 !> A brute force approach is taken to fitting the nonlinear parameters @f$x_0@f$ and @f$\lambda@f$.  A search range is 
 !> determined based on the geographic range of the observations.  The parameters are then fit to minimize the misfit to 
 !> observations. 
@@ -68,17 +68,17 @@
 !> 
 !> A smoothness penalty is imposed for each function based on the analytic 
 !> 
-!> @subsection m1p1p2 Residual process
+!> @subsection m2p1p2 Residual process
 !> After performing an ordinary least squares fit for the SF coeficients, @f$\beta@f$, we have an estimate of @f$\epsilon@f$. 
 !> An empirical variogram is computed subroutine @a Krig_Comp_Emp_Variogram, and variogram parameters are fit (again by brute force).  
 !> The variogram forms allowed are "spherical", "exponential", and "gaussian".  The form is defaults to 'spherical' if not specified 
 !> by the UK configuration file.
 !>
-!> @subsubsection m1p1p2p1 Posterior sampling
+!> @subsubsection m2p1p2p1 Posterior sampling
 !> With the fitting of the residual we have a covariance for @f$\epsilon@f$ and the estimation problem becomes one of 
 !> Generalized Least Squares (LSF_Generalized_Least_Squares).  Posterior sampling is then conducted  achieved posterior sampling is Treating the TBD
 !>
-!> @section m1p2 Non Linear Spatial function fitting for UK
+!> @section m2p2 Non Linear Spatial function fitting for UK
 !> The universal kriging algorithm described above is used to build a distribution based on the historical recruitment data 
 !> (1979-present).  Spatial function forms of one variable were selected for smoothness and boundedness. We have:\n
 !> Gaussian bump
