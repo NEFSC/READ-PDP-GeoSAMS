@@ -220,7 +220,7 @@ if (save_data) then
     call OutputUK(num_points, num_spat_fcns, Nrand, grid, nlsf, beta, eps, Ceps, Cbeta, fmax, SF, &
     &                    IsLogT, IsHiLimit, domain_name, alpha)
 else
-    call OutputEstimates(num_points, num_spat_fcns, grid, Ceps, IsLogT, IsHiLimit, fmax, SF, domain_name, nlsf, beta)
+    call OutputEstimates(num_points, num_spat_fcns, grid, Ceps, IsLogT, IsHiLimit, fmax, SF, domain_name, nlsf, alpha, beta)
 endif
 
 write(*,*)'num_points, num_survey', num_points, num_obs_points
@@ -515,7 +515,7 @@ endsubroutine OutputUK
 !>
 !> That is moving from survey data locations to MA/GB grid locations
 !---------------------------------------------------------------------------------------------------
-subroutine OutputEstimates(num_points, num_spat_fcns, grid, Ceps, IsLogT, IsHiLimit, fmax, SF, domain_name, nlsf, beta)
+subroutine OutputEstimates(num_points, num_spat_fcns, grid, Ceps, IsLogT, IsHiLimit, fmax, SF, domain_name, nlsf, alpha, beta)
 use globals
 use Grid_Manager_Mod
 use NLSF_Mod
@@ -532,6 +532,7 @@ real(dp), intent(in) :: fmax, SF
 character(2), intent(in) :: domain_name
 
 type(NLSF_Class), intent(in)::nlsf(*)
+real(dp), intent(in) :: alpha
 real(dp), intent(in) :: beta(*)
 
 integer n
@@ -544,7 +545,7 @@ real(dp) trend(num_points), Fg(num_points, num_spat_fcns)
 do n=1, num_points
     V(n)=Ceps(n, n)
 enddo
-    
+grid%field(1:num_points) = grid%field(1:num_points)**(1./alpha)    
 if(IsLogT) grid%field(1:num_points) = SF * exp( grid%field(1:num_points) + V(1:num_points)/2. ) - one_scallop_per_tow  ! adjusted inverse log(one_scallop_per_tow+f)
 if(IsHiLimit) call LSF_Limit_Z(num_points, grid%field, grid%z, fmax, domain_name)
 
