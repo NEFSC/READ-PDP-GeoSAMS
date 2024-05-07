@@ -71,12 +71,12 @@ use Grid_Manager_Mod
 use LSF_Mod
 use NLSF_Mod
 use Krig_Mod
-use Random_Field_Mod
+!NORF!use Random_Field_Mod
 implicit none
 
 real(dp), allocatable :: beta(:), Cbeta(:,:), eps(:), Ceps(:,:), residual_cov(:,:)
 real(dp), allocatable :: spatial_fcn(:,:), residual(:), trndOBS(:), resOBS(:)
-real(dp), allocatable :: distance_horiz(:,:), distance_vert(:,:)
+real(dp), allocatable :: dist(:,:)
 integer num_points, num_spat_fcns, num_obs_points, j
 real(dp)  fmax, SF
 ! variables for nonlinear fitting
@@ -113,7 +113,7 @@ allocate( eps(1:num_points), Ceps(1:num_points, 1:num_points))
 allocate(residual_cov(1:num_obs_points, 1:num_obs_points))
 allocate(residual(1:num_obs_points))
 allocate(trndOBS(1:num_obs_points), resOBS(1:num_obs_points))
-allocate(distance_horiz(1:num_obs_points, 1:num_obs_points), distance_vert(1:num_obs_points, 1:num_obs_points))
+allocate(dist(1:num_obs_points, 1:num_obs_points))
 
 !-------------------------------------------------------------------------  
 ! nonlinear curve fitting for spatial functions
@@ -127,7 +127,7 @@ write (*,*) term_blu,"Reading ", domain_name
 write(*,*) 'Observation file:  ', trim(GridMgr_Get_Obs_Data_File_Name())
 write(*,*) 'Logtransorm:       ', IsLogT
 write(*,*) 'Using High Limit:  ', IsHiLimit
-write(*,'(A,F7.4)') ' High limit fmax:   ', fmax
+write(*,'(A,F10.4)') ' High limit fmax:   ', fmax
 write(*,*) 'Form of variagram: ', par%form
 if (save_data) then
     write(*,*) 'All data is saved'
@@ -142,7 +142,6 @@ endif
 write(*,*) term_blk
 write(*,*)'num_obs_points=', num_obs_points, 'nsf limit=', NLSF_Get_NSF_Limit(), ' alpha = ', alpha
 write(*,*)'num_grid_points=', num_points
-!write(*,'(A, A, A, I2, A, A)') term_blu, 'Using ', term_blk, nsf, term_blu, ' Spatial Functions'
 write(*,'(A,L2)') 'Is Truncate Range: ', NLSF_Get_Is_Truncate_Range()
 write(*,'(A,L2)') 'Using Greedy Fit:  ', NLSF_Get_Use_Greedy_Fit()
 f0_max = NLSF_Get_Z_F0_Max()
@@ -153,8 +152,7 @@ else
 endif
    
 if(IsLogT) then
-    SF = Compute_MEAN(obs%field(1:num_obs_points), num_obs_points)
-    SF = SF/5.D0  ! mean / 5 ~ median
+    SF = Compute_MEAN(obs%field(1:num_obs_points), num_obs_points) / 5.D0
     obs%field(1:num_obs_points) = log((one_scallop_per_tow + obs%field(1:num_obs_points)) / SF)
 endif
 
@@ -191,13 +189,14 @@ write(*,'(A,F10.6)')'Ordinary Least Sq Residual:', Compute_RMS( residual(:), num
 if (save_data) then
     call Write_Vector_Scalar_Field(num_obs_points, residual, 'OLSresidual.txt')
     call Write_Vector_Scalar_Field(num_obs_points, obs%field, 'data.txt')
+    call Write_CSV(num_spat_fcns, num_spat_fcns, Cbeta, 'LSFCovBeta.csv', num_spat_fcns, .false.)
 endif
 
 !-------------------------------------------------------------------------
 ! Fit variogram parameters to Ordinary Least Square residual
 !-------------------------------------------------------------------------
-call Krig_Compute_Distance(obs, obs, distance_horiz, distance_vert, num_obs_points)
-call Krig_Comp_Emp_Variogram(num_obs_points, distance_horiz, num_obs_points, residual, par)
+dist = Krig_Compute_Distance(obs, obs, num_obs_points, obs%num_points)
+call Krig_Comp_Emp_Variogram(num_obs_points, dist, num_obs_points, residual, par)
 
 if (save_data) then
     open(63, file='KRIGpar.txt')
@@ -217,7 +216,9 @@ resOBS(1:num_obs_points) = obs%field(1:num_obs_points) - trndOBS(1:num_obs_point
 write(*,'(A,F10.6)')'GLSres:', Compute_RMS(resOBS(:), num_obs_points)
 
 if (save_data) then
-    call OutputUK(num_points, num_spat_fcns, Nrand, grid, nlsf, beta, eps, Ceps, Cbeta, fmax, SF, &
+!NORF!    call OutputUK(num_points, num_spat_fcns, Nrand, grid, nlsf, beta, eps, Ceps, Cbeta, fmax, SF, &
+!NORF!    &                    IsLogT, IsHiLimit, domain_name, alpha)
+    call OutputUK(num_points, num_spat_fcns, grid, nlsf, beta, eps, Ceps, Cbeta, fmax, SF, &
     &                    IsLogT, IsHiLimit, domain_name, alpha)
 else
     call OutputEstimates(num_points, num_spat_fcns, grid, Ceps, IsLogT, IsHiLimit, fmax, SF, domain_name, nlsf, alpha, beta)
@@ -225,11 +226,11 @@ endif
 
 write(*,*)'num_points, num_survey', num_points, num_obs_points
 
-deallocate( beta, Cbeta, nlsf)
-deallocate( eps, Ceps)
-deallocate( residual_cov, spatial_fcn, residual)
-deallocate( trndOBS, resOBS)
-deallocate( distance_horiz, distance_vert)
+deallocate(beta, Cbeta, nlsf)
+deallocate(eps, Ceps)
+deallocate(residual_cov, spatial_fcn, residual)
+deallocate(trndOBS, resOBS)
+deallocate(dist)
 
 e = etime(t)
 write (*,*) term_grn, "PROGRAM STOP  ", &
@@ -428,8 +429,10 @@ endsubroutine Read_Startup_Config
 !> "RandomFieldN.txt", where N =1:Nrand. Predictor standard deviation  is output to "KrigSTD.txt".
 !> Function coefficient 
 !---------------------------------------------------------------------------------------------------
-subroutine OutputUK(num_points, num_spat_fcns, Nrand, grid, nlsf, beta, eps, Ceps, Cbeta, fmax, SF, &
-&                  IsLogT, IsHiLimit, domain_name, alpha)
+!NORF!subroutine OutputUK(num_points, num_spat_fcns, Nrand, grid, nlsf, beta, eps, Ceps, Cbeta, fmax, SF, &
+!NORF!&                  IsLogT, IsHiLimit, domain_name, alpha)
+subroutine OutputUK(num_points, num_spat_fcns, grid, nlsf, beta, eps, Ceps, Cbeta, fmax, SF, &
+    &                  IsLogT, IsHiLimit, domain_name, alpha)
 use globals
 use Grid_Manager_Mod
 use NLSF_Mod
@@ -441,14 +444,14 @@ type(Grid_Data_Class), intent(inout) :: grid
 type(NLSF_Class), intent(in)::nlsf(*)
                                     
 character(2), intent(in) :: domain_name
-integer, intent(in) :: num_points, num_spat_fcns, Nrand
+integer, intent(in) :: num_points, num_spat_fcns!NORF!, Nrand
 real(dp), intent(in) :: eps(*), beta(*), Cbeta(num_spat_fcns,*), fmax, SF, alpha
 real(dp), intent(inout) :: Ceps(num_points,*)
 logical, intent(in) ::IsLogT, IsHiLimit
-integer j, k, n
-real(dp) trend(num_points), V(num_points), Fg(num_points, num_spat_fcns), EnsMu, EnsSTD 
-real(dp) logf(num_points), adj, RandomField(num_points, Nrand)
-character(72) buf
+integer n !NORF!, j, k
+real(dp) trend(num_points), V(num_points), Fg(num_points, num_spat_fcns)!NORF!, EnsMu, EnsSTD 
+real(dp) logf(num_points)!NORF!, adj, RandomField(num_points, Nrand)
+!NORF!character(72) buf
 logical, parameter :: save_data = .true.
 
 write(*,*)'output fmax, SF, A=', fmax, SF, one_scallop_per_tow
@@ -483,27 +486,27 @@ enddo
 if(IsLogT) call Write_Vector_Scalar_Field(num_points, SF*exp(sqrt(V(1:num_points)))-one_scallop_per_tow, 'KrigSTD.txt')
 if(.not.IsLogT) call Write_Vector_Scalar_Field(num_points, sqrt(V(1:num_points)), 'KrigSTD.txt')
 
-if(IsLogT) call RandomSampleF(num_points, num_points, NRand, logf(1:n), Ceps, RandomField)
-if(.not.IsLogT) call RandomSampleF(num_points, num_points, NRand, grid%field(1:n)**alpha, Ceps, RandomField)
-RandomField(1:num_points, 1:Nrand)=RandomField(1:num_points, 1:Nrand)**(1./alpha)
-do k=1, num_points
-    if(IsLogT) adj = SF * exp(sqrt(V(k))) - one_scallop_per_tow
-    if(.not.IsLogT) adj = sqrt(V(k))
-    EnsMu = Compute_MEAN(RandomField(k, :), Nrand)
-    EnsSTD = Compute_RMS(RandomField(k,:)-EnsMu, Nrand)
-    if(EnsSTD.gt.0.) then
-        RandomField(k, 1:Nrand) = grid%field(k) +( RandomField(k, 1:Nrand) - EnsMu )*adj/EnsSTD
-    else
-        RandomField(k, 1:Nrand) = grid%field(k) + RandomField(k, 1:Nrand) - EnsMu 
-    endif
-    if(IsHiLimit) call LSF_Limit_Z(Nrand, RandomField(k, 1:NRand), grid%z(k)+0.*RandomField(k, 1:NRand), &
-                            fmax, domain_name)
-enddo
-
-do j=1, Nrand
-    write(buf, '(I6)')j
-    call Write_Vector_Scalar_Field(num_points, RandomField(1:num_points, j), 'RandomField'//trim(adjustl(buf))//'.txt')
-enddo
+!NORF!if(IsLogT) call RandomSampleF(num_points, num_points, NRand, logf(1:num_points), Ceps, RandomField)
+!NORF!if(.not.IsLogT) call RandomSampleF(num_points, num_points, NRand, grid%field(1:n)**alpha, Ceps, RandomField)
+!NORF!RandomField(1:num_points, 1:Nrand)=RandomField(1:num_points, 1:Nrand)**(1./alpha)
+!NORF!do k=1, num_points
+!NORF!    if(IsLogT) adj = SF * exp(sqrt(V(k))) - one_scallop_per_tow
+!NORF!    if(.not.IsLogT) adj = sqrt(V(k))
+!NORF!    EnsMu = Compute_MEAN(RandomField(k, :), Nrand)
+!NORF!    EnsSTD = Compute_RMS(RandomField(k,:)-EnsMu, Nrand)
+!NORF!    if(EnsSTD.gt.0.) then
+!NORF!        RandomField(k, 1:Nrand) = grid%field(k) +( RandomField(k, 1:Nrand) - EnsMu )*adj/EnsSTD
+!NORF!    else
+!NORF!        RandomField(k, 1:Nrand) = grid%field(k) + RandomField(k, 1:Nrand) - EnsMu 
+!NORF!    endif
+!NORF!    if(IsHiLimit) call LSF_Limit_Z(Nrand, RandomField(k, 1:NRand), grid%z(k)+0.*RandomField(k, 1:NRand), &
+!NORF!                            fmax, domain_name)
+!NORF!enddo
+!NORF!
+!NORF!do j=1, Nrand
+!NORF!    write(buf, '(I6)')j
+!NORF!    call Write_Vector_Scalar_Field(num_points, RandomField(1:num_points, j), 'RandomField'//trim(adjustl(buf))//'.txt')
+!NORF!enddo
 endsubroutine OutputUK
 
 !---------------------------------------------------------------------------------------------------

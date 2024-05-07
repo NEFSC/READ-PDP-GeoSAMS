@@ -12,7 +12,7 @@ CONTAINS
 
 !--------------------------------------------------------------------------------------------------
 !> Purpose:Generalized Least Squares solver. Solve for beta to fit y = F*beta +epsilon, for 
-!> epsilon~N(0, C). Return optimal beta, covariance of Beta and residual
+!> epsilon~N(0, C). Return optimal beta, covariance of beta and residual
 !> 
 !>  Inputs:
 !>  - y   (real(dp)) length n vector to fit
@@ -41,53 +41,39 @@ real(dp), allocatable:: Cinv(:,:), CbetaInv(:,:), Vtmp(:), Vtmp2(:), Mtmp(:,:), 
 integer, allocatable:: ipiv(:)
 
 real(dp) atmp, btmp
-integer j, info, error
+!integer j, info
 
 allocate( Cinv(1:n, 1:n), CbetaInv(1:m, 1:m), ytr(1:n), Mtmp(1:n, 1:m), Vtmp(1:n), Vtmp2(1:m) ) 
-allocate( ipiv(1:n), stat=error)
+allocate( ipiv(1:n))
 
 atmp=1.
 btmp=0.
 
-Cinv(1:n, 1:n)=0.
-do j=1, n
-    Cinv(j, j)=1.
-enddo
-call dgesv(n, n, C, n, IPIV, Cinv, n, info)
-if (info .NE. 0) then
-    write(*,*) term_red, 'LSF_Generalized_Least_Squares (a) dgesv solution could not be computed. info=', info, term_blk
-    stop 1
-endif
+Cinv = matrixinv(C, n)
+
 !
 ! cov(beta)) =  inv (F' Cinv F )
 !
-call dgemm('N', 'N', n, m, n, atmp, Cinv, n, F,   n, btmp, Mtmp,    n )
-call dgemm('T', 'N', m, m, n, atmp,  F,   n , Mtmp , n, btmp, CbetaInv, m )
-
-CBeta(1:m, 1:m)=0.
-do j=1, m
-    CBeta(j, j)=1.
-enddo
-call dgesv(m, m, CBetaInv, m, IPIV, CBeta, m, info)
-if (info .NE. 0) then
-    write(*,*) term_red, 'LSF_Generalized_Least_Squares (b) dgesv solution could not be computed. info=', info, term_blk
-    stop 1
-endif
+Mtmp(1:n, 1:m) = matmul(Cinv(1:n, 1:n), F(1:n, 1:m))
+CbetaInv(1:m, 1:m) = matmul(transpose(F(1:n, 1:m)), Mtmp(1:n, 1:m))
 if (save_data) then
     call Write_CSV(m, m, CbetaInv, 'CBeta0.csv', m, .false.)
     call Write_CSV(n, m, F, 'Fglsa0.csv', n, .false.)
 endif
+
+CBeta = matrixinv(CbetaInv, m)
+
 !
 ! beta = inv( F' * Cinv * F ) * F * Cinv * fo
 !
-call dgemv('N', n, n, atmp, Cinv, n, y,  1, btmp, Vtmp, 1)
-call dgemv('T', n, m, atmp, F,  n, Vtmp,  1, btmp, Vtmp2, 1)
-call dgemv('N', m, m, atmp, Cbeta, m, Vtmp2, 1, btmp, Beta, 1)
+Vtmp(1:n) = matmul(Cinv(1:n,1:n), y(1:n))
+Vtmp2(1:m) = matmul(transpose(F(1:n, 1:m)),Vtmp(1:n) )
+beta(1:m) = matmul(CBeta(1:m, 1:m), Vtmp2(1:m))
 !
 ! compute residual
 !
 ! ytr is the "trend" as described by the spatial functions
-call dgemv('N', n, m, atmp, F, n, beta,  1, btmp, ytr, 1)
+ytr(1:n) = matmul(F(1:n, 1:m), beta(1:m))
 LSF_Generalized_Least_Squares(1:n) = y(1:n) - ytr(1:n)
 
 if (save_data) then

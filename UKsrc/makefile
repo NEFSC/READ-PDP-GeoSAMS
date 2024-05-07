@@ -22,13 +22,14 @@ FFLAGS = -Wall -std=f95 -fall-intrinsics -O3  -funroll-all-loops -ffast-math -m6
 # For debug use these flags
 #FFLAGS = -g -Wall -std=f95 -fall-intrinsics -fbounds-check
 
-SRCS = Globals.f90 UK_GridManager.f90 LinearSpatialFcn.f90 NonLinearSpatialFcn.f90 RandomField.f90 KrigingRoutines.f90 UniversalKriging.f90 IORoutines.f90
+#NORF#SRCS = Globals.f90 UK_GridManager.f90 LinearSpatialFcn.f90 NonLinearSpatialFcn.f90 RandomField.f90 KrigingRoutines.f90 UniversalKriging.f90 IORoutines.f90
+SRCS = Globals.f90 UK_GridManager.f90 LinearSpatialFcn.f90 NonLinearSpatialFcn.f90 KrigingRoutines.f90 UniversalKriging.f90 IORoutines.f90
 
 ifeq ($(OS), Windows_NT)
-#LIBS = -L/usr/lib/x86_64-linux-gnu -llapack -lblas
-LIBS = -L..\Libs -llapack -lblas
+# Now Only RandomField.f90 uses lapack and blas, for dpotrf and dgemm. The latter could also be replaced with a matmul, former search for code
+#LIBS = -L..\Libs -llapack -lblas
 else # MAC, UNIX
-LIBS = -L/usr/lib -llapack -lblas
+#LIBS = -L/usr/lib -llapack -lblas
 endif
 EXEC = UK
 

@@ -136,4 +136,79 @@ Pure Function to_upper (str) Result (string)
     end do
 endfunction to_upper
 
+!=====================================
+! Returns the inverse matrix of a(n,n)
+!=====================================
+function matrixinv(x,n)
+    integer, intent(in) :: n
+    real(dp), intent(in) :: x(n,n)
+    real(dp) :: matrixinv(n,n)
+    ! https://www.webpages.uidaho.edu/~gabrielp/ME549-CE546/matrix-inverse.pdf
+    ! function to calculate the inverse of a matrix using Gauss-Jordan elimination
+    ! the inverse of matrix a(n,n) is calculated and returned
+    integer :: i,j,k,l,irow
+    real(dp) :: a(n,n)
+    real(dp):: big,dum
+    
+    irow=1
+    ! preserve contents of x
+    a = x
+    
+    !build the identity matrix
+    matrixinv(1:n, 1:n) = 0._dp
+    do j=1, n
+        matrixinv(j, j)=1._dp
+    enddo
+    
+    do i = 1,n ! this is the big loop over all the columns of a(n,n)
+        ! in case the entry a(i,i) is zero, we need to find a good pivot; this pivot
+        ! is chosen as the largest value on the column i from a(j,i) with j = 1,n
+        big = a(i,i)
+        do j = i,n
+            if (a(j,i).gt.big) then
+                big = a(j,i)
+                irow = j
+            endif
+        enddo
+     
+        ! interchange lines i with irow for both a() and matrixinv() matrices
+        if (big.gt.a(i,i)) then
+            do k = 1,n
+                dum = a(i,k) ! matrix a()
+                a(i,k) = a(irow,k)
+                a(irow,k) = dum
+                dum = matrixinv(i,k) ! matrix matrixinv()
+                matrixinv(i,k) = matrixinv(irow,k)
+                matrixinv(irow,k) = dum
+            enddo
+        endif
+        ! divide all entries in line i from a(i,j) by the value a(i,i);
+        ! same operation for the identity matrix
+        dum = a(i,i)
+        do j = 1,n
+            a(i,j) = a(i,j)/dum
+            matrixinv(i,j) = matrixinv(i,j)/dum
+        enddo
+        ! make zero all entries in the column a(j,i); same operation for indent()
+        do j = i+1,n
+            dum = a(j,i)
+            do k = 1,n
+                a(j,k) = a(j,k) - dum*a(i,k)
+                matrixinv(j,k) = matrixinv(j,k) - dum*matrixinv(i,k)
+            enddo
+        enddo
+    enddo
+    
+    ! substract appropiate multiple of row j from row j-1
+    do i = 1,n-1
+        do j = i+1,n
+            dum = a(i,j)
+            do l = 1,n
+                a(i,l) = a(i,l)-dum*a(j,l)
+                matrixinv(i,l) = matrixinv(i,l)-dum*matrixinv(j,l)
+            enddo
+        enddo
+    enddo   
+endfunction matrixinv
+
 end module globals

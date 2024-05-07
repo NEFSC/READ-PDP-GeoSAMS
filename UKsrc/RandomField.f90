@@ -84,8 +84,14 @@ S(1:num_points, 1:num_points)=C(1:num_points, 1:num_points)
 !
 ! S<-Cholesky(C) so that C = S * S^T
 !
+! Maybe replace with https://gist.github.com/t-nissie/6386f1acc19cd38af621
+!
 call dpotrf('L', num_points, S, num_points, info )
-write(*,*)'dpotrf in RandomSample, info=', info
+if (info .NE. 0) then
+    write(*,*) term_red, 'dpotrf in RandomSample: info =', info , term_blk
+    stop 1
+endif
+
 !
 ! set upper triangular portion of S to 0.
 !
@@ -103,6 +109,10 @@ call IndStdNRV(num_points, Nsample, R)
 ! X <- S * R, X ~ N(0, C)
 !
 call dgemm('N', 'N', num_points, Nsample, num_points, atmp, S, num_points, R, num_points, btmp, X, num_points )
+!X(1:num_points, 1:Nsample) = matmul(S(1:num_points, 1:num_points), R(1:num_points, 1:Nsample)
+
+
+
 !
 ! X <- mu + X, X ~ N(mu, C)
 !
