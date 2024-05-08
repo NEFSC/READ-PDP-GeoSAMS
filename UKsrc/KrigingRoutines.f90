@@ -119,6 +119,7 @@ CONTAINS
 !>    p: vector 1
 !>    q: vector 2
 !>   n_dim: allocated length of vectors
+!>    k: length of q vector, needed for 2nd dim of result
 !> Outputs
 !>   distance
 !>
@@ -483,11 +484,11 @@ Fs = Krig_Eval_Spatial_Function(obs, num_spat_fcns, num_obs_points, nlsf, save_d
 !
 D0h = Krig_Compute_Distance(obs, grid, num_obs_points, grid%num_points)
 gamma0 = Krig_Compute_Variogram(num_obs_points, num_points, D0h, num_obs_points, par)
+Fs0 = Krig_Eval_Spatial_Function(grid, num_spat_fcns, num_points, nlsf, save_data)
 !------------------------------------------------------------------------------
 !Compute the Univeral Kriging linear estimate of f following Cressie 1993
 !pages 151-154
 !------------------------------------------------------------------------------
-Fs0 = Krig_Eval_Spatial_Function(grid, num_spat_fcns, num_points, nlsf, save_data)
 ! R = 
 ! gamma (s_i - s_j ),  i = 1, ... , N;       j = 1,   ... , N
 ! f_j-1-N(s_i ),       i = 1, ... , N;       j = N+1, ... , N+p+1
@@ -502,11 +503,12 @@ R(n+1:n+p, n+1:n+p) = 0._dp
 
 V(1:n,     1:num_points) = gamma0(1:n, 1:num_points)
 V(n+1:n+p, 1:num_points) = transpose(Fs0)
-V(1:n+p,   1:num_points) = matmul(matrixinv(R, n+p), V(1:n+p, 1:num_points))
+
+V(:,:) = matmul(matrixinv(R(:,:), n+p), V(:,:))
 
 !------------------------------------------------------------------------------
 ! compute best linear estimate of the field on the grid points x, y
-! f = W f_obs
+! f = V**T f_obs
 !------------------------------------------------------------------------------
 grid%field(1:num_points) = matmul(transpose(V(1:num_obs_points, 1:num_points)), obs%field(1:num_obs_points))
 

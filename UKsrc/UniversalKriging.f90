@@ -210,14 +210,14 @@ endif
 ! coeficients, beta, and posterior covariance of beta(Cbeta).
 !-------------------------------------------------------------------------
 call Krig_Generalized_Least_Sq(grid, obs, num_spat_fcns, par, beta, Cbeta, eps, Ceps, nlsf, save_data)
-spatial_fcn = Krig_Eval_Spatial_Function(obs, num_spat_fcns, num_obs_points, nlsf, save_data)
+
+! COMPUTED BUT NOT USED except for GLSres
 trndOBS =  matmul(spatial_fcn, beta)
 resOBS(1:num_obs_points) = obs%field(1:num_obs_points) - trndOBS(1:num_obs_points)
 write(*,'(A,F10.6)')'GLSres:', Compute_RMS(resOBS(:), num_obs_points)
 
 if (save_data) then
-!NORF!    call OutputUK(num_points, num_spat_fcns, Nrand, grid, nlsf, beta, eps, Ceps, Cbeta, fmax, SF, &
-!NORF!    &                    IsLogT, IsHiLimit, domain_name, alpha)
+    !NORF!                num_spat_fcns, Nrand, grid
     call OutputUK(num_points, num_spat_fcns, grid, nlsf, beta, eps, Ceps, Cbeta, fmax, SF, &
     &                    IsLogT, IsHiLimit, domain_name, alpha)
 else
