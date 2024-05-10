@@ -1117,7 +1117,7 @@ if (data_select%plot_FEFF) &
 &    output_dir//'Lat_Lon_Surv_FEFF_'//domain_name//'.csv',.true.)
 
 if (data_select%plot_FMOR) &
-&    call Write_Column_CSV(num_grids, F_mort(1:num_grids), 'Feffort',&
+&    call Write_Column_CSV(num_grids, F_mort(1:num_grids), 'FMORT',&
 &    output_dir//'Lat_Lon_Surv_FMOR_'//domain_name//'.csv',.true.)
 
 if (data_select%plot_LAND) &
