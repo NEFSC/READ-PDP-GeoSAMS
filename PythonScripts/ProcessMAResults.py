@@ -7,13 +7,14 @@ import sys
 import csv
 
 from collections import defaultdict
+from ReadSimConfigFile import *
 
 if (len(sys.argv) != 3):
     print ("  Missing command line arguments. Expecting: ")
     print ("  $ ProcessMAResults.py StartYear EndYear")
     print()
     quit()
-    
+
 dataDir = 'Data/'
 year_start = int(sys.argv[1])
 year_end = int(sys.argv[2])
@@ -33,10 +34,11 @@ nyears = year_end - year_start + 2
 cfgFile = 'UK_MA.cfg'
 ex = os.path.join('UKsrc', 'UK')
 
-#paramStr = ['EBMS_', 'LAND_', 'LPUE_', 'FEFF_','RECR_']
-paramStr = ['EBMS_', 'LPUE_', 'RECR_']
-prefix = ['Results/Lat_Lon_Grid_', 'Results/Lat_Lon_Grid_Trend-']
-#          , 'Temp/Lat_Lon_Grid_', 'Temp/Lat_Lon_Grid_Trend-']
+[paramStr, tsInYear, savedByStratum] = ReadSimConfigFile()
+print(paramStr, tsInYear, savedByStratum)
+
+
+prefix = ['Results/Lat_Lon_Grid_'] #, 'Results/Lat_Lon_Grid_Trend-']
 
 for pStr in paramStr:
     if (pStr == 'RECR_'):
@@ -125,4 +127,18 @@ for pStr in paramStr:
         flout.close()
     # end for pfix
 # end for pStr
+
+# We have needed output paramters so lets plot data and save to pdf files
+print('Plotting Results')
+for pStr in paramStr:
+    str1 = 'Results/Lat_Lon_Surv_' + pStr + dn
+    str2 = 'Results/Lat_Lon_Grid_' + pStr + dn+'_'+str(year_start) + '_' + str(year_end)
+
+    cmd = ['matlab.exe', '-batch', 'PlotLatLonGridSurvey('+"'"+str1+"','"+str2+"', "+str(year_start)+','+str(tsInYear)+", '"+dn+"')"]
+    result = subprocess.run(cmd)
+    if (result.returncode != 0):
+        print('[31m' + ''.join(str(e)+' ' for e in cmd) + ' error: ' + hex(result.returncode) + '[0m')
+        sys.exit(result.returncode)
+
 sys.exit(0)
+

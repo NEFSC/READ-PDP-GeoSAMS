@@ -254,7 +254,7 @@ real(dp), allocatable :: Pind(:),alphaR(:),c0R(:),cR(:)
 
 integer j,k,n,m,nc,NIntV
 real(dp) dx,cost,costmin
-character(fname_len) fname
+!!character(fname_len) fname
 
 NPS = min( num_points-2, 30)
 NIntVD = NPS + 1
@@ -326,17 +326,21 @@ enddo !j
 
 variogram = Krig_Compute_Variogram(NintV, 1, DIntVm, n_dim, par)
 
-fname = GridMgr_Get_Obs_Data_File_Name()
-! Change output directory and file prefix
-! /X_Y_...
-! n12345
-n = index(fname, '/') + 5
-m = index(fname, '.') - 1
-fname = fname(n:m)
+! ! - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - 
+! ! used to plot variogram response via VariogramPlot.m
+! ! - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - 
+! fname = GridMgr_Get_Obs_Data_File_Name()
+! ! Change output directory and file prefix
+! ! /X_Y_...
+! ! n12345
+! n = index(fname, '/') + 5
+! m = index(fname, '.') - 1
+! fname = fname(n:m)
 
-call Write_2D_Scalar_Field(NintV,1,variogram, output_dir//trim(fname)//'_GammaIntV.txt',NintV)
-call Write_2D_Scalar_Field(NintV,1,DIntVm, output_dir//trim(fname)//'_DIntV.txt',NintV)
-call Write_2D_Scalar_Field(NintV,1,SIntV, output_dir//trim(fname)//'_SIntV.txt',NintV)
+! call Write_2D_Scalar_Field(NintV,1,variogram, output_dir//trim(fname)//'_GammaIntV.txt',NintV)
+! call Write_2D_Scalar_Field(NintV,1,DIntVm, output_dir//trim(fname)//'_DIntV.txt',NintV)
+! call Write_2D_Scalar_Field(NintV,1,SIntV, output_dir//trim(fname)//'_SIntV.txt',NintV)
+! ! - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - 
 
 write(*,'(A,3F15.6,A)') 'Bounds alpha: [', alphaR(1), par%alpha, alphaR(NPS),']'
 write(*,'(A,3F15.6,A)') 'Bounds nugget:[', c0R(1), par%nugget, c0R(NPS),']'

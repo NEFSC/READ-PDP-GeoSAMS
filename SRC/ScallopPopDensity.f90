@@ -266,11 +266,10 @@ logical save_by_stratum
 integer num_years
 integer year
 character(4) buf
-character(6) buf_0
 character(fname_len) file_name
 
 real(dp) domain_area
-integer num_grids, ts, recr_idx
+integer num_grids, ts
 
 real(dp) :: shell_length_mm(num_size_classes)
 
@@ -283,12 +282,14 @@ type(Recruitment_Class), allocatable :: recruit(:)
 real(dp), allocatable :: weight_grams(:,:)
 real(dp), allocatable :: fishing_effort(:) ! rate of fishing mortality
 
+type(DataForPlots) plot_data_sel
+
 integer pct_comp
 
 !==================================================================================================================
 !  - I. Read Configuration file 'Scallop.inp'
 !==================================================================================================================
-call Read_Startup_Config(ts_per_year, save_by_stratum, start_year, stop_year, domain_name)
+call Read_Startup_Config(ts_per_year, save_by_stratum, start_year, stop_year, domain_name, plot_data_sel)
 
 !==================================================================================================================
 
@@ -341,57 +342,12 @@ write(*,*) '========================================================'
 !  - III. MAIN LOOP
 ! Start simulation
 !==================================================================================================================
+call Setup_Data_Files(plot_data_sel, num_grids, grid, domain_name, save_by_stratum, start_year, stop_year)
 
-! write latitude and longitude out for later use by Matlab Geographic Scatter Plot ------------------------------
-call Write_Lat_Lon_Preamble(num_grids, grid, output_dir//'Lat_Lon_Surv_EBMS_'//domain_name//'.csv')
-call Write_Lat_Lon_Preamble(num_grids, grid, output_dir//'Lat_Lon_Surv_LAND_'//domain_name//'.csv')
-call Write_Lat_Lon_Preamble(num_grids, grid, output_dir//'Lat_Lon_Surv_LPUE_'//domain_name//'.csv')
-call Write_Lat_Lon_Preamble(num_grids, grid, output_dir//'Lat_Lon_Surv_RECR_'//domain_name//'.csv')
-call Write_Lat_Lon_Preamble(num_grids, grid, output_dir//'Lat_Lon_Surv_FEFF_'//domain_name//'.csv')
-
-! Write similar data for later interpolation by UK (Universal Kriging)
-write(buf,'(I4)') start_year
-call Write_X_Y_Preamble(num_grids, grid, data_dir//'X_Y_EBMS_'//domain_name//buf//'_0.csv', save_by_stratum)
-call Write_X_Y_Preamble(num_grids, grid, data_dir//'X_Y_LAND_'//domain_name//buf//'_0.csv', save_by_stratum)
-call Write_X_Y_Preamble(num_grids, grid, data_dir//'X_Y_LPUE_'//domain_name//buf//'_0.csv', save_by_stratum)
-call Write_X_Y_Preamble(num_grids, grid, data_dir//'X_Y_RECR_'//domain_name//buf//'_0.csv', save_by_stratum)
-call Write_X_Y_Preamble(num_grids, grid, data_dir//'X_Y_FEFF_'//domain_name//buf//'_0.csv', save_by_stratum)
-do n = start_year, stop_year
-    write(buf,'(I4)') n
-    call Write_X_Y_Preamble(num_grids, grid, data_dir//'X_Y_EBMS_'//domain_name//buf//'.csv', save_by_stratum)
-    call Write_X_Y_Preamble(num_grids, grid, data_dir//'X_Y_LAND_'//domain_name//buf//'.csv', save_by_stratum)
-    call Write_X_Y_Preamble(num_grids, grid, data_dir//'X_Y_LPUE_'//domain_name//buf//'.csv', save_by_stratum)
-    call Write_X_Y_Preamble(num_grids, grid, data_dir//'X_Y_RECR_'//domain_name//buf//'.csv', save_by_stratum)
-    call Write_X_Y_Preamble(num_grids, grid, data_dir//'X_Y_FEFF_'//domain_name//buf//'.csv', save_by_stratum)
-end do
-!----------------------------------------------------------------------------------------------------------------
 year = start_year
 do ts = 1, num_time_steps
-    !_________________________________________________Ouput Recruitment Estimates____________________________
-    if (mod(ts, ts_per_year) .eq. 1) then
-        recr_idx = year - start_year + 1
-        write(buf,'(I4)') year
-        if (save_by_stratum) then
-            if (ts .eq. 1) then
-                write(buf_0,'(I4,A2)') year, '_0'
-            else
-                write(buf_0,'(I4)') year
-            endif
-            call Write_Column_CSV_By_Stratum(num_grids, recruit(:)%recruitment(recr_idx), &
-            &            grid(1:num_grids)%lat, grid(1:num_grids)%lon, grid(1:num_grids)%stratum, &
-            &            'RECR', data_dir//'X_Y_RECR_'//domain_name//trim(buf_0), .true.)
-        else
-            if (ts .eq. 1) then
-                file_name = data_dir//'X_Y_RECR_'//domain_name//buf//'_0.csv'
-            else
-                file_name = data_dir//'X_Y_RECR_'//domain_name//buf//'.csv'
-            endif 
-            call Write_Column_CSV(num_grids, recruit(:)%recruitment(recr_idx), 'Recruitment', file_name, .true.)
-        endif
-    endif
-    file_name = output_dir//'Lat_Lon_Surv_RECR_'//domain_name//'.csv'
-    call Write_Column_CSV(num_grids, recruit(:)%recruitment(recr_idx), 'Recruitment', file_name, .true.)
-    !_________________________________________________________________________________________________________
+    if (plot_data_sel%plot_RECR) call Write_Recruit_Estimates(ts, ts_per_year, num_grids, grid, domain_name, save_by_stratum, &
+    &    year, start_year, recruit)
     
     !- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - 
     !  i. Determine fishing effort
@@ -440,9 +396,9 @@ END PROGRAM ScallopPopDensity
 !> @param[out] time_steps_per_year Number of times steps to evaluate growth
 !> @param[out] num_monte_carlo_iter Number of iterations for Monte Carlo simulation
 !-----------------------------------------------------------------------
-subroutine Read_Startup_Config(time_steps_per_year, save_by_stratum, start_year, stop_year, domain_name)
+subroutine Read_Startup_Config(time_steps_per_year, save_by_stratum, start_year, stop_year, domain_name, plot_data_sel)
     use globals
-    use Mortality_Mod, only : Mortality_Set_Config_File_Name => Set_Config_File_Name
+    use Mortality_Mod, only : Mortality_Set_Config_File_Name => Set_Config_File_Name, DataForPlots, Set_Select_Data
     use Recruit_Mod, only : Recruit_Set_Config_File_Name => Set_Config_File_Name
     use Grid_Manager_Mod, only : GridMgr_Set_Config_File_Name => Set_Config_File_Name
 
@@ -451,6 +407,7 @@ subroutine Read_Startup_Config(time_steps_per_year, save_by_stratum, start_year,
     logical, intent(out) :: save_by_stratum
     integer, intent(out) :: start_year, stop_year
     character(domain_len), intent(out) :: domain_name
+    type(DataForPlots), intent(out) :: plot_data_sel
 
     integer j, k, io
     character(line_len) input_string
@@ -465,6 +422,7 @@ subroutine Read_Startup_Config(time_steps_per_year, save_by_stratum, start_year,
     ! default values
     save_by_stratum = .false.
     time_steps_per_year = 13
+    plot_data_sel = DataForPlots(.false.,.false.,.false.,.false.,.false.,.false.,.false.,.false.,.false.)
 
     !----------------------------------------------------------------------------
     ! First consider command line arguments
@@ -534,6 +492,25 @@ subroutine Read_Startup_Config(time_steps_per_year, save_by_stratum, start_year,
             case('Save By Stratum')
                 read(value,*) save_by_stratum
 
+            case('Select Abundance')
+                plot_data_sel%plot_ABUN = .true.
+            case('Select BMS')
+                plot_data_sel%plot_BMMT = .true.
+            case('Select Expl BMS')
+                plot_data_sel%plot_EBMS = .true.
+            case('Select Fishing Effort')
+                plot_data_sel%plot_FEFF = .true.
+            case('Select Fishing Mortality')
+                plot_data_sel%plot_FMOR = .true.
+            case('Select Landings by Number')
+                plot_data_sel%plot_LAND = .true.
+            case('Select Landings by Weight')
+                plot_data_sel%plot_LNDW = .true.
+            case('Select LPUE')
+                plot_data_sel%plot_LPUE = .true.
+            case('Select RECR')
+                plot_data_sel%plot_RECR = .true.
+
             case default
                 write(*,*) term_red, 'Unrecognized line in ',file_name
                 write(*,*) 'Unknown Line-> ',input_string, term_blk
@@ -542,6 +519,9 @@ subroutine Read_Startup_Config(time_steps_per_year, save_by_stratum, start_year,
         endif
     end do
     close(read_dev)
+
+    ! setter private variable for Mortality
+    call Set_Select_Data(plot_data_sel)
 
     ! override configuration file parameters
     ! to aid batch processing, get remaining parameters from command line
@@ -630,8 +610,6 @@ endsubroutine Write_X_Y_Preamble
 !>  f (real(dp)) values to write to csv file
 !> file_name (character(72)) filename to write f to in csv format
 !--------------------------------------------------------------------------------------------------
-! Tom Callaghan
-!--------------------------------------------------------------------------------------------------
 subroutine Write_Column_CSV_By_Stratum(n,f, lat, lon, stratum, header,file_name,append)
 use globals
 use Grid_Manager_Mod
@@ -704,3 +682,140 @@ else
     enddo
 endif
 endsubroutine Write_Column_CSV_By_Stratum
+
+!-----------------------------------------------------------------------------------------------------------
+!! Purpose: This method is used to setup the output data files that are used for plotting and interpolation
+!-----------------------------------------------------------------------------------------------------------
+subroutine Setup_Data_Files(plot_data_sel, num_grids, grid, domain_name, save_by_stratum, start_year, stop_year)
+use globals
+use Grid_Manager_Mod
+use Mortality_Mod
+use Recruit_Mod
+type(DataForPlots), intent(in) :: plot_data_sel
+integer, intent(in) :: num_grids
+type(Grid_Data_Class), intent(in) :: grid(*)
+character(domain_len), intent(out) :: domain_name
+logical, intent(in) :: save_by_stratum
+integer, intent(in) :: start_year, stop_year
+
+character(4) buf
+
+! write latitude and longitude out for later use by Matlab Geographic Scatter Plot ------------------------------ 
+if (plot_data_sel%plot_ABUN) call Write_Lat_Lon_Preamble(num_grids, grid, output_dir//'Lat_Lon_Surv_ABUN_'//domain_name//'.csv')
+if (plot_data_sel%plot_BMMT) call Write_Lat_Lon_Preamble(num_grids, grid, output_dir//'Lat_Lon_Surv_BMMT_'//domain_name//'.csv')
+if (plot_data_sel%plot_EBMS) call Write_Lat_Lon_Preamble(num_grids, grid, output_dir//'Lat_Lon_Surv_EBMS_'//domain_name//'.csv')
+if (plot_data_sel%plot_FEFF) call Write_Lat_Lon_Preamble(num_grids, grid, output_dir//'Lat_Lon_Surv_FEFF_'//domain_name//'.csv')
+if (plot_data_sel%plot_FMOR) call Write_Lat_Lon_Preamble(num_grids, grid, output_dir//'Lat_Lon_Surv_FMOR_'//domain_name//'.csv')
+if (plot_data_sel%plot_LAND) call Write_Lat_Lon_Preamble(num_grids, grid, output_dir//'Lat_Lon_Surv_LAND_'//domain_name//'.csv')
+if (plot_data_sel%plot_LPUE) call Write_Lat_Lon_Preamble(num_grids, grid, output_dir//'Lat_Lon_Surv_LNDW_'//domain_name//'.csv')
+if (plot_data_sel%plot_LPUE) call Write_Lat_Lon_Preamble(num_grids, grid, output_dir//'Lat_Lon_Surv_LPUE_'//domain_name//'.csv')
+if (plot_data_sel%plot_RECR) call Write_Lat_Lon_Preamble(num_grids, grid, output_dir//'Lat_Lon_Surv_RECR_'//domain_name//'.csv')
+
+! Write similar data for later interpolation by UK (Universal Kriging)
+write(buf,'(I4)') start_year
+if (plot_data_sel%plot_ABUN) &
+&    call Write_X_Y_Preamble(num_grids, grid, data_dir//'X_Y_ABUN_'//domain_name//buf//'_0.csv', save_by_stratum)
+
+if (plot_data_sel%plot_BMMT) &
+&    call Write_X_Y_Preamble(num_grids, grid, data_dir//'X_Y_BMMT_'//domain_name//buf//'_0.csv', save_by_stratum)
+
+if (plot_data_sel%plot_EBMS) &
+&    call Write_X_Y_Preamble(num_grids, grid, data_dir//'X_Y_EBMS_'//domain_name//buf//'_0.csv', save_by_stratum)
+
+if (plot_data_sel%plot_FEFF) &
+&    call Write_X_Y_Preamble(num_grids, grid, data_dir//'X_Y_FEFF_'//domain_name//buf//'_0.csv', save_by_stratum)
+
+if (plot_data_sel%plot_FMOR) &
+&    call Write_X_Y_Preamble(num_grids, grid, data_dir//'X_Y_FMOR_'//domain_name//buf//'_0.csv', save_by_stratum)
+
+if (plot_data_sel%plot_LAND) & 
+&    call Write_X_Y_Preamble(num_grids, grid, data_dir//'X_Y_LAND_'//domain_name//buf//'_0.csv', save_by_stratum)
+
+if (plot_data_sel%plot_LNDW) & 
+&    call Write_X_Y_Preamble(num_grids, grid, data_dir//'X_Y_LNDW_'//domain_name//buf//'_0.csv', save_by_stratum)
+
+if (plot_data_sel%plot_LPUE) &
+&    call Write_X_Y_Preamble(num_grids, grid, data_dir//'X_Y_LPUE_'//domain_name//buf//'_0.csv', save_by_stratum)
+
+if (plot_data_sel%plot_RECR) &
+&    call Write_X_Y_Preamble(num_grids, grid, data_dir//'X_Y_RECR_'//domain_name//buf//'_0.csv', save_by_stratum)
+
+do n = start_year, stop_year
+    write(buf,'(I4)') n
+    if (plot_data_sel%plot_ABUN) &
+    &    call Write_X_Y_Preamble(num_grids, grid, data_dir//'X_Y_ABUN_'//domain_name//buf//'.csv', save_by_stratum)
+
+    if (plot_data_sel%plot_BMMT) &
+    &    call Write_X_Y_Preamble(num_grids, grid, data_dir//'X_Y_BMMT_'//domain_name//buf//'.csv', save_by_stratum)
+
+    if (plot_data_sel%plot_EBMS) &
+    &    call Write_X_Y_Preamble(num_grids, grid, data_dir//'X_Y_EBMS_'//domain_name//buf//'.csv', save_by_stratum)
+
+    if (plot_data_sel%plot_FEFF) &
+    &    call Write_X_Y_Preamble(num_grids, grid, data_dir//'X_Y_FEFF_'//domain_name//buf//'.csv', save_by_stratum)
+
+    if (plot_data_sel%plot_FMOR) &
+    &    call Write_X_Y_Preamble(num_grids, grid, data_dir//'X_Y_FMOR_'//domain_name//buf//'.csv', save_by_stratum)
+
+    if (plot_data_sel%plot_LAND) &
+    &    call Write_X_Y_Preamble(num_grids, grid, data_dir//'X_Y_LAND_'//domain_name//buf//'.csv', save_by_stratum)
+
+    if (plot_data_sel%plot_LNDW) &
+    &    call Write_X_Y_Preamble(num_grids, grid, data_dir//'X_Y_LNDW_'//domain_name//buf//'.csv', save_by_stratum)
+
+    if (plot_data_sel%plot_LPUE) &
+    &    call Write_X_Y_Preamble(num_grids, grid, data_dir//'X_Y_LPUE_'//domain_name//buf//'.csv', save_by_stratum)
+
+    if (plot_data_sel%plot_RECR) &
+    &    call Write_X_Y_Preamble(num_grids, grid, data_dir//'X_Y_RECR_'//domain_name//buf//'.csv', save_by_stratum)
+end do
+endsubroutine Setup_Data_Files
+
+!-----------------------------------------------------------------------------------------------------------
+!! Purpose: This method is used to setup the write recruitment data files at each time step
+!-----------------------------------------------------------------------------------------------------------
+subroutine Write_Recruit_Estimates(ts, ts_per_year, num_grids, grid, domain_name, save_by_stratum, &
+&    year, start_year, recruit)
+use globals
+use Grid_Manager_Mod
+use Mortality_Mod
+use Recruit_Mod
+integer, intent(in) :: ts,ts_per_year, num_grids
+type(Grid_Data_Class), intent(in) :: grid(*)
+character(domain_len), intent(out) :: domain_name
+logical, intent(in) :: save_by_stratum
+integer, intent(in) :: year, start_year
+type(Recruitment_Class), intent(in) :: recruit(*)
+
+character(4) buf
+character(6) buf_0
+integer recr_idx
+character(fname_len) file_name
+
+if (mod(ts, ts_per_year) .eq. 1) then
+    recr_idx = year - start_year + 1
+    write(buf,'(I4)') year
+    if (save_by_stratum) then
+        if (ts .eq. 1) then
+            write(buf_0,'(I4,A2)') year, '_0'
+        else
+            write(buf_0,'(I4)') year
+        endif
+        call Write_Column_CSV_By_Stratum(num_grids, recruit(1:num_grids)%recruitment(recr_idx), &
+        &            grid(1:num_grids)%lat, grid(1:num_grids)%lon, grid(1:num_grids)%stratum, &
+        &            'RECR', data_dir//'X_Y_RECR_'//domain_name//trim(buf_0), .true.)
+    else
+        if (ts .eq. 1) then
+            file_name = data_dir//'X_Y_RECR_'//domain_name//buf//'_0.csv'
+        else
+            file_name = data_dir//'X_Y_RECR_'//domain_name//buf//'.csv'
+        endif 
+        call Write_Column_CSV(num_grids, recruit(1:num_grids)%recruitment(recr_idx), 'Recruitment', file_name, .true.)
+    endif
+endif
+
+! Write data for survey grid
+file_name = output_dir//'Lat_Lon_Surv_RECR_'//domain_name//'.csv'
+call Write_Column_CSV(num_grids, recruit(1:num_grids)%recruitment(recr_idx), 'Recruitment', file_name, .true.)
+        
+endsubroutine Write_Recruit_Estimates

@@ -43,7 +43,9 @@ end
 if isOctave
     D=csvreadK([gridFname '.csv']);
 else
-    D=readtable([gridFname '.csv'],"FileType","spreadsheet");
+    D=readtable([gridFname '.csv']);
+    % remove NaN
+    D=fillmissing(D,'constant',0.0);
 end
 
 [r, c]=size(D);
@@ -109,7 +111,7 @@ cut = ceil((max(lat_g) + min(lat_g)) / 2);
 if isOctave
     D=csvreadK([surveyFname '.csv']);
 else
-    D=readtable([surveyFname '.csv'],"FileType","spreadsheet");
+    D=readtable([surveyFname '.csv']);
 end
 [r_s, c_s]=size(D);
 c_s = c_s - 2; % deduct for lat, lon

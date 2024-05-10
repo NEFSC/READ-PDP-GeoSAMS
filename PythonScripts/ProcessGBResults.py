@@ -6,11 +6,12 @@ import sys
 import csv
 
 from collections import defaultdict
+from ReadSimConfigFile import *
 
 nargs = len(sys.argv)
-if (nargs < 3 or nargs > 4):
+if (nargs != 3):
     print ("  Missing command line arguments. Expecting: ")
-    print ("  $ ProcessGBResults.py StartYear EndYear [SavedByStratum]")
+    print ("  $ ProcessGBResults.py StartYear EndYear")
     print()
     quit()
 
@@ -20,12 +21,6 @@ year_start = int(sys.argv[1])
 year_end = int(sys.argv[2])
 years = range(year_start, year_end + 1)
 
-if (nargs == 4):
-    savedByStratum = sys.argv[3] == 'T'
-else:
-    savedByStratum = True
-
-print('Process stratum: ', savedByStratum)
 # Used while concatenating files
 # number of colums in csv file, starting at 0
 # lat, lon, initial data
@@ -37,14 +32,14 @@ nyears = year_end - year_start + 2
 cfgFile = 'UK_GB.cfg'
 ex = os.path.join('UKsrc', 'UK')
 
-#paramStr = ['EBMS_', 'LAND_', 'LPUE_', 'FEFF_','RECR_']
-paramStr = ['EBMS_', 'LPUE_', 'RECR_']
+[paramStr, tsInYear, savedByStratum] = ReadSimConfigFile()
+print(paramStr, tsInYear, savedByStratum)
 if savedByStratum:
     rgn = ['_SW', '_N', '_S', '_W']
 else:
     rgn = ['']
 
-prefix = ['Results/Lat_Lon_Grid_', 'Results/Lat_Lon_Grid_Trend-']
+prefix = ['Results/Lat_Lon_Grid_'] #, 'Results/Lat_Lon_Grid_Trend-']
 
 for pStr in paramStr:
 
@@ -150,3 +145,17 @@ for pStr in paramStr:
 
     # end savedByStratum
 # end for pStr
+
+# We have needed output paramters so lets plot data and save to pdf files
+print('Plotting Results')
+for pStr in paramStr:
+    str1 = 'Results/Lat_Lon_Surv_' + pStr + dn
+    str2 = 'Results/Lat_Lon_Grid_' + pStr + dn+'_'+str(year_start) + '_' + str(year_end)
+
+    cmd = ['matlab.exe', '-batch', 'PlotLatLonGridSurvey('+"'"+str1+"','"+str2+"', "+str(year_start)+','+str(tsInYear)+", '"+dn+"')"]
+    result = subprocess.run(cmd)
+    if (result.returncode != 0):
+        print('[31m' + ''.join(str(e)+' ' for e in cmd) + ' error: ' + hex(result.returncode) + '[0m')
+        sys.exit(result.returncode)
+
+sys.exit(0)

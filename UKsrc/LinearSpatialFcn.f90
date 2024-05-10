@@ -40,14 +40,8 @@ logical, intent(in) :: save_data
 real(dp), allocatable:: Cinv(:,:), CbetaInv(:,:), Vtmp(:), Vtmp2(:), Mtmp(:,:), ytr(:)
 integer, allocatable:: ipiv(:)
 
-real(dp) atmp, btmp
-!integer j, info
-
 allocate( Cinv(1:n, 1:n), CbetaInv(1:m, 1:m), ytr(1:n), Mtmp(1:n, 1:m), Vtmp(1:n), Vtmp2(1:m) ) 
 allocate( ipiv(1:n))
-
-atmp=1.
-btmp=0.
 
 Cinv = matrixinv(C, n)
 

@@ -77,6 +77,18 @@ type FishingMortality
     real(dp) area_fish_mort(max_num_areas)
 endtype FishingMortality
 
+type DataForPlots
+    logical plot_ABUN ! abundance scallops per square meter
+    logical plot_BMMT ! biomass in metric tons
+    logical plot_EBMS ! exploitable biomass in metric tons
+    logical plot_FEFF ! Fishing Effort
+    logical plot_FMOR ! Fishing Mortality
+    logical plot_LAND ! Landings by number of scallops
+    logical plot_LNDW ! Landings by weight in grams
+    logical plot_LPUE ! Landing Per Unit Effor, (per day)
+    logical plot_RECR ! Recruitment
+endtype DataForPlots
+
 ! @private @memberof Mortality_Class
 character(fname_len), PRIVATE :: config_file_name
 character(fname_len), PRIVATE :: fishing_mort_fname
@@ -137,13 +149,21 @@ real(dp), PRIVATE, allocatable :: landings_wgt_grams(:)
 real(dp), PRIVATE, allocatable :: landings_wgt_grams_open(:)
 real(dp), PRIVATE, allocatable :: landings_wgt_grams_closed(:)
 real(dp), PRIVATE, allocatable :: lpue(:) !, dredge_time(:), dredge_area(:)
+real(dp), PRIVATE, allocatable :: fishing_effort(:)
 
 real(dp), PRIVATE :: expl_scallops_psqm_at_size(num_size_classes)
 real(dp), PRIVATE :: landings_at_size(num_size_classes)
 real(dp), PRIVATE :: landings_at_size_open(num_size_classes)
 real(dp), PRIVATE :: landings_at_size_closed(num_size_classes)
 
+type(DataForPlots), PRIVATE :: data_select
+
 CONTAINS
+
+subroutine Set_Select_Data(value)
+    type(DataForPlots), intent(in) :: value
+    data_select = value
+endsubroutine Set_Select_Data
 
 !==================================================================================================================
 !! @public @memberof Mortality_Class
@@ -162,6 +182,7 @@ subroutine Destructor()
     deallocate(landings_wgt_grams_open)
     deallocate(landings_wgt_grams_closed)
     deallocate(lpue) !, dredge_time, dredge_area)
+    deallocate(fishing_effort)
 endsubroutine Destructor
 
 !==================================================================================================================
@@ -236,6 +257,7 @@ subroutine Set_Mortality(mortality, grid, shell_lengths, dom_name, dom_area, num
     allocate(F_mort(num_grids))
     allocate(F_mort_raw(num_grids))
     allocate(lpue(num_grids)) !, dredge_time(num_grids), dredge_area(num_grids))
+    allocate(fishing_effort(num_grids))
 
     allocate(landings_by_num(num_grids))
     allocate(landings_wgt_grams(num_grids))
@@ -507,23 +529,24 @@ function Set_Fishing_Effort(year, ts, state, weight_grams, mortality, grid)
 
     select case (fishing_type(1:3))
         case('USD')
-            Set_Fishing_Effort (1:num_grids) = Set_Fishing_Effort_Weight_USD(grid(1:num_grids)%is_closed, &
+            fishing_effort (1:num_grids) = Set_Fishing_Effort_Weight_USD(grid(1:num_grids)%is_closed, &
             &                           total_catch, catch_open, catch_closed)
         case('BMS')
-            Set_Fishing_Effort(1:num_grids) = Set_Fishing_Effort_Weight_BMS(grid(1:num_grids)%is_closed, &
+            fishing_effort(1:num_grids) = Set_Fishing_Effort_Weight_BMS(grid(1:num_grids)%is_closed, &
             &                           total_catch, catch_open, catch_closed)
         case('CAS')
             Mindx = minloc( abs(mortality(1)%year(1:mortality(1)%num_years) - year ), 1)
-            Set_Fishing_Effort(1:num_grids) = mortality(1:num_grids)%fishing_effort(Mindx)!CASA Fishing
+            fishing_effort(1:num_grids) = mortality(1:num_grids)%fishing_effort(Mindx)!CASA Fishing
         case default
             Mindx = minloc( abs(mortality(1)%year(1:mortality(1)%num_years) - year ), 1)
-            Set_Fishing_Effort(1:num_grids) = mortality(1:num_grids)%fishing_effort(Mindx)!CASA Fishing
+            fishing_effort(1:num_grids) = mortality(1:num_grids)%fishing_effort(Mindx)!CASA Fishing
             write(*,*)'Unkown fishing fishing_type:', fishing_type, &
             &    '.  Using spatially constant fishing_effort from CASA model'
     end select
 
     ! Report current timestep results
-    call Mortality_Write_At_Timestep(year, ts, state, weight_grams, mortality, Set_Fishing_Effort(:), grid)
+    call Mortality_Write_At_Timestep(year, ts, state, weight_grams, mortality, grid)
+    Set_Fishing_Effort(:) = fishing_effort(:)
 
     return
 endfunction Set_Fishing_Effort
@@ -1042,14 +1065,13 @@ end subroutine Read_Configuration
 !> Initializes growth for startup
 !>
 !==================================================================================================================
-subroutine Mortality_Write_At_Timestep(year, ts, state, weight_grams, mortality, set_fishing_by_loc, grid)
+subroutine Mortality_Write_At_Timestep(year, ts, state, weight_grams, mortality, grid)
 integer, intent(in) :: year, ts
 ! state is allocated before the number of grids is known
 real(dp), intent(in) :: state(num_grids, num_size_classes)
 ! weight_grams is allocated once the number of grids is known
 real(dp), intent(in) :: weight_grams(num_grids, num_size_classes)
 type(Mortality_Class), intent(in):: mortality(*)
-real(dp), intent(in) :: set_fishing_by_loc(*)
 type(Grid_Data_Class), intent(in) :: grid(*)
 
 integer loc
@@ -1066,7 +1088,7 @@ allocate(bms(num_grids), ebms_mt(num_grids))
 do loc = 1, num_grids
     ! Compute overall mortality
     M(1:num_size_classes) = mortality(loc)%natural_mortality(1:num_size_classes) &
-    & + set_fishing_by_loc(loc) * ( mortality(loc)%selectivity(1:num_size_classes) &
+    & + fishing_effort(loc) * ( mortality(loc)%selectivity(1:num_size_classes) &
     & + mortality(loc)%incidental + mortality(loc)%discard(1:num_size_classes) )
 
     abundance(loc) = sum(state(loc,1:num_size_classes)) ! scallops per sq meter
@@ -1078,11 +1100,38 @@ ebms_mt(1:num_grids) = expl_biomass_gpsqm(1:num_grids)*grid_area_sqm/grams_per_m
 
 ! This data is on the survey grid
 ! (lat,lon) by ts
-call Write_Column_CSV(num_grids, ebms_mt(:), 'EBMS',             output_dir//'Lat_Lon_Surv_EBMS_'//domain_name//'.csv',.true.)
-call Write_Column_CSV(num_grids, landings_by_num(:), 'Landings', output_dir//'Lat_Lon_Surv_LAND_'//domain_name//'.csv',.true.)
-call Write_Column_CSV(num_grids, lpue(:),            'LPUE',     output_dir//'Lat_Lon_Surv_LPUE_'//domain_name//'.csv',.true.)
-call Write_Column_CSV(num_grids, set_fishing_by_loc(1:num_grids), 'Feffort',&
-&                                                                output_dir//'Lat_Lon_Surv_FEFF_'//domain_name//'.csv',.true.)
+if (data_select%plot_ABUN) &
+&    call Write_Column_CSV(num_grids, abundance(:), 'ABUN', &
+&    output_dir//'Lat_Lon_Surv_ABUN_'//domain_name//'.csv',.true.)
+
+if (data_select%plot_BMMT) &
+&    call Write_Column_CSV(num_grids, bms(:), 'BMMT',&
+&    output_dir//'Lat_Lon_Surv_BMMT_'//domain_name//'.csv',.true.)
+
+if (data_select%plot_EBMS) &
+&    call Write_Column_CSV(num_grids, ebms_mt(:), 'EBMS', &
+&    output_dir//'Lat_Lon_Surv_EBMS_'//domain_name//'.csv',.true.)
+
+if (data_select%plot_FEFF) &
+&    call Write_Column_CSV(num_grids, fishing_effort(1:num_grids), 'Feffort',&
+&    output_dir//'Lat_Lon_Surv_FEFF_'//domain_name//'.csv',.true.)
+
+if (data_select%plot_FMOR) &
+&    call Write_Column_CSV(num_grids, F_mort(1:num_grids), 'Feffort',&
+&    output_dir//'Lat_Lon_Surv_FMOR_'//domain_name//'.csv',.true.)
+
+if (data_select%plot_LAND) &
+&    call Write_Column_CSV(num_grids, landings_by_num(:), 'Landings', &
+&    output_dir//'Lat_Lon_Surv_LAND_'//domain_name//'.csv',.true.)
+
+if (data_select%plot_LNDW) &
+&    call Write_Column_CSV(num_grids, landings_wgt_grams(:), 'LNDW', &
+&    output_dir//'Lat_Lon_Surv_LNDW_'//domain_name//'.csv',.true.)
+
+if (data_select%plot_LPUE) &
+&    call Write_Column_CSV(num_grids, lpue(:), 'LPUE',&
+&    output_dir//'Lat_Lon_Surv_LPUE_'//domain_name//'.csv',.true.)
+
 ! write annual results, i.e. every ts_per_year
 ! This data is later interpolated to MA or GB Grid
 if (mod(ts, ts_per_year) .eq. 1) then
@@ -1093,47 +1142,82 @@ if (mod(ts, ts_per_year) .eq. 1) then
     endif
 
     if (save_by_stratum) then
-        call Write_Column_CSV_By_Stratum(num_grids, ebms_mt(:), grid(1:num_grids)%lat, grid(1:num_grids)%lon, &
-        &            grid(1:num_grids)%stratum, 'EBMS', data_dir//'X_Y_EBMS_'//domain_name//trim(buf), .true.)
-        call Write_Column_CSV_By_Stratum(num_grids, ebms_mt(:), grid(1:num_grids)%lat, grid(1:num_grids)%lon, &
-        &            grid(1:num_grids)%stratum, 'LAND', data_dir//'X_Y_LAND_'//domain_name//trim(buf), .true.)
-        call Write_Column_CSV_By_Stratum(num_grids, ebms_mt(:), grid(1:num_grids)%lat, grid(1:num_grids)%lon, &
-        &            grid(1:num_grids)%stratum, 'LPUE', data_dir//'X_Y_LPUE_'//domain_name//trim(buf), .true.)
-        call Write_Column_CSV_By_Stratum(num_grids, ebms_mt(:), grid(1:num_grids)%lat, grid(1:num_grids)%lon, &
-        &            grid(1:num_grids)%stratum, 'FEFF', data_dir//'X_Y_FEFF_'//domain_name//trim(buf), .true.)
+        if (data_select%plot_ABUN) &
+        &    call Write_Column_CSV_By_Stratum(num_grids, abundance(:), grid(1:num_grids)%lat, grid(1:num_grids)%lon, &
+        &    grid(1:num_grids)%stratum, 'ABUN', &
+        &    data_dir//'X_Y_ABUN_'//domain_name//trim(buf), .true.)
+
+        if (data_select%plot_BMMT) &
+        &    call Write_Column_CSV_By_Stratum(num_grids, bms(:), grid(1:num_grids)%lat, grid(1:num_grids)%lon, &
+        &    grid(1:num_grids)%stratum, 'BMMT', &
+        &    data_dir//'X_Y_BMMT_'//domain_name//trim(buf), .true.)
+
+        if (data_select%plot_EBMS) &
+        &    call Write_Column_CSV_By_Stratum(num_grids, ebms_mt(:), grid(1:num_grids)%lat, grid(1:num_grids)%lon, &
+        &    grid(1:num_grids)%stratum, 'EBMS', &
+        &    data_dir//'X_Y_EBMS_'//domain_name//trim(buf), .true.)
+
+        if (data_select%plot_FEFF) &
+        &    call Write_Column_CSV_By_Stratum(num_grids, fishing_effort(:), grid(1:num_grids)%lat, grid(1:num_grids)%lon, &
+        &    grid(1:num_grids)%stratum, 'FEFF', &
+        &    data_dir//'X_Y_FEFF_'//domain_name//trim(buf), .true.)
+
+        if (data_select%plot_FMOR) &
+        &    call Write_Column_CSV_By_Stratum(num_grids, F_mort(:), grid(1:num_grids)%lat, grid(1:num_grids)%lon, &
+        &    grid(1:num_grids)%stratum, 'FMOR', &
+        &    data_dir//'X_Y_FMOR_'//domain_name//trim(buf), .true.)
+
+        if (data_select%plot_LAND) &
+        &    call Write_Column_CSV_By_Stratum(num_grids, landings_by_num(:), grid(1:num_grids)%lat, grid(1:num_grids)%lon, &
+        &    grid(1:num_grids)%stratum, 'LAND', &
+        &    data_dir//'X_Y_LAND_'//domain_name//trim(buf), .true.)
+
+        if (data_select%plot_LNDW) &
+        &    call Write_Column_CSV_By_Stratum(num_grids, landings_wgt_grams(:), grid(1:num_grids)%lat, grid(1:num_grids)%lon, &
+        &    grid(1:num_grids)%stratum, 'LNDW', &
+        &    data_dir//'X_Y_LNDW_'//domain_name//trim(buf), .true.)
+
+        if (data_select%plot_LPUE) &
+        &    call Write_Column_CSV_By_Stratum(num_grids, lpue(:), grid(1:num_grids)%lat, grid(1:num_grids)%lon, &
+        &    grid(1:num_grids)%stratum, 'LPUE', &
+        &    data_dir//'X_Y_LPUE_'//domain_name//trim(buf), .true.)
+
     else
-        call Write_Column_CSV(num_grids, ebms_mt(:), 'EBMS', data_dir//'X_Y_EBMS_'//domain_name//trim(buf)//'.csv', .true.)
-        call Write_Column_CSV(num_grids, landings_by_num(:), 'Landings', &
-        &                                                    data_dir//'X_Y_LAND_'//domain_name//trim(buf)//'.csv', .true.)
-        call Write_Column_CSV(num_grids, lpue(:), 'LPUE',    data_dir//'X_Y_LPUE_'//domain_name//trim(buf)//'.csv', .true.)
-        call Write_Column_CSV(num_grids, set_fishing_by_loc(1:num_grids), 'FEFF',&
-        &                                                    data_dir//'X_Y_FEFF_'//domain_name//trim(buf)//'.csv', .true.)
+        if (data_select%plot_ABUN) &
+        &    call Write_Column_CSV(num_grids, abundance(:),'ABUN',&
+        &    data_dir//'X_Y_ABUN_'//domain_name//trim(buf)//'.csv', .true.)
+
+        if (data_select%plot_BMMT) &
+        &    call Write_Column_CSV(num_grids, bms(:),'BMMT',&
+        &    data_dir//'X_Y_BMMT_'//domain_name//trim(buf)//'.csv', .true.)
+
+        if (data_select%plot_EBMS) &
+        &    call Write_Column_CSV(num_grids, ebms_mt(:), 'EBMS',&
+        &    data_dir//'X_Y_EBMS_'//domain_name//trim(buf)//'.csv', .true.)
+
+        if (data_select%plot_FEFF) &
+        &    call Write_Column_CSV(num_grids, fishing_effort(1:num_grids), 'FEFF',&
+        &    data_dir//'X_Y_FEFF_'//domain_name//trim(buf)//'.csv', .true.)
+
+        if (data_select%plot_FMOR) &
+        &    call Write_Column_CSV(num_grids, F_mort(1:num_grids), 'FMOR',&
+        &    data_dir//'X_Y_FMOR_'//domain_name//trim(buf)//'.csv', .true.)
+
+        if (data_select%plot_LAND) &
+        &    call Write_Column_CSV(num_grids, landings_by_num(:), 'Landings', &
+        &    data_dir//'X_Y_LAND_'//domain_name//trim(buf)//'.csv', .true.)
+
+        if (data_select%plot_LNDW) &
+        &    call Write_Column_CSV(num_grids, landings_wgt_grams(:), 'LNDW', &
+        &    data_dir//'X_Y_LNDW_'//domain_name//trim(buf)//'.csv', .true.)
+
+        if (data_select%plot_LPUE) &
+        &    call Write_Column_CSV(num_grids, lpue(:), 'LPUE',&
+        &    data_dir//'X_Y_LPUE_'//domain_name//trim(buf)//'.csv', .true.)
+
     endif
 endif ! if(mod()) = 1
-
-! ! CSV files (number of timestep by number of grids)
-! call Write_CSV(1, num_grids, ebms_mt(:), output_dir//'ExplBMS_mt_'//domain_name//'.csv',    1, (ts .ne. 1))
-! call Write_CSV(1, num_grids, abundance,           output_dir//'Abundance_psqm_'//domain_name//'.csv',    1, (ts .ne. 1))
-! call Write_CSV(1, num_grids, abundance*grid_area_sqm, output_dir//'Abundance_'//domain_name//'.csv',     1, (ts .ne. 1))
-! call Write_CSV(1, num_grids, bms,                 output_dir//'BMS_mtpsqm_'//domain_name//'.csv',        1, (ts .ne. 1))
-! call Write_CSV(1, num_grids, bms*grid_area_sqm,   output_dir//'BMS_mt_'//domain_name//'.csv',            1, (ts .ne. 1))
-! call Write_CSV(1, num_grids, landings_by_num,     output_dir//'NumLandings'//domain_name//'.csv',1, (ts .ne. 1))
-! call Write_CSV(1, num_grids, expl_biomass_gpsqm(1:num_grids)/grams_per_metric_ton,&
-! &                                                 output_dir//'ExplBMS_mtpsqm_'//domain_name//'.csv',    1, (ts .ne. 1))
-! call Write_CSV(1, num_grids, set_fishing_by_loc,  output_dir//'FishingEffort'//domain_name//'.csv',       1, (ts .ne. 1))
-
-
-! call Write_CSV(1, num_grids, F_mort,       output_dir//'FishingMort'//domain_name//'.csv',            1, .true.) !(ts .ne. 1))
-! call Write_CSV(1, num_grids, F_mort_raw,   output_dir//'FishingMortRaw'//domain_name//'.csv',         1, .true.) !(ts .ne. 1))
-! call Write_CSV(1, num_grids, USD_per_sqm*grid_area_sqm,  output_dir//'USD_psqm_'//domain_name//'.csv',1, (ts .ne. 1))
-! call Write_CSV(1, num_grids, landings_wgt_grams(1:num_grids)/grams_per_metric_ton, &
-! &                                                 output_dir//'WgtLandings_mt'//domain_name//'.csv',1, (ts .ne. 1))
-
-! call Write_CSV(1, num_grids, lpue(1:num_grids),   output_dir//'LPUE_'//domain_name//'.csv',1, (ts .ne. 1))
-! call Write_CSV(1, num_grids, dredge_time(1:num_grids), output_dir//'DredgeTime_'//domain_name//'.csv',1, (ts .ne. 1))
-! call Write_CSV(1, num_grids, dredge_area(1:num_grids), output_dir//'DredgeArea_'//domain_name//'.csv',1, (ts .ne. 1))
-
-            
+           
 deallocate(abundance)
 deallocate(bms, ebms_mt)
 return

@@ -28,7 +28,7 @@
 !>
 !> @subsubsection m0p1p1p2 Number of Random Fields
 !>
-!> This configuration item sets the number of random fields, NRand.
+!> This configuration item sets the number of random fields, NRand. DEPRECATED
 !>
 !> @subsubsection m0p1p1p3 Kriging variogram form
 !> * 'spherical'
@@ -80,7 +80,7 @@ real(dp), allocatable :: dist(:,:)
 integer num_points, num_spat_fcns, num_obs_points, j
 real(dp)  fmax, SF
 ! variables for nonlinear fitting
-integer nsf, NRand
+integer nsf
 logical IsHiLimit, IsLogT
 character(domain_len) domain_name
 type(Grid_Data_Class):: grid
@@ -100,7 +100,7 @@ par = Krig_Class(0.0, 0.0, 0.0, 'spherical')
 write (*,*) term_grn, "PROGRAM STARTING  ", &
 & 'elapsed:', term_yel, e, term_grn, ', user:', term_yel, t(1), term_grn, ', sys:', term_yel, t(2), term_blk
 
-call Read_Startup_Config(domain_name, NRand, IsLogT, IsHiLimit, fmax, par, alpha, save_data, f0_max)
+call Read_Startup_Config(domain_name, IsLogT, IsHiLimit, fmax, par, alpha, save_data, f0_max)
 
 call random_seed( )
 
@@ -217,7 +217,6 @@ resOBS(1:num_obs_points) = obs%field(1:num_obs_points) - trndOBS(1:num_obs_point
 write(*,'(A,F10.6)')'GLSres:', Compute_RMS(resOBS(:), num_obs_points)
 
 if (save_data) then
-    !NORF!                num_spat_fcns, Nrand, grid
     call OutputUK(num_points, num_spat_fcns, grid, nlsf, beta, eps, Ceps, Cbeta, fmax, SF, &
     &                    IsLogT, IsHiLimit, domain_name, alpha)
 else
@@ -258,7 +257,7 @@ endprogram
 !--------------------------------------------------------------------------------------------------
 ! Keston Smith, Tom Callaghan (IBSS) 2024
 !--------------------------------------------------------------------------------------------------
-subroutine Read_Startup_Config(domain_name, NRand, IsLogT, IsHiLimit, fmax, par, alpha, save_data, f0_max)
+subroutine Read_Startup_Config(domain_name, IsLogT, IsHiLimit, fmax, par, alpha, save_data, f0_max)
 use globals
 use Krig_Mod
 use NLSF_Mod, only : NLS_Set_Config_File_Name => Set_Config_File_Name
@@ -266,7 +265,6 @@ implicit none
 character(2),intent(out):: domain_name
 type(Krig_Class), intent(out):: par
 integer j, k, io
-integer, intent(out):: NRand
 
 logical IsLogT,IsHiLimit
 character(72) :: input_string
@@ -360,9 +358,6 @@ do
                 write(*,*)'Is this the fmax you were searching for?', fmax
             endif
 
-        case('Number of Random Fields')
-            read( value,*) NRand
-
         case('Kriging variogram form')
             read(value,*) par%form
 
@@ -425,12 +420,9 @@ endsubroutine Read_Startup_Config
         
 !---------------------------------------------------------------------------------------------------
 !! Purpose: This subroutine writes files for output.  This includes a central prediction: 
-!> "KrigingEstimate.txt" and random fields generated from the posterior distribution:
-!> "RandomFieldN.txt", where N =1:Nrand. Predictor standard deviation  is output to "KrigSTD.txt".
+!> "KrigingEstimate.txt" Predictor standard deviation  is output to "KrigSTD.txt".
 !> Function coefficient 
 !---------------------------------------------------------------------------------------------------
-!NORF!subroutine OutputUK(num_points, num_spat_fcns, Nrand, grid, nlsf, beta, eps, Ceps, Cbeta, fmax, SF, &
-!NORF!&                  IsLogT, IsHiLimit, domain_name, alpha)
 subroutine OutputUK(num_points, num_spat_fcns, grid, nlsf, beta, eps, Ceps, Cbeta, fmax, SF, &
     &                  IsLogT, IsHiLimit, domain_name, alpha)
 use globals
@@ -444,14 +436,13 @@ type(Grid_Data_Class), intent(inout) :: grid
 type(NLSF_Class), intent(in)::nlsf(*)
                                     
 character(2), intent(in) :: domain_name
-integer, intent(in) :: num_points, num_spat_fcns!NORF!, Nrand
+integer, intent(in) :: num_points, num_spat_fcns
 real(dp), intent(in) :: eps(*), beta(*), Cbeta(num_spat_fcns,*), fmax, SF, alpha
 real(dp), intent(inout) :: Ceps(num_points,*)
 logical, intent(in) ::IsLogT, IsHiLimit
-integer n !NORF!, j, k
-real(dp) trend(num_points), V(num_points), Fg(num_points, num_spat_fcns)!NORF!, EnsMu, EnsSTD 
-real(dp) logf(num_points)!NORF!, adj, RandomField(num_points, Nrand)
-!NORF!character(72) buf
+integer n 
+real(dp) trend(num_points), V(num_points), Fg(num_points, num_spat_fcns)
+real(dp) logf(num_points)
 logical, parameter :: save_data = .true.
 
 write(*,*)'output fmax, SF, A=', fmax, SF, one_scallop_per_tow
@@ -486,27 +477,6 @@ enddo
 if(IsLogT) call Write_Vector_Scalar_Field(num_points, SF*exp(sqrt(V(1:num_points)))-one_scallop_per_tow, 'KrigSTD.txt')
 if(.not.IsLogT) call Write_Vector_Scalar_Field(num_points, sqrt(V(1:num_points)), 'KrigSTD.txt')
 
-!NORF!if(IsLogT) call RandomSampleF(num_points, num_points, NRand, logf(1:num_points), Ceps, RandomField)
-!NORF!if(.not.IsLogT) call RandomSampleF(num_points, num_points, NRand, grid%field(1:n)**alpha, Ceps, RandomField)
-!NORF!RandomField(1:num_points, 1:Nrand)=RandomField(1:num_points, 1:Nrand)**(1./alpha)
-!NORF!do k=1, num_points
-!NORF!    if(IsLogT) adj = SF * exp(sqrt(V(k))) - one_scallop_per_tow
-!NORF!    if(.not.IsLogT) adj = sqrt(V(k))
-!NORF!    EnsMu = Compute_MEAN(RandomField(k, :), Nrand)
-!NORF!    EnsSTD = Compute_RMS(RandomField(k,:)-EnsMu, Nrand)
-!NORF!    if(EnsSTD.gt.0.) then
-!NORF!        RandomField(k, 1:Nrand) = grid%field(k) +( RandomField(k, 1:Nrand) - EnsMu )*adj/EnsSTD
-!NORF!    else
-!NORF!        RandomField(k, 1:Nrand) = grid%field(k) + RandomField(k, 1:Nrand) - EnsMu 
-!NORF!    endif
-!NORF!    if(IsHiLimit) call LSF_Limit_Z(Nrand, RandomField(k, 1:NRand), grid%z(k)+0.*RandomField(k, 1:NRand), &
-!NORF!                            fmax, domain_name)
-!NORF!enddo
-!NORF!
-!NORF!do j=1, Nrand
-!NORF!    write(buf, '(I6)')j
-!NORF!    call Write_Vector_Scalar_Field(num_points, RandomField(1:num_points, j), 'RandomField'//trim(adjustl(buf))//'.txt')
-!NORF!enddo
 endsubroutine OutputUK
 
 !---------------------------------------------------------------------------------------------------

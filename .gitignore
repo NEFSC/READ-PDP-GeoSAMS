@@ -9,6 +9,7 @@ InputDataError.txt
 *.fig
 *.asv
 *.pdf
+*.pyc
 fort.8
 mod/
 obj/

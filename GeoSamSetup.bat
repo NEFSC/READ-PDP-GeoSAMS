@@ -164,5 +164,3 @@ IF ERRORLEVEL 1 (
     @echo [31mError in Process%4Results.py. Stopping[0m
     exit /b
 )
-
-.\PlotAllByYear.bat %1 %2 %4

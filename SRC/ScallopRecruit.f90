@@ -119,10 +119,8 @@ integer, PRIVATE :: num_grids
 character(domain_len), PRIVATE :: domain_name
 real(dp), PRIVATE :: domain_area_sqm
 
-logical, PRIVATE :: use_random_rec
 integer, PRIVATE :: recr_start_year ! historical data interpolated at start
 integer, PRIVATE :: recr_stop_year ! historical data interpolated at stop
-integer, PRIVATE :: recr_all_rand_stop ! all random recruitment, start year is recr_stop_year + 1
 real(dp), PRIVATE :: recr_period_start ! day of year as a fraction of year, Jan 1 is 1/365
 real(dp), PRIVATE :: recr_period_stop  ! day of year as a fraction of year, Apr 10 is 100/365
 
@@ -167,7 +165,6 @@ subroutine Set_Recruitment(recruit, n_grids, dom_name, dom_area, L_inf_mu, K_mu,
     ! recruitment years same as growth years from main command line
     recr_start_year = yr_start
     recr_stop_year  = yr_stop
-    recr_all_rand_stop = recr_stop_year ! TODO is this correct. Not using random recruits at this time
 
     !! initalize private members
     num_grids = n_grids
@@ -183,17 +180,11 @@ subroutine Set_Recruitment(recruit, n_grids, dom_name, dom_area, L_inf_mu, K_mu,
     !       rec_start = 1/365, or January 1st
     !       rec_stop = 100/365, or April 10 
     !-------------------------------------------------------------------------
-    write(*,*)'Is random Rec',use_random_rec
     year_index = 0
     do year = recr_start_year, recr_stop_year
         year_index = year_index + 1
         write(buf,'(I6)')year
-        if (use_random_rec) then
-            ! TODO replace magic number 100
-            tmp = Random_Recruits(year, year, 100, use_random_rec)
-        else
-            call Read_Scalar_Field(rec_input_dir//'RecruitEstimate'//domain_name//trim(adjustl(buf))//'.txt', tmp, num_grids)
-        endif
+        call Read_Scalar_Field(rec_input_dir//'RecruitEstimate'//domain_name//trim(adjustl(buf))//'.txt', tmp, num_grids)
         do j = 1,num_grids
             recruit(j)%recruitment(year_index) = tmp(j)
             recruit(j)%year(year_index) = year
@@ -202,83 +193,31 @@ subroutine Set_Recruitment(recruit, n_grids, dom_name, dom_area, L_inf_mu, K_mu,
         enddo
     enddo
     
-    do year = recr_stop_year+1, recr_all_rand_stop
-        year_index = year_index + 1
-        write(buf,'(I6)')year
-        tmp = Random_Recruits(recr_start_year, recr_stop_year, 100, .true.)
-        do j = 1,num_grids
-            recruit(j)%recruitment(year_index) = tmp(j)
-            recruit(j)%year(year_index) = year
-            recruit(j)%rec_start = recr_period_start
-            recruit(j)%rec_stop = recr_period_stop
-        enddo
-    enddo
     recruit(1:num_grids)%n_year = year_index
     !-------------------------------------------------------------------------
 
-    year_index = 0
-    do year = recr_start_year,recr_all_rand_stop
-        year_index = year_index + 1
-        write(buf,'(I6)')year
-        tmp(1:num_grids) = recruit(1:num_grids)%Recruitment(year_index)
-        call Write_Vector_Scalar_Field(num_grids,tmp,rec_output_dir//'RecruitFieldIn'//trim(adjustl(buf))//'.txt')
-    enddo
+    ! year_index = 0
+    ! do year = recr_start_year,recr_stop_year
+    !     year_index = year_index + 1
+    !     write(buf,'(I6)')year
+    !     tmp(1:num_grids) = recruit(1:num_grids)%Recruitment(year_index)
+    !     call Write_Vector_Scalar_Field(num_grids,tmp,rec_output_dir//'RecruitFieldIn'//trim(adjustl(buf))//'.txt')
+    ! enddo
 
     ! quantize recruitment
-    open(write_dev,file = init_cond_dir//'RecIndx.txt')
+    ! open(write_dev,file = init_cond_dir//'RecIndx.txt')
     do n = 1, num_grids
         L30mm = (L_inf_mu(n) - dfloat(shell_len_min)) * exp(-K_mu(n))
         do j=1, num_size_classes 
             if (shell_length_mm(j) .le. L30mm) recruit(n)%max_rec_ind = j
         enddo
-        write(write_dev,*) n, L30mm, recruit(n)%max_rec_ind
+        ! write(write_dev,*) n, L30mm, recruit(n)%max_rec_ind
     enddo
-    close(write_dev)
+    ! close(write_dev)
 
     return
 endsubroutine Set_Recruitment
     
-
-!==================================================================================================================
-!! @public @memberof Recruitment_Class
-!==================================================================================================================
-function Random_Recruits(start_year, stop_year, num_sim, rescale)
-    real(dp) :: Random_Recruits(num_grids)
-    integer, intent(in)::start_year, stop_year, num_sim
-    real(dp), allocatable:: fishing_effort(:,:)
-    logical, intent(in) :: rescale
-    real(dp) p(2), mu, sig, mus, mur
-    integer num_years_int, num_sims_rand
-    character(6) buf
-    allocate(fishing_effort(1:num_grids, 1:num_sim))
-    call random_number(p(1:2))
-    num_years_int = start_year + floor( float(stop_year - start_year + 1) * p(1) )
-    num_sims_rand = ceiling( float(num_sim) * p(2) )
-    write(buf,'(I6)') num_years_int
-    
-    call Read_Scalar_Field(rec_input_dir//'Sim'//domain_name//'Clim'//'/KrigingEstimate.txt', &
-    &            fishing_effort(1:num_grids,num_sims_rand), num_grids)
-    Random_Recruits(1:num_grids) = fishing_effort(1:num_grids, num_sims_rand)
-    ! Adjust mean to random number based on historical record of mean. log(interanual mean)~ N(mu,sig)
-    if (rescale)then
-        !log normal average for 1979-2018
-        if (domain_name(1:2).eq.'GB')then
-            mu =  -3.0198
-            sig =  1.1068
-        else
-            mu = -3.5329
-            sig = 1.0036
-        endif
-        mus = Compute_MEAN(Random_Recruits(1:num_grids), num_grids)
-        call random_number(p(1:2))
-        mur = mu + sig * p(1)
-        Random_Recruits(1:num_grids) = Random_Recruits(1:num_grids) * exp(mur) / mus
-    endif
-    deallocate(fishing_effort)
-    
-    return
-endfunction Random_Recruits
-
 !-----------------------------------------------------------------------------------------------
 !! @public @memberof Recruitment_Class
 !> Used during instantiation to set the name of the file to read to for configuration parameters
@@ -351,9 +290,6 @@ subroutine Read_Configuration()
             case('Stop Period')
                 read(value, *) recr_period_stop
                 recr_period_stop = recr_period_stop / 365._dp
-
-            case('Use Random Recruitment')
-                use_random_rec = (value(1:1) .eq. 'T')
 
             case default
                 write(*,*) term_red, 'Unrecognized line in ',config_file_name
