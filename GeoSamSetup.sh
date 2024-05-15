@@ -165,5 +165,3 @@ then
     echo [31mError in Process$4Results.py. Stopping[0m
     exit
 fi
-
-./PlotAllByYear.sh $1 $2 $4

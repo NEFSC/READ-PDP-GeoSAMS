@@ -792,8 +792,9 @@ character(6) buf_0
 integer recr_idx
 character(fname_len) file_name
 
+recr_idx = year - start_year + 1
+
 if (mod(ts, ts_per_year) .eq. 1) then
-    recr_idx = year - start_year + 1
     write(buf,'(I4)') year
     if (save_by_stratum) then
         if (ts .eq. 1) then
