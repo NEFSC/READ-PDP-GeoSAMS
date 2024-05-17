@@ -42,7 +42,6 @@ class MainApplication(tk.Tk):
         #
         # NOTE: MA does not use stratum and forces it to false
         # 
-        if self.frame1.domainName.myEntry.get() == 'MA': self.savedByStratum = False
         self.frame2 = Frame2(self.notebook, self.tsInYear, self.paramVal, self.savedByStratum)
         self.frame3 = Frame3(self.notebook, self.mortConfigFile)
         self.frame4 = Frame4(self.notebook, self.frame1.domainName.myEntry.get)
@@ -69,7 +68,7 @@ class MainApplication(tk.Tk):
         # 
         # typical command line:
         # > .\SRC\ScallopPopDensity.exe Scallop.cfg StartYear StopYear Domain
-        self.UpdateScallopConfig()
+        self.WriteScallopConfig()
         self.WriteRecruitmentConfig()
         self.WriteMortalityConfig()
         self.WriteGridMgrConfig()
@@ -78,6 +77,7 @@ class MainApplication(tk.Tk):
 
         ex = self.root+'/SRC/ScallopPopDensity'
         simCfgFile = self.frame1.simCfgFile.myEntry.get()
+        ukCfgFile = self.frame1.ukCfgFile.myEntry.get()
         startYear = self.frame1.startYr.myEntry.get()
         stopYear = self.frame1.stopYr.myEntry.get()
         dn = self.frame1.domainName.myEntry.get()
@@ -89,7 +89,18 @@ class MainApplication(tk.Tk):
         else:
             messagebox.showerror("GeoSAM Sim", f'Failed\n{result.args}\nReturn Code = {result.returncode}')
 
-    def UpdateScallopConfig(self):
+        # python .\PythonScripts\ProcessResults.py GB 2015 2017 Scallop.cfg UK.cfg
+        ex = 'python'
+        script = self.root+'/PythonScripts/ProcessResults.py'
+        cmd = [ex, script, dn, str(startYear), str(stopYear), simCfgFile, ukCfgFile] 
+        print(cmd)
+        result = subprocess.run(cmd)
+        if result.returncode == 0:
+            messagebox.showinfo("UK", f'Completed Successfully\n{result.args}')
+        else:
+            messagebox.showerror("UK", f'Failed\n{result.args}\nReturn Code = {result.returncode}')
+
+    def WriteScallopConfig(self):
         simCfgFile  = os.path.join(self.root,'Configuration/'+self.frame1.simCfgFile.myEntry.get())
         with open(simCfgFile, 'w') as f:
             f.write('# input file for Scallops \n')
@@ -102,7 +113,6 @@ class MainApplication(tk.Tk):
             f.write('# The following items determine the parameters for output and plotting\n')
             f.write('# One need only select the desired parameters, the default is to not show them\n')
             f.write('# Anything after = is ignored.\n')
-            print(self.frame2.abunVar.get())
             if(self.frame2.abunVar.get()):     f.write('Select Abundance          =# ABUN abundance scallops per square meter\n')
             if(not self.frame2.abunVar.get()): f.write('# Select Abundance          =# ABUN abundance scallops per square meter\n')
             if(self.frame2.bmsVar.get()):      f.write('Select BMS                =# BMMT biomass in metric tons\n')
@@ -203,7 +213,6 @@ class MainApplication(tk.Tk):
     def WriteUKConfig(self):
         cfgFile  = os.path.join(self.root,'Configuration/'+self.frame1.ukCfgFile.myEntry.get())
         with open(cfgFile, 'w') as f:
-            f.write('\n')
             f.write('# Set inputs for universal kriging\n')
             f.write('# Observation files are expecting in the Data subdirectory\n')
             f.write('#\n')
@@ -522,7 +531,6 @@ class Frame4(ttk.Frame):
         self.spatCfgFile  = SubFrameElement(self, paramFrame, 'Spatial Fcn Config File', 'SpatialFcns.cfg', 4, 0, 1)
         paramFrame.grid(row=0, column=4)
 
-
         self.bind("<Visibility>", self.on_visibility)
 
     def on_visibility(self, event):
@@ -551,8 +559,6 @@ class Frame4(ttk.Frame):
                     self.function.append(SubFrameInterpFunction(self, self.funcFrame, str(i+1), chr(120+col), 'Logistic', precon, row, col))
             self.function[1].dimVal.set('x')
             self.function[2].dimVal.set('y')
-
-
 
 class SubFrameElement(tk.Frame):
     def __init__(self, container, parent, label, value, elementRow, labelCol, entryCol):
