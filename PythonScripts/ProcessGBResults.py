@@ -10,9 +10,9 @@ from collections import defaultdict
 from ReadSimConfigFile import *
 
 nargs = len(sys.argv)
-if (nargs != 3):
+if (nargs != 4):
     print ("  Missing command line arguments. Expecting: ")
-    print ("  $ ProcessGBResults.py StartYear EndYear")
+    print ("  $ ProcessGBResults.py StartYear EndYear Scallop.cfg")
     print()
     quit()
 
@@ -20,6 +20,7 @@ dataDir = 'Data/'
 dn = 'GB'
 year_start = int(sys.argv[1])
 year_end = int(sys.argv[2])
+simCfgFile = sys.argv[3]
 years = range(year_start, year_end + 1)
 
 # Used while concatenating files
@@ -33,7 +34,7 @@ nyears = year_end - year_start + 2
 cfgFile = 'UK_GB.cfg'
 ex = os.path.join('UKsrc', 'UK')
 
-[paramStr, tsInYear, savedByStratum] = ReadSimConfigFile()
+[paramStr, tsInYear, savedByStratum] = ReadSimConfigFile('Configuration/'+simCfgFile)
 print(paramStr, tsInYear, savedByStratum)
 if savedByStratum:
     rgn = ['_SW', '_N', '_S', '_W']

@@ -10,15 +10,17 @@ import platform
 from collections import defaultdict
 from ReadSimConfigFile import *
 
-if (len(sys.argv) != 3):
+if (len(sys.argv) != 4):
     print ("  Missing command line arguments. Expecting: ")
-    print ("  $ ProcessMAResults.py StartYear EndYear")
+    print ("  $ ProcessMAResults.py StartYear EndYear Scallop.cfg")
     print()
     quit()
 
 dataDir = 'Data/'
 year_start = int(sys.argv[1])
 year_end = int(sys.argv[2])
+simCfgFile = sys.argv[3]
+
 dn = 'MA'
 print(year_start, year_end, dn)
 
@@ -35,8 +37,9 @@ nyears = year_end - year_start + 2
 cfgFile = 'UK_MA.cfg'
 ex = os.path.join('UKsrc', 'UK')
 
-[paramStr, tsInYear, savedByStratum] = ReadSimConfigFile()
+[paramStr, tsInYear, savedByStratum] = ReadSimConfigFile('Configuration/'+simCfgFile)
 print(paramStr, tsInYear, savedByStratum)
+# NOTE: MA does not use savedByStratum so only the first two values are used.
 
 prefix = ['Results/Lat_Lon_Grid_'] #, 'Results/Lat_Lon_Grid_Trend-']
 
