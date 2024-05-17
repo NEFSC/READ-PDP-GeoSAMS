@@ -415,21 +415,21 @@ elemental function Ring_Size_Selectivity(shell_length, is_closed)
     logical, intent(in) :: is_closed
     real(dp) Ring_Size_Selectivity
 
-    real(dp) a, b
+    real(dp) select_a, select_b
     
     if(domain_name(1:2) .eq. 'MA')then
-        a = ma_fselect_a
-        b = ma_fselect_b
+        select_a = ma_fselect_a
+        select_b = ma_fselect_b
     else
         if(is_closed) then
-            a = gbc_fselect_a
-            b = gbc_fselect_b
+            select_a = gbc_fselect_a
+            select_b = gbc_fselect_b
         else
-            a = gbo_fselect_a
-            b = gbo_fselect_b
+            select_a = gbo_fselect_a
+            select_b = gbo_fselect_b
         endif
     endif
-    Ring_Size_Selectivity = 1.D0 / ( 1.D0 + exp( a - b * (shell_length+shell_len_delta/2._dp)))
+    Ring_Size_Selectivity = 1.D0 / ( 1.D0 + exp( select_a - select_b * (shell_length+shell_len_delta/2._dp)))
 
 endfunction Ring_Size_Selectivity
 
