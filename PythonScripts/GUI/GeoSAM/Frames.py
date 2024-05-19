@@ -203,6 +203,8 @@ class Frame4(ttk.Frame):
         super().__init__()
 
         self.okToRepaintFunctions = True
+        self.nsfMax = 20
+        self.functions = [None for i in range(self.nsfMax)]
         self.myget = get # pointer function to domain name entry
         self.domainName = self.myget()
         self.style = ttk.Style()
@@ -218,29 +220,33 @@ class Frame4(ttk.Frame):
         self.numFcns=ttk.Entry(self.funcFrame)
         self.numFcns.grid(row=0, column=0, sticky='e')
         if self.domainName == 'MA':
-            n = 9
+            self.nsf = 9
         else:
-            n = 5
-        self.numFcns.insert(0, str(n))
+            self.nsf = 5
+        self.numFcns.insert(0, str(self.nsf))
         self.numFncsButton = ttk.Button(self.funcFrame, text='Update', command=self.NumFuncsUpdate)
         self.numFncsButton.grid(row=0, column=1)
         
-        self.function = []
+        # The grid manager keep all widgets once defined. We are just going to decide which are shown
         # paint first row to show x, y, and z
         # remaining rows are just x, y
         desNumCol = 2
-        for i in range(n):
+        for i in range(self.nsfMax):
             if i < 3:
                 row = 1
                 precon = 0
-                self.function.append(SubFrameInterpFunction(self, self.funcFrame, str(i+1), 'z', 'Logistic', precon, row, i%3))
+                self.functions[i] = SubFrameInterpFunction(self, self.funcFrame, str(i+1), 'z', 'Logistic', precon, row, i%3)
             else:
                 row = ((i-3) // desNumCol) + 2
                 col = (i-3) % desNumCol
                 precon = row - 1
-                self.function.append(SubFrameInterpFunction(self, self.funcFrame, str(i+1), chr(120+col), 'Logistic', precon, row, col))
-        self.function[1].dimVal.set('x')
-        self.function[2].dimVal.set('y')
+                self.functions[i] = SubFrameInterpFunction(self, self.funcFrame, str(i+1), chr(120+col), 'Logistic', precon, row, col)
+        self.functions[1].dimVal.set('x')
+        self.functions[2].dimVal.set('y')
+
+        # Now remove undesired funtion definitions
+        for i in range(self.nsf, self.nsfMax):
+            self.functions[i].funcFrame.grid_remove()
 
         self.funcFrame.grid(row=0, column=1)
         # --------------------------------------------------------------------------------------------------------
@@ -259,51 +265,39 @@ class Frame4(ttk.Frame):
     def on_visibility(self, event):
             if self.okToRepaintFunctions:
                 self.domainName = self.myget()
-                n = int(self.numFcns.get())
-                for i in range(n):
-                    self.function[i].funcFrame.grid_remove()
+                nsfCurrent = int(self.numFcns.get())
                 self.numFcns.delete(0,2)
                 if self.domainName == 'MA':
-                    self.numFcns.insert(0, '9')
+                    self.nsf = 9
                 else:
-                    self.numFcns.insert(0, '5')
+                    self.nsf = 5
+                self.numFcns.insert(0, str(self.nsf))
 
-                self.function = []
-                # paint first row to show x, y, and z
-                # remaining rows are just x, y
-                desNumCol = 2
-                for i in range(int(self.numFcns.get())):
-                    if i < 3:
-                        self.function.append(SubFrameInterpFunction(self, self.funcFrame, str(i+1), 'z', 'Logistic', 0, 1, i%3))
-                    else:
-                        row = ((i-3) // desNumCol) + 2
-                        col = (i-3) % desNumCol
-                        precon = row - 1
-                        self.function.append(SubFrameInterpFunction(self, self.funcFrame, str(i+1), chr(120+col), 'Logistic', precon, row, col))
-                self.function[1].dimVal.set('x')
-                self.function[2].dimVal.set('y')
+                # Now update desired funtion definitions
+                for i in range(self.nsfMax):
+                    self.functions[i].funcFrame.grid_remove()
+                for i in range(self.nsf):
+                    self.functions[i].funcFrame.grid()
+
+
 
     def NumFuncsUpdate(self):
         """ Updates the number of spatial functions. Overrides default value for MA and GB"""
 
         # Once a new value is manually enterred, prevent changing tabs from repainting spatial fucntions
         self.okToRepaintFunctions = False            
-        n = len(self.function)
-        for i in range(n):
-            self.function[i].funcFrame.grid_remove()
+        for i in range(self.nsfMax):
+            self.functions[i].funcFrame.grid_remove()
 
         n = int(self.numFcns.get())
-        self.function = []
-        # paint first row to show x, y, and z
-        # remaining rows are just x, y
-        desNumCol = 2
-        for i in range(n):
-            if i < 3:
-                self.function.append(SubFrameInterpFunction(self, self.funcFrame, str(i+1), 'z', 'Logistic', 0, 1, i%3))
-            elif i > 2:
-                row = ((i-3) // desNumCol) + 2
-                col = (i-3) % desNumCol
-                precon = row - 1
-                self.function.append(SubFrameInterpFunction(self, self.funcFrame, str(i+1), chr(120+col), 'Logistic', precon, row, col))
-        if (n>1): self.function[1].dimVal.set('x')
-        if (n>2): self.function[2].dimVal.set('y')
+        if n > self.nsfMax:
+            messagebox.showerror("Number of Spatial functions", f'Max is {self.nsfMax}\nSetting to max')
+            n = self.nsfMax
+            self.numFcns.delete(0,3)
+            self.numFcns.insert(0, str(n))
+        self.nsf = n
+        # Now update desired funtion definitions
+        for i in range(self.nsfMax):
+            self.functions[i].funcFrame.grid_remove()
+        for i in range(self.nsf):
+            self.functions[i].funcFrame.grid()
