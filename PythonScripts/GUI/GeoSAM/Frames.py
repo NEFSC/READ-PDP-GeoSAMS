@@ -1,5 +1,7 @@
 import tkinter as tk
+import csv
 import platform
+
 from tkinter import ttk
 from tkinter import messagebox
 from tkinter import filedialog
@@ -18,18 +20,23 @@ class Frame1(ttk.Frame):
         self.style = ttk.Style()
         self.style.configure('Frame1.TFrame', borderwidth=10, relief='solid', labelmargins=20)
         self.style.configure('Frame1.TFrame.Label', font=('courier', 8, 'bold'))
-
+        #-------------------------------------------------------------------------------------------
         growthFrame = ttk.LabelFrame(self, text='Growth', style='Frame1.TFrame')
-        self.startYr    = SubFrameElement(self, growthFrame, 'Start Year', '2015',        0, 0, 1)
-        self.stopYr     = SubFrameElement(self, growthFrame, 'Stop Year ', '2017',        1, 0, 1)
-        self.domainName = SubFrameElement(self, growthFrame, 'Domain Name\nMA or GB', 'MA',         2, 0, 1)
-        growthFrame.grid(row=0, column=0)
+        self.startYr    = SubFrameElement(self, growthFrame, 'Start Year', '2015',          0, 0, 1)
+        self.stopYr     = SubFrameElement(self, growthFrame, 'Stop Year ', '2017',          1, 0, 1)
+        self.domainName = SubFrameElement(self, growthFrame, 'Domain Name\nMA or GB', 'MA', 2, 0, 1, self.valDN)
+        reg=self.domainName.myEntry.register(self.valDN)
+        self.domainName.myEntry.configure(validate='key', validatecommand=(reg, '%P'))
 
+        growthFrame.grid(row=0, column=0)
+        #-------------------------------------------------------------------------------------------
+        #-------------------------------------------------------------------------------------------
         recruitFrame = ttk.LabelFrame(self, text='Recruitment', style='Frame1.TFrame')
         self.startDay    = SubFrameElement(self, recruitFrame, 'Start Day\nMmm DD', 'Jan 1',  0, 0, 1)
         self.stopDay     = SubFrameElement(self, recruitFrame, 'Stop Day\nMmm DD ', 'Apr 11', 1, 0, 1)
         recruitFrame.grid(row=0, column=1)
-
+        #-------------------------------------------------------------------------------------------
+        #-------------------------------------------------------------------------------------------
         configFrame = ttk.LabelFrame(self, text='Configuration Files', style='Frame1.TFrame')
         self.mortCfgFile = SubFrameElement(self, configFrame, 'Mortality Config File', 'Mortality.cfg',  0, 0, 1)
         self.recrCfgFile = SubFrameElement(self, configFrame, 'Recruitment File',      'Recruitment.cfg',1, 0, 1)
@@ -37,21 +44,32 @@ class Frame1(ttk.Frame):
         self.simCfgFile  = SubFrameElement(self, configFrame, 'Sim Config File',       'Scallop.cfg',    3, 0, 1)
         self.ukCfgFile   = SubFrameElement(self, configFrame, 'UK Config File',        'UK.cfg',         4, 0, 1)
         configFrame.grid(row=0, column=2)
-
+        #-------------------------------------------------------------------------------------------
+        #-------------------------------------------------------------------------------------------
         specialAccFrame = ttk.LabelFrame(self, text='Special Access', style='Frame1.TFrame')
         self.specAccFile  = SubFrameElement(self, specialAccFrame, 'Special Access Points', '', 0, 0, 1)
         self.fishMortFile = SubFrameElement(self, specialAccFrame, 'Fishing Mort File', '', 1, 0, 1)
 
         self.style.configure("Custom.TLabel", padding=6, relief="flat", background="#080")
-        self.openFishCSVButton = ttk.Button(specialAccFrame, text='View', style="Custom.TLabel", command=self.OpenFishingCSV)
+        self.openFishCSVButton = ttk.Button(specialAccFrame, text='View', style="Custom.TLabel", command=self.OpenSpecAccCSV)
         self.openFishCSVButton.grid(row=0, column=2)
 
         self.tree = ttk.Treeview(specialAccFrame, show="headings")
         self.tree.grid(row=2, column=0, columnspan=5, padx=10)
-
         specialAccFrame.grid(row=1, column=0, columnspan=3, sticky='w')
+        #-------------------------------------------------------------------------------------------
 
-    def OpenFishingCSV(self):
+    def valDN(self, input):
+        """Only allows alpha"""
+        if input == 'M': return True
+        elif input == 'MA': return True  
+        elif input == 'G': return True
+        elif input == 'GB': return True  
+        elif input == "": return True
+        else: return False
+
+
+    def OpenSpecAccCSV(self):
         file_path = filedialog.askopenfilename(title="Open CSV File", filetypes=[("CSV files", "*.csv")])
         if file_path:
             self.DisplayCSVData(file_path)
@@ -65,7 +83,7 @@ class Frame1(ttk.Frame):
 
                 self.tree["columns"] = header
                 for col in header:
-                    self.tree.column(col, width=50, stretch=True)
+                    self.tree.column(col)
                     self.tree.heading(col, text=col)
                     #print(self.tree.column(col, 'width'))
 
@@ -208,28 +226,36 @@ class Frame4(ttk.Frame):
         self.functions = [None for i in range(self.nsfMax)]
         self.myget = get # pointer function to domain name entry
         self.domainName = self.myget()
+        if self.domainName == 'MA':
+            self.nsf = 9
+        else:
+            self.nsf = 5
         self.style = ttk.Style()
         self.style.configure('Frame4.TFrame', borderwidth=10, relief='solid', labelmargins=20)
         self.style.configure('Frame4.TFrame.Label', font=('courier', 8, 'bold'))
 
         self.scrollFrame = ScrollFrame(self) # add a new scrollable frame.
-        
+
         # --------------------------------------------------------------------------------------------------------
         self.funcFrame = ttk.LabelFrame(self.scrollFrame.viewPort, text='Spatial Functions', style='Frame4.TFrame', width=400, height=200)
 
-        self.numFncsLabel = ttk.Label(self.funcFrame, text='Number')
+        # +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+        self.numFncsLabel = ttk.Label(self.funcFrame, text='# of Functions')
         self.numFncsLabel.grid(row=0, column=0, sticky='w')
+        # +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 
-        self.numFcns=ttk.Entry(self.funcFrame)
-        self.numFcns.grid(row=0, column=0, sticky='e')
-        if self.domainName == 'MA':
-            self.nsf = 9
-        else:
-            self.nsf = 5
-        self.numFcns.insert(0, str(self.nsf))
+        # +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+        self.numFcnsEntry=ttk.Entry(self.funcFrame, validatecommand=numbersCallback)
+        self.numFcnsEntry.insert(0, str(self.nsf))
+        self.numFcnsEntry.grid(row=0, column=0, sticky='e')
+        reg=self.numFcnsEntry.register(numbersCallback)
+        self.numFcnsEntry.configure(validate='key', validatecommand=(reg, '%P'))
+        # +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+
+        # +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
         self.numFncsButton = ttk.Button(self.funcFrame, text='Update', command=self.NumFuncsUpdate)
         self.numFncsButton.grid(row=0, column=1)
-        
+        # +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
         # The grid manager keep all widgets once defined. We are just going to decide which are shown
         # paint first row to show x, y, and z
         # remaining rows are just x, y
@@ -246,12 +272,11 @@ class Frame4(ttk.Frame):
                 self.functions[i] = SubFrameInterpFunction(self, self.funcFrame, str(i+1), chr(120+col), 'Logistic', precon, row, col)
         self.functions[1].dimVal.set('x')
         self.functions[2].dimVal.set('y')
-
-        # Now remove undesired funtion definitions
+        # Now hide undesired funtion definitions
         for i in range(self.nsf, self.nsfMax):
             self.functions[i].funcFrame.grid_remove()
 
-        self.funcFrame.grid(row=0, column=1)
+        self.funcFrame.grid(row=0, column=0, sticky='n')
         # --------------------------------------------------------------------------------------------------------
         # --------------------------------------------------------------------------------------------------------
         paramFrame= ttk.LabelFrame(self.scrollFrame.viewPort, text='Parameters', style='Frame4.TFrame')
@@ -269,20 +294,18 @@ class Frame4(ttk.Frame):
     def on_visibility(self, event):
             if self.okToRepaintFunctions:
                 self.domainName = self.myget()
-                nsfCurrent = int(self.numFcns.get())
-                self.numFcns.delete(0,2)
+                self.numFcnsEntry.delete(0,2)
                 if self.domainName == 'MA':
                     self.nsf = 9
                 else:
                     self.nsf = 5
-                self.numFcns.insert(0, str(self.nsf))
+                self.numFcnsEntry.insert(0, str(self.nsf))
 
                 # Now update desired funtion definitions
                 for i in range(self.nsfMax):
                     self.functions[i].funcFrame.grid_remove()
                 for i in range(self.nsf):
                     self.functions[i].funcFrame.grid()
-
 
 
     def NumFuncsUpdate(self):
@@ -293,12 +316,12 @@ class Frame4(ttk.Frame):
         for i in range(self.nsfMax):
             self.functions[i].funcFrame.grid_remove()
 
-        n = int(self.numFcns.get())
+        n = int(self.numFcnsEntry.get())
         if n > self.nsfMax:
             messagebox.showerror("Number of Spatial functions", f'Max is {self.nsfMax}\nSetting to max')
             n = self.nsfMax
-            self.numFcns.delete(0,3)
-            self.numFcns.insert(0, str(n))
+            self.numFcnsEntry.delete(0,3)
+            self.numFcnsEntry.insert(0, str(n))
         self.nsf = n
         # Now update desired funtion definitions
         for i in range(self.nsfMax):
@@ -306,67 +329,87 @@ class Frame4(ttk.Frame):
         for i in range(self.nsf):
             self.functions[i].funcFrame.grid()
 
+class Frame5(ttk.Frame):
+    def __init__(self, container):
+        super().__init__()
 
-# ************************
-# Scrollable Frame Class
-# from https://gist.github.com/mp035/9f2027c3ef9172264532fcd6262f3b01
-# ************************
-class ScrollFrame(tk.Frame):
-    def __init__(self, parent):
-        super().__init__(parent) # create a frame (self)
+        self.numAreasMax = 25
+        self.numCornersMax = 8
+        self.numAreas = 1
+        self.numCorners = 1
 
-        self.canvas = tk.Canvas(self, borderwidth=0, background="#ffffff")          #place canvas on self
-        self.canvas.config(width=1050, height=600)
-        self.viewPort = tk.Frame(self.canvas, background="#ffffff")                    #place a frame on the canvas, this frame will hold the child widgets 
-        self.vsb = tk.Scrollbar(self, orient="vertical", command=self.canvas.yview) #place a scrollbar on self 
-        self.canvas.configure(yscrollcommand=self.vsb.set)                          #attach scrollbar action to scroll of canvas
+        self.areas = [None for i in range(self.numAreasMax)]
 
-        #self.vsb.pack(side="right", fill="y")                                       #pack scrollbar to right of self
-        self.vsb.grid(row=0, rowspan=20, column=6, sticky='nsew')
-        #self.canvas.pack(side="left", fill="both", expand=True)                     #pack canvas to left of self and expand to fil
-        self.canvas.grid(row=0, column=0,sticky='nsew')
+        self.style = ttk.Style()
+        self.style.configure('Frame5.TFrame', borderwidth=10, relief='solid', labelmargins=20)
+        self.style.configure('Frame5.TFrame.Label', font=('courier', 8, 'bold'))
 
-        self.canvas_window = self.canvas.create_window((4,4), window=self.viewPort, anchor="nw",            #add view port frame to canvas
-                                  tags="self.viewPort")
+        self.scrollFrame = ScrollFrame(self) # add a new scrollable frame.
+        
+        # --------------------------------------------------------------------------------------------------------
+        self.sortAreaFrame = ttk.LabelFrame(self.scrollFrame.viewPort, text='Sort By Area', style='Frame5.TFrame', width=400, height=200)
 
-        self.viewPort.bind("<Configure>", self.onFrameConfigure)                       #bind an event whenever the size of the viewPort frame changes.
-        self.canvas.bind("<Configure>", self.onCanvasConfigure)                       #bind an event whenever the size of the canvas frame changes.
-            
-        self.viewPort.bind('<Enter>', self.onEnter)                                 # bind wheel events when the cursor enters the control
-        self.viewPort.bind('<Leave>', self.onLeave)                                 # unbind wheel events when the cursorl leaves the control
+        # +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+        self.numAreasLabel = ttk.Label(self.sortAreaFrame, text='# of Areas')
+        self.numAreasLabel.grid(row=0, column=0, sticky='w')
+        # +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+        self.numAreasEntry=ttk.Entry(self.sortAreaFrame,validatecommand=numbersCallback)
+        self.numAreasEntry.insert(0, str(self.numAreas))
+        self.numAreasEntry.grid(row=1, column=0, sticky='w')
+        reg=self.numAreasEntry.register(numbersCallback)
+        self.numAreasEntry.configure(validate='key', validatecommand=(reg, '%P'))
+        # +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+        # +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+        self.numAreasButton = ttk.Button(self.sortAreaFrame, text='Update', command=self.NumAreasUpdate)
+        self.numAreasButton.grid(row=2, column=0, sticky='w')
+        # +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+        
+        # # The grid manager keep all widgets once defined. We are just going to decide which are shown
+        # # paint first row to show x, y, and z
+        # # remaining rows are just x, y
+        # desNumCol = 5
+        # for i in range(self.numCornersMax):  
+        #     row = (i // desNumCol) + 2
+        #     col = i % desNumCol
+        #     self.corners[i] = SubFrameLongLat(self, self.sortAreaFrame, str(i+1), '-70', '45', row, col)
 
-        self.onFrameConfigure(None)                                                 #perform an initial stretch on render, otherwise the scroll region has a tiny border until the first resize
+        # # Now remove undesired funtion definitions
+        # for i in range(self.numAreas, self.numCornersMax):
+        #     self.corners[i].cornerFrame.grid_remove()
+        
+        for a in range(self.numAreasMax):
+            row = 3 + a
+            col = 0
+            self.areas[a] = SubFrameArea(self, self.sortAreaFrame, a, self.numCorners, self.numCornersMax, row, col)
 
-    def onFrameConfigure(self, event):                                              
-        '''Reset the scroll region to encompass the inner frame'''
-        self.canvas.configure(scrollregion=self.canvas.bbox("all"))                 #whenever the size of the frame changes, alter the scroll region respectively.
+        # now hide
+        for a in range(self.numAreas, self.numAreasMax):
+            self.areas[a].areaFrame.grid_remove()
 
-    def onCanvasConfigure(self, event):
-        '''Reset the canvas window to encompass inner frame when required'''
-        canvas_width = event.width
-        self.canvas.itemconfig(self.canvas_window, width = canvas_width)            #whenever the size of the canvas changes alter the window region respectively.
+        self.sortAreaFrame.grid(row=4, column=0, columnspan=10)
+        self.sortAreaFrame.grid_columnconfigure(0,weight=2)
+        self.sortAreaFrame.grid_columnconfigure(1,weight=1)
+        # --------------------------------------------------------------------------------------------------------
+        self.scrollFrame.grid(row=0, column=0, sticky='nsew')
 
-    def onMouseWheel(self, event):                                                  # cross platform scroll wheel event
-        if platform.system() == 'Windows':
-            self.canvas.yview_scroll(int(-1* (event.delta/120)), "units")
-        elif platform.system() == 'Darwin':
-            self.canvas.yview_scroll(int(-1 * event.delta), "units")
-        else:
-            if event.num == 4:
-                self.canvas.yview_scroll( -1, "units" )
-            elif event.num == 5:
-                self.canvas.yview_scroll( 1, "units" )
-    
-    def onEnter(self, event):                                                       # bind wheel events when the cursor enters the control
-        if platform.system() == 'Linux':
-            self.canvas.bind_all("<Button-4>", self.onMouseWheel)
-            self.canvas.bind_all("<Button-5>", self.onMouseWheel)
-        else:
-            self.canvas.bind_all("<MouseWheel>", self.onMouseWheel)
 
-    def onLeave(self, event):                                                       # unbind wheel events when the cursorl leaves the control
-        if platform.system() == 'Linux':
-            self.canvas.unbind_all("<Button-4>")
-            self.canvas.unbind_all("<Button-5>")
-        else:
-            self.canvas.unbind_all("<MouseWheel>")
+    def NumAreasUpdate(self):
+        """ Updates the number of areas functions. """
+
+        for i in range(self.numAreasMax):
+            self.areas[i].areaFrame.grid_remove()
+
+        n = int(self.numAreasEntry.get())
+        if n > self.numAreasMax:
+            messagebox.showerror("Number of Areas ", f'Max is {self.numAreasMax}\nSetting to max')
+            n = self.numAreasMax
+            self.numAreasEntry.delete(0,3)
+            self.numAreasEntry.insert(0, str(n))
+        self.numAreas = n
+        # Now update desired funtion definitions
+        for i in range(self.numAreasMax):
+            self.areas[i].areaFrame.grid_remove()
+        for i in range(self.numAreas):
+            self.areas[i].areaFrame.grid()
+
+

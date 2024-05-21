@@ -1,12 +1,10 @@
 import tkinter as tk
 from tkinter import ttk
 from tkinter import messagebox
-from tkinter import filedialog
 
 import subprocess
 import os
 import sys
-import csv
 import platform
 
 from Frames import *
@@ -48,6 +46,7 @@ class MainApplication(tk.Tk):
         self.frame2 = Frame2(self.notebook, self.tsInYear, self.paramVal, self.savedByStratum)
         self.frame3 = Frame3(self.notebook, self.mortConfigFile)
         self.frame4 = Frame4(self.notebook, self.frame1.domainName.myEntry.get)
+        self.frame5 = Frame5(self.notebook)
 
         # Update strings based on given configuration files
         # Frame 3 reads in Mortality config file
@@ -59,6 +58,7 @@ class MainApplication(tk.Tk):
         self.notebook.add(self.frame2, text='Outputs')
         self.notebook.add(self.frame3, text='Mortality')
         self.notebook.add(self.frame4, text='Interpolation')
+        self.notebook.add(self.frame5, text='SortByArea')
         self.notebook.pack()
 
         self.style.configure("Custom.TLabel", padding=6, relief="flat", background="#0F0")
@@ -259,9 +259,9 @@ class MainApplication(tk.Tk):
             f.write('# This is true for fitting the nonlinear parameters of function 3 hence \n')
             f.write('# the parameters of function 1 must be fit before the parameters of function 3.\n')
             for i in range(int(self.frame4.numFcns.get())):
-               f.write('Function, dim='+self.frame4.function[i].dimVal.get())
-               f.write(', shape='+self.frame4.function[i].shapeVal.get())
-               f.write(', precon='+self.frame4.function[i].myEntry.get()+'\n')
+               f.write('Function, dim='+self.frame4.functions[i].dimVal.get())
+               f.write(', shape='+self.frame4.functions[i].shapeVal.get())
+               f.write(', precon='+self.frame4.functions[i].myEntry.get()+'\n')
             f.close()
 
     def ReadConfigFile(self, fName):

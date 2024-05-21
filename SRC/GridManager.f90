@@ -416,6 +416,12 @@ integer function Load_Area_Coordinates()
         if (input_str(1:1) .ne. '#') then
 
             n=n+1
+            if (n > max_num_areas) then
+                write(*,'(A,A,A,I3,A,A,A,I3)') term_red, &
+                &  'TOO MANY ENTRIES IN SPECIAL ACCESS FILE: ', term_blk, n, term_red,' Max number is ', term_blk, max_num_areas
+                stop 1
+            endif
+            
             ! read longitude value
             edge_lon = 0
             sub_str = input_str

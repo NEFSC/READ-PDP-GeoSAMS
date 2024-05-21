@@ -220,7 +220,8 @@ if (save_data) then
     call OutputUK(num_points, num_spat_fcns, grid, nlsf, beta, eps, Ceps, Cbeta, fmax, SF, &
     &                    IsLogT, IsHiLimit, domain_name, alpha)
 else
-    call OutputEstimates(num_points, num_spat_fcns, grid, Ceps, IsLogT, IsHiLimit, fmax, SF, domain_name, nlsf, alpha, beta)
+    !DEPRECATE trend!call OutputEstimates(num_points, num_spat_fcns, grid, Ceps, IsLogT, IsHiLimit, fmax, SF, domain_name, alpha)
+    call OutputEstimates(num_points, grid, Ceps, IsLogT, IsHiLimit, fmax, SF, domain_name, alpha)
 endif
 
 write(*,*)'num_points, num_survey', num_points, num_obs_points
@@ -488,7 +489,8 @@ endsubroutine OutputUK
 !>
 !> That is moving from survey data locations to MA/GB grid locations
 !---------------------------------------------------------------------------------------------------
-subroutine OutputEstimates(num_points, num_spat_fcns, grid, Ceps, IsLogT, IsHiLimit, fmax, SF, domain_name, nlsf, alpha, beta)
+!DEPRECATE trend!subroutine OutputEstimates(num_points, num_spat_fcns, grid, Ceps, IsLogT, IsHiLimit, fmax, SF, domain_name, nlsf, alpha, beta)
+subroutine OutputEstimates(num_points, grid, Ceps, IsLogT, IsHiLimit, fmax, SF, domain_name, alpha)
 use globals
 use Grid_Manager_Mod
 use NLSF_Mod
@@ -497,23 +499,23 @@ use Krig_Mod
 
 implicit none
 
-integer, intent(in) :: num_points, num_spat_fcns
+integer, intent(in) :: num_points!DEPRECATE trend!, num_spat_fcns
 type(Grid_Data_Class), intent(inout) :: grid
 real(dp), intent(in) :: Ceps(num_points,*)
 logical, intent(in) ::IsLogT, IsHiLimit
 real(dp), intent(in) :: fmax, SF
 character(2), intent(in) :: domain_name
 
-type(NLSF_Class), intent(in)::nlsf(*)
+!DEPRECATE trend!type(NLSF_Class), intent(in)::nlsf(*)
 real(dp), intent(in) :: alpha
-real(dp), intent(in) :: beta(*)
+!DEPRECATE trend!real(dp), intent(in) :: beta(*)
 
 integer n
 real(dp) V(num_points)
-character(fname_len) fname, fout, ftrend
+character(fname_len) fname, fout  !DEPRECATE trend!, ftrend
 character(80) fmtstr
 
-real(dp) trend(num_points), Fg(num_points, num_spat_fcns)
+!DEPRECATE trend!real(dp) trend(num_points), Fg(num_points, num_spat_fcns)
 
 do n=1, num_points
     V(n)=Ceps(n, n)
@@ -528,12 +530,12 @@ fname = GridMgr_Get_Obs_Data_File_Name()
 ! n12345
 n = index(fname, '/') + 5
 fout = output_dir//'Lat_Lon_Grid_'//fname(n:)
-ftrend = output_dir//'Lat_Lon_Grid_Trend-'//fname(n:)
+!DEPRECATE trend!ftrend = output_dir//'Lat_Lon_Grid_Trend-'//fname(n:)
 fmtstr='(2(ES14.7 : ", ") (ES14.7 : ))'
 
 write(*,'(A,A,3F12.6)') term_blu, 'output fmax, SF, A=', fmax, SF, one_scallop_per_tow
 write(*,*) 'Writing ouput to: ', trim(fout)
-write(*,*) 'Writing ouput to: ', trim(ftrend), term_blk
+!DEPRECATE trend! write(*,*) 'Writing ouput to: ', trim(ftrend), term_blk
 
 ! Save results along with location information
 open(63,file=trim(fout))
@@ -542,16 +544,17 @@ do n=1, num_points
 enddo
 close(63)
 
-! Now let's save the trend information in the same manner
-Fg = Krig_Eval_Spatial_Function(grid, num_spat_fcns, num_points, nlsf, .false.)
-trend(1:num_points) = matmul( Fg(1:num_points, 1:num_spat_fcns), beta(1:num_spat_fcns)) 
+! DEPRECATE trend --------------------------------------------------------------------------
+! ! Now let's save the trend information in the same manner
+! Fg = Krig_Eval_Spatial_Function(grid, num_spat_fcns, num_points, nlsf, .false.)
+! trend(1:num_points) = matmul( Fg(1:num_points, 1:num_spat_fcns), beta(1:num_spat_fcns)) 
 
-if(IsLogT) trend(1:num_points) = SF*exp(trend(1:num_points))-one_scallop_per_tow
-!call Write_Vector_Scalar_Field(num_points, trend, 'SpatialTrend.txt')
-open(63,file=trim(ftrend))
-do n=1, num_points
-    write(63, fmtstr) grid%lat(n), grid%lon(n), trend(n)
-enddo
-close(63)
-
+! if(IsLogT) trend(1:num_points) = SF*exp(trend(1:num_points))-one_scallop_per_tow
+! !call Write_Vector_Scalar_Field(num_points, trend, 'SpatialTrend.txt')
+! open(63,file=trim(ftrend))
+! do n=1, num_points
+!     write(63, fmtstr) grid%lat(n), grid%lon(n), trend(n)
+! enddo
+! close(63)
+! ------------------------------------------------------------------------------------
 endsubroutine OutputEstimates
