@@ -15,6 +15,7 @@ class MainApplication(tk.Tk):
         super().__init__()
 
         # member variables
+        self.addFrameClicked = False
         self.tsInYear = 0
         self.paramVal = 0
         self.paramStr = []
@@ -44,40 +45,39 @@ class MainApplication(tk.Tk):
         #
         # NOTE: MA does not use stratum and forces it to false
         # 
+        self.frame1a = Frame1a(self.notebook)
         self.frame2 = Frame2(self.notebook, self.tsInYear, self.paramVal, self.savedByStratum)
         self.frame3 = Frame3(self.notebook, self.mortConfigFile)
         self.frame4 = Frame4(self.notebook, self.frame1.domainName.myEntry.get)
-        self.frame5 = Frame5(self.notebook, self.paramStr)
+        self.frame5 = None # Frame5(self.notebook, self.paramStr)
 
         # Update strings based on given configuration files
         # Frame 3 reads in Mortality config file
-        self.frame1.fishMortFile.myEntry.insert(0, self.frame3.fmorFileStr)
+        self.frame1a.fishMortFile.myEntry.insert(0, self.frame3.fmorFileStr)
         self.ReadGridMgrConfigFile()
-        self.frame1.specAccFile.myEntry.insert(0, self.specAccFileStr)
+        self.frame1a.specAccFile.myEntry.insert(0, self.specAccFileStr)
 
         self.notebook.add(self.frame1, text='Main')
+        self.notebook.add(self.frame1a, text='Special Access')
         self.notebook.add(self.frame2, text='Outputs')
         self.notebook.add(self.frame3, text='Mortality')
         self.notebook.add(self.frame4, text='Interpolation')
-        self.notebook.add(self.frame5, text='SortByArea')
+        #self.notebook.add(self.frame5, text='SortByArea')
         self.notebook.pack()
 
         self.style.configure("Custom.TLabel", padding=6, relief="flat", background="#0F0")
-        ttk.Button(self, text='START', style="Custom.TLabel", command=self.Run_Sim).pack()
+        ttk.Button(self, text='START Sim',    style="Custom.TLabel", command=self.Run_Sim).place(relx=.25, rely=1, anchor='s')
+        ttk.Button(self, text='SAVE Configs', style="Custom.TLabel", command=self.SaveConfigFiles).place(relx=.5, rely=1, anchor='s')
+        ttk.Button(self, text='LOAD Sort',    style="Custom.TLabel", command=self.AddSortFrame).place(relx=.75, rely=1, anchor='s')
 
     def Run_Sim(self):
         # No check for variables changed, therefore update all configuration files with current values in GUI
         # OR
         # Create new files based on names given by user, or same if not changed
+        self.SaveConfigFiles
         # 
         # typical command line:
         # > .\SRC\ScallopPopDensity.exe Scallop.cfg StartYear StopYear Domain
-        self.WriteScallopConfig()
-        self.WriteRecruitmentConfig()
-        self.WriteMortalityConfig()
-        self.WriteGridMgrConfig()
-        self.WriteUKConfig()
-        self.WriteSpatialFncsConfig()
 
         ex = self.root+'/SRC/ScallopPopDensity'
         simCfgFile = self.frame1.simCfgFile.myEntry.get()
@@ -103,6 +103,29 @@ class MainApplication(tk.Tk):
             messagebox.showinfo("UK", f'Completed Successfully\n{result.args}')
         else:
             messagebox.showerror("UK", f'Failed\n{result.args}\nReturn Code = {result.returncode}')
+
+
+    def SaveConfigFiles(self):
+        self.WriteScallopConfig()
+        self.WriteRecruitmentConfig()
+        self.WriteMortalityConfig()
+        self.WriteGridMgrConfig()
+        self.WriteUKConfig()
+        self.WriteSpatialFncsConfig()
+
+    def AddSortFrame(self):
+        if not self.addFrameClicked: 
+            self.addFrameClicked = True
+
+            # Get start and stop years
+            startYear = int(self.frame1.startYr.myEntry.get())
+            stopYear =  int(self.frame1.stopYr.myEntry.get())
+            # Read in configuration parameters
+            (self.paramStr, self.paramVal) = self.ReadSimConfigFile()
+            self.frame5 = Frame5(self.notebook, self.paramStr, startYear, stopYear)
+            self.notebook.add(self.frame5, text='SortByArea')
+            self.notebook.pack()
+
 
     def WriteScallopConfig(self):
         simCfgFile  = os.path.join(self.root,'Configuration/'+self.frame1.simCfgFile.myEntry.get())
@@ -192,7 +215,7 @@ class MainApplication(tk.Tk):
             f.write('MA Length_0 = '       + self.frame3.maLength0.myEntry.get() + '\n')
             f.write('GB Length_0 = '       + self.frame3.gbLength0.myEntry.get() + '\n')
             f.write('# special area fishing mortalities\n# to use default value set to NONE\n')
-            f.write('Fishing Mortality File = '+ self.frame1.fishMortFile.myEntry.get() + '\n')
+            f.write('Fishing Mortality File = '+ self.frame1a.fishMortFile.myEntry.get() + '\n')
             f.write('# Used to compute LPUE\n')
             f.write('LPUE Slope = '        + self.frame3.lpueSlope.myEntry.get() +   '\n')
             f.write('LPUE Slope2 = '       + self.frame3.lpueSlope2.myEntry.get() +  '\n')
@@ -211,7 +234,7 @@ class MainApplication(tk.Tk):
             f.write('# If not used then set to NONE or comment out line\n')
             f.write('# NOTE: Setting to NONE will also cause Mortality to not read in\n')
             f.write('# its special access fishing mortalities and default Fishing Mortalities are used.\n')
-            f.write('Special Access Config File = '+self.frame1.specAccFile.myEntry.get()+'\n')
+            f.write('Special Access Config File = '+self.frame1a.specAccFile.myEntry.get()+'\n')
             f.close()
 
     def WriteUKConfig(self):

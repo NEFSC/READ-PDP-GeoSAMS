@@ -7,11 +7,16 @@ from tkinter import filedialog
 class SubFrameElement(tk.Frame):
     def __init__(self, container, parent, label, value, elementRow, labelCol, entryCol, valCmd=None):
         super().__init__()
-        self.myEntry=ttk.Entry(parent, validatecommand=valCmd)
-        self.myEntry.grid(row=elementRow, column=entryCol, rowspan=1, sticky='n', pady=10)
+        if valCmd == None: self.myEntry=ttk.Entry(parent)
+        else: 
+            self.myEntry=ttk.Entry(parent, validatecommand=valCmd)
+            reg=self.myEntry.register(valCmd)
+            self.myEntry.configure(validate='key', validatecommand=(reg, '%P'))
+
         self.myEntry.insert(0, value)
+        self.myEntry.grid(row=elementRow, column=entryCol, sticky='n', pady=10)
         self.myLabel = ttk.Label(parent, text=label, wraplength=200, anchor='n', justify='right')
-        self.myLabel.grid(row=elementRow, column=labelCol, rowspan=1, sticky='n', pady=10)
+        self.myLabel.grid(row=elementRow, column=labelCol, sticky='n', pady=10)
 
 
 class SubFrameInterpFunction(tk.Frame):
@@ -52,7 +57,7 @@ class SubFrameLongLat(tk.Frame):
 
 
 class SubFrameArea(tk.Frame):
-    def __init__(self, container, parent, areaNum, numCorners, numCornersMax, elementRow, elementCol):
+    def __init__(self, container, parent, areaNum, numCorners, numCornersMax, yearStart, yearStop, elementRow, elementCol):
         super().__init__()
         options = ['1', '2']
         self.numCorners = numCorners
@@ -61,22 +66,26 @@ class SubFrameArea(tk.Frame):
 
         self.areaFrame = ttk.LabelFrame(parent, text='Area '+str(areaNum+1))
         # +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-        self.comboParameter = ttk.Combobox(self.areaFrame, values=options)
-        self.comboParameter.grid(row=elementRow, column=0, sticky='s')
-
+        numYears = yearStop - yearStart + 1
+        self.results = [None for _ in range(numYears)]
+        for i in range(numYears):
+            self.results[i] = SubFrameElement(self, self.areaFrame, str(yearStart+i), '0', i, 0, 1)
         # +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-        self.numCornersEntry = SubFrameElement(self, self.areaFrame, '# corners\n\nDesired Parameter ',  numCorners,   elementRow, 0, 1, valCmd=numbersCallback)
+        self.comboParameter = ttk.Combobox(self.areaFrame, values=options)
+        self.comboParameter.grid(row=1, column=2, sticky='n')
+        # +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+        self.numCornersEntry = SubFrameElement(self, self.areaFrame, '# corners\n\nDesired Parameter ',  numCorners,   0, 2, 3, valCmd=numbersCallback)
         # +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
         self.numCornersButton = ttk.Button(self.areaFrame, text='Update # Corners', command=self.NumCornersUpdate)
-        self.numCornersButton.grid(row=elementRow, column=1, sticky='s')
+        self.numCornersButton.grid(row=2, column=2, sticky='n')
         # +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
         for i in range(numCornersMax):
-            self.corners[i] = SubFrameLongLat(self, self.areaFrame, str(i+1), '-70', '45', elementRow, i+2)
+            self.corners[i] = SubFrameLongLat(self, self.areaFrame, str(i+1), '-70', '45', 2, i+3)
         # now hide unwanted corners
         for i in range(numCorners, numCornersMax):
             self.corners[i].cornerFrame.grid_remove()
         # +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-        self.areaFrame.grid(row=elementRow, column=elementCol, sticky='w')
+        self.areaFrame.grid(row=elementRow, column=elementCol, columnspan=10, sticky='ew')
 
     def NumCornersUpdate(self):
         for i in range(self.numCornersMax):
