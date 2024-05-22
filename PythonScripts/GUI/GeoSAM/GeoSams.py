@@ -17,6 +17,7 @@ class MainApplication(tk.Tk):
         # member variables
         self.tsInYear = 0
         self.paramVal = 0
+        self.paramStr = []
         self.savedByStratum = False
 
         # setup
@@ -39,14 +40,14 @@ class MainApplication(tk.Tk):
         self.gmConfigFile   = os.path.join(self.root,'Configuration/'+self.frame1.gmCfgFile.myEntry.get())
 
         # Read in configuration parameters
-        self.ReadSimConfigFile()
+        (self.paramStr, self.paramVal) = self.ReadSimConfigFile()
         #
         # NOTE: MA does not use stratum and forces it to false
         # 
         self.frame2 = Frame2(self.notebook, self.tsInYear, self.paramVal, self.savedByStratum)
         self.frame3 = Frame3(self.notebook, self.mortConfigFile)
         self.frame4 = Frame4(self.notebook, self.frame1.domainName.myEntry.get)
-        self.frame5 = Frame5(self.notebook)
+        self.frame5 = Frame5(self.notebook, self.paramStr)
 
         # Update strings based on given configuration files
         # Frame 3 reads in Mortality config file
@@ -258,7 +259,7 @@ class MainApplication(tk.Tk):
             f.write('# indicates that the third function is multiplied by the first function.\n')
             f.write('# This is true for fitting the nonlinear parameters of function 3 hence \n')
             f.write('# the parameters of function 1 must be fit before the parameters of function 3.\n')
-            for i in range(int(self.frame4.numFcns.get())):
+            for i in range(int(self.frame4.numFcnsEntry.get())):
                f.write('Function, dim='+self.frame4.functions[i].dimVal.get())
                f.write(', shape='+self.frame4.functions[i].shapeVal.get())
                f.write(', precon='+self.frame4.functions[i].myEntry.get()+'\n')
@@ -285,49 +286,49 @@ class MainApplication(tk.Tk):
     def ReadSimConfigFile(self):
         # need to read Configuration/Scallop.cfg to determine which parameters are output
         paramStr = []
+        paramVal = 0
         tags = self.ReadConfigFile(self.simConfigFile)
 
         for (tag, value) in tags:
             # Python 3.8 does not have match/case so using if elif
             if (tag == 'Select Abundance'):
                 paramStr.append('ABUN_')
-                self.paramVal += 8
+                paramVal += 8
             elif (tag == 'Select BMS'):
                 paramStr.append('BMMT_')
-                self.paramVal += 4
+                paramVal += 4
             elif (tag == 'Select Expl BMS'):
                 paramStr.append('EBMS_')
-                self.paramVal += 2
+                paramVal += 2
             elif (tag == 'Select Fishing Effort'):
                 paramStr.append('FEFF_')
-                self.paramVal += 64
+                paramVal += 64
             elif (tag == 'Select Fishing Mortality'):
                 paramStr.append('FMOR_')
-                self.paramVal += 128
+                paramVal += 128
             elif (tag == 'Select Landings by Number'):
                 paramStr.append('LAND_')
-                self.paramVal += 32
+                paramVal += 32
             elif (tag == 'Select Landings by Weight'):
                 paramStr.append('LNDW_')
-                self.paramVal += 16
+                paramVal += 16
             elif (tag == 'Select LPUE'):
                 paramStr.append('LPUE_')
-                self.paramVal += 1
+                paramVal += 1
             elif (tag == 'Select RECR'):
                 paramStr.append('RECR_')
-                self.paramVal += 256
+                paramVal += 256
             elif (tag == 'Time steps per Year'):
                 self.tsInYear = int(value)
             elif (tag == 'Save By Stratum'):
                 self.savedByStratum = value[0] == 'T'
-        return paramStr
+        return (paramStr, paramVal)
 
     def ReadGridMgrConfigFile(self):
         tags = self.ReadConfigFile(self.gmConfigFile)
 
         for (tag, value) in tags:
             if (tag == 'Special Access Config File'): self.specAccFileStr = value
-
 
 
 def main():

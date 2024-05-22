@@ -85,7 +85,6 @@ class Frame1(ttk.Frame):
                 for col in header:
                     self.tree.column(col)
                     self.tree.heading(col, text=col)
-                    #print(self.tree.column(col, 'width'))
 
                 for row in csv_reader:
                     self.tree.insert("", "end", values=row)
@@ -130,7 +129,6 @@ class Frame2(ttk.Frame):
         self.desiredOutput = self.abunVar.get()*8 + self.bmsVar.get()*4 + self.ebmsVar.get()*2 + self.lpueVar.get()
         self.desiredOutput+= self.fmortVar.get()*128 + self.feffVar.get()*64 + self.landVar.get()*32 + self.lndwVar.get()*16
         self.desiredOutput+= self.recrVar.get()*256
-        # print(f'0X{self.desiredOutput:X}')
 
 class Frame3(ttk.Frame, MainApplication):
     def __init__(self, container, fName):
@@ -223,7 +221,7 @@ class Frame4(ttk.Frame):
 
         self.okToRepaintFunctions = True
         self.nsfMax = 20
-        self.functions = [None for i in range(self.nsfMax)]
+        self.functions = [None for _ in range(self.nsfMax)]
         self.myget = get # pointer function to domain name entry
         self.domainName = self.myget()
         if self.domainName == 'MA':
@@ -330,15 +328,17 @@ class Frame4(ttk.Frame):
             self.functions[i].funcFrame.grid()
 
 class Frame5(ttk.Frame):
-    def __init__(self, container):
+    def __init__(self, container, paramStr):
         super().__init__()
 
-        self.numAreasMax = 25
+        self.numAreasMax = 50
         self.numCornersMax = 8
         self.numAreas = 1
         self.numCorners = 1
+        print(paramStr)
 
         self.areas = [None for i in range(self.numAreasMax)]
+        self.areaData = [Corner(self.numCornersMax) for _ in range(self.numAreasMax)]
 
         self.style = ttk.Style()
         self.style.configure('Frame5.TFrame', borderwidth=10, relief='solid', labelmargins=20)
@@ -360,23 +360,9 @@ class Frame5(ttk.Frame):
         self.numAreasEntry.configure(validate='key', validatecommand=(reg, '%P'))
         # +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
         # +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-        self.numAreasButton = ttk.Button(self.sortAreaFrame, text='Update', command=self.NumAreasUpdate)
+        self.numAreasButton = ttk.Button(self.sortAreaFrame, text='Update # Areas', command=self.NumAreasUpdate)
         self.numAreasButton.grid(row=2, column=0, sticky='w')
         # +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-        
-        # # The grid manager keep all widgets once defined. We are just going to decide which are shown
-        # # paint first row to show x, y, and z
-        # # remaining rows are just x, y
-        # desNumCol = 5
-        # for i in range(self.numCornersMax):  
-        #     row = (i // desNumCol) + 2
-        #     col = i % desNumCol
-        #     self.corners[i] = SubFrameLongLat(self, self.sortAreaFrame, str(i+1), '-70', '45', row, col)
-
-        # # Now remove undesired funtion definitions
-        # for i in range(self.numAreas, self.numCornersMax):
-        #     self.corners[i].cornerFrame.grid_remove()
-        
         for a in range(self.numAreasMax):
             row = 3 + a
             col = 0
@@ -392,6 +378,38 @@ class Frame5(ttk.Frame):
         # --------------------------------------------------------------------------------------------------------
         self.scrollFrame.grid(row=0, column=0, sticky='nsew')
 
+        # Populate from known file
+        # self.long=[-71.5, -69.7, -77.88]
+        # self.lat=[45.5, 41.44, 42.88]
+        # self.areas[0].comboParameter.configure(values=['ABUN_', 'EBMS_', 'LPUE_'])
+        # self.areas[0].comboParameter.current(0)
+        # self.areas[0].numCornersEntry.myEntry.delete(0,3)
+        # self.areas[0].numCornersEntry.myEntry.insert(0, '3')
+        # self.areas[0].NumCornersUpdate()
+        # for i in range(3):
+        #     self.areas[0].corners[i].longitude.myEntry.delete(0,5)
+        #     self.areas[0].corners[i].longitude.myEntry.insert(0, str(self.long[i]))
+        #     self.areas[0].corners[i].latitude.myEntry.delete(0,5)
+        #     self.areas[0].corners[i].latitude.myEntry.insert(0, str(self.lat[i]))
+
+        # TODO pass paramStr to ReadAreaCorners()
+        self.numAreas = self.ReadAreaCorners()
+        self.numAreasEntry.delete(0,3)
+        self.numAreasEntry.insert(0, str(self.numAreas))
+        self.NumAreasUpdate()
+        for i in range(self.numAreas):
+            # TODO figure out how to present data for larger strings, i.e. ALL output parameters
+            self.areas[i].comboParameter.configure(values=paramStr)
+            self.areas[i].comboParameter.current(0)
+
+            self.areas[i].numCornersEntry.myEntry.delete(0,3)
+            self.areas[i].numCornersEntry.myEntry.insert(0, str(self.areaData[i].numCorners))
+            self.areas[i].NumCornersUpdate()
+            for j in range(self.areaData[i].numCorners):
+                self.areas[i].corners[j].longitude.myEntry.delete(0,10)
+                self.areas[i].corners[j].longitude.myEntry.insert(0, str(self.areaData[i].long[j]))
+                self.areas[i].corners[j].latitude.myEntry.delete(0,10)
+                self.areas[i].corners[j].latitude.myEntry.insert(0, str(self.areaData[i].lat[j]))
 
     def NumAreasUpdate(self):
         """ Updates the number of areas functions. """
@@ -412,4 +430,84 @@ class Frame5(ttk.Frame):
         for i in range(self.numAreas):
             self.areas[i].areaFrame.grid()
 
+    def ReadAreaCorners(self):
+        areaIndex = 0
+        fName = 'DataSort/EBMS_DataSort.csv'
+        with open(fName, 'r') as f:
+            while True:
+                if (areaIndex > self.numAreasMax):
+                    messagebox.showerror("Reading Areas File", f'Max reached {self.numAreasMax}\nStopping at {areaIndex-1}')
+                    areaIndex -= 1
+                    break
+
+                inputStr = f.readline()
+                if not inputStr:
+                    f.close()
+                    break
+
+                # read longitude values
+                longIndex = 0
+                j = len(inputStr)-1
+                if(inputStr[j]=='\n'): j -= 1
+                # remove trailing commas
+                while (inputStr[j]) == ',':
+                    j -= 1
+                subStr = inputStr[0:j+1]
+
+                while j>0:
+                    j=subStr.find(',')
+                    if (j>0):
+                        self.areaData[areaIndex].long[longIndex] = float(subStr[0:j])
+                        subStr = subStr[j+1:len(subStr)]
+                        longIndex += 1
+                        if (longIndex > self.numCornersMax):
+                            messagebox.showerror("Reading Areas File", f'Max corner {self.numCornersMax}\nStopping at {longIndex-1}')
+                            longIndex -= 1
+                            break
+                #get last value 
+                if (longIndex < self.numCornersMax):
+                    self.areaData[areaIndex].long[longIndex] = float(subStr)
+                    longIndex += 1
+
+                # read latiitude values
+                inputStr = f.readline()
+                if not inputStr:
+                    f.close()
+                    break
+                latIndex = 0
+                j = len(inputStr)-1
+                if(inputStr[j]=='\n'): j -= 1
+                # remove trailing commas
+                while (inputStr[j]) == ',':
+                    j -= 1
+                subStr = inputStr[0:j+1]
+
+                while j>0:
+                    j=subStr.find(',')
+                    if (j>0):
+                        self.areaData[areaIndex].lat[latIndex] = float(subStr[0:j])
+                        subStr = subStr[j+1:len(subStr)]
+                        latIndex += 1
+                        if (latIndex > self.numCornersMax):
+                            messagebox.showerror("Reading Areas File", f'Max corner {self.numCornersMax}\nStopping at {latIndex-1}')
+                            latIndex -= 1
+                            break
+                #get last value 
+                if (latIndex < self.numCornersMax):
+                    self.areaData[areaIndex].lat[latIndex] = float(subStr)
+                    latIndex += 1
+
+                if (longIndex != latIndex):
+                    messagebox.showerror("Invalud Area Data File")
+                    latIndex = 0
+                self.areaData[areaIndex].numCorners = latIndex
+                areaIndex += 1
+            f.close()
+        return areaIndex
+
+class Corner:
+    def __init__(self, maxCorners):
+        self.long = [None for _ in range(maxCorners)]
+        self.lat = [None for _ in range(maxCorners)]
+        self.numCorners = 0
 

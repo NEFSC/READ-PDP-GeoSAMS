@@ -54,23 +54,28 @@ class SubFrameLongLat(tk.Frame):
 class SubFrameArea(tk.Frame):
     def __init__(self, container, parent, areaNum, numCorners, numCornersMax, elementRow, elementCol):
         super().__init__()
+        options = ['1', '2']
         self.numCorners = numCorners
         self.numCornersMax = numCornersMax
-        self.corners = [None for i in range(self.numCornersMax)]
+        self.corners = [None for _ in range(self.numCornersMax)]
 
         self.areaFrame = ttk.LabelFrame(parent, text='Area '+str(areaNum+1))
-        self.numCornersEntry = SubFrameElement(self, self.areaFrame, '# corners ',  numCorners,   elementRow, 0, 1, valCmd=numbersCallback)
         # +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-        self.numCornersButton = ttk.Button(self.areaFrame, text='Update', command=self.NumCornersUpdate)
-        self.numCornersButton.grid(row=elementRow, column=0, sticky='s')
-        # +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+        self.comboParameter = ttk.Combobox(self.areaFrame, values=options)
+        self.comboParameter.grid(row=elementRow, column=0, sticky='s')
 
+        # +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+        self.numCornersEntry = SubFrameElement(self, self.areaFrame, '# corners\n\nDesired Parameter ',  numCorners,   elementRow, 0, 1, valCmd=numbersCallback)
+        # +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+        self.numCornersButton = ttk.Button(self.areaFrame, text='Update # Corners', command=self.NumCornersUpdate)
+        self.numCornersButton.grid(row=elementRow, column=1, sticky='s')
+        # +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
         for i in range(numCornersMax):
             self.corners[i] = SubFrameLongLat(self, self.areaFrame, str(i+1), '-70', '45', elementRow, i+2)
         # now hide unwanted corners
         for i in range(numCorners, numCornersMax):
             self.corners[i].cornerFrame.grid_remove()
-
+        # +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
         self.areaFrame.grid(row=elementRow, column=elementCol, sticky='w')
 
     def NumCornersUpdate(self):
@@ -89,6 +94,9 @@ class SubFrameArea(tk.Frame):
             self.corners[i].cornerFrame.grid_remove()
         for i in range(self.numCorners):
             self.corners[i].cornerFrame.grid()
+        
+    def ChangeParameter(self):
+        pass
 
 
 # ************************
