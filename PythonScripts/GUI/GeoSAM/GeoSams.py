@@ -49,7 +49,11 @@ class MainApplication(tk.Tk):
         self.frame2 = Frame2(self.notebook, self.tsInYear, self.paramVal, self.savedByStratum)
         self.frame3 = Frame3(self.notebook, self.mortConfigFile)
         self.frame4 = Frame4(self.notebook, self.frame1.domainName.myEntry.get)
-        self.frame5 = None # Frame5(self.notebook, self.paramStr)
+        self.frame5 = Frame5(self.notebook, self.paramStr, 
+                            self.frame1.startYr.myEntry.get, 
+                            self.frame1.stopYr.myEntry.get,
+                            self.frame1.domainName.myEntry.get,
+                            self.frame2.GetCheckBoxValue)
 
         # Update strings based on given configuration files
         # Frame 3 reads in Mortality config file
@@ -62,13 +66,13 @@ class MainApplication(tk.Tk):
         self.notebook.add(self.frame2, text='Outputs')
         self.notebook.add(self.frame3, text='Mortality')
         self.notebook.add(self.frame4, text='Interpolation')
-        #self.notebook.add(self.frame5, text='SortByArea')
+        self.notebook.add(self.frame5, text='SortByArea')
         self.notebook.pack()
 
         self.style.configure("Custom.TLabel", padding=6, relief="flat", background="#0F0")
         ttk.Button(self, text='START Sim',    style="Custom.TLabel", command=self.Run_Sim).place(relx=.25, rely=1, anchor='s')
         ttk.Button(self, text='SAVE Configs', style="Custom.TLabel", command=self.SaveConfigFiles).place(relx=.5, rely=1, anchor='s')
-        ttk.Button(self, text='LOAD Sort',    style="Custom.TLabel", command=self.AddSortFrame).place(relx=.75, rely=1, anchor='s')
+
 
     def Run_Sim(self):
         # No check for variables changed, therefore update all configuration files with current values in GUI
@@ -112,23 +116,6 @@ class MainApplication(tk.Tk):
         self.WriteGridMgrConfig()
         self.WriteUKConfig()
         self.WriteSpatialFncsConfig()
-
-    def AddSortFrame(self):
-        if not self.addFrameClicked: 
-            self.addFrameClicked = True
-
-            # Get start and stop years
-            startYear = int(self.frame1.startYr.myEntry.get())
-            stopYear =  int(self.frame1.stopYr.myEntry.get())
-            # Read in configuration parameters
-            (self.paramStr, self.paramVal) = self.ReadSimConfigFile()
-            self.frame5 = Frame5(self.notebook, self.paramStr, 
-                                 self.frame1.startYr.myEntry.get, 
-                                 self.frame1.stopYr.myEntry.get,
-                                 self.frame1.domainName.myEntry.get)
-            self.notebook.add(self.frame5, text='SortByArea')
-            self.notebook.pack()
-
 
     def WriteScallopConfig(self):
         simCfgFile  = os.path.join(self.root,'Configuration/'+self.frame1.simCfgFile.myEntry.get())
@@ -355,7 +342,6 @@ class MainApplication(tk.Tk):
 
         for (tag, value) in tags:
             if (tag == 'Special Access Config File'): self.specAccFileStr = value
-
 
 def main():
     r = MainApplication('GeoSAMS')

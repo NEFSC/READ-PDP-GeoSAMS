@@ -108,6 +108,8 @@ class Frame2(ttk.Frame):
     def __init__(self, container, tsPerYear, selectedOutputs, useStratum):
         super().__init__()
 
+        self.desiredOutput = None
+
         self.style = ttk.Style()
         self.style.configure('Frame2.TFrame', borderwidth=10, relief='solid', labelmargins=20)
         self.style.configure('Frame2.TFrame.Label', font=('courier', 8, 'bold'))
@@ -366,9 +368,10 @@ class Frame4(ttk.Frame):
         for i in range(self.nsf):
             self.functions[i].funcFrame.grid()
 
-class Frame5(ttk.Frame):
-    def __init__(self, container, paramStr, getYearStart, getYearStop, getDomainName):
+class Frame5(ttk.Frame, MainApplication):
+    def __init__(self, container, paramStr, getYearStart, getYearStop, getDomainName, getCB):
         super().__init__()
+        
 
         self.root = os.environ['ROOT']
         self.numAreasMax = 50 # <=== Too large a value crashes python
@@ -377,11 +380,12 @@ class Frame5(ttk.Frame):
         self.numCorners = 1
         self.paramStr = paramStr
 
-        self.getDomainName = getDomainName
-        self.domainName = self.getDomainName()
         self.getYearStart = getYearStart
-        self.yearStart = int(self.getYearStart())
         self.getYearStop = getYearStop
+        self.getDomainName = getDomainName
+        self.getCheckBox = getCB
+        self.domainName = self.getDomainName()
+        self.yearStart = int(self.getYearStart())
         self.yearStop = int(self.getYearStop())
         self.numYears = self.yearStop - self.yearStart + 1
         self.areas = [None for _ in range(self.numAreasMax)]
@@ -448,6 +452,20 @@ class Frame5(ttk.Frame):
         self.bind("<Visibility>", self.on_visibility)
 
     def on_visibility(self, event):
+        self.paramStr = []
+        parmVal = self.getCheckBox()
+        if parmVal & 8: self.paramStr.append('ABUN_')
+        if parmVal & 4: self.paramStr.append('BMMT_')
+        if parmVal & 2: self.paramStr.append('EBMS_')
+        if parmVal & 64: self.paramStr.append('FEFF_')
+        if parmVal & 128: self.paramStr.append('FMOR_')
+        if parmVal & 32: self.paramStr.append('LAND_')
+        if parmVal & 16: self.paramStr.append('LNDW_')
+        if parmVal & 1: self.paramStr.append('LPUE_')
+        if parmVal & 256: self.paramStr.append('RECR_')
+        self.comboParameter.configure(values=self.paramStr)
+        self.comboParameter.current(0)
+
         self.yearStart = int(self.getYearStart())
         self.yearStop = int(self.getYearStop())
         self.domainName = self.getDomainName()
