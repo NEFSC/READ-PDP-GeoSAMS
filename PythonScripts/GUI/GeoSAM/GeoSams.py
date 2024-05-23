@@ -122,7 +122,10 @@ class MainApplication(tk.Tk):
             stopYear =  int(self.frame1.stopYr.myEntry.get())
             # Read in configuration parameters
             (self.paramStr, self.paramVal) = self.ReadSimConfigFile()
-            self.frame5 = Frame5(self.notebook, self.paramStr, startYear, stopYear)
+            self.frame5 = Frame5(self.notebook, self.paramStr, 
+                                 self.frame1.startYr.myEntry.get, 
+                                 self.frame1.stopYr.myEntry.get,
+                                 self.frame1.domainName.myEntry.get)
             self.notebook.add(self.frame5, text='SortByArea')
             self.notebook.pack()
 

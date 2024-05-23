@@ -8,6 +8,7 @@ from tkinter import messagebox
 from tkinter import filedialog
 
 from Widgets import *
+from PointInPolygon import *
 from GeoSams import MainApplication
 
 
@@ -366,16 +367,24 @@ class Frame4(ttk.Frame):
             self.functions[i].funcFrame.grid()
 
 class Frame5(ttk.Frame):
-    def __init__(self, container, paramStr, yearStart, yearStop):
+    def __init__(self, container, paramStr, getYearStart, getYearStop, getDomainName):
         super().__init__()
 
+        self.root = os.environ['ROOT']
         self.numAreasMax = 50 # <=== Too large a value crashes python
         self.numCornersMax = 8
         self.numAreas = 1
         self.numCorners = 1
         self.paramStr = paramStr
 
-        self.areas = [None for i in range(self.numAreasMax)]
+        self.getDomainName = getDomainName
+        self.domainName = self.getDomainName()
+        self.getYearStart = getYearStart
+        self.yearStart = int(self.getYearStart())
+        self.getYearStop = getYearStop
+        self.yearStop = int(self.getYearStop())
+        self.numYears = self.yearStop - self.yearStart + 1
+        self.areas = [None for _ in range(self.numAreasMax)]
         self.areaData = [Corner(self.numCornersMax) for _ in range(self.numAreasMax)]
 
         self.style = ttk.Style()
@@ -391,29 +400,38 @@ class Frame5(ttk.Frame):
         self.numAreasLabel = ttk.Label(self.sortAreaFrame, text='# of Areas')
         self.numAreasLabel.grid(row=0, column=0, sticky='w')
 
+        self.numAreasLabel = ttk.Label(self.sortAreaFrame, text='Output Parameters')
+        self.numAreasLabel.grid(row=0, column=0, sticky='ns')
+
+        self.comboParameter = ttk.Combobox(self.sortAreaFrame, values=paramStr)
+        self.comboParameter.grid(row=1, column=0, sticky='ns')
+
         self.numAreasEntry=ttk.Entry(self.sortAreaFrame,validatecommand=numbersCallback)
         self.numAreasEntry.insert(0, str(self.numAreas))
-        self.numAreasEntry.grid(row=1, column=0, sticky='w')
         reg=self.numAreasEntry.register(numbersCallback)
         self.numAreasEntry.configure(validate='key', validatecommand=(reg, '%P'))
+        self.numAreasEntry.grid(row=1, column=0, sticky='w')
+
+        self.numAreasButton = ttk.Button(self.sortAreaFrame, text='Update # Areas', command=self.NumAreasUpdate)
+        self.numAreasButton.grid(row=2, column=0, sticky='w')
         # +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
         self.style.configure("Frame5.TLabel", padding=6, relief='raised', background="#0F0")
         self.style.configure("Frame5a.TLabel", padding=6, relief='raised', background="#0FF")
         
         self.openDataSortButton = ttk.Button(self.sortAreaFrame, text='Load Data Sort File', style="Frame5.TLabel", command=self.GetDataSortFile)
-        self.openDataSortButton.grid(row=0, column=0, sticky='e')
+        self.openDataSortButton.grid(row=0, column=1, sticky='w')
 
         self.saveDataSortButton = ttk.Button(self.sortAreaFrame, text='Save Data Sort File', style="Frame5a.TLabel", command=self.SaveDataSortFile)
-        self.saveDataSortButton.grid(row=1, column=0, sticky='e')
-        # +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-        # +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-        self.numAreasButton = ttk.Button(self.sortAreaFrame, text='Update # Areas', command=self.NumAreasUpdate)
-        self.numAreasButton.grid(row=2, column=0, sticky='w')
+        self.saveDataSortButton.grid(row=1, column=1, sticky='w')
+
+        self.saveDataSortButton = ttk.Button(self.sortAreaFrame, text='Run Sort', command=self.RunSort)
+        self.saveDataSortButton.grid(row=2, column=1, sticky='w')
         # +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
         for a in range(self.numAreasMax):
             row = 3 + a
             col = 0
-            self.areas[a] = SubFrameArea(self, self.sortAreaFrame, a, self.numCorners, self.numCornersMax, yearStart, yearStop, row, col)
+            self.areas[a] = SubFrameArea(self, self.sortAreaFrame, a, self.numCorners, self.numCornersMax, 
+                                         self.yearStart, self.yearStop, row, col)
 
         # now hide
         for a in range(self.numAreas, self.numAreasMax):
@@ -427,17 +445,97 @@ class Frame5(ttk.Frame):
 
         self.UpdateWidgets()
 
+        self.bind("<Visibility>", self.on_visibility)
+
+    def on_visibility(self, event):
+        self.yearStart = int(self.getYearStart())
+        self.yearStop = int(self.getYearStop())
+        self.domainName = self.getDomainName()
+        self.numYears = self.yearStop - self.yearStart + 1
+        for i in range(self.numAreas):
+            for j in range(self.numYears):
+                self.areas[i].results[j].myLabel.config(text = str(self.yearStart+j))
+
+
+
+    def RunSort(self):
+        paramData = [0.0 for _ in range(self.numYears)] # data read in from file
+        rows = self.numAreas
+        cols = self.numYears
+        accumParamData = [[0.0 for _ in range(cols)] for _ in range(rows)] # accumulated data if in region
+        desiredParam = self.comboParameter.get()
+        # typical name: Lat_Lon_Grid_EBMS_MA_2015_2017
+        paramFName = os.path.join(self.root, 'Results', 'Lat_Lon_Grid_' + 
+             desiredParam + self.domainName + '_' + str(self.yearStart) + '_' + str(self.yearStop) + '.csv')
+        
+        #print(paramFName)
+
+        # The data structure is used with InPolygon algorithm to check 
+        # if grid parameter is within area of interest
+        # TODO can this be done as data is entered?
+        self.numAreas = int(self.numAreasEntry.get())
+        for i in range(self.numAreas):
+            self.areaData[i].numCorners = int(self.areas[i].numCornersEntry.myEntry.get())
+            for j in range(self.areaData[i].numCorners):
+                self.areaData[i].long[j] = float(self.areas[i].corners[j].longitude.myEntry.get())
+                self.areaData[i].lat[j] = float(self.areas[i].corners[j].latitude.myEntry.get())
+
+        of = open('temp.txt', 'w')
+
+        if os.path.isfile(paramFName):
+            grid = 1
+            with open(paramFName, 'r') as f:
+                while True:
+                    # Read in a line from paramFName
+                    line = f.readline()
+                    if not line:
+                        f.close()
+                        break
+
+                    # parse line
+                    dataArray = [s.strip() for s in line.split(',')]
+                    lat = float(dataArray[0])
+                    lon = float(dataArray[1])
+                    for i in range(self.numYears):
+                        # column 2 will be initial data and not of interest
+                        paramData[i] = float(dataArray[i+3]) 
+                    
+                    # Now check if the data point (lon, lat) is located in one of the desired areas
+                    # self.areas[i] with given coordinates self.areas[i].corners[j]
+                    #
+                    # if so, add to accumParamData[i][0:n] += paramData[0:n]
+
+                    # For each area
+                    for i in range(self.numAreas):
+                        # is (lon, lat) in this area
+                        nodes = self.areaData[i].numCorners
+                        if PointInPolygon(self.areaData[i].long, self.areaData[i].lat, lon, lat, nodes):
+                            # if so accumulate parameter data
+                            for j in range(self.numYears):
+                                accumParamData[i][j] += paramData[j]
+                            of.write('Grid #{} found in area{}\n'.format(grid,i+1))
+                    grid += 1
+
+        else:
+            messagebox.showerror("Reading Parameter File", f'Has Simulation been run?\nAre years correct?')
+
+        # display results
+        for i in range(self.numAreas):
+            for j in range(self.numYears):
+                self.areas[i].results[j].myEntry.insert(0, str(accumParamData[i][j]))
+
+        
+
     def UpdateWidgets(self, filePath=None):
         # Populate from known file
         currentParam = 0
+        self.comboParameter.configure(values=self.paramStr)
+        self.comboParameter.current(currentParam)
         self.numAreas = self.ReadAreaCorners(filePath)
         self.numAreasEntry.delete(0,3)
         self.numAreasEntry.insert(0, str(self.numAreas))
         self.NumAreasUpdate()
         for i in range(self.numAreas):
-            self.areas[i].comboParameter.configure(values=self.paramStr)
-            self.areas[i].comboParameter.current(currentParam)
-
             self.areas[i].numCornersEntry.myEntry.delete(0,3)
             self.areas[i].numCornersEntry.myEntry.insert(0, str(self.areaData[i].numCorners))
             self.areas[i].NumCornersUpdate()
@@ -451,19 +549,9 @@ class Frame5(ttk.Frame):
         file_path = filedialog.askopenfilename(title="Open CSV File", filetypes=[("CSV files", "*.csv")])
         if file_path:
             self.UpdateWidgets(file_path)
+    
 
     def SaveDataSortFile(self):
-        # First need to update data structure should any values have changed
-        # The data structure is used with InPolygon algorithm to check 
-        # if grid parameter is within area of interest
-        # TODO can this be done as data is entered?
-        self.numAreas = int(self.numAreasEntry.get())
-        for i in range(int(self.numAreasEntry.get())):
-            self.areaData[i].numCorners = int(self.areas[i].numCornersEntry.myEntry.get())
-            for j in range(self.areaData[i].numCorners):
-                self.areaData[i].long[j] = float(self.areas[i].corners[j].longitude.myEntry.get())
-                self.areaData[i].lat[j] = float(self.areas[i].corners[j].latitude.myEntry.get())
-        
         fName = filedialog.asksaveasfilename(title="Save CSV File", filetypes=[("CSV files", "*.csv")], defaultextension='csv')
         if fName:
             with open(fName, 'w') as f:

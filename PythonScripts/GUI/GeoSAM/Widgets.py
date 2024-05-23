@@ -59,7 +59,6 @@ class SubFrameLongLat(tk.Frame):
 class SubFrameArea(tk.Frame):
     def __init__(self, container, parent, areaNum, numCorners, numCornersMax, yearStart, yearStop, elementRow, elementCol):
         super().__init__()
-        options = ['1', '2']
         self.numCorners = numCorners
         self.numCornersMax = numCornersMax
         self.corners = [None for _ in range(self.numCornersMax)]
@@ -71,13 +70,10 @@ class SubFrameArea(tk.Frame):
         for i in range(numYears):
             self.results[i] = SubFrameElement(self, self.areaFrame, str(yearStart+i), '0', i, 0, 1)
         # +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-        self.comboParameter = ttk.Combobox(self.areaFrame, values=options)
-        self.comboParameter.grid(row=1, column=2, sticky='n')
-        # +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-        self.numCornersEntry = SubFrameElement(self, self.areaFrame, '# corners\n\nDesired Parameter ',  numCorners,   0, 2, 3, valCmd=numbersCallback)
+        self.numCornersEntry = SubFrameElement(self, self.areaFrame, '# corners',  numCorners,   0, 2, 3, valCmd=numbersCallback)
         # +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
         self.numCornersButton = ttk.Button(self.areaFrame, text='Update # Corners', command=self.NumCornersUpdate)
-        self.numCornersButton.grid(row=2, column=2, sticky='n')
+        self.numCornersButton.grid(row=1, column=3, sticky='n')
         # +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
         for i in range(numCornersMax):
             self.corners[i] = SubFrameLongLat(self, self.areaFrame, str(i+1), '-70', '45', 2, i+3)
