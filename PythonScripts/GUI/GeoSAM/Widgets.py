@@ -57,26 +57,26 @@ class SubFrameLongLat(tk.Frame):
 
 
 class SubFrameArea(tk.Frame):
-    def __init__(self, container, parent, areaNum, numCorners, numCornersMax, yearStart, yearStop, elementRow, elementCol):
+    def __init__(self, container, parent, areaNum, numCorners, numCornersMax, numYearsMax, yearStart, yearStop, elementRow, elementCol):
         super().__init__()
         self.numCorners = numCorners
         self.numCornersMax = numCornersMax
-        self.corners = [None for _ in range(self.numCornersMax)]
 
         self.areaFrame = ttk.LabelFrame(parent, text='Area '+str(areaNum+1))
         # +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
         numYears = yearStop - yearStart + 1
-        self.results = [None for _ in range(numYears)]
-        for i in range(numYears):
-            self.results[i] = SubFrameElement(self, self.areaFrame, str(yearStart+i), '0', i, 0, 1)
+        self.results = [SubFrameElement(self, self.areaFrame, str(yearStart+i), '0', i, 0, 1) for i in range(numYearsMax)]
+        # Now hide unused
+        for i in range(numYears, numYearsMax):
+            self.results[i].myEntry.grid_remove()
+            self.results[i].myLabel.grid_remove()
         # +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
         self.numCornersEntry = SubFrameElement(self, self.areaFrame, '# corners',  numCorners,   0, 2, 3, valCmd=numbersCallback)
         # +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
         self.numCornersButton = ttk.Button(self.areaFrame, text='Update # Corners', command=self.NumCornersUpdate)
         self.numCornersButton.grid(row=1, column=3, sticky='n')
         # +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-        for i in range(numCornersMax):
-            self.corners[i] = SubFrameLongLat(self, self.areaFrame, str(i+1), '-70', '45', 2, i+3)
+        self.corners = [SubFrameLongLat(self, self.areaFrame, str(i+1), '-70', '45', 2, i+3)  for i in range(numCornersMax)]
         # now hide unwanted corners
         for i in range(numCorners, numCornersMax):
             self.corners[i].cornerFrame.grid_remove()

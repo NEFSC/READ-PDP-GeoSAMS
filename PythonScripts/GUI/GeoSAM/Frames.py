@@ -11,8 +11,18 @@ from Widgets import *
 from PointInPolygon import *
 from GeoSams import MainApplication
 
+#--------------------------------------------------------------------------------------------------
+## @page page1 Main
+#  - Growth subframe that identifies
+#    - Start Year of the simulation
+#    - Stop Year of the simulation
+#    - Domain Name or region of interest, Mid-Atlantic, MA, or Georges Bannk, GB
+#  - Recuitment
+#    - Start Day, calendar day of the year when recruitment influence begins
+#    - Stop Day, calendar day of the year when reruitment influence ends
 
-class Frame1(ttk.Frame):
+#--------------------------------------------------------------------------------------------------
+class MainInput(ttk.Frame):
     """ This class displays information about GeoSAMS simulation. This same information is used
     on the command line when starting SRC\ScallopPopDensity"""
 
@@ -20,10 +30,10 @@ class Frame1(ttk.Frame):
         super().__init__()
 
         self.style = ttk.Style()
-        self.style.configure('Frame1.TFrame', borderwidth=10, relief='solid', labelmargins=20)
-        self.style.configure('Frame1.TFrame.Label', font=('courier', 8, 'bold'))
+        self.style.configure('MainInput.TFrame', borderwidth=10, relief='solid', labelmargins=20)
+        self.style.configure('MainInput.TFrame.Label', font=('courier', 8, 'bold'))
         #-------------------------------------------------------------------------------------------
-        growthFrame = ttk.LabelFrame(self, text='Growth', style='Frame1.TFrame')
+        growthFrame = ttk.LabelFrame(self, text='Growth', style='MainInput.TFrame')
         self.startYr    = SubFrameElement(self, growthFrame, 'Start Year', '2015',          0, 0, 1)
         self.stopYr     = SubFrameElement(self, growthFrame, 'Stop Year ', '2017',          1, 0, 1)
         self.domainName = SubFrameElement(self, growthFrame, 'Domain Name\nMA or GB', 'MA', 2, 0, 1, self.valDN)
@@ -33,13 +43,13 @@ class Frame1(ttk.Frame):
         growthFrame.grid(row=0, column=0)
         #-------------------------------------------------------------------------------------------
         #-------------------------------------------------------------------------------------------
-        recruitFrame = ttk.LabelFrame(self, text='Recruitment', style='Frame1.TFrame')
+        recruitFrame = ttk.LabelFrame(self, text='Recruitment', style='MainInput.TFrame')
         self.startDay    = SubFrameElement(self, recruitFrame, 'Start Day\nMmm DD', 'Jan 1',  0, 0, 1)
         self.stopDay     = SubFrameElement(self, recruitFrame, 'Stop Day\nMmm DD ', 'Apr 11', 1, 0, 1)
         recruitFrame.grid(row=0, column=1)
         #-------------------------------------------------------------------------------------------
         #-------------------------------------------------------------------------------------------
-        configFrame = ttk.LabelFrame(self, text='Configuration Files', style='Frame1.TFrame')
+        configFrame = ttk.LabelFrame(self, text='Configuration Files', style='MainInput.TFrame')
         self.mortCfgFile = SubFrameElement(self, configFrame, 'Mortality Config File', 'Mortality.cfg',  0, 0, 1)
         self.recrCfgFile = SubFrameElement(self, configFrame, 'Recruitment File',      'Recruitment.cfg',1, 0, 1)
         self.gmCfgFile   = SubFrameElement(self, configFrame, 'Grid Manager File',     'GridManager.cfg',2, 0, 1)
@@ -58,17 +68,17 @@ class Frame1(ttk.Frame):
         else: return False
 
 
-class Frame1a(ttk.Frame):
+class SpecialAccess(ttk.Frame):
     """ This class displays information about GeoSAMS simulation. This same information is used
     on the command line when starting SRC\ScallopPopDensity"""
 
     def __init__(self, container):
         super().__init__()
         self.style = ttk.Style()
-        self.style.configure('Frame1.TFrame', borderwidth=10, relief='solid', labelmargins=20)
-        self.style.configure('Frame1.TFrame.Label', font=('courier', 8, 'bold'))
+        self.style.configure('MainInput.TFrame', borderwidth=10, relief='solid', labelmargins=20)
+        self.style.configure('MainInput.TFrame.Label', font=('courier', 8, 'bold'))
         #-------------------------------------------------------------------------------------------
-        specialAccFrame = ttk.LabelFrame(self, text='Special Access', style='Frame1.TFrame')
+        specialAccFrame = ttk.LabelFrame(self, text='Special Access', style='MainInput.TFrame')
         self.specAccFile  = SubFrameElement(self, specialAccFrame, 'Special Access Points', '', 0, 0, 1)
         self.fishMortFile = SubFrameElement(self, specialAccFrame, 'Fishing Mort File', '', 1, 0, 1)
 
@@ -104,16 +114,15 @@ class Frame1a(ttk.Frame):
         except Exception as e:
             messagebox.showerror("GeoSAM Sim", f"Error: {str(e)}")
 
-class Frame2(ttk.Frame):
+class Outputs(ttk.Frame):
     def __init__(self, container, tsPerYear, selectedOutputs, useStratum):
         super().__init__()
 
         self.desiredOutput = None
 
         self.style = ttk.Style()
-        self.style.configure('Frame2.TFrame', borderwidth=10, relief='solid', labelmargins=20)
-        self.style.configure('Frame2.TFrame.Label', font=('courier', 8, 'bold'))
-
+        self.style.configure('Outputs.TFrame', borderwidth=10, relief='solid', labelmargins=20)
+        self.style.configure('Outputs.TFrame.Label', font=('courier', 8, 'bold'))
         outputsFrame = ttk.LabelFrame(self, text='Outputs', style='Frame1.TFrame')
         self.tsPerYear  = SubFrameElement(self, outputsFrame, 'tsPerYear', str(tsPerYear),  0, 0, 1)
         self.useStratum = SubFrameElement(self, outputsFrame, 'Use Stratum\n(Not Used by MA)', str(useStratum), 1, 0, 1)
@@ -144,17 +153,23 @@ class Frame2(ttk.Frame):
         self.desiredOutput+= self.fmortVar.get()*128 + self.feffVar.get()*64 + self.landVar.get()*32 + self.lndwVar.get()*16
         self.desiredOutput+= self.recrVar.get()*256
 
-class Frame3(ttk.Frame, MainApplication):
+    def GetCheckBoxValue(self):
+        self.desiredOutput = self.abunVar.get()*8 + self.bmsVar.get()*4 + self.ebmsVar.get()*2 + self.lpueVar.get()
+        self.desiredOutput+= self.fmortVar.get()*128 + self.feffVar.get()*64 + self.landVar.get()*32 + self.lndwVar.get()*16
+        self.desiredOutput+= self.recrVar.get()*256
+        return self.desiredOutput
+
+class Mortality(ttk.Frame, MainApplication):
     def __init__(self, container, fName):
         super().__init__()
 
         self.UpdateValues(fName)
 
         self.style = ttk.Style()
-        self.style.configure('Frame3.TFrame', borderwidth=10, relief='solid', labelmargins=20)
-        self.style.configure('Frame3.TFrame.Label', font=('courier', 8, 'bold'))
+        self.style.configure('Mortality.TFrame', borderwidth=10, relief='solid', labelmargins=20)
+        self.style.configure('Mortality.TFrame.Label', font=('courier', 8, 'bold'))
         
-        fishingFrame= ttk.LabelFrame(self, text='Mortality', style='Frame3.TFrame')
+        fishingFrame= ttk.LabelFrame(self, text='Mortality', style='Mortality.TFrame')
         self.fishMort   = SubFrameElement(self, fishingFrame, 'Fishing Mort', self.fmortStr,            0, 0, 1)
         self.fishSelect = SubFrameElement(self, fishingFrame, 'Fishing Effort\n(USD, BMS, or CAS)', self.fishStr, 1, 0, 1)
         self.alphaMort  = SubFrameElement(self, fishingFrame, 'Alpha Mortality',self.alphStr,           2, 0, 1)
@@ -164,7 +179,7 @@ class Frame3(ttk.Frame, MainApplication):
         self.gbLength0  = SubFrameElement(self, fishingFrame, 'GB Length_0',  self.gbLen0Str,        6, 0, 1)
         fishingFrame.grid(row=0, column=0, padx=10)
 
-        ilfFrame = ttk.LabelFrame(self, text='Selectivity', style='Frame3.TFrame')
+        ilfFrame = ttk.LabelFrame(self, text='Selectivity', style='Mortality.TFrame')
         self.maFSelectA       = SubFrameElement(self, ilfFrame, 'MA FSelectA', self.maFSelAStr,          0, 0, 1)
         self.maFSelectB       = SubFrameElement(self, ilfFrame, 'MA FSelectB', self.maFSelBStr,          1, 0, 1)
         self.gbClosedFSelectA = SubFrameElement(self, ilfFrame, 'GB Closed FSelectA', self.gbClFSelAStr, 2, 0, 1)
@@ -173,7 +188,7 @@ class Frame3(ttk.Frame, MainApplication):
         self.gbOpenFSelectB   = SubFrameElement(self, ilfFrame, 'GB Open FSelectB', self.gbOpFSelBStr,   5, 0, 1)
         ilfFrame.grid(row=0, column=1, padx=10)
         
-        lpueFrame   = ttk.LabelFrame(self, text='LPUE', style='Frame3.TFrame')
+        lpueFrame   = ttk.LabelFrame(self, text='LPUE', style='Mortality.TFrame')
         self.lpueSlope   = SubFrameElement(self, lpueFrame, 'LPUE Slope', self.lpueSlStr,       0, 0, 1)
         self.lpueSlope2  = SubFrameElement(self, lpueFrame, 'LPUE Slope2', self.lpueSl2Str,     1, 0, 1)
         self.lpueIntcept = SubFrameElement(self, lpueFrame, 'LPUE Intercept', self.lpueIntcStr, 2, 0, 1)
@@ -183,12 +198,12 @@ class Frame3(ttk.Frame, MainApplication):
         self.towSpeed    = SubFrameElement(self, lpueFrame, 'Towing Speed', self.towSpdStr,     6, 0, 1)
         lpueFrame.grid(row=0, column=2, padx=10)
 
-        incidentalFrame = ttk.LabelFrame(self, text='Incidental', style='Frame3.TFrame')
+        incidentalFrame = ttk.LabelFrame(self, text='Incidental', style='Mortality.TFrame')
         self.maIncident = SubFrameElement(self, incidentalFrame, 'MA Incidental', self.maIncidStr, 0, 0, 1)
         self.gbIncident = SubFrameElement(self, incidentalFrame, 'GB Incidental', self.gbIncidStr, 1, 0, 1)
         incidentalFrame.grid(row=1, column=0, padx=10)
 
-        discardFrame   = ttk.LabelFrame(self, text='Discard', style='Frame3.TFrame')
+        discardFrame   = ttk.LabelFrame(self, text='Discard', style='Mortality.TFrame')
         self.maCullSize = SubFrameElement(self, discardFrame, 'MA Cull Size', self.maCullStr, 0, 0, 1)
         self.maDiscard  = SubFrameElement(self, discardFrame, 'MA Discard',   self.maDiscStr, 1, 0, 1)
         self.gbCullSize = SubFrameElement(self, discardFrame, 'GB Cull Size', self.gbCullStr, 0, 2, 3)
@@ -256,7 +271,7 @@ class Frame3(ttk.Frame, MainApplication):
             elif tag == 'Dredge Width':       self.dredgeWdStr = value
             elif tag == 'Towing Speed':       self.towSpdStr = value
 
-class Frame4(ttk.Frame):
+class Interpolation(ttk.Frame):
     def __init__(self, container, get):
         super().__init__()
 
@@ -270,13 +285,13 @@ class Frame4(ttk.Frame):
         else:
             self.nsf = 5
         self.style = ttk.Style()
-        self.style.configure('Frame4.TFrame', borderwidth=10, relief='solid', labelmargins=20)
-        self.style.configure('Frame4.TFrame.Label', font=('courier', 8, 'bold'))
+        self.style.configure('Interpolation.TFrame', borderwidth=10, relief='solid', labelmargins=20)
+        self.style.configure('Interpolation.TFrame.Label', font=('courier', 8, 'bold'))
 
         self.scrollFrame = ScrollFrame(self) # add a new scrollable frame.
 
         # --------------------------------------------------------------------------------------------------------
-        self.funcFrame = ttk.LabelFrame(self.scrollFrame.viewPort, text='Spatial Functions', style='Frame4.TFrame', width=400, height=200)
+        self.funcFrame = ttk.LabelFrame(self.scrollFrame.viewPort, text='Spatial Functions', style='Interpolation.TFrame', width=400, height=200)
 
         # +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
         self.numFncsLabel = ttk.Label(self.funcFrame, text='# of Functions')
@@ -318,7 +333,7 @@ class Frame4(ttk.Frame):
         self.funcFrame.grid(row=0, column=0, sticky='n')
         # --------------------------------------------------------------------------------------------------------
         # --------------------------------------------------------------------------------------------------------
-        paramFrame= ttk.LabelFrame(self.scrollFrame.viewPort, text='Parameters', style='Frame4.TFrame')
+        paramFrame= ttk.LabelFrame(self.scrollFrame.viewPort, text='Parameters', style='Interpolation.TFrame')
         self.highLimit   = SubFrameElement(self, paramFrame, 'High Limit Factor ', '1.5',  0, 0, 1)
         self.form = SubFrameElement(self, paramFrame, 'variogram form', 'spherical', 1, 0, 1)
         self.useLogTrans  = SubFrameElement(self, paramFrame, 'Use Log Transfrom', 'True', 2, 0, 1)
@@ -368,37 +383,39 @@ class Frame4(ttk.Frame):
         for i in range(self.nsf):
             self.functions[i].funcFrame.grid()
 
-class Frame5(ttk.Frame, MainApplication):
-    def __init__(self, container, paramStr, getYearStart, getYearStop, getDomainName, getCB):
+class SortByArea(ttk.Frame):
+    def __init__(self, container, maxAreas, maxCorners, maxYears, paramStr, 
+                 getYearStart, getYearStop, setYearStop, delYearStop, getDomainName, getCB):
         super().__init__()
         
-
         self.root = os.environ['ROOT']
-        self.numAreasMax = 50 # <=== Too large a value crashes python
-        self.numCornersMax = 8
+        self.numAreasMax = maxAreas
+        self.numCornersMax = maxCorners
+        self.maxYears = maxYears
         self.numAreas = 1
         self.numCorners = 1
         self.paramStr = paramStr
 
         self.getYearStart = getYearStart
         self.getYearStop = getYearStop
+        self.setYearStop = setYearStop
+        self.delYearStop = delYearStop
         self.getDomainName = getDomainName
         self.getCheckBox = getCB
         self.domainName = self.getDomainName()
         self.yearStart = int(self.getYearStart())
         self.yearStop = int(self.getYearStop())
         self.numYears = self.yearStop - self.yearStart + 1
-        self.areas = [None for _ in range(self.numAreasMax)]
         self.areaData = [Corner(self.numCornersMax) for _ in range(self.numAreasMax)]
 
         self.style = ttk.Style()
-        self.style.configure('Frame5.TFrame', borderwidth=10, relief='solid', labelmargins=20)
-        self.style.configure('Frame5.TFrame.Label', font=('courier', 8, 'bold'))
+        self.style.configure('SortByArea.TFrame', borderwidth=10, relief='solid', labelmargins=20)
+        self.style.configure('SortByArea.TFrame.Label', font=('courier', 8, 'bold'))
 
         self.scrollFrame = ScrollFrame(self) # add a new scrollable frame.
         
         # --------------------------------------------------------------------------------------------------------
-        self.sortAreaFrame = ttk.LabelFrame(self.scrollFrame.viewPort, text='Sort By Area', style='Frame5.TFrame', width=400, height=200)
+        self.sortAreaFrame = ttk.LabelFrame(self.scrollFrame.viewPort, text='Sort By Area', style='SortByArea.TFrame', width=400, height=200)
 
         # +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
         self.numAreasLabel = ttk.Label(self.sortAreaFrame, text='# of Areas')
@@ -419,10 +436,10 @@ class Frame5(ttk.Frame, MainApplication):
         self.numAreasButton = ttk.Button(self.sortAreaFrame, text='Update # Areas', command=self.NumAreasUpdate)
         self.numAreasButton.grid(row=2, column=0, sticky='w')
         # +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-        self.style.configure("Frame5.TLabel", padding=6, relief='raised', background="#0F0")
+        self.style.configure("SortByArea.TLabel", padding=6, relief='raised', background="#0F0")
         self.style.configure("Frame5a.TLabel", padding=6, relief='raised', background="#0FF")
         
-        self.openDataSortButton = ttk.Button(self.sortAreaFrame, text='Load Data Sort File', style="Frame5.TLabel", command=self.GetDataSortFile)
+        self.openDataSortButton = ttk.Button(self.sortAreaFrame, text='Load Data Sort File', style="SortByArea.TLabel", command=self.GetDataSortFile)
         self.openDataSortButton.grid(row=0, column=1, sticky='w')
 
         self.saveDataSortButton = ttk.Button(self.sortAreaFrame, text='Save Data Sort File', style="Frame5a.TLabel", command=self.SaveDataSortFile)
@@ -431,11 +448,8 @@ class Frame5(ttk.Frame, MainApplication):
         self.saveDataSortButton = ttk.Button(self.sortAreaFrame, text='Run Sort', command=self.RunSort)
         self.saveDataSortButton.grid(row=2, column=1, sticky='w')
         # +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-        for a in range(self.numAreasMax):
-            row = 3 + a
-            col = 0
-            self.areas[a] = SubFrameArea(self, self.sortAreaFrame, a, self.numCorners, self.numCornersMax, 
-                                         self.yearStart, self.yearStop, row, col)
+        self.areas = [SubFrameArea(self, self.sortAreaFrame, a, self.numCorners, self.numCornersMax, self.maxYears, 
+                                         self.yearStart, self.yearStop, 3+a, 0) for a in range(self.numAreasMax)]
 
         # now hide
         for a in range(self.numAreas, self.numAreasMax):
@@ -454,14 +468,15 @@ class Frame5(ttk.Frame, MainApplication):
     def on_visibility(self, event):
         self.paramStr = []
         parmVal = self.getCheckBox()
-        if parmVal & 8: self.paramStr.append('ABUN_')
-        if parmVal & 4: self.paramStr.append('BMMT_')
+        # ordering of string may not matter. The user ultimately selects the desired vale
+        if parmVal & 1: self.paramStr.append('LPUE_')
         if parmVal & 2: self.paramStr.append('EBMS_')
+        if parmVal & 4: self.paramStr.append('BMMT_')
+        if parmVal & 8: self.paramStr.append('ABUN_')
+        if parmVal & 16: self.paramStr.append('LNDW_')
+        if parmVal & 32: self.paramStr.append('LAND_')
         if parmVal & 64: self.paramStr.append('FEFF_')
         if parmVal & 128: self.paramStr.append('FMOR_')
-        if parmVal & 32: self.paramStr.append('LAND_')
-        if parmVal & 16: self.paramStr.append('LNDW_')
-        if parmVal & 1: self.paramStr.append('LPUE_')
         if parmVal & 256: self.paramStr.append('RECR_')
         self.comboParameter.configure(values=self.paramStr)
         self.comboParameter.current(0)
@@ -470,11 +485,17 @@ class Frame5(ttk.Frame, MainApplication):
         self.yearStop = int(self.getYearStop())
         self.domainName = self.getDomainName()
         self.numYears = self.yearStop - self.yearStart + 1
+        if self.numYears > self.maxYears:
+            self.yearStop = self.maxYears + self.yearStart - 1
+            self.numYears = self.maxYears
+            messagebox.showerror("Too many years", f'Setting Stop Year to {self.yearStop}')
+            self.delYearStop(0,4)
+            self.setYearStop(0, self.yearStop)
         for i in range(self.numAreas):
             for j in range(self.numYears):
+                self.areas[i].results[j].myEntry.grid()
+                self.areas[i].results[j].myLabel.grid()
                 self.areas[i].results[j].myLabel.config(text = str(self.yearStart+j))
-
-
 
     def RunSort(self):
         paramData = [0.0 for _ in range(self.numYears)] # data read in from file
@@ -687,7 +708,7 @@ class Frame5(ttk.Frame, MainApplication):
 
 class Corner:
     def __init__(self, maxCorners):
-        self.long = [None for _ in range(maxCorners)]
-        self.lat = [None for _ in range(maxCorners)]
+        self.long = [0.0 for _ in range(maxCorners)]
+        self.lat = [0.0 for _ in range(maxCorners)]
         self.numCorners = 0
 

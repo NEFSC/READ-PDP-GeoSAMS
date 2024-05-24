@@ -1,8 +1,22 @@
+#-------------------------------------------------------------------------------------------
+##
+# @mainpage GeoSAMS GUI
+#
+# This is the main program for the GeoSAMS GUI
+# 
+# The GUI has 6 tabs
+# - Main: Data concerning simulation duration, configutation files in use, and recruitment period
+# - Special Access: Files used to define special areas for fishing management
+# - Outputs: Number of time st
+#
+
+#-------------------------------------------------------------------------------------------
 import tkinter as tk
 from tkinter import ttk
 from tkinter import messagebox
 
 import subprocess
+import sys
 import os
 import sys
 import platform
@@ -11,12 +25,15 @@ from Frames import *
 
 
 class MainApplication(tk.Tk):
-    def __init__(self, title):
+    def __init__(self, title, maxAreas, maxCorners, maxYears):
         super().__init__()
 
         # member variables
+        self.maxAreas = maxAreas
+        self.maxCorners = maxCorners
+        self.maxYears = maxYears
         self.addFrameClicked = False
-        self.tsInYear = 0
+        self.tsPerYear = 0
         self.paramVal = 0
         self.paramStr = []
         self.savedByStratum = False
@@ -30,10 +47,11 @@ class MainApplication(tk.Tk):
         # in command terminal on Windows, assuming user is in the install directory
         #   > set ROOT=%CD%
         self.root = os.environ['ROOT']
-
+        # self.simConfigFile  = os.path.join(self.root,'Configuration', 'Scallop.cfg')
+        # (self.paramStr, self.paramVal) = self.ReadSimConfigFile()
         self.notebook = ttk.Notebook(self)
 
-        self.frame1 = Frame1(self.notebook)
+        self.frame1 = MainInput(self.notebook)
         # NOTE: These will still be default values as the user would not as yet entered anything!!
         self.simConfigFile  = os.path.join(self.root,'Configuration/'+self.frame1.simCfgFile.myEntry.get())
         self.mortConfigFile = os.path.join(self.root,'Configuration/'+self.frame1.mortCfgFile.myEntry.get())
@@ -45,13 +63,19 @@ class MainApplication(tk.Tk):
         #
         # NOTE: MA does not use stratum and forces it to false
         # 
-        self.frame1a = Frame1a(self.notebook)
-        self.frame2 = Frame2(self.notebook, self.tsInYear, self.paramVal, self.savedByStratum)
-        self.frame3 = Frame3(self.notebook, self.mortConfigFile)
-        self.frame4 = Frame4(self.notebook, self.frame1.domainName.myEntry.get)
-        self.frame5 = Frame5(self.notebook, self.paramStr, 
+        self.frame1a = SpecialAccess(self.notebook)
+        self.frame2 = Outputs(self.notebook, self.tsPerYear, self.paramVal, self.savedByStratum)
+        self.frame3 = Mortality(self.notebook, self.mortConfigFile)
+        self.frame4 = Interpolation(self.notebook, self.frame1.domainName.myEntry.get)
+        self.frame5 = SortByArea(self.notebook, 
+                            self.maxAreas,
+                            self.maxCorners,
+                            self.maxYears,
+                            self.paramStr, 
                             self.frame1.startYr.myEntry.get, 
                             self.frame1.stopYr.myEntry.get,
+                            self.frame1.stopYr.myEntry.insert,
+                            self.frame1.stopYr.myEntry.delete,
                             self.frame1.domainName.myEntry.get,
                             self.frame2.GetCheckBoxValue)
 
@@ -70,8 +94,15 @@ class MainApplication(tk.Tk):
         self.notebook.pack()
 
         self.style.configure("Custom.TLabel", padding=6, relief="flat", background="#0F0")
+        ttk.Button(self, text='SHOW Args',    style="Custom.TLabel", command=self.ShowArgs).place(relx=0, rely=1, anchor='sw')
         ttk.Button(self, text='START Sim',    style="Custom.TLabel", command=self.Run_Sim).place(relx=.25, rely=1, anchor='s')
         ttk.Button(self, text='SAVE Configs', style="Custom.TLabel", command=self.SaveConfigFiles).place(relx=.5, rely=1, anchor='s')
+
+    def ShowArgs(self):
+        messagebox.showinfo("GeoSAMS",f'Using these parameters\n\
+        Max Areas of Interest: {self.maxAreas}\n\
+        Max Nodes in Areas: {self.maxCorners}\n\
+        Max Year Range: {self.maxYears}')
 
 
     def Run_Sim(self):
@@ -89,24 +120,36 @@ class MainApplication(tk.Tk):
         startYear = self.frame1.startYr.myEntry.get()
         stopYear = self.frame1.stopYr.myEntry.get()
         dn = self.frame1.domainName.myEntry.get()
-        cmd = [ex, simCfgFile, str(startYear), str(stopYear), dn]
+        # check range
+        self.yearStart = int(startYear)
+        self.yearStop = int(stopYear)
+        numYears = self.yearStop - self.yearStart + 1
+        if numYears > self.maxYears:
+            self.yearStop = self.maxYears + self.yearStart - 1
+            stopYear = str(self.yearStop)
+            numYears = self.maxYears
+            messagebox.showerror("Too many years", f'Setting Stop Year to {stopYear}')
+            self.frame1.stopYr.myEntry.delete(0,4)
+            self.frame1.stopYr.myEntry.insert(0, stopYear)
+
+        cmd = [ex, simCfgFile, startYear, stopYear, dn]
         print(cmd)
         result = subprocess.run(cmd)
         if result.returncode == 0:
             messagebox.showinfo("GeoSAM Sim", f'Completed Successfully\n{result.args}')
+            # python .\PythonScripts\ProcessResults.py GB 2015 2017 Scallop.cfg UK.cfg
+            ex = 'python'
+            script = self.root+'/PythonScripts/ProcessResults.py'
+            cmd = [ex, script, dn, startYear, stopYear, simCfgFile, ukCfgFile] 
+            print(cmd)
+            result = subprocess.run(cmd)
+            if result.returncode == 0:
+                messagebox.showinfo("UK", f'Completed Successfully\n{result.args}')
+            else:
+                messagebox.showerror("UK", f'Failed\n{result.args}\nReturn Code = {result.returncode}')
         else:
             messagebox.showerror("GeoSAM Sim", f'Failed\n{result.args}\nReturn Code = {result.returncode}')
 
-        # python .\PythonScripts\ProcessResults.py GB 2015 2017 Scallop.cfg UK.cfg
-        ex = 'python'
-        script = self.root+'/PythonScripts/ProcessResults.py'
-        cmd = [ex, script, dn, str(startYear), str(stopYear), simCfgFile, ukCfgFile] 
-        print(cmd)
-        result = subprocess.run(cmd)
-        if result.returncode == 0:
-            messagebox.showinfo("UK", f'Completed Successfully\n{result.args}')
-        else:
-            messagebox.showerror("UK", f'Failed\n{result.args}\nReturn Code = {result.returncode}')
 
 
     def SaveConfigFiles(self):
@@ -332,7 +375,7 @@ class MainApplication(tk.Tk):
                 paramStr.append('RECR_')
                 paramVal += 256
             elif (tag == 'Time steps per Year'):
-                self.tsInYear = int(value)
+                self.tsPerYear = int(value)
             elif (tag == 'Save By Stratum'):
                 self.savedByStratum = value[0] == 'T'
         return (paramStr, paramVal)
@@ -344,7 +387,27 @@ class MainApplication(tk.Tk):
             if (tag == 'Special Access Config File'): self.specAccFileStr = value
 
 def main():
-    r = MainApplication('GeoSAMS')
+    startUpWarn = False
+    nargs = len(sys.argv)
+    if (nargs != 4):
+        maxAreas = 10
+        maxCorners = 8
+        maxYears = 5
+        print ("Missing command line arguments. Expecting: ")
+        print ("  $ GeoSams.py MaxNumAreas MaxNumCorners MaxNumYears")
+        print ("  Proceeding with default values:")
+        print ("  Maximum areas of interest: {}".format(maxAreas))
+        print ("  Maximum nodes for area of interest: {}".format(maxCorners))
+        print ("  Maximum years range for simulation: {}".format(maxYears))
+        print()
+        startUpWarn = True
+    else:
+        maxAreas = int(sys.argv[1])
+        maxCorners = int(sys.argv[2])
+        maxYears = int(sys.argv[3])
+
+    title = 'GeoSAMS'
+    r = MainApplication(title, maxAreas, maxCorners, maxYears)
     r.mainloop()
 
 if __name__ == "__main__":

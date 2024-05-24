@@ -26,6 +26,7 @@ docs/latex/
 docs/*.docx
 docsUK
 docsSIM
+docsGUI
 VERIFY/
 InitiaCondition/*.txt
 *.code-workspace
