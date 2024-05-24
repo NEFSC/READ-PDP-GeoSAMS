@@ -113,24 +113,18 @@ class ScrollFrame(tk.Frame):
         super().__init__(parent) # create a frame (self)
 
         self.canvas = tk.Canvas(self, borderwidth=0, background="#ffffff")          #place canvas on self
-        #self.canvas.config(width=1050, height=600)
         self.viewPort = tk.Frame(self.canvas, background="#ffffff")                    #place a frame on the canvas, this frame will hold the child widgets 
         vsb = tk.Scrollbar(self, orient="vertical", command=self.canvas.yview) #place a scrollbar on self 
-        #self.canvas.configure(yscrollcommand=vsb.set)                          #attach scrollbar action to scroll of canvas
-
         hsb = tk.Scrollbar(self, orient="horizontal", command=self.canvas.xview) #place a scrollbar on self 
-        self.canvas.config(width=1050, height=600, xscrollcommand=hsb.set, yscrollcommand=vsb.set)  #attach scrollbar action to scroll of canvas
+        self.canvas.config(width=1050, height=525, xscrollcommand=hsb.set, yscrollcommand=vsb.set)  #attach scrollbar action to scroll of canvas
 
-        #vsb.pack(side="right", fill="y")                                       #pack scrollbar to right of self
         vsb.grid(row=0, rowspan=20, column=6, sticky='ns')
         hsb.grid(row=10, column=0, sticky='ew')
-        #self.canvas.pack(side="left", fill="both", expand=True)                     #pack canvas to left of self and expand to fil
         self.canvas.grid(row=0, column=0,sticky='nsew')
 
         self.canvas_window = self.canvas.create_window((4,4), window=self.viewPort, anchor="nw", tags="self.viewPort") #add view port frame to canvas
 
         self.viewPort.bind("<Configure>", self.onFrameConfigure)                    #bind an event whenever the size of the viewPort frame changes.
-            
         self.viewPort.bind('<Enter>', self.onEnter)                                 # bind wheel events when the cursor enters the control
         self.viewPort.bind('<Leave>', self.onLeave)                                 # unbind wheel events when the cursorl leaves the control
 

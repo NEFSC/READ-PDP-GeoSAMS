@@ -26,7 +26,7 @@ class MainInput(ttk.Frame):
     """ This class displays information about GeoSAMS simulation. This same information is used
     on the command line when starting SRC\ScallopPopDensity"""
 
-    def __init__(self, container):
+    def __init__(self, container, tsPerYear, selectedOutputs, useStratum):
         super().__init__()
 
         self.style = ttk.Style()
@@ -36,17 +36,19 @@ class MainInput(ttk.Frame):
         growthFrame = ttk.LabelFrame(self, text='Growth', style='MainInput.TFrame')
         self.startYr    = SubFrameElement(self, growthFrame, 'Start Year', '2015',          0, 0, 1)
         self.stopYr     = SubFrameElement(self, growthFrame, 'Stop Year ', '2017',          1, 0, 1)
-        self.domainName = SubFrameElement(self, growthFrame, 'Domain Name\nMA or GB', 'MA', 2, 0, 1, self.valDN)
+        self.tsPerYear  = SubFrameElement(self, growthFrame, 'tsPerYear', str(tsPerYear),   2, 0, 1)
+        self.domainName = SubFrameElement(self, growthFrame, 'Domain Name\nMA or GB', 'MA', 3, 0, 1, self.valDN)
         reg=self.domainName.myEntry.register(self.valDN)
         self.domainName.myEntry.configure(validate='key', validatecommand=(reg, '%P'))
 
+        self.useStratum = SubFrameElement(self, growthFrame, 'Use Stratum\n(Not Used by MA)', str(useStratum), 4, 0, 1)
         growthFrame.grid(row=0, column=0)
         #-------------------------------------------------------------------------------------------
         #-------------------------------------------------------------------------------------------
         recruitFrame = ttk.LabelFrame(self, text='Recruitment', style='MainInput.TFrame')
         self.startDay    = SubFrameElement(self, recruitFrame, 'Start Day\nMmm DD', 'Jan 1',  0, 0, 1)
         self.stopDay     = SubFrameElement(self, recruitFrame, 'Stop Day\nMmm DD ', 'Apr 11', 1, 0, 1)
-        recruitFrame.grid(row=0, column=1)
+        recruitFrame.grid(row=0, column=1, sticky='n')
         #-------------------------------------------------------------------------------------------
         #-------------------------------------------------------------------------------------------
         configFrame = ttk.LabelFrame(self, text='Configuration Files', style='MainInput.TFrame')
@@ -55,7 +57,29 @@ class MainInput(ttk.Frame):
         self.gmCfgFile   = SubFrameElement(self, configFrame, 'Grid Manager File',     'GridManager.cfg',2, 0, 1)
         self.simCfgFile  = SubFrameElement(self, configFrame, 'Sim Config File',       'Scallop.cfg',    3, 0, 1)
         self.ukCfgFile   = SubFrameElement(self, configFrame, 'UK Config File',        'UK.cfg',         4, 0, 1)
-        configFrame.grid(row=0, column=2)
+        configFrame.grid(row=0, column=2, sticky='n')
+        #-------------------------------------------------------------------------------------------
+        outputSelFrame = ttk.LabelFrame(self, text='OutputSelection', style='MainInput.TFrame')
+        # Check Buttons
+        self.lpueVar = tk.IntVar(value=(selectedOutputs   )&1)
+        self.ebmsVar = tk.IntVar(value=(selectedOutputs>>1)&1)
+        self.bmsVar  = tk.IntVar(value=(selectedOutputs>>2)&1)
+        self.abunVar = tk.IntVar(value=(selectedOutputs>>3)&1)
+        self.lndwVar = tk.IntVar(value=(selectedOutputs>>4)&1)
+        self.landVar = tk.IntVar(value=(selectedOutputs>>5)&1)
+        self.feffVar = tk.IntVar(value=(selectedOutputs>>6)&1)
+        self.fmortVar= tk.IntVar(value=(selectedOutputs>>7)&1)
+        self.recrVar = tk.IntVar(value=(selectedOutputs>>8)&1)
+        ttk.Checkbutton(outputSelFrame, text='Abundance',     variable=self.abunVar,  command=self.CBSelected).grid(row=0, column=0, sticky='sw', padx=10, pady=5)
+        ttk.Checkbutton(outputSelFrame, text='Biomass',       variable=self.bmsVar,   command=self.CBSelected).grid(row=0, column=1, sticky='sw', padx=10, pady=5)
+        ttk.Checkbutton(outputSelFrame, text='ExplBiomass',   variable=self.ebmsVar,  command=self.CBSelected).grid(row=0, column=2, sticky='sw', padx=10, pady=5)
+        ttk.Checkbutton(outputSelFrame, text='Fish Mort',    variable=self.fmortVar,  command=self.CBSelected).grid(row=1, column=0, sticky='sw', padx=10, pady=5)
+        ttk.Checkbutton(outputSelFrame, text='Fish Effort',  variable=self.feffVar ,  command=self.CBSelected).grid(row=1, column=1, sticky='sw', padx=10, pady=5)
+        ttk.Checkbutton(outputSelFrame, text='Lands By Num',  variable=self.landVar,  command=self.CBSelected).grid(row=1, column=2, sticky='sw', padx=10, pady=5)
+        ttk.Checkbutton(outputSelFrame, text='Lands By Wght', variable=self.lndwVar , command=self.CBSelected).grid(row=2, column=0, sticky='sw', padx=10, pady=5)
+        ttk.Checkbutton(outputSelFrame, text='LPUE',          variable=self.lpueVar,  command=self.CBSelected).grid(row=2, column=1, sticky='sw', padx=10, pady=5)
+        ttk.Checkbutton(outputSelFrame, text='Recruitment',   variable=self.recrVar , command=self.CBSelected).grid(row=2, column=2, sticky='sw', padx=10, pady=5)
+        outputSelFrame.grid(row=1, column=0)
         #-------------------------------------------------------------------------------------------
 
     def valDN(self, input):
@@ -66,6 +90,17 @@ class MainInput(ttk.Frame):
         elif input == 'GB': return True  
         elif input == "": return True
         else: return False
+
+    def CBSelected(self):
+        self.desiredOutput = self.abunVar.get()*8 + self.bmsVar.get()*4 + self.ebmsVar.get()*2 + self.lpueVar.get()
+        self.desiredOutput+= self.fmortVar.get()*128 + self.feffVar.get()*64 + self.landVar.get()*32 + self.lndwVar.get()*16
+        self.desiredOutput+= self.recrVar.get()*256
+
+    def GetCheckBoxValue(self):
+        self.desiredOutput = self.abunVar.get()*8 + self.bmsVar.get()*4 + self.ebmsVar.get()*2 + self.lpueVar.get()
+        self.desiredOutput+= self.fmortVar.get()*128 + self.feffVar.get()*64 + self.landVar.get()*32 + self.lndwVar.get()*16
+        self.desiredOutput+= self.recrVar.get()*256
+        return self.desiredOutput
 
 
 class SpecialAccess(ttk.Frame):
@@ -113,51 +148,6 @@ class SpecialAccess(ttk.Frame):
 
         except Exception as e:
             messagebox.showerror("GeoSAM Sim", f"Error: {str(e)}")
-
-class Outputs(ttk.Frame):
-    def __init__(self, container, tsPerYear, selectedOutputs, useStratum):
-        super().__init__()
-
-        self.desiredOutput = None
-
-        self.style = ttk.Style()
-        self.style.configure('Outputs.TFrame', borderwidth=10, relief='solid', labelmargins=20)
-        self.style.configure('Outputs.TFrame.Label', font=('courier', 8, 'bold'))
-        outputsFrame = ttk.LabelFrame(self, text='Outputs', style='Frame1.TFrame')
-        self.tsPerYear  = SubFrameElement(self, outputsFrame, 'tsPerYear', str(tsPerYear),  0, 0, 1)
-        self.useStratum = SubFrameElement(self, outputsFrame, 'Use Stratum\n(Not Used by MA)', str(useStratum), 1, 0, 1)
-        outputsFrame.grid(row=0, column=0, columnspan=3)
-
-        # Check Buttons
-        self.lpueVar = tk.IntVar(value=(selectedOutputs   )&1)
-        self.ebmsVar = tk.IntVar(value=(selectedOutputs>>1)&1)
-        self.bmsVar  = tk.IntVar(value=(selectedOutputs>>2)&1)
-        self.abunVar = tk.IntVar(value=(selectedOutputs>>3)&1)
-        self.lndwVar = tk.IntVar(value=(selectedOutputs>>4)&1)
-        self.landVar = tk.IntVar(value=(selectedOutputs>>5)&1)
-        self.feffVar = tk.IntVar(value=(selectedOutputs>>6)&1)
-        self.fmortVar= tk.IntVar(value=(selectedOutputs>>7)&1)
-        self.recrVar = tk.IntVar(value=(selectedOutputs>>8)&1)
-        ttk.Checkbutton(self, text='Abundance',     variable=self.abunVar, command=self.CBSelected).grid(row=2,  column=0, sticky='sw', padx=10, pady=5)
-        ttk.Checkbutton(self, text='Biomass',       variable=self.bmsVar,  command=self.CBSelected).grid(row=2,  column=1, sticky='sw', padx=10, pady=5)
-        ttk.Checkbutton(self, text='ExplBiomass',   variable=self.ebmsVar, command=self.CBSelected).grid(row=2,  column=2, sticky='sw', padx=10, pady=5)
-        ttk.Checkbutton(self, text='LPUE',          variable=self.lpueVar, command=self.CBSelected).grid(row=2,  column=3, sticky='sw', padx=10, pady=5)
-        ttk.Checkbutton(self, text='Fish Mort',    variable=self.fmortVar, command=self.CBSelected).grid(row=3,  column=0, sticky='sw', padx=10, pady=5)
-        ttk.Checkbutton(self, text='Fish Effort',  variable=self.feffVar , command=self.CBSelected).grid(row=3,  column=1, sticky='sw', padx=10, pady=5)
-        ttk.Checkbutton(self, text='Lands By Num',  variable=self.landVar , command=self.CBSelected).grid(row=3, column=2, sticky='sw', padx=10, pady=5)
-        ttk.Checkbutton(self, text='Lands By Wght', variable=self.lndwVar , command=self.CBSelected).grid(row=3, column=3, sticky='sw', padx=10, pady=5)
-        ttk.Checkbutton(self, text='Recruitment',   variable=self.recrVar , command=self.CBSelected).grid(row=4, column=2, sticky='sw', padx=10, pady=5)
-    
-    def CBSelected(self):
-        self.desiredOutput = self.abunVar.get()*8 + self.bmsVar.get()*4 + self.ebmsVar.get()*2 + self.lpueVar.get()
-        self.desiredOutput+= self.fmortVar.get()*128 + self.feffVar.get()*64 + self.landVar.get()*32 + self.lndwVar.get()*16
-        self.desiredOutput+= self.recrVar.get()*256
-
-    def GetCheckBoxValue(self):
-        self.desiredOutput = self.abunVar.get()*8 + self.bmsVar.get()*4 + self.ebmsVar.get()*2 + self.lpueVar.get()
-        self.desiredOutput+= self.fmortVar.get()*128 + self.feffVar.get()*64 + self.landVar.get()*32 + self.lndwVar.get()*16
-        self.desiredOutput+= self.recrVar.get()*256
-        return self.desiredOutput
 
 class Mortality(ttk.Frame, MainApplication):
     def __init__(self, container, fName):
@@ -563,7 +553,6 @@ class SortByArea(ttk.Frame):
             for j in range(self.numYears):
                 self.areas[i].results[j].myEntry.insert(0, str(accumParamData[i][j]))
 
-        
 
     def UpdateWidgets(self, filePath=None):
         # Populate from known file

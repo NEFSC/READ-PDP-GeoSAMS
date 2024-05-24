@@ -47,11 +47,11 @@ class MainApplication(tk.Tk):
         # in command terminal on Windows, assuming user is in the install directory
         #   > set ROOT=%CD%
         self.root = os.environ['ROOT']
-        # self.simConfigFile  = os.path.join(self.root,'Configuration', 'Scallop.cfg')
-        # (self.paramStr, self.paramVal) = self.ReadSimConfigFile()
+        self.simConfigFile  = os.path.join(self.root,'Configuration', 'Scallop.cfg')
+        (self.paramStr, self.paramVal) = self.ReadSimConfigFile()
         self.notebook = ttk.Notebook(self)
 
-        self.frame1 = MainInput(self.notebook)
+        self.frame1 = MainInput(self.notebook, self.tsPerYear, self.paramVal, self.savedByStratum)
         # NOTE: These will still be default values as the user would not as yet entered anything!!
         self.simConfigFile  = os.path.join(self.root,'Configuration/'+self.frame1.simCfgFile.myEntry.get())
         self.mortConfigFile = os.path.join(self.root,'Configuration/'+self.frame1.mortCfgFile.myEntry.get())
@@ -63,8 +63,7 @@ class MainApplication(tk.Tk):
         #
         # NOTE: MA does not use stratum and forces it to false
         # 
-        self.frame1a = SpecialAccess(self.notebook)
-        self.frame2 = Outputs(self.notebook, self.tsPerYear, self.paramVal, self.savedByStratum)
+        self.frame2 = SpecialAccess(self.notebook)
         self.frame3 = Mortality(self.notebook, self.mortConfigFile)
         self.frame4 = Interpolation(self.notebook, self.frame1.domainName.myEntry.get)
         self.frame5 = SortByArea(self.notebook, 
@@ -77,17 +76,17 @@ class MainApplication(tk.Tk):
                             self.frame1.stopYr.myEntry.insert,
                             self.frame1.stopYr.myEntry.delete,
                             self.frame1.domainName.myEntry.get,
-                            self.frame2.GetCheckBoxValue)
+                            self.frame1.GetCheckBoxValue)
 
         # Update strings based on given configuration files
         # Frame 3 reads in Mortality config file
-        self.frame1a.fishMortFile.myEntry.insert(0, self.frame3.fmorFileStr)
+        self.frame2.fishMortFile.myEntry.insert(0, self.frame3.fmorFileStr)
         self.ReadGridMgrConfigFile()
-        self.frame1a.specAccFile.myEntry.insert(0, self.specAccFileStr)
+        self.frame2.specAccFile.myEntry.insert(0, self.specAccFileStr)
 
         self.notebook.add(self.frame1, text='Main')
-        self.notebook.add(self.frame1a, text='Special Access')
-        self.notebook.add(self.frame2, text='Outputs')
+        self.notebook.add(self.frame2, text='Special Access')
+        #self.notebook.add(self.frame2, text='Outputs')
         self.notebook.add(self.frame3, text='Mortality')
         self.notebook.add(self.frame4, text='Interpolation')
         self.notebook.add(self.frame5, text='SortByArea')
@@ -164,8 +163,8 @@ class MainApplication(tk.Tk):
         simCfgFile  = os.path.join(self.root,'Configuration/'+self.frame1.simCfgFile.myEntry.get())
         with open(simCfgFile, 'w') as f:
             f.write('# input file for Scallops \n')
-            f.write('Time steps per Year = ' + str(self.frame2.tsPerYear.myEntry.get())+'\n')
-            f.write('Save By Stratum = '     + str(self.frame2.useStratum.myEntry.get())+'\n')
+            f.write('Time steps per Year = ' + str(self.frame1.tsPerYear.myEntry.get())+'\n')
+            f.write('Save By Stratum = '     + str(self.frame1.useStratum.myEntry.get())+'\n')
             f.write('# Configuration files are expected to be in the Configuration directory\n')
             f.write('Mortality Config File = '   + self.frame1.mortCfgFile.myEntry.get() + '\n')
             f.write('Recruit Config File = '     + self.frame1.recrCfgFile.myEntry.get() + '\n')
@@ -173,24 +172,24 @@ class MainApplication(tk.Tk):
             f.write('# The following items determine the parameters for output and plotting\n')
             f.write('# One need only select the desired parameters, the default is to not show them\n')
             f.write('# Anything after = is ignored.\n')
-            if(self.frame2.abunVar.get()):     f.write('Select Abundance          =# ABUN abundance scallops per square meter\n')
-            if(not self.frame2.abunVar.get()): f.write('# Select Abundance          =# ABUN abundance scallops per square meter\n')
-            if(self.frame2.bmsVar.get()):      f.write('Select BMS                =# BMMT biomass in metric tons\n')
-            if(not self.frame2.bmsVar.get()):  f.write('# Select BMS                =# BMMT biomass in metric tons\n')
-            if(self.frame2.ebmsVar.get()):     f.write('Select Expl BMS           =# EBMS exploitable biomass in metric tons\n')
-            if(not self.frame2.ebmsVar.get()): f.write('# Select Expl BMS           =# EBMS exploitable biomass in metric tons\n')
-            if(self.frame2.feffVar.get()):     f.write('Select Fishing Effort     =# FEFF Fishing Effort\n')
-            if(not self.frame2.feffVar.get()): f.write('# Select Fishing Effort     =# FEFF Fishing Effort\n')
-            if(self.frame2.fmortVar.get()):    f.write('Select Fishing Mortality  =# FMOR Fishing Mortality\n')
-            if(not self.frame2.fmortVar.get()):f.write('# Select Fishing Mortality  =# FMOR Fishing Mortality\n')
-            if(self.frame2.landVar.get()):     f.write('Select Landings by Number =# LAND Landings by number of scallops\n')
-            if(not self.frame2.landVar.get()): f.write('# Select Landings by Number =# LAND Landings by number of scallops\n')
-            if(self.frame2.lndwVar.get()):     f.write('Select Landings by Weight =# LNDW Landings by weight in grams\n')
-            if(not self.frame2.lndwVar.get()): f.write('# Select Landings by Weight =# LNDW Landings by weight in grams\n')
-            if(self.frame2.lpueVar.get()):     f.write('Select LPUE               =# LPUE Landing Per Unit Effor, (per day)\n')
-            if(not self.frame2.lpueVar.get()): f.write('# Select LPUE               =# LPUE Landing Per Unit Effor, (per day)\n')
-            if(self.frame2.recrVar.get()):     f.write('Select RECR               =# Recruitment\n')
-            if(not self.frame2.recrVar.get()): f.write('# Select RECR               =# Recruitment\n')
+            if(self.frame1.abunVar.get()):     f.write('Select Abundance          =# ABUN abundance scallops per square meter\n')
+            if(not self.frame1.abunVar.get()): f.write('# Select Abundance          =# ABUN abundance scallops per square meter\n')
+            if(self.frame1.bmsVar.get()):      f.write('Select BMS                =# BMMT biomass in metric tons\n')
+            if(not self.frame1.bmsVar.get()):  f.write('# Select BMS                =# BMMT biomass in metric tons\n')
+            if(self.frame1.ebmsVar.get()):     f.write('Select Expl BMS           =# EBMS exploitable biomass in metric tons\n')
+            if(not self.frame1.ebmsVar.get()): f.write('# Select Expl BMS           =# EBMS exploitable biomass in metric tons\n')
+            if(self.frame1.feffVar.get()):     f.write('Select Fishing Effort     =# FEFF Fishing Effort\n')
+            if(not self.frame1.feffVar.get()): f.write('# Select Fishing Effort     =# FEFF Fishing Effort\n')
+            if(self.frame1.fmortVar.get()):    f.write('Select Fishing Mortality  =# FMOR Fishing Mortality\n')
+            if(not self.frame1.fmortVar.get()):f.write('# Select Fishing Mortality  =# FMOR Fishing Mortality\n')
+            if(self.frame1.landVar.get()):     f.write('Select Landings by Number =# LAND Landings by number of scallops\n')
+            if(not self.frame1.landVar.get()): f.write('# Select Landings by Number =# LAND Landings by number of scallops\n')
+            if(self.frame1.lndwVar.get()):     f.write('Select Landings by Weight =# LNDW Landings by weight in grams\n')
+            if(not self.frame1.lndwVar.get()): f.write('# Select Landings by Weight =# LNDW Landings by weight in grams\n')
+            if(self.frame1.lpueVar.get()):     f.write('Select LPUE               =# LPUE Landing Per Unit Effor, (per day)\n')
+            if(not self.frame1.lpueVar.get()): f.write('# Select LPUE               =# LPUE Landing Per Unit Effor, (per day)\n')
+            if(self.frame1.recrVar.get()):     f.write('Select RECR               =# Recruitment\n')
+            if(not self.frame1.recrVar.get()): f.write('# Select RECR               =# Recruitment\n')
             f.close()
 
     def ConvertMonthDayToDay(self,month,day):
@@ -248,7 +247,7 @@ class MainApplication(tk.Tk):
             f.write('MA Length_0 = '       + self.frame3.maLength0.myEntry.get() + '\n')
             f.write('GB Length_0 = '       + self.frame3.gbLength0.myEntry.get() + '\n')
             f.write('# special area fishing mortalities\n# to use default value set to NONE\n')
-            f.write('Fishing Mortality File = '+ self.frame1a.fishMortFile.myEntry.get() + '\n')
+            f.write('Fishing Mortality File = '+ self.frame2.fishMortFile.myEntry.get() + '\n')
             f.write('# Used to compute LPUE\n')
             f.write('LPUE Slope = '        + self.frame3.lpueSlope.myEntry.get() +   '\n')
             f.write('LPUE Slope2 = '       + self.frame3.lpueSlope2.myEntry.get() +  '\n')
@@ -267,7 +266,7 @@ class MainApplication(tk.Tk):
             f.write('# If not used then set to NONE or comment out line\n')
             f.write('# NOTE: Setting to NONE will also cause Mortality to not read in\n')
             f.write('# its special access fishing mortalities and default Fishing Mortalities are used.\n')
-            f.write('Special Access Config File = '+self.frame1a.specAccFile.myEntry.get()+'\n')
+            f.write('Special Access Config File = '+self.frame2.specAccFile.myEntry.get()+'\n')
             f.close()
 
     def WriteUKConfig(self):
@@ -387,7 +386,6 @@ class MainApplication(tk.Tk):
             if (tag == 'Special Access Config File'): self.specAccFileStr = value
 
 def main():
-    startUpWarn = False
     nargs = len(sys.argv)
     if (nargs != 4):
         maxAreas = 10
@@ -400,7 +398,6 @@ def main():
         print ("  Maximum nodes for area of interest: {}".format(maxCorners))
         print ("  Maximum years range for simulation: {}".format(maxYears))
         print()
-        startUpWarn = True
     else:
         maxAreas = int(sys.argv[1])
         maxCorners = int(sys.argv[2])
