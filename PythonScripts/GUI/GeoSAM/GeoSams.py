@@ -4,11 +4,12 @@
 #
 # This is the main program for the GeoSAMS GUI
 # 
-# The GUI has 6 tabs
-# - Main: Data concerning simulation duration, configutation files in use, and recruitment period
-# - Special Access: Files used to define special areas for fishing management
-# - Outputs: Number of time st
-#
+# The GUI has 5 tabs
+# -# Main: Data concerning simulation duration, configutation files in use, and recruitment period
+# -# Special Access: Files used to define special areas for fishing management
+# -# Mortality: Parameters that are used to define Fishing Mortality
+# -# Interpolation: Parameters that are used to interpolate results from survey grid to regional grid
+# -# Sort By Area: Parameters that are used to sort output data and associate with areas of interest
 
 #-------------------------------------------------------------------------------------------
 import tkinter as tk
@@ -21,8 +22,11 @@ import os
 import sys
 import platform
 
-from Frames import *
-
+from MainInputFrame import *
+from MortalityFrame import *
+from SpecialAccessFrame import *
+from InterpolationFrame import *
+from SortByAreaFrame import *
 
 class MainApplication(tk.Tk):
     def __init__(self, title, maxAreas, maxCorners, maxYears):
@@ -76,7 +80,7 @@ class MainApplication(tk.Tk):
                             self.frame1.stopYr.myEntry.insert,
                             self.frame1.stopYr.myEntry.delete,
                             self.frame1.domainName.myEntry.get,
-                            self.frame1.GetCheckBoxValue)
+                            self.frame1.GetSelectedOutputs)
 
         # Update strings based on given configuration files
         # Frame 3 reads in Mortality config file
@@ -111,9 +115,9 @@ class MainApplication(tk.Tk):
         self.SaveConfigFiles
         # 
         # typical command line:
-        # > .\SRC\ScallopPopDensity.exe Scallop.cfg StartYear StopYear Domain
+        # > ./SRC/ScallopPopDensity.exe Scallop.cfg StartYear StopYear Domain
 
-        ex = self.root+'/SRC/ScallopPopDensity'
+        ex = os.path.join(self.root, 'SRC', 'ScallopPopDensity')
         simCfgFile = self.frame1.simCfgFile.myEntry.get()
         ukCfgFile = self.frame1.ukCfgFile.myEntry.get()
         startYear = self.frame1.startYr.myEntry.get()
@@ -138,7 +142,7 @@ class MainApplication(tk.Tk):
             messagebox.showinfo("GeoSAM Sim", f'Completed Successfully\n{result.args}')
             # python .\PythonScripts\ProcessResults.py GB 2015 2017 Scallop.cfg UK.cfg
             ex = 'python'
-            script = self.root+'/PythonScripts/ProcessResults.py'
+            script = os.path.join(self.root, 'PythonScripts', 'ProcessResults.py')
             cmd = [ex, script, dn, startYear, stopYear, simCfgFile, ukCfgFile] 
             print(cmd)
             result = subprocess.run(cmd)
@@ -225,7 +229,7 @@ class MainApplication(tk.Tk):
             f.write('# configuration file for mortality\n')
             f.write('Fishing Mortality = ' + self.frame3.fishMort.myEntry.get()   + '\n')
             f.write('# Fishing can be USD, BMS, or, CAS\n')
-            f.write('Fishing = '          + self.frame3.fishSelect.myEntry.get() + '\n')
+            f.write('Fishing = BMS')#          + self.frame3.fishSelect.myEntry.get() + '\n')
             f.write('# Fishing Mortality proportional to LPUE^alpha\n')
             f.write('Alpha Mortality = '   + self.frame3.alphaMort.myEntry.get()  + '\n')
             f.write('MA Cull size = '     + self.frame3.maCullSize.myEntry.get() + '\n')

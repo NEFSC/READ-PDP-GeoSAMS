@@ -562,7 +562,14 @@ logical function Point_In_Polygon_Vector(polyX, polyY, x, y, nodes)
     do i = 1, nodes
         ind1 = polyY(i) < y .AND. polyY(j) >= y
         ind2 = polyY(j) < y .AND. polyY(i) >= y
-        ind3 = polyX(i) + (y - polyY(i)) / (polyY(j) - polyY(i)) * (polyX(j) - polyX(i)) < x
+        ! as the diff approaches 0, 1/diff approaches infinity which is > x
+        ! if diff is negative then ind3 is False
+        ! is diff is positive then ind3 is True
+        if ((polyY(j) - polyY(i)) == 0.0) then
+            ind3 = .FALSE.
+        else
+            ind3 = polyX(i) + (y - polyY(i)) / (polyY(j) - polyY(i)) * (polyX(j) - polyX(i)) < x
+        endif
         if ((ind1 .or. ind2) .and. (ind3)) inPolygon = .NOT. inPolygon
         j = i
     enddo
