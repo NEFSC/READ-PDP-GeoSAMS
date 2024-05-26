@@ -1,5 +1,28 @@
 #======================================================================================================
 ## @page page5 Sort By Area Frame
+# Assists the user in defining areas of interest to assess accumulated parameters located
+# in these areas of interest.
+#
+# @section p6p1 Number of Areas
+#
+# @section p6p2 Output Parameters
+#
+# @section p6p3 Load and Save Data Sort Files
+#
+# @section p6p4 Run Sort
+#
+# @section p6p5 Area SubFrames
+#
+# @subsection p6p5p1 Years Simulated
+#
+# @subsection p6p5p2 Accumulated Values for Given Output Parameter
+#
+# @subsection p6p5p3 Corners
+#
+# @subsubsection p6p5p3p1 Number of Corners
+#
+# @subsubsection p6p5p3p2 Corner Identifier by Longitude and Latitude
+# 
 #======================================================================================================
 import os
 
@@ -10,12 +33,19 @@ from tkinter import filedialog
 from Widgets import *
 from PointInPolygon import *
 
+#===============================================================================================================
+##
+# This class is used to assist the user in defining areas of interest to assess accumulated parameters located
+# in these areas of interest
+#===============================================================================================================
 class SortByArea(ttk.Frame):
-    def __init__(self, container, maxAreas, maxCorners, maxYears, paramStr, 
-                 getYearStart, getYearStop, setYearStop, delYearStop, getDomainName, getCB):
+    def __init__(self, container, friend, maxAreas, maxCorners, maxYears, paramStr):
         super().__init__()
         
         self.root = os.environ['ROOT']
+        self.startDir = os.path.join(self.root, 'DataSort')
+        self.friend = friend
+
         self.numAreasMax = maxAreas
         self.numCornersMax = maxCorners
         self.maxYears = maxYears
@@ -23,15 +53,8 @@ class SortByArea(ttk.Frame):
         self.numCorners = 1
         self.paramStr = paramStr
 
-        self.getYearStart = getYearStart
-        self.getYearStop = getYearStop
-        self.setYearStop = setYearStop
-        self.delYearStop = delYearStop
-        self.getDomainName = getDomainName
-        self.getCheckBox = getCB
-        self.domainName = self.getDomainName()
-        self.yearStart = int(self.getYearStart())
-        self.yearStop = int(self.getYearStop())
+        self.yearStart = int(self.friend.startYr.myEntry.get())
+        self.yearStop = int(self.friend.stopYr.myEntry.get())
         self.numYears = self.yearStop - self.yearStart + 1
         self.areaData = [Corner(self.numCornersMax) for _ in range(self.numAreasMax)]
 
@@ -94,7 +117,7 @@ class SortByArea(ttk.Frame):
 
     def on_visibility(self, event):
         self.paramStr = []
-        parmVal = self.getCheckBox()
+        parmVal = self.friend.GetSelectedOutputs()
         # ordering of string may not matter. The user ultimately selects the desired vale
         if parmVal & 1: self.paramStr.append('LPUE_')
         if parmVal & 2: self.paramStr.append('EBMS_')
@@ -108,16 +131,16 @@ class SortByArea(ttk.Frame):
         self.comboParameter.configure(values=self.paramStr)
         self.comboParameter.current(0)
 
-        self.yearStart = int(self.getYearStart())
-        self.yearStop = int(self.getYearStop())
-        self.domainName = self.getDomainName()
+        self.yearStart = int(self.friend.startYr.myEntry.get())
+        self.yearStop = int(self.friend.stopYr.myEntry.get())
+        self.domainName = self.friend.domainName.myEntry.get()
         self.numYears = self.yearStop - self.yearStart + 1
         if self.numYears > self.maxYears:
             self.yearStop = self.maxYears + self.yearStart - 1
             self.numYears = self.maxYears
             messagebox.showerror("Too many years", f'Setting Stop Year to {self.yearStop}')
-            self.delYearStop(0,4)
-            self.setYearStop(0, self.yearStop)
+            self.friend.stopYr.myEntry.delete(0,4)
+            self.friend.stopYr.myEntry.insert(0, self.yearStop)
         for i in range(self.numAreas):
             for j in range(self.numYears):
                 self.areas[i].results[j].myEntry.grid()
@@ -211,13 +234,12 @@ class SortByArea(ttk.Frame):
                 self.areas[i].corners[j].latitude.myEntry.insert(0, str(self.areaData[i].lat[j]))
 
     def GetDataSortFile(self):
-        file_path = filedialog.askopenfilename(title="Open CSV File", filetypes=[("CSV files", "*.csv")])
+        file_path = filedialog.askopenfilename(title="Open CSV File", filetypes=[("CSV files", "*.csv")], defaultextension='csv', initialdir=self.startDir)
         if file_path:
             self.UpdateWidgets(file_path)
     
-
     def SaveDataSortFile(self):
-        fName = filedialog.asksaveasfilename(title="Save CSV File", filetypes=[("CSV files", "*.csv")], defaultextension='csv')
+        fName = filedialog.asksaveasfilename(title="Save CSV File", filetypes=[("CSV files", "*.csv")], defaultextension='csv', initialdir=self.startDir)
         if fName:
             with open(fName, 'w') as f:
                 for i in range(int(self.numAreasEntry.get())):

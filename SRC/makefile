@@ -27,7 +27,7 @@ SRC_DIRS = .
 # Need to compile MOD files first and in particular order
 SRCS = Globals.f90 GridManager.f90 ScallopMortality.f90 ScallopRecruit.f90 ScallopGrowth.f90
 #SRCS += $(shell find $(SRC_DIRS) -name '*.f90' | grep -v 'Globals\|DataPoint\|ScallopGrowth\|ScallopRecruit')
-SRCS += ScallopPopDensity.f90 IORoutines.f90 asa239.f90
+SRCS += ScallopPopDensity.f90 IORoutines.f90 
 
 #LINUX, WIN?
 #LIBS = -L/usr/lib/x86_64-linux-gnu -llapack -lblas

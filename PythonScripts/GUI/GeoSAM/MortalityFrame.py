@@ -76,13 +76,13 @@ from tkinter import messagebox
 from tkinter import filedialog
 
 from Widgets import *
-from PointInPolygon import *
 from GeoSams import MainApplication
 
-
+#===============================================================================================================
 ##
 # This class allows the user to adjust parameters used in computing fishing mortality
 #
+#===============================================================================================================
 class Mortality(ttk.Frame, MainApplication):
     ##
     # Constructor for Mortality Class

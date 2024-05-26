@@ -8,8 +8,36 @@
 # -# Main: Data concerning simulation duration, configutation files in use, and recruitment period
 # -# Special Access: Files used to define special areas for fishing management
 # -# Mortality: Parameters that are used to define Fishing Mortality
-# -# Interpolation: Parameters that are used to interpolate results from survey grid to regional grid
+# -# UKInterpolation: Parameters that are used to interpolate results from survey grid to regional grid
 # -# Sort By Area: Parameters that are used to sort output data and associate with areas of interest
+#
+# The program is started by entering the following command in the root directory of the workspace
+# $ python .\PythonScripts\GUI\GeoSAM\GeoSams.py [10 8 10]
+#
+# Where the last three number are optional and used to set limits on:
+# - The maximum number of areas of interest that can be defined.
+# - The maximum number of nodes used to specify each area of interest.
+# - The maximum number of years that the simulation can cover, i.e. Stop Year - Start Year + 1
+#
+# When commanded without these values the GUI defaults to 10, 8, and 5. These values can be viewed by 
+# clicking the <b>SHOW Args</b> Button
+#
+# @section p1p1 SHOW Args
+# As already mention this button is used to show the setup parameters that the GUI is using for
+# maximum number of areas, nodes, and years
+#
+# @section p1p2 START Sim
+# This button will start both the GeoSAMS sim and if succsessful continue with the UK interpolation.
+# It does so by first saving the data contained in the other tabs of the GUI to configuraton files specified 
+# on this page. It will overwrite the files named if they already exist. 
+#
+# NOTE: The file names listed are part of the package installed when downloaded from GitHub.
+# The user may change these names to preserve the original files. Or reinstall from GitHub to 
+# restore the original data.
+#
+# @section p1p3 SAVE ALL Configs
+# This button will save all of the configuration files using the names given. This is the same as the 
+# first step in <b>START Sim</b>
 
 #-------------------------------------------------------------------------------------------
 import tkinter as tk
@@ -20,7 +48,6 @@ import subprocess
 import sys
 import os
 import sys
-import platform
 
 from MainInputFrame import *
 from MortalityFrame import *
@@ -28,7 +55,17 @@ from SpecialAccessFrame import *
 from InterpolationFrame import *
 from SortByAreaFrame import *
 
+#======================================================================================================
+##
+# This class is the parent class for the GUI
+#
+#======================================================================================================
 class MainApplication(tk.Tk):
+    #-------------------------------------------------------------------------------------
+    ##
+    # Constructor
+    #
+    #-------------------------------------------------------------------------------------
     def __init__(self, title, maxAreas, maxCorners, maxYears):
         super().__init__()
 
@@ -55,12 +92,12 @@ class MainApplication(tk.Tk):
         (self.paramStr, self.paramVal) = self.ReadSimConfigFile()
         self.notebook = ttk.Notebook(self)
 
-        self.frame1 = MainInput(self.notebook, self.tsPerYear, self.paramVal, self.savedByStratum)
+        self.frame1 = MainInput(self.notebook, self, self.tsPerYear, self.paramVal, self.savedByStratum)
         # NOTE: These will still be default values as the user would not as yet entered anything!!
-        self.simConfigFile  = os.path.join(self.root,'Configuration/'+self.frame1.simCfgFile.myEntry.get())
-        self.mortConfigFile = os.path.join(self.root,'Configuration/'+self.frame1.mortCfgFile.myEntry.get())
-        self.recrConfigFile = os.path.join(self.root,'Configuration/'+self.frame1.recrCfgFile.myEntry.get())
-        self.gmConfigFile   = os.path.join(self.root,'Configuration/'+self.frame1.gmCfgFile.myEntry.get())
+        self.simConfigFile  = os.path.join(self.root,'Configuration', self.frame1.simCfgFile.myEntry.get())
+        self.mortConfigFile = os.path.join(self.root,'Configuration', self.frame1.mortCfgFile.myEntry.get())
+        self.recrConfigFile = os.path.join(self.root,'Configuration', self.frame1.recrCfgFile.myEntry.get())
+        self.gmConfigFile   = os.path.join(self.root,'Configuration', self.frame1.gmCfgFile.myEntry.get())
 
         # Read in configuration parameters
         (self.paramStr, self.paramVal) = self.ReadSimConfigFile()
@@ -69,18 +106,8 @@ class MainApplication(tk.Tk):
         # 
         self.frame2 = SpecialAccess(self.notebook)
         self.frame3 = Mortality(self.notebook, self.mortConfigFile)
-        self.frame4 = Interpolation(self.notebook, self.frame1.domainName.myEntry.get)
-        self.frame5 = SortByArea(self.notebook, 
-                            self.maxAreas,
-                            self.maxCorners,
-                            self.maxYears,
-                            self.paramStr, 
-                            self.frame1.startYr.myEntry.get, 
-                            self.frame1.stopYr.myEntry.get,
-                            self.frame1.stopYr.myEntry.insert,
-                            self.frame1.stopYr.myEntry.delete,
-                            self.frame1.domainName.myEntry.get,
-                            self.frame1.GetSelectedOutputs)
+        self.frame4 = UKInterpolation(self.notebook, self, self.frame1)
+        self.frame5 = SortByArea(self.notebook, self.frame1, self.maxAreas, self.maxCorners, self.maxYears, self.paramStr)
 
         # Update strings based on given configuration files
         # Frame 3 reads in Mortality config file
@@ -90,24 +117,34 @@ class MainApplication(tk.Tk):
 
         self.notebook.add(self.frame1, text='Main')
         self.notebook.add(self.frame2, text='Special Access')
-        #self.notebook.add(self.frame2, text='Outputs')
         self.notebook.add(self.frame3, text='Mortality')
-        self.notebook.add(self.frame4, text='Interpolation')
+        self.notebook.add(self.frame4, text='UKInterpolation')
         self.notebook.add(self.frame5, text='SortByArea')
         self.notebook.pack()
 
         self.style.configure("Custom.TLabel", padding=6, relief="flat", background="#0F0")
         ttk.Button(self, text='SHOW Args',    style="Custom.TLabel", command=self.ShowArgs).place(relx=0, rely=1, anchor='sw')
         ttk.Button(self, text='START Sim',    style="Custom.TLabel", command=self.Run_Sim).place(relx=.25, rely=1, anchor='s')
-        ttk.Button(self, text='SAVE Configs', style="Custom.TLabel", command=self.SaveConfigFiles).place(relx=.5, rely=1, anchor='s')
+        ttk.Button(self, text='SAVE ALL Configs', style="Custom.TLabel", command=self.SaveConfigFiles).place(relx=.5, rely=1, anchor='s')
 
+    #-------------------------------------------------------------------------------------
+    ##
+    # Display setup limits here
+    # Messagebox blocks entry widgets if attempted to open before the main window completes.
+    #
+    #-------------------------------------------------------------------------------------
     def ShowArgs(self):
         messagebox.showinfo("GeoSAMS",f'Using these parameters\n\
         Max Areas of Interest: {self.maxAreas}\n\
         Max Nodes in Areas: {self.maxCorners}\n\
         Max Year Range: {self.maxYears}')
 
-
+    #-------------------------------------------------------------------------------------
+    ## 
+    # Starts the GeoSAMS simulatation <b>ScallopPopDensity</b>. 
+    # If it runs successfully then UK interpolation is started
+    #
+    #-------------------------------------------------------------------------------------
     def Run_Sim(self):
         # No check for variables changed, therefore update all configuration files with current values in GUI
         # OR
@@ -153,8 +190,11 @@ class MainApplication(tk.Tk):
         else:
             messagebox.showerror("GeoSAM Sim", f'Failed\n{result.args}\nReturn Code = {result.returncode}')
 
-
-
+    #-------------------------------------------------------------------------------------
+    ##
+    # Save all of the defined configuration files
+    #
+    #-------------------------------------------------------------------------------------
     def SaveConfigFiles(self):
         self.WriteScallopConfig()
         self.WriteRecruitmentConfig()
@@ -163,8 +203,14 @@ class MainApplication(tk.Tk):
         self.WriteUKConfig()
         self.WriteSpatialFncsConfig()
 
+    #-------------------------------------------------------------------------------------
+    ##
+    # Saves simulation configuration file. It does so by writeing the parameters for the 
+    # to the name file as well as keeping helpfule comments.
+    #
+    #-------------------------------------------------------------------------------------
     def WriteScallopConfig(self):
-        simCfgFile  = os.path.join(self.root,'Configuration/'+self.frame1.simCfgFile.myEntry.get())
+        simCfgFile  = os.path.join(self.root,'Configuration', self.frame1.simCfgFile.myEntry.get())
         with open(simCfgFile, 'w') as f:
             f.write('# input file for Scallops \n')
             f.write('Time steps per Year = ' + str(self.frame1.tsPerYear.myEntry.get())+'\n')
@@ -196,26 +242,44 @@ class MainApplication(tk.Tk):
             if(not self.frame1.recrVar.get()): f.write('# Select RECR               =# Recruitment\n')
             f.close()
 
-    def ConvertMonthDayToDay(self,month,day):
+    #-------------------------------------------------------------------------------------
+    ##
+    # This method is used to converty the recruitment start and stop dates from a string month 
+    # numerical day into days in a year.
+    # @param monthDayStr string that holds month and day as either alpha or numerical format.
+    # That is 'Jan 01', or '01/01'
+    #
+    #-------------------------------------------------------------------------------------
+    def ConvertMonthDayToDay(self,monthDayStr):
+        monthsInYear = ['JAN', 'FEB', 'MAR', 'APR', 'MAY', 'JUN', 'JUL', 'AUG', 'SEP', 'OCT', 'NOV', 'DEC']
         daysInYear = [0, 31, 59, 90, 120, 151, 181, 212, 243, 273, 304, 334]
-        monDict = {'Jan':0, 'Feb':1, 'Mar':2, 'Apr':3, 'May':4, 'Jun':5, 'Jul':6, 'Aug':7, 'Sep':8, 'Oct':9, 'Nov':10, 'Dec':11} 
-        return daysInYear[monDict[month]] + day - 1
-            
+
+        if monthDayStr[0].isalpha():
+            parseArr = [s.strip() for s in monthDayStr.split(' ')]
+            month = parseArr[0]
+            month = month[0:3].upper()
+        else:
+            parseArr = [s.strip() for s in monthDayStr.split('/')]
+            month = int(parseArr[0])
+            month = monthsInYear[month-1]
+        day = int(parseArr[1])
+
+        monDict = {'JAN':0, 'FEB':1, 'MAR':2, 'APR':3, 'MAY':4, 'JUN':5, 'JUL':6, 'AUG':7, 'SEP':8, 'OCT':9, 'NOV':10, 'DEC':11} 
+        if month in monthsInYear: return daysInYear[monDict[month]] + day - 1
+        else: return 999
+           
+    #-------------------------------------------------------------------------------------
+    ##
+    # Saves recruitment parameters to a configuration file.
+    #
+    #-------------------------------------------------------------------------------------
     def WriteRecruitmentConfig(self):
-        cfgFile  = os.path.join(self.root,'Configuration/'+self.frame1.recrCfgFile.myEntry.get())
+        cfgFile  = os.path.join(self.root,'Configuration', self.frame1.recrCfgFile.myEntry.get())
 
-        # TODO Assumes MMM D[D]
         periodStr = self.frame1.startDay.myEntry.get()
-        m = len(periodStr)
-        month = periodStr[0:3]
-        day = int(periodStr[3:m])
-        startPeriod = self.ConvertMonthDayToDay(month,day)
-
+        startPeriod = self.ConvertMonthDayToDay(periodStr)
         periodStr = self.frame1.stopDay.myEntry.get()
-        m = len(periodStr)
-        month = periodStr[0:3]
-        day = int(periodStr[3:m])
-        stopPeriod = self.ConvertMonthDayToDay(month,day)
+        stopPeriod = self.ConvertMonthDayToDay(periodStr)
 
         with open(cfgFile, 'w') as f:
             f.write('# configuration file for Recruitment\n')
@@ -223,8 +287,13 @@ class MainApplication(tk.Tk):
             f.write('Stop Period = '+str(stopPeriod)  +' # converted to fraction of year, i.e. /365\n')
             f.close()
             
+    #-------------------------------------------------------------------------------------
+    ##
+    # Saves mortality parameters to a configuration file.
+    #
+    #-------------------------------------------------------------------------------------
     def WriteMortalityConfig(self):
-        simCfgFile  = os.path.join(self.root,'Configuration/'+self.frame1.mortCfgFile.myEntry.get())
+        simCfgFile  = os.path.join(self.root,'Configuration', self.frame1.mortCfgFile.myEntry.get())
         with open(simCfgFile, 'w') as f:
             f.write('# configuration file for mortality\n')
             f.write('Fishing Mortality = ' + self.frame3.fishMort.myEntry.get()   + '\n')
@@ -262,8 +331,13 @@ class MainApplication(tk.Tk):
             f.write('Towing Speed = '      + self.frame3.towSpeed.myEntry.get() +    '  # knots, mean towing speed\n')
             f.close()
 
+    #-------------------------------------------------------------------------------------
+    ##
+    # Saves grid manager parameters to a configuration file.
+    #
+    #-------------------------------------------------------------------------------------
     def WriteGridMgrConfig(self):
-        cfgFile  = os.path.join(self.root,'Configuration/'+self.frame1.gmCfgFile.myEntry.get())
+        cfgFile  = os.path.join(self.root,'Configuration', self.frame1.gmCfgFile.myEntry.get())
         with open(cfgFile, 'w') as f:
             f.write('# configuration file for GridManager\n')
             f.write('# The following is the file name with corner coordinates associated with Special Access Areas.\n')
@@ -273,15 +347,20 @@ class MainApplication(tk.Tk):
             f.write('Special Access Config File = '+self.frame2.specAccFile.myEntry.get()+'\n')
             f.close()
 
+    #-------------------------------------------------------------------------------------
+    ##
+    # Saves Universal Kriging parameters to a configuration file.
+    #
+    #-------------------------------------------------------------------------------------
     def WriteUKConfig(self):
-        cfgFile  = os.path.join(self.root,'Configuration/'+self.frame1.ukCfgFile.myEntry.get())
+        cfgFile  = os.path.join(self.root,'Configuration', self.frame1.ukCfgFile.myEntry.get())
         with open(cfgFile, 'w') as f:
             f.write('# Set inputs for universal kriging\n')
             f.write('# Observation files are expecting in the Data subdirectory\n')
             f.write('#\n')
             f.write('#(max interp field < hlf*max(obs))\n')
             f.write('High Limit Factor = '+self.frame4.highLimit.myEntry.get()+'\n')
-            f.write('Kriging variogram form = '+self.frame4.form.myEntry.get()+'\n')
+            f.write('Kriging variogram form = '+self.frame4.formCombo.get()+'\n')
             f.write('#\n')
             f.write('# Keep this line before "Power Transform Parameter"\n')
             f.write('#\n')
@@ -302,8 +381,13 @@ class MainApplication(tk.Tk):
             f.write('Save Data = F\n')
             f.close()
 
+    #-------------------------------------------------------------------------------------
+    ##
+    # Saves spatial function parameters to a configuration file.
+    #
+    #-------------------------------------------------------------------------------------
     def WriteSpatialFncsConfig(self):
-        cfgFile  = os.path.join(self.root,'Configuration/'+self.frame4.spatCfgFile.myEntry.get())
+        cfgFile  = os.path.join(self.root,'Configuration', self.frame4.spatCfgFile.myEntry.get())
         with open(cfgFile, 'w') as f:
             f.write('# Define non linear spatial functions(NLSF) and paramater search range.\n')
             f.write('#\n')
@@ -324,6 +408,17 @@ class MainApplication(tk.Tk):
                f.write(', precon='+self.frame4.functions[i].myEntry.get()+'\n')
             f.close()
 
+    #-------------------------------------------------------------------------------------
+    ##
+    # Reads a typical configuration file to recover the tags and values. The parameters in these files all
+    # have the following format:
+    # - \# indicates that the line is a comment. Otherwise
+    # - 'tag' = 'value
+    #
+    # @parameter fName: The name of the file to read.
+    # @returns An array of tuples showing (tag, value) found in the file
+    #
+    #-------------------------------------------------------------------------------------
     def ReadConfigFile(self, fName):
         parms=[]
         with open(fName, 'r') as f:
@@ -342,6 +437,11 @@ class MainApplication(tk.Tk):
                     parms.append((tag,value))
         return parms
 
+    #-------------------------------------------------------------------------------------
+    ## 
+    # Read in the (tag, value) parameters from the simulation configuration file.
+    #
+    #-------------------------------------------------------------------------------------
     def ReadSimConfigFile(self):
         # need to read Configuration/Scallop.cfg to determine which parameters are output
         paramStr = []
@@ -383,12 +483,19 @@ class MainApplication(tk.Tk):
                 self.savedByStratum = value[0] == 'T'
         return (paramStr, paramVal)
 
+    #-------------------------------------------------------------------------------------
+    ## 
+    # Read in the (tag, value) parameters from the grid manager configuration file.
+    #
+    #-------------------------------------------------------------------------------------
     def ReadGridMgrConfigFile(self):
         tags = self.ReadConfigFile(self.gmConfigFile)
 
         for (tag, value) in tags:
             if (tag == 'Special Access Config File'): self.specAccFileStr = value
 
+#======================================================================================================
+#======================================================================================================
 def main():
     nargs = len(sys.argv)
     if (nargs != 4):
@@ -411,5 +518,6 @@ def main():
     r = MainApplication(title, maxAreas, maxCorners, maxYears)
     r.mainloop()
 
+#======================================================================================================
 if __name__ == "__main__":
     main()

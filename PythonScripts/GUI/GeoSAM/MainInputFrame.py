@@ -1,30 +1,40 @@
 #--------------------------------------------------------------------------------------------------
 ## @page page1 Main
-#  - Growth subframe that identifies
-#    - Start Year of the simulation
-#    - Stop Year of the simulation
-#    - Time Steps per year
-#    - Domain Name or region of interest, Mid-Atlantic, MA, or Georges Bannk, GB
-#    - Sort By Statum: Used when processing Georges-Bank to break the region into quadrants due to its unique shape
+# @section p2p1 Growth subframe that identifies
+# These are the parameters used to control how long the scallop growth is simulated as well as the
+# granularity of the growth computations
+#
+#   - Start Year of the simulation
+#   - Stop Year of the simulation
+#   - Time Steps per year
+#   - Domain Name or region of interest, Mid-Atlantic, MA, or Georges Bannk, GB
+#   - Sort By Statum: Used when processing Georges-Bank to break the region into quadrants due to its unique shape
 #  
-#  - Recuitment
-#    - Start Day, calendar day of the year when recruitment influence begins
-#    - Stop Day, calendar day of the year when reruitment influence ends
+# @section p2p2 Recuitment
+# Recruitment is only applied at a certain time of the year. These values determine this period.
 #
-#  - Configuration Files\n
-#  Files used by the sim to set up parameters. The GUI can use the default values or change the names before
-#  starting the sim.
+#   - Start Day, calendar day of the year when recruitment influence begins. 
+#     Formatted as any of '01/1', '1/01', 'Jan 1', 'JAN 1', 'January 1', or 'JANUARY 1'
+#   - Stop Day, calendar day of the year when reruitment influence ends
+#     Same formatting accepted as for Start Day
 #
-#  - Output Selection\n
-#  Checkboxes to allow the user to select the desired parameters of interest. This is used to save processing 
-#  time rather than processing everything. Especially true during interpolation as it would take over and hour 
-#  to do the interpolation. For example for MA with 11631 grid locations.
-#    - Approx 2 minutes per interpolation
-#    - Given 3 years worth of data, plus initial conditions
-#    - 9 listed outputs\n
-#   Thus 9 x 4 x 2 or 72 minutes. GB is proportionately smaller with only 6802 grid locations.
-
+# @section p2p3 Configuration Files
+# Files used by the sim to set up parameters. The GUI can use the default values or change the names before
+# starting the sim. The initial names are the default names of the files when first downloaded from GitHub.
+# The names can be changed and the GUI sets up the simulation to use the new names.
+#
+# @section p2p4  Output Selection
+# Checkboxes to allow the user to select the desired parameters of interest. This is used to save processing 
+# time rather than processing everything. Especially true during interpolation as it would take over and hour 
+# to do the interpolation. For example for MA with 11631 grid locations.
+#   - Approx 2 minutes per interpolation
+#   - Given 3 years worth of data, plus initial conditions
+#   - 9 listed outputs
+#
+# Thus 9 x 4 x 2 or 72 minutes. GB is proportionately shorter with only 6802 grid locations.
+#
 #--------------------------------------------------------------------------------------------------
+import os
 import tkinter as tk
 from tkinter import ttk
 from Widgets import *
@@ -37,8 +47,11 @@ from Widgets import *
 #======================================================================================================
 class MainInput(ttk.Frame):
 
-    def __init__(self, container, tsPerYear, selectedOutputs, useStratum):
+    def __init__(self, container, friend, tsPerYear, selectedOutputs, useStratum):
         super().__init__()
+        self.root = os.environ['ROOT']
+        self.startDir = os.path.join(self.root, 'Configuration')
+        self.friend = friend
 
         self.style = ttk.Style()
         self.style.configure('MainInput.TFrame', borderwidth=10, relief='solid', labelmargins=20)
@@ -68,6 +81,19 @@ class MainInput(ttk.Frame):
         self.gmCfgFile   = SubFrameElement(self, configFrame, 'Grid Manager File',     'GridManager.cfg',2, 0, 1)
         self.simCfgFile  = SubFrameElement(self, configFrame, 'Sim Config File',       'Scallop.cfg',    3, 0, 1)
         self.ukCfgFile   = SubFrameElement(self, configFrame, 'UK Config File',        'UK.cfg',         4, 0, 1)
+
+        self.style.configure("Frame1.TLabel", padding=6, relief='raised', background="#0FF")
+        self.openMortConfigtButton = ttk.Button(configFrame, text='Change/Save Mort File', style="Frame1.TLabel", command=self.GetMortConfigFName)
+        self.openMortConfigtButton.grid(row=0, column=3)
+        self.openRecrConfigtButton = ttk.Button(configFrame, text='Change/Save Recr File', style="Frame1.TLabel", command=self.GetRecrConfigFName)
+        self.openRecrConfigtButton.grid(row=1, column=3)
+        self.openGmgrConfigtButton = ttk.Button(configFrame, text='Change/Save GMgr File', style="Frame1.TLabel", command=self.GetGMgrConfigFName)
+        self.openGmgrConfigtButton.grid(row=2, column=3)
+        self.openSimConfigtButton = ttk.Button(configFrame, text='Change/Save Sim File', style="Frame1.TLabel", command=self.GetSimConfigFName)
+        self.openSimConfigtButton.grid(row=3, column=3)
+        self.openUKConfigtButton = ttk.Button(configFrame, text='Change/Save UK File', style="Frame1.TLabel", command=self.GetUKConfigFName)
+        self.openUKConfigtButton.grid(row=4, column=3)
+
         configFrame.grid(row=0, column=2, sticky='n')
         #-------------------------------------------------------------------------------------------
         outputSelFrame = ttk.LabelFrame(self, text='Output Selection', style='MainInput.TFrame')
@@ -115,7 +141,7 @@ class MainInput(ttk.Frame):
 
     #--------------------------------------------------------------------------------------------------
     ## 
-    #  @brief Determines the value for which outputs are selected as they are checked
+    #  @brief Determines the value for which outputs are selected as they are checked.
     #
     #--------------------------------------------------------------------------------------------------
     def CBSelectedOutput(self):
@@ -123,7 +149,7 @@ class MainInput(ttk.Frame):
 
     #--------------------------------------------------------------------------------------------------
     ## 
-    #  @brief Updates the final value from which outputs are selected
+    #  @brief Updates the final value from which outputs are selected.
     #
     #--------------------------------------------------------------------------------------------------
     def GetSelectedOutputs(self):
@@ -131,12 +157,87 @@ class MainInput(ttk.Frame):
     
     #--------------------------------------------------------------------------------------------------
     ## 
-    #  @brief Scales checkbuttons and computes bit position value
+    #  @brief Bit shifts (multiplies) checkbuttons and computes bit position value.
     #
     #--------------------------------------------------------------------------------------------------
     def ComputeSelectOuputValue(self):
-        value = self.abunVar.get()*8 + self.bmsVar.get()*4 + self.ebmsVar.get()*2 + self.lpueVar.get()\
-              + self.fmortVar.get()*128 + self.feffVar.get()*64 + self.landVar.get()*32 + self.lndwVar.get()*16\
-              + self.recrVar.get()*256
+        value = (self.abunVar.get()<<3) + (self.bmsVar.get()<<2) + (self.ebmsVar.get()<<1) + self.lpueVar.get()\
+              + (self.fmortVar.get()<<7) + (self.feffVar.get()<<6) + (self.landVar.get()<<5) + (self.lndwVar.get()<<4)\
+              + (self.recrVar.get()<<8)
         return value
 
+    #--------------------------------------------------------------------------------------------------
+    ## 
+    # Calls the filedialog method asksaveasfilename to name a file to be used for the Mortality Configuration
+    # file. It then writes out the defined parameters to this file using the 'tag = value' format. 
+    #
+    #--------------------------------------------------------------------------------------------------
+    def GetMortConfigFName(self):
+        file_path = filedialog.asksaveasfilename(title="Open Configuration File", filetypes=[("CFG files", "*.cfg")], defaultextension='cfg', initialdir=self.startDir)
+        f = file_path.split('/')
+        if file_path:
+            n = len(self.mortCfgFile.myEntry.get())
+            self.mortCfgFile.myEntry.delete(0,n)
+            self.mortCfgFile.myEntry.insert(0,f[-1])
+            self.friend.WriteMortalityConfig()
+
+    #--------------------------------------------------------------------------------------------------
+    ## 
+    # Calls the filedialog method asksaveasfilename to name a file to be used for the Recruitment Configuration
+    # file. It then writes out the defined parameters to this file using the 'tag = value' format. 
+    #
+    #--------------------------------------------------------------------------------------------------
+    def GetRecrConfigFName(self):
+        file_path = filedialog.asksaveasfilename(title="Open Configuration File", filetypes=[("CFG files", "*.cfg")], defaultextension='cfg', initialdir=self.startDir)
+        f = file_path.split('/')
+        if file_path:
+            n = len(self.recrCfgFile.myEntry.get())
+            self.recrCfgFile.myEntry.delete(0,n)
+            self.recrCfgFile.myEntry.insert(0,f[-1])
+            self.friend.WriteRecruitmentConfig()
+
+    #--------------------------------------------------------------------------------------------------
+    ## 
+    # Calls the filedialog method asksaveasfilename to name a file to be used for the Grid Manager Configuration
+    # file. It then writes out the defined parameters to this file using the 'tag = value' format. 
+    #
+    #--------------------------------------------------------------------------------------------------
+    def GetGMgrConfigFName(self):
+        file_path = filedialog.asksaveasfilename(title="Open Configuration File", filetypes=[("CFG files", "*.cfg")], defaultextension='cfg', initialdir=self.startDir)
+        f = file_path.split('/')
+        if file_path:
+            n = len(self.gmCfgFile.myEntry.get())
+            self.gmCfgFile.myEntry.delete(0,n)
+            self.gmCfgFile.myEntry.insert(0,f[-1])
+            self.friend.WriteGridMgrConfig()
+
+    #--------------------------------------------------------------------------------------------------
+    ## 
+    # Calls the filedialog method asksaveasfilename to name a file to be used for the Simulation Configuration
+    # file. It then writes out the defined parameters to this file using the 'tag = value' format. 
+    #
+    #--------------------------------------------------------------------------------------------------
+    def GetSimConfigFName(self):
+        file_path = filedialog.asksaveasfilename(title="Open Configuration File", filetypes=[("CFG files", "*.cfg")], defaultextension='cfg', initialdir=self.startDir)
+        f = file_path.split('/')
+        if file_path:
+            n = len(self.simCfgFile.myEntry.get())
+            self.simCfgFile.myEntry.delete(0,n)
+            self.simCfgFile.myEntry.insert(0,f[-1])
+            self.friend.WriteScallopConfig()
+
+    #--------------------------------------------------------------------------------------------------
+    ## 
+    # Calls the filedialog method asksaveasfilename to name a file to be used for the Universal Kriging
+    # Configuration file. It then writes out the defined parameters to this file using the 'tag = value' format. 
+    #
+    #--------------------------------------------------------------------------------------------------
+    def GetUKConfigFName(self):
+        file_path = filedialog.asksaveasfilename(title="Open Configuration File", filetypes=[("CFG files", "*.cfg")], defaultextension='cfg', initialdir=self.startDir)
+        f = file_path.split('/')
+        if file_path:
+            n = len(self.ukCfgFile.myEntry.get())
+            self.ukCfgFile.myEntry.delete(0,n)
+            self.ukCfgFile.myEntry.insert(0,f[-1])
+            self.friend.WriteUKConfig()
+            
