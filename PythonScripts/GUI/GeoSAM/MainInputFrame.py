@@ -70,8 +70,26 @@ class MainInput(ttk.Frame):
         #-------------------------------------------------------------------------------------------
         #-------------------------------------------------------------------------------------------
         recruitFrame = ttk.LabelFrame(self, text='Recruitment', style='MainInput.TFrame')
-        self.startDay    = SubFrameElement(self, recruitFrame, 'Start Day\nMmm DD', 'Jan 1',  0, 0, 1)
-        self.stopDay     = SubFrameElement(self, recruitFrame, 'Stop Day\nMmm DD ', 'Apr 11', 1, 0, 1)
+
+        self.monthsArr = ['JAN', 'FEB', 'MAR', 'APR', 'MAY', 'JUN', 'JUL', 'AUG', 'SEP', 'OCT', 'NOV', 'DEC']
+        self.startDayLabel = ttk.Label(recruitFrame, text='Start Day')
+        self.startDayLabel.grid(row=0, column=0)
+        self.startDayComboMonth = ttk.Combobox(recruitFrame, width=5, values=self.monthsArr)
+        self.startDayComboMonth.current(0)
+        self.startDayComboMonth.grid(row=0, column=1, sticky='w')
+        self.startDayComboDay = ttk.Combobox(recruitFrame, width=3, values=[str(i) for i in range(1,32)])
+        self.startDayComboDay.current(0)
+        self.startDayComboDay.grid(row=0, column=2, sticky='e')
+
+        self.stopDayLabel = ttk.Label(recruitFrame, text='Stop Day')
+        self.stopDayLabel.grid(row=1, column=0)
+        self.stopDayComboMonth = ttk.Combobox(recruitFrame, width=5, values=self.monthsArr)
+        self.stopDayComboMonth.current(3)
+        self.stopDayComboMonth.grid(row=1, column=1, sticky='w')
+        self.stopDayComboDay = ttk.Combobox(recruitFrame, width=3, values=[str(i) for i in range(1,32)])
+        self.stopDayComboDay.current(10)
+        self.stopDayComboDay.grid(row=1, column=2, sticky='e')
+
         recruitFrame.grid(row=0, column=1, sticky='n')
         #-------------------------------------------------------------------------------------------
         #-------------------------------------------------------------------------------------------

@@ -245,28 +245,36 @@ class MainApplication(tk.Tk):
     #-------------------------------------------------------------------------------------
     ##
     # This method is used to converty the recruitment start and stop dates from a string month 
-    # numerical day into days in a year.
-    # @param monthDayStr string that holds month and day as either alpha or numerical format.
-    # That is 'Jan 01', or '01/01'
+    # numerical day into days in a year. Changed entry to combo box to guarantee format
+    # @param monthDayStr string that holds month and day as either alpha format.
+    # That is 'JAN 01', or '01/01'
     #
     #-------------------------------------------------------------------------------------
-    def ConvertMonthDayToDay(self,monthDayStr):
-        monthsInYear = ['JAN', 'FEB', 'MAR', 'APR', 'MAY', 'JUN', 'JUL', 'AUG', 'SEP', 'OCT', 'NOV', 'DEC']
-        daysInYear = [0, 31, 59, 90, 120, 151, 181, 212, 243, 273, 304, 334]
-
-        if monthDayStr[0].isalpha():
-            parseArr = [s.strip() for s in monthDayStr.split(' ')]
-            month = parseArr[0]
-            month = month[0:3].upper()
-        else:
-            parseArr = [s.strip() for s in monthDayStr.split('/')]
-            month = int(parseArr[0])
-            month = monthsInYear[month-1]
-        day = int(parseArr[1])
-
+    def ConvertMonthDayToDayOfYr(self, monthDayStr):
         monDict = {'JAN':0, 'FEB':1, 'MAR':2, 'APR':3, 'MAY':4, 'JUN':5, 'JUL':6, 'AUG':7, 'SEP':8, 'OCT':9, 'NOV':10, 'DEC':11} 
-        if month in monthsInYear: return daysInYear[monDict[month]] + day - 1
-        else: return 999
+        daysInYear = [0, 31, 59, 90, 120, 151, 181, 212, 243, 273, 304, 334]
+        parseArr = [s.strip() for s in monthDayStr.split(' ')]
+        month = parseArr[0]
+        day = int(parseArr[1])
+        return daysInYear[monDict[month]] + day - 1
+
+        # Changed entry to combo box to guarantee format
+        # monthsInYear = ['JAN', 'FEB', 'MAR', 'APR', 'MAY', 'JUN', 'JUL', 'AUG', 'SEP', 'OCT', 'NOV', 'DEC']
+        # daysInYear = [0, 31, 59, 90, 120, 151, 181, 212, 243, 273, 304, 334]
+
+        # if monthDayStr[0].isalpha():
+        #     parseArr = [s.strip() for s in monthDayStr.split(' ')]
+        #     month = parseArr[0]
+        #     month = month[0:3].upper()
+        # else:
+        #     parseArr = [s.strip() for s in monthDayStr.split('/')]
+        #     month = int(parseArr[0])
+        #     month = monthsInYear[month-1]
+        # day = int(parseArr[1])
+
+        # monDict = {'JAN':0, 'FEB':1, 'MAR':2, 'APR':3, 'MAY':4, 'JUN':5, 'JUL':6, 'AUG':7, 'SEP':8, 'OCT':9, 'NOV':10, 'DEC':11} 
+        # if month in monthsInYear: return daysInYear[monDict[month]] + day - 1
+        # else: return 999
            
     #-------------------------------------------------------------------------------------
     ##
@@ -276,16 +284,38 @@ class MainApplication(tk.Tk):
     def WriteRecruitmentConfig(self):
         cfgFile  = os.path.join(self.root,'Configuration', self.frame1.recrCfgFile.myEntry.get())
 
-        periodStr = self.frame1.startDay.myEntry.get()
-        startPeriod = self.ConvertMonthDayToDay(periodStr)
-        periodStr = self.frame1.stopDay.myEntry.get()
-        stopPeriod = self.ConvertMonthDayToDay(periodStr)
+        periodMonthStr = self.frame1.startDayComboMonth.get()
+        periodDayStr = self.frame1.startDayComboDay.get()
+        if periodMonthStr in ['SEP', 'APR', 'JUN', 'NOV'] and int(periodDayStr) > 30:
+            periodDayStr = '30'
+            self.frame1.startDayComboDay.current(29)
+        if periodMonthStr == 'FEB' and int(periodDayStr) > 28:
+            periodDayStr = '28'
+            self.frame1.startDayComboDay.current(27)
+        periodStr = periodMonthStr+' '+periodDayStr
+        startPeriod = self.ConvertMonthDayToDayOfYr(periodStr)
+        startMonIndx = self.frame1.monthsArr.index(periodMonthStr)
 
-        with open(cfgFile, 'w') as f:
-            f.write('# configuration file for Recruitment\n')
-            f.write('Start Period = '+str(startPeriod)+'  # Jan 1 is 0\n')
-            f.write('Stop Period = '+str(stopPeriod)  +' # converted to fraction of year, i.e. /365\n')
-            f.close()
+        periodMonthStr = self.frame1.stopDayComboMonth.get()
+        periodDayStr = self.frame1.stopDayComboDay.get()
+        if periodMonthStr in ['SEP', 'APR', 'JUN', 'NOV'] and int(periodDayStr) > 30:
+            periodDayStr = '30'
+            self.frame1.stopDayComboDay.current(29)
+        if periodMonthStr == 'FEB' and int(periodDayStr) > 28:
+            periodDayStr = '28'
+            self.frame1.startDayComboDay.current(27)
+        periodStr = periodMonthStr+' '+periodDayStr
+        stopPeriod = self.ConvertMonthDayToDayOfYr(periodStr)
+        stopMonIndx = self.frame1.monthsArr.index(periodMonthStr)
+
+        if startMonIndx > stopMonIndx:
+            messagebox.showerror("Recruitment", f'Start Month is > Stop Month\nPlease Fix\nFile NOT saved')
+        else:
+            with open(cfgFile, 'w') as f:
+                f.write('# configuration file for Recruitment\n')
+                f.write('Start Period = '+str(startPeriod)+'  # Jan 1 is 0\n')
+                f.write('Stop Period = '+str(stopPeriod)  +' # converted to fraction of year, i.e. /365\n')
+                f.close()
             
     #-------------------------------------------------------------------------------------
     ##
