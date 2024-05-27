@@ -124,55 +124,32 @@ class Mortality(ttk.Frame, MainApplication):
         self.style.configure('Mortality.TFrame', borderwidth=10, relief='solid', labelmargins=20)
         self.style.configure('Mortality.TFrame.Label', font=('courier', 8, 'bold'))
         fishingFrame= ttk.LabelFrame(self, text='Mortality', style='Mortality.TFrame')
-        row = 0
-        self.fishMort   = SubFrameElement(self, fishingFrame, 'Fishing Mortality', self.fmortStr,            row, 0, 1)
-        row += 1
+        self.fishMort   = SubFrameElement(self, fishingFrame, 'Fishing Mortality', self.fmortStr,       0, 0, 1)
         #self.fishSelect = SubFrameElement(self, fishingFrame, 'Fishing Effort\n(USD, BMS, or CAS)', self.fishStr, row, 0, 1)
-        #row += 1
-        self.alphaMort  = SubFrameElement(self, fishingFrame, 'Alpha Mortality',self.alphStr,           row, 0, 1)
-        row += 1
-        self.maAdultMort= SubFrameElement(self, fishingFrame, 'MA Adult Mortality',self.maAdultMortStr, row, 0, 1)
-        row += 1
-        self.gbAdultMort= SubFrameElement(self, fishingFrame, 'GB Adult Mortality',self.gbAdultMortStr, row, 0, 1)
-        row += 1
-        self.maLength0  = SubFrameElement(self, fishingFrame, 'MA Length_0',  self.maLen0Str,        row, 0, 1)
-        row += 1
-        self.gbLength0  = SubFrameElement(self, fishingFrame, 'GB Length_0',  self.gbLen0Str,        row, 0, 1)
-        row += 1
+        self.alphaMort  = SubFrameElement(self, fishingFrame, 'Alpha Mortality',self.alphStr,           1, 0, 1)
+        self.maAdultMort= SubFrameElement(self, fishingFrame, 'MA Adult Mortality',self.maAdultMortStr, 2, 0, 1)
+        self.gbAdultMort= SubFrameElement(self, fishingFrame, 'GB Adult Mortality',self.gbAdultMortStr, 3, 0, 1)
+        self.maLength0  = SubFrameElement(self, fishingFrame, 'MA Length_0',  self.maLen0Str,           4, 0, 1)
+        self.gbLength0  = SubFrameElement(self, fishingFrame, 'GB Length_0',  self.gbLen0Str,           5, 0, 1)
         fishingFrame.grid(row=0, column=0, padx=10, sticky='n')
 
         selectivityFrame = ttk.LabelFrame(self, text='Selectivity', style='Mortality.TFrame')
-        row = 0
-        self.maFSelectA       = SubFrameElement(self, selectivityFrame, 'MA FSelectA', self.maFSelAStr,          row, 0, 1)
-        row += 1
-        self.maFSelectB       = SubFrameElement(self, selectivityFrame, 'MA FSelectB', self.maFSelBStr,          row, 0, 1)
-        row += 1
-        self.gbClosedFSelectA = SubFrameElement(self, selectivityFrame, 'GB Closed FSelectA', self.gbClFSelAStr, row, 0, 1)
-        row += 1
-        self.gbClosedFSelectB = SubFrameElement(self, selectivityFrame, 'GB Closed FSelectB', self.gbClFSelBStr, row, 0, 1)
-        row += 1
-        self.gbOpenFSelectA   = SubFrameElement(self, selectivityFrame, 'GB Open FSelectA', self.gbOpFSelAStr,   row, 0, 1)
-        row += 1
-        self.gbOpenFSelectB   = SubFrameElement(self, selectivityFrame, 'GB Open FSelectB', self.gbOpFSelBStr,   row, 0, 1)
-        row += 1
+        self.maFSelectA       = SubFrameElement(self, selectivityFrame, 'MA FSelectA', self.maFSelAStr,          0, 0, 1, width=10)
+        self.maFSelectB       = SubFrameElement(self, selectivityFrame, 'MA FSelectB', self.maFSelBStr,          1, 0, 1, width=10)
+        self.gbClosedFSelectA = SubFrameElement(self, selectivityFrame, 'GB Closed FSelectA', self.gbClFSelAStr, 2, 0, 1, width=10)
+        self.gbClosedFSelectB = SubFrameElement(self, selectivityFrame, 'GB Closed FSelectB', self.gbClFSelBStr, 3, 0, 1, width=10)
+        self.gbOpenFSelectA   = SubFrameElement(self, selectivityFrame, 'GB Open FSelectA', self.gbOpFSelAStr,   4, 0, 1, width=10)
+        self.gbOpenFSelectB   = SubFrameElement(self, selectivityFrame, 'GB Open FSelectB', self.gbOpFSelBStr,   5, 0, 1, width=10)
         selectivityFrame.grid(row=0, column=1, padx=10, sticky='n')
         
         lpueFrame   = ttk.LabelFrame(self, text='LPUE', style='Mortality.TFrame')
-        row = 0
-        self.lpueSlope   = SubFrameElement(self, lpueFrame, 'LPUE Slope', self.lpueSlStr,       row, 0, 1)
-        row += 1
-        self.lpueSlope2  = SubFrameElement(self, lpueFrame, 'LPUE Slope2', self.lpueSl2Str,     row, 0, 1)
-        row += 1
-        self.lpueIntcept = SubFrameElement(self, lpueFrame, 'LPUE Intercept', self.lpueIntcStr, row, 0, 1)
-        row += 1
-        self.maxPerDay   = SubFrameElement(self, lpueFrame, 'Max Per Day', self.maxPerDayStr,   row, 0, 1)
-        row += 1
-        self.maxTime     = SubFrameElement(self, lpueFrame, 'Max Time', self.maxTimeStr,        row, 0, 1)
-        row += 1
-        self.dredgeWth   = SubFrameElement(self, lpueFrame, 'Dredge Width', self.dredgeWdStr,   row, 0, 1)
-        row += 1
-        self.towSpeed    = SubFrameElement(self, lpueFrame, 'Towing Speed', self.towSpdStr,     row, 0, 1)
-        row += 1
+        self.lpueSlope   = SubFrameElement(self, lpueFrame, 'LPUE Slope', self.lpueSlStr,       0, 0, 1, width=10)
+        self.lpueSlope2  = SubFrameElement(self, lpueFrame, 'LPUE Slope2', self.lpueSl2Str,     1, 0, 1, width=10)
+        self.lpueIntcept = SubFrameElement(self, lpueFrame, 'LPUE Intercept', self.lpueIntcStr, 2, 0, 1, width=10)
+        self.maxPerDay   = SubFrameElement(self, lpueFrame, 'Max Per Day', self.maxPerDayStr,   3, 0, 1, width=10)
+        self.maxTime     = SubFrameElement(self, lpueFrame, 'Max Time', self.maxTimeStr,        4, 0, 1, width=10)
+        self.dredgeWth   = SubFrameElement(self, lpueFrame, 'Dredge Width', self.dredgeWdStr,   5, 0, 1, width=10)
+        self.towSpeed    = SubFrameElement(self, lpueFrame, 'Towing Speed', self.towSpdStr,     6, 0, 1, width=10)
         lpueFrame.grid(row=0, column=2, padx=10, sticky='n')
 
         incidentalFrame = ttk.LabelFrame(self, text='Incidental', style='Mortality.TFrame')

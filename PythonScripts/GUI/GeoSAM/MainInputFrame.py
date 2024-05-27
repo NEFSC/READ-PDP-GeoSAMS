@@ -61,12 +61,19 @@ class MainInput(ttk.Frame):
         self.startYr    = SubFrameElement(self, growthFrame, 'Start Year', '2015',          0, 0, 1)
         self.stopYr     = SubFrameElement(self, growthFrame, 'Stop Year ', '2017',          1, 0, 1)
         self.tsPerYear  = SubFrameElement(self, growthFrame, 'tsPerYear', str(tsPerYear),   2, 0, 1)
-        self.domainName = SubFrameElement(self, growthFrame, 'Domain Name\nMA or GB', 'MA', 3, 0, 1, self.valDN)
-        reg=self.domainName.myEntry.register(self.valDN)
-        self.domainName.myEntry.configure(validate='key', validatecommand=(reg, '%P'))
+        self.domainNameLabel = ttk.Label(growthFrame, text='Domain Name')
+        self.domainNameLabel.grid(row=3, column=0)
+        self.domainNameCombo = ttk.Combobox(growthFrame, width=3, values=['MA', 'GB'])
+        self.domainNameCombo.current(0)
+        self.domainNameCombo.grid(row=3, column=1, sticky='w')
 
-        self.useStratum = SubFrameElement(self, growthFrame, 'Use Stratum\n(Not Used by MA)', str(useStratum), 4, 0, 1)
-        growthFrame.grid(row=0, column=0)
+        self.useStratumLabel = ttk.Label(growthFrame, text='Use Stratum\n(Not Used by MA)')
+        self.useStratumLabel.grid(row=4, column=0)
+        self.useStratumCombo = ttk.Combobox(growthFrame, width=3, values=['T', 'F'])
+        self.useStratumCombo.current(0)
+        self.useStratumCombo.grid(row=4, column=1, sticky='w')
+
+        growthFrame.grid(row=0, column=1, padx=5, sticky='n')
         #-------------------------------------------------------------------------------------------
         #-------------------------------------------------------------------------------------------
         recruitFrame = ttk.LabelFrame(self, text='Recruitment', style='MainInput.TFrame')
@@ -74,31 +81,31 @@ class MainInput(ttk.Frame):
         self.monthsArr = ['JAN', 'FEB', 'MAR', 'APR', 'MAY', 'JUN', 'JUL', 'AUG', 'SEP', 'OCT', 'NOV', 'DEC']
         self.startDayLabel = ttk.Label(recruitFrame, text='Start Day')
         self.startDayLabel.grid(row=0, column=0)
-        self.startDayComboMonth = ttk.Combobox(recruitFrame, width=5, values=self.monthsArr)
+        self.startDayComboMonth = ttk.Combobox(recruitFrame, width=4, values=self.monthsArr)
         self.startDayComboMonth.current(0)
-        self.startDayComboMonth.grid(row=0, column=1, sticky='w')
-        self.startDayComboDay = ttk.Combobox(recruitFrame, width=3, values=[str(i) for i in range(1,32)])
+        self.startDayComboMonth.grid(row=0, column=1, padx=5, sticky='w')
+        self.startDayComboDay = ttk.Combobox(recruitFrame, width=2, values=[str(i) for i in range(1,32)])
         self.startDayComboDay.current(0)
-        self.startDayComboDay.grid(row=0, column=2, sticky='e')
+        self.startDayComboDay.grid(row=0, column=2, padx=5, sticky='e')
 
         self.stopDayLabel = ttk.Label(recruitFrame, text='Stop Day')
         self.stopDayLabel.grid(row=1, column=0)
-        self.stopDayComboMonth = ttk.Combobox(recruitFrame, width=5, values=self.monthsArr)
+        self.stopDayComboMonth = ttk.Combobox(recruitFrame, width=4, values=self.monthsArr)
         self.stopDayComboMonth.current(3)
-        self.stopDayComboMonth.grid(row=1, column=1, sticky='w')
-        self.stopDayComboDay = ttk.Combobox(recruitFrame, width=3, values=[str(i) for i in range(1,32)])
+        self.stopDayComboMonth.grid(row=1, column=1, padx=5, sticky='w')
+        self.stopDayComboDay = ttk.Combobox(recruitFrame, width=2, values=[str(i) for i in range(1,32)])
         self.stopDayComboDay.current(10)
-        self.stopDayComboDay.grid(row=1, column=2, sticky='e')
+        self.stopDayComboDay.grid(row=1, column=2, padx=5, sticky='e')
 
-        recruitFrame.grid(row=0, column=1, sticky='n')
+        recruitFrame.grid(row=1, column=1, padx=5, sticky='n')
         #-------------------------------------------------------------------------------------------
         #-------------------------------------------------------------------------------------------
         configFrame = ttk.LabelFrame(self, text='Configuration Files', style='MainInput.TFrame')
-        self.mortCfgFile = SubFrameElement(self, configFrame, 'Mortality Config File', 'Mortality.cfg',  0, 0, 1)
-        self.recrCfgFile = SubFrameElement(self, configFrame, 'Recruitment File',      'Recruitment.cfg',1, 0, 1)
-        self.gmCfgFile   = SubFrameElement(self, configFrame, 'Grid Manager File',     'GridManager.cfg',2, 0, 1)
-        self.simCfgFile  = SubFrameElement(self, configFrame, 'Sim Config File',       'Scallop.cfg',    3, 0, 1)
-        self.ukCfgFile   = SubFrameElement(self, configFrame, 'UK Config File',        'UK.cfg',         4, 0, 1)
+        self.mortCfgFile = SubFrameElement(self, configFrame, 'Mortality Config File', 'Mortality.cfg',  0, 0, 1, width=20)
+        self.recrCfgFile = SubFrameElement(self, configFrame, 'Recruitment File',      'Recruitment.cfg',1, 0, 1, width=20)
+        self.gmCfgFile   = SubFrameElement(self, configFrame, 'Grid Manager File',     'GridManager.cfg',2, 0, 1, width=20)
+        self.simCfgFile  = SubFrameElement(self, configFrame, 'Sim Config File',       'Scallop.cfg',    3, 0, 1, width=20)
+        self.ukCfgFile   = SubFrameElement(self, configFrame, 'UK Config File',        'UK.cfg',         4, 0, 1, width=20)
 
         self.style.configure("Frame1.TLabel", padding=6, relief='raised', background="#0FF")
         self.openMortConfigtButton = ttk.Button(configFrame, text='Change/Save Mort File', style="Frame1.TLabel", command=self.GetMortConfigFName)
@@ -112,7 +119,7 @@ class MainInput(ttk.Frame):
         self.openUKConfigtButton = ttk.Button(configFrame, text='Change/Save UK File', style="Frame1.TLabel", command=self.GetUKConfigFName)
         self.openUKConfigtButton.grid(row=4, column=3)
 
-        configFrame.grid(row=0, column=2, sticky='n')
+        configFrame.grid(row=0, column=0, padx=5, sticky='n')
         #-------------------------------------------------------------------------------------------
         outputSelFrame = ttk.LabelFrame(self, text='Output Selection', style='MainInput.TFrame')
         # Check Buttons
@@ -134,28 +141,8 @@ class MainInput(ttk.Frame):
         ttk.Checkbutton(outputSelFrame, text='Lands By Wght', variable=self.lndwVar , command=self.CBSelectedOutput).grid(row=2, column=0, sticky='sw', padx=10, pady=5)
         ttk.Checkbutton(outputSelFrame, text='LPUE',          variable=self.lpueVar,  command=self.CBSelectedOutput).grid(row=2, column=1, sticky='sw', padx=10, pady=5)
         ttk.Checkbutton(outputSelFrame, text='Recruitment',   variable=self.recrVar , command=self.CBSelectedOutput).grid(row=2, column=2, sticky='sw', padx=10, pady=5)
-        outputSelFrame.grid(row=1, column=0)
+        outputSelFrame.grid(row=1, column=0, padx=5, sticky='n')
         #-------------------------------------------------------------------------------------------
-
-    #--------------------------------------------------------------------------------------------------
-    ## 
-    #  @brief Used to limit the value for Domain \n
-    #  Valid inputs become
-    #  - M
-    #  - MA
-    #  - G
-    #  - GB
-    #  @ returns false if invalid input
-    #
-    #--------------------------------------------------------------------------------------------------
-    def valDN(self, input):
-        """Only allows alpha"""
-        if input == 'M': return True
-        elif input == 'MA': return True  
-        elif input == 'G': return True
-        elif input == 'GB': return True  
-        elif input == "": return True
-        else: return False
 
     #--------------------------------------------------------------------------------------------------
     ## 

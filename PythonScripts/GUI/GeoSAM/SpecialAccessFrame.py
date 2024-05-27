@@ -34,14 +34,14 @@ class SpecialAccess(ttk.Frame):
         self.style.configure('MainInput.TFrame.Label', font=('courier', 8, 'bold'))
         #-------------------------------------------------------------------------------------------
         specialAccFrame = ttk.LabelFrame(self, text='Special Access', style='MainInput.TFrame')
-        self.specAccFile  = SubFrameElement(self, specialAccFrame, 'Special Access Points', '', 0, 0, 1)
-        self.fishMortFile = SubFrameElement(self, specialAccFrame, 'Fishing Mort File', '', 1, 0, 1)
+        self.specAccFile  = SubFrameElement(self, specialAccFrame, 'Special Access Points', '', 0, 0, 1, width=20)
+        self.fishMortFile = SubFrameElement(self, specialAccFrame, 'Fishing Mort File', '', 1, 0, 1, width=20)
 
         self.style.configure("Custom.TLabel", padding=6, relief="flat", background="#080")
         self.openFishCSVButton = ttk.Button(specialAccFrame, text='View', style="Custom.TLabel", command=self.OpenSpecAccCSV)
         self.openFishCSVButton.grid(row=0, column=2)
 
-        self.tree = ttk.Treeview(specialAccFrame, show="headings", height=20)
+        self.tree = ttk.Treeview(specialAccFrame, show="headings", height=15)
         self.tree.grid(row=2, column=0, columnspan=5, padx=10)
         specialAccFrame.grid(row=0, column=0, columnspan=4, sticky='w')
         #-------------------------------------------------------------------------------------------

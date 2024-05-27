@@ -5,18 +5,18 @@ from tkinter import messagebox
 from tkinter import filedialog
 
 class SubFrameElement(tk.Frame):
-    def __init__(self, container, parent, label, value, elementRow, labelCol, entryCol, valCmd=None):
+    def __init__(self, container, parent, label, value, elementRow, labelCol, entryCol, width=5, valCmd=None):
         super().__init__()
-        if valCmd == None: self.myEntry=ttk.Entry(parent)
+        if valCmd == None: self.myEntry=ttk.Entry(parent, width=width)
         else: 
-            self.myEntry=ttk.Entry(parent, validatecommand=valCmd)
+            self.myEntry=ttk.Entry(parent, validatecommand=valCmd, width=width)
             reg=self.myEntry.register(valCmd)
             self.myEntry.configure(validate='key', validatecommand=(reg, '%P'))
 
         self.myEntry.insert(0, value)
-        self.myEntry.grid(row=elementRow, column=entryCol, sticky='n', pady=10)
+        self.myEntry.grid(row=elementRow, column=entryCol, sticky='n', padx=5, pady=10)
         self.myLabel = ttk.Label(parent, text=label, wraplength=200, anchor='n', justify='right')
-        self.myLabel.grid(row=elementRow, column=labelCol, sticky='n', pady=10)
+        self.myLabel.grid(row=elementRow, column=labelCol, sticky='n', padx=5, pady=10)
 
 
 class SubFrameInterpFunction(tk.Frame):
@@ -29,7 +29,7 @@ class SubFrameInterpFunction(tk.Frame):
         self.myDimRBx = ttk.Radiobutton(dimFrame, text='x', value='x', variable=self.dimVal).pack()
         self.myDimRBy = ttk.Radiobutton(dimFrame, text='y', value='y', variable=self.dimVal).pack()
         self.myDimRBz = ttk.Radiobutton(dimFrame, text='z', value='z', variable=self.dimVal).pack()
-        dimFrame.grid(row=elementRow, column=0, rowspan=3, sticky='nsew', pady=10)
+        dimFrame.grid(row=elementRow, column=0, rowspan=3, sticky='nsew', padx=5, pady=10)
 
         shapeFrame = ttk.LabelFrame(self.funcFrame, text='shape')
         self.shapeVal = tk.StringVar(shapeFrame, shape)
@@ -37,12 +37,12 @@ class SubFrameInterpFunction(tk.Frame):
         self.myShapeL = ttk.Radiobutton(shapeFrame, text='Logistic', value='Logistic', variable=self.shapeVal).pack()
         self.myShapeS = ttk.Radiobutton(shapeFrame, text='SinExp',   value='SinExp',   variable=self.shapeVal).pack()
         self.myShapeC = ttk.Radiobutton(shapeFrame, text='CosExp',   value='CosExp',   variable=self.shapeVal).pack()
-        shapeFrame.grid(row=elementRow, column=1, rowspan=3, sticky='nsew', pady=10)
+        shapeFrame.grid(row=elementRow, column=1, rowspan=3, sticky='nsew', padx=5, pady=10)
 
         self.precon = ttk.Label(self.funcFrame, text='precon')
-        self.precon.grid (row=elementRow, column=2, columnspan=1, sticky='n', pady=10)
-        self.myEntry=ttk.Entry(self.funcFrame)
-        self.myEntry.grid(row=elementRow, column=2, columnspan=1, sticky='s', pady=10)
+        self.precon.grid (row=elementRow, column=2, columnspan=1, sticky='n', padx=5, pady=10)
+        self.myEntry=ttk.Entry(self.funcFrame, width=5)
+        self.myEntry.grid(row=elementRow, column=2, columnspan=1, sticky='s', padx=5, pady=10)
         self.myEntry.insert(0, preconNum)
 
         self.funcFrame.grid(row=elementRow, column=elementCol)
@@ -51,9 +51,9 @@ class SubFrameLongLat(tk.Frame):
     def __init__(self, container, parent, cornerNum, long, lat, elementRow, elementCol):
         super().__init__()
         self.cornerFrame = ttk.LabelFrame(parent, text='Corner '+str(cornerNum))
-        self.longitude  = SubFrameElement(self, self.cornerFrame, 'Long ', long,  0, 0, 1)
-        self.latitude   = SubFrameElement(self, self.cornerFrame, 'Lat ',  lat,   1, 0, 1)
-        self.cornerFrame.grid(row=elementRow, column=elementCol)
+        self.longitude  = SubFrameElement(self, self.cornerFrame, 'Long ', long,  0, 0, 1, width=10)
+        self.latitude   = SubFrameElement(self, self.cornerFrame, 'Lat ',  lat,   1, 0, 1, width=10)
+        self.cornerFrame.grid(row=elementRow, column=elementCol, padx=5)
 
 
 class SubFrameArea(tk.Frame):
@@ -65,7 +65,7 @@ class SubFrameArea(tk.Frame):
         self.areaFrame = ttk.LabelFrame(parent, text='Area '+str(areaNum+1))
         # +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
         numYears = yearStop - yearStart + 1
-        self.results = [SubFrameElement(self, self.areaFrame, str(yearStart+i), '0', i, 0, 1) for i in range(numYearsMax)]
+        self.results = [SubFrameElement(self, self.areaFrame, str(yearStart+i), '0', i, 0, 1, width=15) for i in range(numYearsMax)]
         # Now hide unused
         for i in range(numYears, numYearsMax):
             self.results[i].myEntry.grid_remove()
@@ -116,7 +116,7 @@ class ScrollFrame(tk.Frame):
         self.viewPort = tk.Frame(self.canvas, background="#ffffff")                    #place a frame on the canvas, this frame will hold the child widgets 
         vsb = tk.Scrollbar(self, orient="vertical", command=self.canvas.yview) #place a scrollbar on self 
         hsb = tk.Scrollbar(self, orient="horizontal", command=self.canvas.xview) #place a scrollbar on self 
-        self.canvas.config(width=1075, height=525, xscrollcommand=hsb.set, yscrollcommand=vsb.set)  #attach scrollbar action to scroll of canvas
+        self.canvas.config(width=910, height=525, xscrollcommand=hsb.set, yscrollcommand=vsb.set)  #attach scrollbar action to scroll of canvas
 
         vsb.grid(row=0, rowspan=20, column=6, sticky='ns')
         hsb.grid(row=10, column=0, sticky='ew')

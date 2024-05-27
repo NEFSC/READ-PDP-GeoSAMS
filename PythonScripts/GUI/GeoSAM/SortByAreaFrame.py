@@ -70,18 +70,16 @@ class SortByArea(ttk.Frame):
         # +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
         self.numAreasLabel = ttk.Label(self.sortAreaFrame, text='# of Areas')
         self.numAreasLabel.grid(row=0, column=0, sticky='w')
-
-        self.numAreasLabel = ttk.Label(self.sortAreaFrame, text='Output Parameters')
-        self.numAreasLabel.grid(row=0, column=0, sticky='ns')
-
-        self.comboParameter = ttk.Combobox(self.sortAreaFrame, values=paramStr)
-        self.comboParameter.grid(row=1, column=0, sticky='ns')
-
-        self.numAreasEntry=ttk.Entry(self.sortAreaFrame,validatecommand=numbersCallback)
+        self.numAreasEntry=ttk.Entry(self.sortAreaFrame,validatecommand=numbersCallback, width=5)
         self.numAreasEntry.insert(0, str(self.numAreas))
         reg=self.numAreasEntry.register(numbersCallback)
         self.numAreasEntry.configure(validate='key', validatecommand=(reg, '%P'))
         self.numAreasEntry.grid(row=1, column=0, sticky='w')
+
+        self.outputParmLabel = ttk.Label(self.sortAreaFrame, text='Output Parameters')
+        self.outputParmLabel.grid(row=0, column=0, sticky='ns')
+        self.comboParameter = ttk.Combobox(self.sortAreaFrame, values=paramStr)
+        self.comboParameter.grid(row=1, column=0, sticky='ns')
 
         self.numAreasButton = ttk.Button(self.sortAreaFrame, text='Update # Areas', command=self.NumAreasUpdate)
         self.numAreasButton.grid(row=2, column=0, sticky='w')
@@ -133,7 +131,7 @@ class SortByArea(ttk.Frame):
 
         self.yearStart = int(self.friend.startYr.myEntry.get())
         self.yearStop = int(self.friend.stopYr.myEntry.get())
-        self.domainName = self.friend.domainName.myEntry.get()
+        self.domainName = self.friend.domainNameCombo.get()
         self.numYears = self.yearStop - self.yearStart + 1
         if self.numYears > self.maxYears:
             self.yearStop = self.maxYears + self.yearStart - 1
@@ -161,7 +159,6 @@ class SortByArea(ttk.Frame):
 
         # The data structure is used with InPolygon algorithm to check 
         # if grid parameter is within area of interest
-        # TODO can this be done as data is entered?
         self.numAreas = int(self.numAreasEntry.get())
         for i in range(self.numAreas):
             self.areaData[i].numCorners = int(self.areas[i].numCornersEntry.myEntry.get())
@@ -206,12 +203,19 @@ class SortByArea(ttk.Frame):
                     grid += 1
 
         else:
-            messagebox.showerror("Reading Parameter File", f'Has Simulation been run?\nAre years correct?')
+            messagebox.showerror("Reading Parameter File", f'No data for '+desiredParam+'\nHas Simulation been run?\nAre years correct?')
 
         # display results
         for i in range(self.numAreas):
             for j in range(self.numYears):
-                self.areas[i].results[j].myEntry.insert(0, str(accumParamData[i][j]))
+                old = self.areas[i].results[j].myEntry.get()
+                n = len(old)
+                self.areas[i].results[j].myEntry.delete(0, n)
+                # round to 4 decimal places
+                # round(x,4) can have unpredicable results, use simple math instead
+                r = 1e4
+                y = int(accumParamData[i][j] * r + 0.5) / r
+                self.areas[i].results[j].myEntry.insert(0, str(y))
 
 
     def UpdateWidgets(self, filePath=None):

@@ -57,7 +57,7 @@ class UKInterpolation(ttk.Frame):
         self.okToRepaintFunctions = True
         self.nsfMax = 20
         self.functions = [None for _ in range(self.nsfMax)]
-        self.domainName = self.friend.domainName.myEntry.get()
+        self.domainName = self.friend.domainNameCombo.get()
         if self.domainName == 'MA':
             self.nsf = 9
         else:
@@ -75,7 +75,7 @@ class UKInterpolation(ttk.Frame):
         self.numFncsLabel = ttk.Label(self.funcFrame, text='# of Functions')
         self.numFncsLabel.grid(row=0, column=0, sticky='w')
         # +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-        self.numFcnsEntry=ttk.Entry(self.funcFrame, validatecommand=numbersCallback)
+        self.numFcnsEntry=ttk.Entry(self.funcFrame, validatecommand=numbersCallback, width=5)
         self.numFcnsEntry.insert(0, str(self.nsf))
         self.numFcnsEntry.grid(row=0, column=0, sticky='e')
         reg=self.numFcnsEntry.register(numbersCallback)
@@ -112,17 +112,22 @@ class UKInterpolation(ttk.Frame):
         formComboList = ['spherical', 'exponential', 'gaussian', 'matern']
         self.formLabel = ttk.Label(paramFrame, text='Variogram Form')
         self.formLabel.grid(row=1, column=0)
-        self.formCombo = ttk.Combobox(paramFrame, values=formComboList)
+        self.formCombo = ttk.Combobox(paramFrame, values=formComboList, width=10)
         self.formCombo.current(0)
-        self.formCombo.grid(row=1, column=1)
+        self.formCombo.grid(row=1, column=1, pady=5)
 
-        self.useLogTrans  = SubFrameElement(self, paramFrame, 'Use Log Transfrom', 'True', 2, 0, 1)
-        self.powerTrans  = SubFrameElement(self, paramFrame, 'Power Tranform\n(Not used if Log = True)', '1.0', 3, 0, 1)
-        self.spatCfgFile  = SubFrameElement(self, paramFrame, 'Spatial Fcn Config File', 'SpatialFcns.cfg', 4, 0, 1)
+        self.useLogTransLabel = ttk.Label(paramFrame, text='Use Log Transfrom)')
+        self.useLogTransLabel.grid(row=2, column=0)
+        self.useLogTransCombo = ttk.Combobox(paramFrame, width=3, values=['T', 'F'])
+        self.useLogTransCombo.current(0)
+        self.useLogTransCombo.grid(row=2, column=1, pady=5)
+
+        self.powerTrans  = SubFrameElement(self, paramFrame, 'Power Tranform\n(Not used if Log = T)', '1.0', 3, 0, 1)
+        self.spatCfgFile  = SubFrameElement(self, paramFrame, 'Spatial Fcn Config File', 'SpatialFcns.cfg', 4, 0, 1, width=20)
 
         self.style.configure("Frame4.TLabel", padding=6, relief='raised', background="#0FF")
-        self.openMorConfigtButton = ttk.Button(paramFrame, text='Change/Save Spat Fcn File', style="Frame4.TLabel", command=self.GetSpatialFcnConfigFName)
-        self.openMorConfigtButton.grid(row=5, column=0, sticky='e')
+        self.openMortConfigButton = ttk.Button(paramFrame, text='Change/Save Spat Fcn File', style="Frame4.TLabel", command=self.GetSpatialFcnConfigFName)
+        self.openMortConfigButton.grid(row=5, column=0)
 
         paramFrame.grid(row=0, column=4, sticky='n')
         # --------------------------------------------------------------------------------------------------------
@@ -151,7 +156,7 @@ class UKInterpolation(ttk.Frame):
     #--------------------------------------------------------------------------------------------------
     def on_visibility(self, event):
             if self.okToRepaintFunctions:
-                self.domainName = self.friend.domainName.myEntry.get()
+                self.domainName = self.friend.domainNameCombo.get()
                 self.numFcnsEntry.delete(0,2)
                 if self.domainName == 'MA':
                     self.nsf = 9

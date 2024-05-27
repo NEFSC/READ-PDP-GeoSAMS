@@ -159,7 +159,7 @@ class MainApplication(tk.Tk):
         ukCfgFile = self.frame1.ukCfgFile.myEntry.get()
         startYear = self.frame1.startYr.myEntry.get()
         stopYear = self.frame1.stopYr.myEntry.get()
-        dn = self.frame1.domainName.myEntry.get()
+        dn = self.frame1.domainNameCombo.get()
         # check range
         self.yearStart = int(startYear)
         self.yearStop = int(stopYear)
@@ -214,7 +214,7 @@ class MainApplication(tk.Tk):
         with open(simCfgFile, 'w') as f:
             f.write('# input file for Scallops \n')
             f.write('Time steps per Year = ' + str(self.frame1.tsPerYear.myEntry.get())+'\n')
-            f.write('Save By Stratum = '     + str(self.frame1.useStratum.myEntry.get())+'\n')
+            f.write('Save By Stratum = '     + str(self.frame1.useStratumCombo.get())+'\n')
             f.write('# Configuration files are expected to be in the Configuration directory\n')
             f.write('Mortality Config File = '   + self.frame1.mortCfgFile.myEntry.get() + '\n')
             f.write('Recruit Config File = '     + self.frame1.recrCfgFile.myEntry.get() + '\n')
@@ -394,7 +394,7 @@ class MainApplication(tk.Tk):
             f.write('#\n')
             f.write('# Keep this line before "Power Transform Parameter"\n')
             f.write('#\n')
-            f.write('Log Transform = '+self.frame4.useLogTrans.myEntry.get()+'\n')
+            f.write('Log Transform = '+self.frame4.useLogTransCombo.get()+'\n')
             f.write('#\n')
             f.write('# Power transform interpolates f(x)^alpha \n')
             f.write('# generally 0< alpha < 1 but this has not been tested \n')
