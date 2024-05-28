@@ -35,22 +35,46 @@
 # @subsubsection p4p1p4p2 Length_0 for Georges Bank
 #
 # @section       p4p2 Selectivity
+# These parameters are used to compute the scallop selectivity as a function of its length.
+# @f$ selectivity = 1 / ( 1 + exp( select_a - select_b * (l_{shell} + 2.5))) @f$
 # @subsection    p4p2p1 FSelectA
-# @subsubsection p4p2p1p1 MA
-# @subsubsection p4p2p1p2 GB Closed
-# @subsubsection p4p2p1p3 GB Open
+# @subsubsection p4p2p1p1 Value to use for MA
+# @subsubsection p4p2p1p2 Value to use for GB Closed
+# @subsubsection p4p2p1p3 Value to use for GB Open
 # @subsection    p4p2p2 FSelectB
-# @subsubsection p4p2p2p1 MA
-# @subsubsection p4p2p2p2 GB Closed
-# @subsubsection p4p2p2p3 GB 
+# @subsubsection p4p2p2p1 Value to use for MA
+# @subsubsection p4p2p2p2 Value to use for GB Closed
+# @subsubsection p4p2p2p3 Value to use for GB 
 #
-# @section    p4p3 Computing Landing Per Unit Effor, LPUE
+# @section    p4p3 Computing Landings Per Unit Effor, LPUE
+# The simulation uses the following parameters to compute LPUE
+#
+# @f[ W_{expl} = \frac{EBMS}{N_{scallops}} \text{, weight in grams} @f]
+#
+# @f[ EBMS_{tow} = EBMS * Tow_{sqm} \text{, biomass in grams}  @f]
+#
+# @f[ slope_1 = lpue_{slope} * EBMS_{tow} + lpue_{intercept}  @f]
+#
+# @f[ slope_2 = LPUE_{slope_2} * EBMS_{tow}  @f]
+#
+# @f[ LPUE = min(slope_1, slope_2)  @f]
+#
+# @f[ LPUE_{limit} = max_{per_{day}} * W_{expl} / 453.592 @f]
+# 
+# @f[ LPUE = min(LPUE, LPUE_{limit})  @f]
+#
 # @subsection p4p3p1 LPUE Slope
+#
 # @subsection p4p3p2 LPUE Slope2
+#
 # @subsection p4p3p3 LPUE Intercept
+#
 # @subsection p4p3p4 Maximum Number of Scallops Shucked Per Day
+#
 # @subsection p4p3p5 Maximum Number of Hours Dredging Per Day
+#
 # @subsection p4p3p6 Dredge Width in meters
+#
 # @subsection p4p3p7 Towing Speed in knots
 #
 # @section    p4p4 Incidental

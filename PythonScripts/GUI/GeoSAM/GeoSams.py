@@ -12,7 +12,7 @@
 # -# Sort By Area: Parameters that are used to sort output data and associate with areas of interest
 #
 # The program is started by entering the following command in the root directory of the workspace
-# $ python .\PythonScripts\GUI\GeoSAM\GeoSams.py [10 8 10]
+# $ python .\\PythonScripts\\GUI\\GeoSAM\\GeoSams.py [10 8 10]
 #
 # Where the last three number are optional and used to set limits on:
 # - The maximum number of areas of interest that can be defined.

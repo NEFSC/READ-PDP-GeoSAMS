@@ -10,18 +10,57 @@
 # @subsection p5p1p1 High Limit Factor
 #
 # @subsection p5p1p2 Variogram Form
+# This defines the shape of the variogram models. The kriging refernces identify a typical variogram shape.
+# It is a positive sloped function with a y intercept defined as nugget. The assymptote is defined as the sill.
+# The inflection point where the function reaches the sill is defined as the ranges. Four shapes are implemented
+# for UK interpolation
 # - spherical
 # - exponential
 # - gaussian
 # - matern
 #
-# @subsection p5p1p3 Log Transform
+# @subsubsection p5p1p2p1 spherical
+#
+# @f[ \gamma(h) = \begin{cases}  nugget + sill *\frac{3h}{2*range} - \frac{1}{2}(\frac{h^3}{range^3}), & 0 < h \leq  range\\  nugget + sill, & h > range \\ 0, & h = 0  \end{cases} @f]
+#
+# @subsubsection p5p1p2p2 exponential
+#
+# @f[ \gamma(h) = \begin{cases}  nugget + sill *(1 - exp(\frac{-h}{range})), & h > 0     \\  0, & h = 0  \end{cases} @f]
+#
+# @subsubsection p5p1p2p3 gaussian
+#
+# @f[ \gamma(h) = \begin{cases}  nugget + sill *(1 - exp(\frac{-h^2}{range^2})), & h > 0 \\  0, & h = 0  \end{cases} @f]
+#
+# @subsubsection p5p1p2p4 matern
+#
+# @f[  \gamma(h) = \begin{cases} nugget + sill *\left(1 - \frac{\sqrt(2)}{\Gamma(0.5)}*J_n(2,\frac{h}{range})*\sqrt(\frac{h}{range})\right), & h > 0 \\   0, & h = 0  \end{cases} @f]
+# @f$ \text{ where }J_n\text{ is the Bessel function of the first kind} @f$
+#
+# @subsection p5p1p3 Use Log Transform
+# If this is set to True, then a log of the observed data is used before starting the interpolation.
+# @f$ \vec{obs} = log( c + \vec{obs} / \mu) @f$
 #
 # @subsection p5p1p4 Power Transform
 #
+# Power transform interpolates f(x)^alpha. Generally 0< alpha < 1 but this has not been tested. Not used if "Log Transform = T"
+#
+#
 # @subsection p5p1p5 Spatial Fcn Configuration File
+# The name of the file to hold the formating of the spactial functions read in by UK.exe during interpolation
 #
 # @section p5p2 Spatial Functions
+# Define non linear spatial functions(NLSF) and paramater search range.
+#
+# - "Function 1, dim=z, shape=Logistic, precon=0 "
+# - "Function 2, dim=z, shape=Gaussian, precon=0 "
+# - "Function 3, dim=x, shape=Logistic, precon=1 "
+#
+# These define spatial functions for setting the spatial trend in the universal kriging algorithm. 
+#
+# The precon=0 term means that the function is not multiplied by another function. For example,\n
+#    "Function 3, dim=x, shape=Logistic, precon=1 " \n
+# indicates that the third function is multiplied by the first function.\n\n
+# This is true for fitting the nonlinear parameters of function 3 hence the parameters of function 1 must be fit before the parameters of function 3.
 #
 # @subsection p5p2p1 Number (#) of Functions
 # 
