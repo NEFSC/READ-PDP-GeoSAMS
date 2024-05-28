@@ -155,8 +155,6 @@ class SortByArea(ttk.Frame):
         paramFName = os.path.join(self.root, 'Results', 'Lat_Lon_Grid_' + 
              desiredParam + self.domainName + '_' + str(self.yearStart) + '_' + str(self.yearStop) + '.csv')
         
-        #print(paramFName)
-
         # The data structure is used with InPolygon algorithm to check 
         # if grid parameter is within area of interest
         self.numAreas = int(self.numAreasEntry.get())
@@ -285,77 +283,57 @@ class SortByArea(ttk.Frame):
         if os.path.isfile(fName):
             with open(fName, 'r') as f:
                 while True:
-                    if (areaIndex > self.numAreasMax):
-                        messagebox.showerror("Reading Areas File", f'Max reached {self.numAreasMax}\nStopping at {areaIndex-1}')
-                        areaIndex -= 1
+                    if (areaIndex >= self.numAreasMax):
+                        messagebox.showerror("Reading Areas File", f'Max reached {self.numAreasMax}\nStopping at {areaIndex}')
                         break
 
+                    # read longitude values
                     inputStr = f.readline()
                     if not inputStr:
                         f.close()
                         break
 
-                    # read longitude values
-                    longIndex = 0
-                    j = len(inputStr)-1
-                    if(inputStr[j]=='\n'): j -= 1
+                    if inputStr[0] == '#': continue
+                    inputArr = [s.strip() for s in inputStr.split(',')]
                     # remove trailing commas
-                    while (inputStr[j]) == ',':
-                        j -= 1
-                    subStr = inputStr[0:j+1]
-
-                    while j>0:
-                        j=subStr.find(',')
-                        if (j>0):
-                            self.areaData[areaIndex].long[longIndex] = float(subStr[0:j])
-                            subStr = subStr[j+1:len(subStr)]
-                            longIndex += 1
-                            if (longIndex > self.numCornersMax):
-                                messagebox.showerror("Reading Areas File", f'Max corner {self.numCornersMax}\nStopping at {longIndex-1}')
-                                longIndex -= 1
-                                break
-                    #get last value 
-                    if (longIndex < self.numCornersMax):
-                        self.areaData[areaIndex].long[longIndex] = float(subStr)
-                        longIndex += 1
+                    inputArr = list(filter(None, inputArr))
+                    numCorners = len(inputArr)
+                    if (numCorners > self.numCornersMax):
+                        messagebox.showerror("Reading Data Sort Areas File", f'Max corners reached. Stoppin at {self.numCornersMax}\n')
+                        numCorners = self.numCornersMax
+                    
+                    for longIndex in range(numCorners):
+                        self.areaData[areaIndex].long[longIndex] = float(inputArr[longIndex])
+                    longIndex += 1
 
                     # read latiitude values
                     inputStr = f.readline()
                     if not inputStr:
                         f.close()
                         break
-                    latIndex = 0
-                    j = len(inputStr)-1
-                    if(inputStr[j]=='\n'): j -= 1
+                    if inputStr[0] == '#': continue
+                    inputArr = [s.strip() for s in inputStr.split(',')]
                     # remove trailing commas
-                    while (inputStr[j]) == ',':
-                        j -= 1
-                    subStr = inputStr[0:j+1]
+                    inputArr = list(filter(None, inputArr))
+                    numCorners = len(inputArr)
+                    if (numCorners > self.numCornersMax):
+                        messagebox.showerror("Reading Data Sort Areas File", f'Max corners reached. Stoppin at {self.numCornersMax}\n')
+                        numCorners = self.numCornersMax
 
-                    while j>0:
-                        j=subStr.find(',')
-                        if (j>0):
-                            self.areaData[areaIndex].lat[latIndex] = float(subStr[0:j])
-                            subStr = subStr[j+1:len(subStr)]
-                            latIndex += 1
-                            if (latIndex > self.numCornersMax):
-                                messagebox.showerror("Reading Areas File", f'Max corner {self.numCornersMax}\nStopping at {latIndex-1}')
-                                latIndex -= 1
-                                break
-                    #get last value 
-                    if (latIndex < self.numCornersMax):
-                        self.areaData[areaIndex].lat[latIndex] = float(subStr)
-                        latIndex += 1
+                    for latIndex in range(numCorners):
+                        self.areaData[areaIndex].lat[latIndex] = float(inputArr[latIndex])
+                    latIndex += 1
 
                     if (longIndex != latIndex):
-                        messagebox.showerror("Invalud Area Data File")
-                        latIndex = 0
-                    self.areaData[areaIndex].numCorners = latIndex
-                    areaIndex += 1
+                        messagebox.showerror("Invalid Area Data File", f'Ignoring Corner Data Set @ {areaIndex}')
+                    else:
+                        self.areaData[areaIndex].numCorners = latIndex
+                        areaIndex += 1
+
                 f.close()
             return areaIndex
         else: 
-            messagebox.showerror("Data Sort", f'No Data Sort File Has Been Saved')
+            messagebox.showerror("Data Sort", f'No Data Sort File Has Been Read')
             return 1
 
 class Corner:
@@ -363,4 +341,3 @@ class Corner:
         self.long = [0.0 for _ in range(maxCorners)]
         self.lat = [0.0 for _ in range(maxCorners)]
         self.numCorners = 0
-

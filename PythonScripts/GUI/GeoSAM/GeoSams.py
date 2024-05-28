@@ -257,24 +257,6 @@ class MainApplication(tk.Tk):
         month = parseArr[0]
         day = int(parseArr[1])
         return daysInYear[monDict[month]] + day - 1
-
-        # Changed entry to combo box to guarantee format
-        # monthsInYear = ['JAN', 'FEB', 'MAR', 'APR', 'MAY', 'JUN', 'JUL', 'AUG', 'SEP', 'OCT', 'NOV', 'DEC']
-        # daysInYear = [0, 31, 59, 90, 120, 151, 181, 212, 243, 273, 304, 334]
-
-        # if monthDayStr[0].isalpha():
-        #     parseArr = [s.strip() for s in monthDayStr.split(' ')]
-        #     month = parseArr[0]
-        #     month = month[0:3].upper()
-        # else:
-        #     parseArr = [s.strip() for s in monthDayStr.split('/')]
-        #     month = int(parseArr[0])
-        #     month = monthsInYear[month-1]
-        # day = int(parseArr[1])
-
-        # monDict = {'JAN':0, 'FEB':1, 'MAR':2, 'APR':3, 'MAY':4, 'JUN':5, 'JUL':6, 'AUG':7, 'SEP':8, 'OCT':9, 'NOV':10, 'DEC':11} 
-        # if month in monthsInYear: return daysInYear[monDict[month]] + day - 1
-        # else: return 999
            
     #-------------------------------------------------------------------------------------
     ##
@@ -529,7 +511,7 @@ class MainApplication(tk.Tk):
 def main():
     nargs = len(sys.argv)
     if (nargs != 4):
-        maxAreas = 10
+        maxAreas = 25
         maxCorners = 8
         maxYears = 5
         print ("Missing command line arguments. Expecting: ")
