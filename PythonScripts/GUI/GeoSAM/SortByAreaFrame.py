@@ -42,9 +42,11 @@ class SortByArea(ttk.Frame):
     def __init__(self, container, friend, maxAreas, maxCorners, maxYears, paramStr):
         super().__init__()
         
+        labelArr = ['Corner', 'Long', 'Lat ', '0.0', '0.0']
         self.root = os.environ['ROOT']
         self.startDir = os.path.join(self.root, 'DataSort')
         self.friend = friend
+
 
         self.numAreasMax = maxAreas
         self.numCornersMax = maxCorners
@@ -70,6 +72,7 @@ class SortByArea(ttk.Frame):
         # +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
         self.numAreasLabel = ttk.Label(self.sortAreaFrame, text='# of Areas')
         self.numAreasLabel.grid(row=0, column=0, sticky='w')
+
         self.numAreasEntry=ttk.Entry(self.sortAreaFrame,validatecommand=numbersCallback, width=5)
         self.numAreasEntry.insert(0, str(self.numAreas))
         reg=self.numAreasEntry.register(numbersCallback)
@@ -80,24 +83,29 @@ class SortByArea(ttk.Frame):
         self.outputParmLabel.grid(row=0, column=0, sticky='ns')
         self.comboParameter = ttk.Combobox(self.sortAreaFrame, values=paramStr)
         self.comboParameter.grid(row=1, column=0, sticky='ns')
-
-        self.numAreasButton = ttk.Button(self.sortAreaFrame, text='Update # Areas', command=self.NumAreasUpdate)
-        self.numAreasButton.grid(row=2, column=0, sticky='w')
+        # +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+        self.dataSortFileEntry = self.myEntry=ttk.Entry(self.sortAreaFrame, width=25)
+        self.dataSortFileEntry.insert(0, 'AreasOfInterestDataSort.csv')
+        self.dataSortFileEntry.grid(row=0, column=1, sticky='we', padx=5)
         # +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
         self.style.configure("SortByArea.TLabel", padding=6, relief='raised', background="#0F0")
         self.style.configure("Frame5a.TLabel", padding=6, relief='raised', background="#0FF")
         
         self.openDataSortButton = ttk.Button(self.sortAreaFrame, text='Load Data Sort File', style="SortByArea.TLabel", command=self.GetDataSortFile)
-        self.openDataSortButton.grid(row=0, column=1, sticky='w')
+        self.openDataSortButton.grid(row=0, column=2, sticky='w')
 
         self.saveDataSortButton = ttk.Button(self.sortAreaFrame, text='Save Data Sort File', style="Frame5a.TLabel", command=self.SaveDataSortFile)
-        self.saveDataSortButton.grid(row=1, column=1, sticky='w')
+        self.saveDataSortButton.grid(row=1, column=2, sticky='w')
+
+        # +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+        self.numAreasButton = ttk.Button(self.sortAreaFrame, text='Update # Areas', command=self.NumAreasUpdate)
+        self.numAreasButton.grid(row=2, column=0, sticky='w')
 
         self.saveDataSortButton = ttk.Button(self.sortAreaFrame, text='Run Sort', command=self.RunSort)
-        self.saveDataSortButton.grid(row=2, column=1, sticky='w')
+        self.saveDataSortButton.grid(row=2, column=2, sticky='w')
         # +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
         self.areas = [SubFrameArea(self, self.sortAreaFrame, a, self.numCorners, self.numCornersMax, self.maxYears, 
-                                         self.yearStart, self.yearStop, 3+a, 0) for a in range(self.numAreasMax)]
+                                         self.yearStart, self.yearStop, 3+a, 0, labelArr) for a in range(self.numAreasMax)]
 
         # now hide
         for a in range(self.numAreas, self.numAreasMax):
@@ -239,6 +247,10 @@ class SortByArea(ttk.Frame):
         file_path = filedialog.askopenfilename(title="Open CSV File", filetypes=[("CSV files", "*.csv")], defaultextension='csv', initialdir=self.startDir)
         if file_path:
             self.UpdateWidgets(file_path)
+            n = len(self.dataSortFileEntry.get())
+            self.dataSortFileEntry.delete(0,n)
+            f = file_path.split('/')
+            self.dataSortFileEntry.insert(0, f[-1])
     
     def SaveDataSortFile(self):
         fName = filedialog.asksaveasfilename(title="Save CSV File", filetypes=[("CSV files", "*.csv")], defaultextension='csv', initialdir=self.startDir)
@@ -256,6 +268,11 @@ class SortByArea(ttk.Frame):
                         f.write(self.areas[i].corners[j].latitude.myEntry.get()+',')
                     f.write(self.areas[i].corners[j+1].latitude.myEntry.get()+'\n')
             f.close()
+            n = len(self.dataSortFileEntry.get())
+            self.dataSortFileEntry.delete(0,n)
+            f = fName.split('/')
+            self.dataSortFileEntry.insert(0, f[-1])
+
 
     def NumAreasUpdate(self):
         """ Updates the number of areas functions. """

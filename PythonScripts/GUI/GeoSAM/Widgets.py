@@ -2,7 +2,6 @@ import tkinter as tk
 import platform
 from tkinter import ttk
 from tkinter import messagebox
-from tkinter import filedialog
 
 class SubFrameElement(tk.Frame):
     def __init__(self, container, parent, label, value, elementRow, labelCol, entryCol, width=5, valCmd=None):
@@ -47,17 +46,23 @@ class SubFrameInterpFunction(tk.Frame):
 
         self.funcFrame.grid(row=elementRow, column=elementCol)
 
-class SubFrameLongLat(tk.Frame):
-    def __init__(self, container, parent, cornerNum, long, lat, elementRow, elementCol):
+class SubFrameXY(tk.Frame):
+    def __init__(self, container, parent, fieldNum, elementRow, elementCol, lableArr):
         super().__init__()
-        self.cornerFrame = ttk.LabelFrame(parent, text='Corner '+str(cornerNum))
-        self.longitude  = SubFrameElement(self, self.cornerFrame, 'Long ', long,  0, 0, 1, width=10)
-        self.latitude   = SubFrameElement(self, self.cornerFrame, 'Lat ',  lat,   1, 0, 1, width=10)
+        fieldText = lableArr[0]
+        xText = lableArr[1]
+        yText = lableArr[2]
+        xVal = lableArr[3]
+        yVal = lableArr[4]
+
+        self.cornerFrame = ttk.LabelFrame(parent, text=fieldText+str(fieldNum))
+        self.longitude  = SubFrameElement(self, self.cornerFrame, xText, xVal,  0, 0, 1, width=10)
+        self.latitude   = SubFrameElement(self, self.cornerFrame, yText, yVal,   1, 0, 1, width=10)
         self.cornerFrame.grid(row=elementRow, column=elementCol, padx=5)
 
 
 class SubFrameArea(tk.Frame):
-    def __init__(self, container, parent, areaNum, numCorners, numCornersMax, numYearsMax, yearStart, yearStop, elementRow, elementCol):
+    def __init__(self, container, parent, areaNum, numCorners, numCornersMax, numYearsMax, yearStart, yearStop, elementRow, elementCol, labelArr):
         super().__init__()
         self.numCorners = numCorners
         self.numCornersMax = numCornersMax
@@ -74,9 +79,9 @@ class SubFrameArea(tk.Frame):
         self.numCornersEntry = SubFrameElement(self, self.areaFrame, '# corners',  numCorners,   0, 2, 3, valCmd=numbersCallback)
         # +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
         self.numCornersButton = ttk.Button(self.areaFrame, text='Update # Corners', command=self.NumCornersUpdate)
-        self.numCornersButton.grid(row=1, column=3, sticky='n')
+        self.numCornersButton.grid(row=0, column=4)
         # +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-        self.corners = [SubFrameLongLat(self, self.areaFrame, str(i+1), '-70', '45', 2, i+3)  for i in range(numCornersMax)]
+        self.corners = [SubFrameXY(self, self.areaFrame, str(i+1), 1, i+3, labelArr)  for i in range(numCornersMax)]
         # now hide unwanted corners
         for i in range(numCorners, numCornersMax):
             self.corners[i].cornerFrame.grid_remove()
@@ -100,9 +105,6 @@ class SubFrameArea(tk.Frame):
         for i in range(self.numCorners):
             self.corners[i].cornerFrame.grid()
         
-    def ChangeParameter(self):
-        pass
-
 
 # ************************
 # Scrollable Frame Class

@@ -54,6 +54,8 @@ from MortalityFrame import *
 from SpecialAccessFrame import *
 from InterpolationFrame import *
 from SortByAreaFrame import *
+from SpecialAreaFrame import *
+from FishMortBySpecAcc import *
 
 #======================================================================================================
 ##
@@ -104,22 +106,28 @@ class MainApplication(tk.Tk):
         #
         # NOTE: MA does not use stratum and forces it to false
         # 
-        self.frame2 = SpecialAccess(self.notebook)
+        #self.frame2 = SpecialAccess(self.notebook)
         self.frame3 = Mortality(self.notebook, self.mortConfigFile)
         self.frame4 = UKInterpolation(self.notebook, self, self.frame1)
         self.frame5 = SortByArea(self.notebook, self.frame1, self.maxAreas, self.maxCorners, self.maxYears, self.paramStr)
+        self.frame6 = SpecialArea(self.notebook, self.maxAreas, self.maxCorners)
+        self.frame7 = FishMortBySpecAcc(self.notebook, self.maxAreas, self.maxCorners)
 
         # Update strings based on given configuration files
         # Frame 3 reads in Mortality config file
-        self.frame2.fishMortFile.myEntry.insert(0, self.frame3.fmorFileStr)
+        #self.frame2.fishMortFile.myEntry.insert(0, self.frame3.fmorFileStr)
+        self.frame7.fishMortFile.myEntry.insert(0, self.frame3.fmorFileStr)
         self.ReadGridMgrConfigFile()
-        self.frame2.specAccFile.myEntry.insert(0, self.specAccFileStr)
+        #self.frame2.specAccFile.myEntry.insert(0, self.specAccFileStr)
+        self.frame6.specAccFile.myEntry.insert(0, self.specAccFileStr)
 
         self.notebook.add(self.frame1, text='Main')
-        self.notebook.add(self.frame2, text='Special Access')
+        #self.notebook.add(self.frame2, text='Special Access')
         self.notebook.add(self.frame3, text='Mortality')
         self.notebook.add(self.frame4, text='UKInterpolation')
         self.notebook.add(self.frame5, text='SortByArea')
+        self.notebook.add(self.frame6, text='SpecialArea')
+        self.notebook.add(self.frame7, text='Fishing Mort in\n Special Access')
         self.notebook.pack()
 
         self.style.configure("Custom.TLabel", padding=6, relief="flat", background="#0F0")
@@ -332,7 +340,7 @@ class MainApplication(tk.Tk):
             f.write('MA Length_0 = '       + self.frame3.maLength0.myEntry.get() + '\n')
             f.write('GB Length_0 = '       + self.frame3.gbLength0.myEntry.get() + '\n')
             f.write('# special area fishing mortalities\n# to use default value set to NONE\n')
-            f.write('Fishing Mortality File = '+ self.frame2.fishMortFile.myEntry.get() + '\n')
+            f.write('Fishing Mortality File = '+ self.frame7.fishMortFile.myEntry.get() + '\n')
             f.write('# Used to compute LPUE\n')
             f.write('LPUE Slope = '        + self.frame3.lpueSlope.myEntry.get() +   '\n')
             f.write('LPUE Slope2 = '       + self.frame3.lpueSlope2.myEntry.get() +  '\n')
@@ -356,7 +364,7 @@ class MainApplication(tk.Tk):
             f.write('# If not used then set to NONE or comment out line\n')
             f.write('# NOTE: Setting to NONE will also cause Mortality to not read in\n')
             f.write('# its special access fishing mortalities and default Fishing Mortalities are used.\n')
-            f.write('Special Access Config File = '+self.frame2.specAccFile.myEntry.get()+'\n')
+            f.write('Special Access Config File = '+self.frame6.specAccFile.myEntry.get()+'\n')
             f.close()
 
     #-------------------------------------------------------------------------------------
