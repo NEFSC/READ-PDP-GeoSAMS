@@ -424,8 +424,12 @@ integer function Load_Area_Coordinates()
             
             ! read longitude value
             edge_lon = 0
-            sub_str = input_str
-            j = len(input_str)
+            j = len_trim(input_str)
+            ! remove trailing commas artifact of 
+            do while (input_str(j:j) .EQ. ',')
+                j = j - 1
+            enddo
+            sub_str = input_str(1:j)
 
             do while (j.ne.0)
                 edge_lon = edge_lon + 1
@@ -439,8 +443,12 @@ integer function Load_Area_Coordinates()
             if (io.lt.0) exit
 
             edge_lat = 0
-            sub_str = input_str
-            j = len(input_str)
+            j = len_trim(input_str)
+            ! remove trailing commas artifact of 
+            do while (input_str(j:j) .EQ. ',')
+                j = j - 1
+            enddo
+            sub_str = input_str(1:j)
 
             do while (j.ne.0)
                 edge_lat = edge_lat + 1
