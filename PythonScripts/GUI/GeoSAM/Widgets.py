@@ -1,8 +1,9 @@
 import tkinter as tk
 import platform
 from tkinter import ttk
-from tkinter import messagebox
 
+# *************************************************************************************************
+# *************************************************************************************************
 class SubFrameElement(tk.Frame):
     def __init__(self, container, parent, label, value, elementRow, labelCol, entryCol, width=5, valCmd=None):
         super().__init__()
@@ -17,7 +18,8 @@ class SubFrameElement(tk.Frame):
         self.myLabel = ttk.Label(parent, text=label, wraplength=200, anchor='n', justify='right')
         self.myLabel.grid(row=elementRow, column=labelCol, sticky='n', padx=5, pady=10)
 
-
+# *************************************************************************************************
+# *************************************************************************************************
 class SubFrameInterpFunction(tk.Frame):
     def __init__(self, container, parent, funcNum, dim, shape, preconNum, elementRow, elementCol):
         super().__init__()
@@ -46,6 +48,8 @@ class SubFrameInterpFunction(tk.Frame):
 
         self.funcFrame.grid(row=elementRow, column=elementCol)
 
+# *************************************************************************************************
+# *************************************************************************************************
 class SubFrameXY(tk.Frame):
     def __init__(self, container, parent, fieldNum, elementRow, elementCol, lableArr):
         super().__init__()
@@ -60,51 +64,6 @@ class SubFrameXY(tk.Frame):
         self.latitude   = SubFrameElement(self, self.cornerFrame, yText, yVal,   1, 0, 1, width=10)
         self.cornerFrame.grid(row=elementRow, column=elementCol, padx=5)
 
-
-class SubFrameArea(tk.Frame):
-    def __init__(self, container, parent, areaNum, numCorners, numCornersMax, numYearsMax, yearStart, yearStop, elementRow, elementCol, labelArr):
-        super().__init__()
-        self.numCorners = numCorners
-        self.numCornersMax = numCornersMax
-
-        self.areaFrame = ttk.LabelFrame(parent, text='Area '+str(areaNum+1))
-        # +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-        numYears = yearStop - yearStart + 1
-        self.results = [SubFrameElement(self, self.areaFrame, str(yearStart+i), '0', i, 0, 1, width=15) for i in range(numYearsMax)]
-        # Now hide unused
-        for i in range(numYears, numYearsMax):
-            self.results[i].myEntry.grid_remove()
-            self.results[i].myLabel.grid_remove()
-        # +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-        self.numCornersEntry = SubFrameElement(self, self.areaFrame, '# corners',  numCorners,   0, 2, 3, valCmd=numbersCallback)
-        # +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-        self.numCornersButton = ttk.Button(self.areaFrame, text='Update # Corners', command=self.NumCornersUpdate)
-        self.numCornersButton.grid(row=0, column=4)
-        # +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-        self.corners = [SubFrameXY(self, self.areaFrame, str(i+1), 1, i+3, labelArr)  for i in range(numCornersMax)]
-        # now hide unwanted corners
-        for i in range(numCorners, numCornersMax):
-            self.corners[i].cornerFrame.grid_remove()
-        # +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-        self.areaFrame.grid(row=elementRow, column=elementCol, columnspan=10, sticky='ew')
-
-    def NumCornersUpdate(self):
-        for i in range(self.numCornersMax):
-            self.corners[i].cornerFrame.grid_remove()
-
-        n = int(self.numCornersEntry.myEntry.get())
-        if n > self.numCornersMax:
-            messagebox.showerror("Number of Corners", f'Max is {self.numCornersMax}\nSetting to max')
-            n = self.numCornersMax
-            self.numCornersEntry.myEntry.delete(0,3)
-            self.numCornersEntry.myEntry.insert(0, str(n))
-        self.numCorners = n
-        # Now update desired funtion definitions
-        for i in range(self.numCornersMax):
-            self.corners[i].cornerFrame.grid_remove()
-        for i in range(self.numCorners):
-            self.corners[i].cornerFrame.grid()
-        
 
 # ************************
 # Scrollable Frame Class
@@ -126,17 +85,23 @@ class ScrollFrame(tk.Frame):
 
         self.canvas_window = self.canvas.create_window((4,4), window=self.viewPort, anchor="nw", tags="self.viewPort") #add view port frame to canvas
 
-        self.viewPort.bind("<Configure>", self.onFrameConfigure)                    #bind an event whenever the size of the viewPort frame changes.
-        self.viewPort.bind('<Enter>', self.onEnter)                                 # bind wheel events when the cursor enters the control
-        self.viewPort.bind('<Leave>', self.onLeave)                                 # unbind wheel events when the cursorl leaves the control
+        self.viewPort.bind("<Configure>", self.onFrameConfigure) #bind an event whenever the size of the viewPort frame changes.
+        self.viewPort.bind('<Enter>', self.onEnter)              # bind wheel events when the cursor enters the control
+        self.viewPort.bind('<Leave>', self.onLeave)              # unbind wheel events when the cursorl leaves the control
 
-        self.onFrameConfigure(None)                                                 #perform an initial stretch on render, otherwise the scroll region has a tiny border until the first resize
+        self.onFrameConfigure(None)                              #perform an initial stretch on render, otherwise the scroll region has a tiny border until the first resize
 
-    def onFrameConfigure(self, event):                                              
+    #---------------------------------------------------------------------------------
+    ## whenever the size of the frame changes, alter the scroll region respectively.
+    #---------------------------------------------------------------------------------
+    def onFrameConfigure(self, event):                 
         '''Reset the scroll region to encompass the inner frame'''
-        self.canvas.configure(scrollregion=self.canvas.bbox("all"))                 #whenever the size of the frame changes, alter the scroll region respectively.
+        self.canvas.configure(scrollregion=self.canvas.bbox("all"))
 
-    def onMouseWheel(self, event):                                                  # cross platform scroll wheel event
+    #---------------------------------------------------------------------------------
+    ## cross platform scroll wheel event
+    #---------------------------------------------------------------------------------
+    def onMouseWheel(self, event):
         if platform.system() == 'Windows':
             self.canvas.yview_scroll(int(-1* (event.delta/120)), "units")
         elif platform.system() == 'Darwin':
@@ -147,20 +112,30 @@ class ScrollFrame(tk.Frame):
             elif event.num == 5:
                 self.canvas.yview_scroll( 1, "units" )
     
-    def onEnter(self, event):                                                       # bind wheel events when the cursor enters the control
+    #---------------------------------------------------------------------------------
+    ## bind wheel events when the cursor enters the control
+    #
+    #---------------------------------------------------------------------------------
+    def onEnter(self, event):
         if platform.system() == 'Linux':
             self.canvas.bind_all("<Button-4>", self.onMouseWheel)
             self.canvas.bind_all("<Button-5>", self.onMouseWheel)
         else:
             self.canvas.bind_all("<MouseWheel>", self.onMouseWheel)
 
-    def onLeave(self, event):                                                       # unbind wheel events when the cursorl leaves the control
+    #---------------------------------------------------------------------------------
+    ## unbind wheel events when the cursorl leaves the control
+    #
+    #---------------------------------------------------------------------------------
+    def onLeave(self, event):
         if platform.system() == 'Linux':
             self.canvas.unbind_all("<Button-4>")
             self.canvas.unbind_all("<Button-5>")
         else:
             self.canvas.unbind_all("<MouseWheel>")
 
+# *************************************************************************************************
+# *************************************************************************************************
 def numbersCallback(input):
     """Only allows numeric for input """
     if input.isdigit(): return True  
@@ -168,6 +143,8 @@ def numbersCallback(input):
     elif input == "": return True
     else: return False
 
+# *************************************************************************************************
+# *************************************************************************************************
 def floatCallback(inp):
     if input.isdigit(): return True  
     elif input == ".": return True

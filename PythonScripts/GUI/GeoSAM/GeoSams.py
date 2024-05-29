@@ -50,8 +50,7 @@ import os
 import sys
 
 from MainInputFrame import *
-from MortalityFrame import *
-from SpecialAccessFrame import *
+from GrowthFrame import *
 from InterpolationFrame import *
 from SortByAreaFrame import *
 from SpecialAreaFrame import *
@@ -94,7 +93,7 @@ class MainApplication(tk.Tk):
         (self.paramStr, self.paramVal) = self.ReadSimConfigFile()
         self.notebook = ttk.Notebook(self)
 
-        self.frame1 = MainInput(self.notebook, self, self.tsPerYear, self.paramVal, self.savedByStratum)
+        self.frame1 = MainInput(self.notebook, self, self.tsPerYear, self.paramVal)
         # NOTE: These will still be default values as the user would not as yet entered anything!!
         self.simConfigFile  = os.path.join(self.root,'Configuration', self.frame1.simCfgFile.myEntry.get())
         self.mortConfigFile = os.path.join(self.root,'Configuration', self.frame1.mortCfgFile.myEntry.get())
@@ -107,7 +106,7 @@ class MainApplication(tk.Tk):
         # NOTE: MA does not use stratum and forces it to false
         # 
         #self.frame2 = SpecialAccess(self.notebook)
-        self.frame3 = Mortality(self.notebook, self.mortConfigFile)
+        self.frame3 = Growth(self.notebook, self.mortConfigFile)
         self.frame4 = UKInterpolation(self.notebook, self, self.frame1)
         self.frame5 = SortByArea(self.notebook, self.frame1, self.maxAreas, self.maxCorners, self.maxYears, self.paramStr)
         self.frame6 = SpecialArea(self.notebook, self.maxAreas, self.maxCorners)
@@ -123,7 +122,7 @@ class MainApplication(tk.Tk):
 
         self.notebook.add(self.frame1, text='Main')
         #self.notebook.add(self.frame2, text='Special Access')
-        self.notebook.add(self.frame3, text='Mortality')
+        self.notebook.add(self.frame3, text='Growth')
         self.notebook.add(self.frame4, text='UKInterpolation')
         self.notebook.add(self.frame5, text='SortByArea')
         self.notebook.add(self.frame6, text='SpecialArea')

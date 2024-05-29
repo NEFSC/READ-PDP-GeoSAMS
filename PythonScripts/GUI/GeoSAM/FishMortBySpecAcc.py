@@ -5,23 +5,19 @@
 #
 # @section pFMSAp1 Number of Areas
 #
-# @section pFMSAp2 Output Parameters
-#
-# @section pFMSAp3 Load and Save Data Sort Files
-#
-# @section pFMSAp4 Run Sort
+# @section pFMSAp3 Load and Save Fishing Mortality Files
 #
 # @section pFMSAp5 Area SubFrames
 #
-# @subsection pFMSAp5p1 Years Simulated
+# @subsection pFMSAp5p1 Year Definitions
 #
 # @subsection pFMSAp5p2 Accumulated Values for Given Output Parameter
 #
-# @subsection pFMSAp5p3 Corners
+# @subsection pFMSAp5p3 Corners, or Defined Mortalities by Area
 #
 # @subsubsection pFMSAp5p3p1 Number of Corners
 #
-# @subsubsection pFMSAp5p3p2 Corner Identifier by Longitude and Latitude
+# @subsubsection pFMSAp5p3p2 Corner Identifier by Special Area and Mortality
 # 
 #======================================================================================================
 import os
@@ -140,7 +136,6 @@ class FishMortBySpecAcc(ttk.Frame):
             self.yearEntry[i].grid()
             self.yearEntry[i].delete(0,4)
             self.yearEntry[i].insert(0, year[i])
-
 
     # --------------------------------------------------------------------------------------------------------
     # --------------------------------------------------------------------------------------------------------

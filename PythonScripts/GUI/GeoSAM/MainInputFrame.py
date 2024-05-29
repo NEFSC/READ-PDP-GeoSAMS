@@ -37,6 +37,7 @@
 import os
 import tkinter as tk
 from tkinter import ttk
+from tkinter import filedialog
 from Widgets import *
 
 #======================================================================================================
@@ -47,7 +48,7 @@ from Widgets import *
 #======================================================================================================
 class MainInput(ttk.Frame):
 
-    def __init__(self, container, friend, tsPerYear, selectedOutputs, useStratum):
+    def __init__(self, container, friend, tsPerYear, selectedOutputs):
         super().__init__()
         self.root = os.environ['ROOT']
         self.startDir = os.path.join(self.root, 'Configuration')

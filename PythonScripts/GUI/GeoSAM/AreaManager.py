@@ -36,7 +36,8 @@ from PointInPolygon import *
 #======================================================================================================
 class AreaManager(ttk.Frame):
     
-    def __init__(self, container, parent, maxAreas, maxCorners, elementRow, elementCol, cornerRow, cornerColumn, labelArr):
+    def __init__(self, container, parent, maxAreas, maxCorners, elementRow, elementCol, cornerRow, cornerColumn, labelArr,
+                 includeYears=False, numYearsMax=0, yearStart=0, yearStop=0):
         super().__init__()
 
         self.numAreasMax = maxAreas
@@ -49,7 +50,8 @@ class AreaManager(ttk.Frame):
         self.areaData = [Corner(self.numCornersMax) for _ in range(self.numAreasMax)]
         self.areaComment = ['' for _ in range(self.numAreasMax)]
         self.areaSubFrame = [AreaMgrSubFrame(self, parent, a, self.numCorners, self.numCornersMax,  
-                                         a+elementRow, elementCol, cornerRow, cornerColumn, labelArr) for a in range(self.numAreasMax)]
+                                         a+elementRow, elementCol, cornerRow, cornerColumn, labelArr,
+                                         includeYears, numYearsMax, yearStart, yearStop) for a in range(self.numAreasMax)]
 
 
         self.style = ttk.Style()
@@ -270,6 +272,7 @@ class AreaManager(ttk.Frame):
                     f.write(self.areaSubFrame[i].corners[j].latitude.myEntry.get()+',')
                 f.write(self.areaSubFrame[i].corners[j+1].latitude.myEntry.get()+'\n')
         f.close()
+
 #======================================================================================================
 #======================================================================================================
 class Corner:
@@ -278,6 +281,8 @@ class Corner:
         self.lat = [0.0 for _ in range(maxCorners)]
         self.numCorners = 0
 
+#======================================================================================================
+#======================================================================================================
 class AreaMgrSubFrame(tk.Frame):
     def __init__(self, container, parent, areaNum, numCorners, numCornersMax, elementRow, elementCol, cornerRow, cornerCol, labelArr,
                  includeYears=False, numYearsMax=0, yearStart=0, yearStop=0):
@@ -296,14 +301,14 @@ class AreaMgrSubFrame(tk.Frame):
                 self.results[i].myEntry.grid_remove()
                 self.results[i].myLabel.grid_remove()
         # +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-        self.commentEntry = SubFrameElement(self, self.areaFrame, 'Comment',  '',  cornerRow, cornerCol, cornerCol+1, width=25)
+        self.commentEntry = SubFrameElement(self, self.areaFrame, 'Comment',  '',  cornerRow, startingCol+cornerCol, startingCol+cornerCol+1, width=25)
         # +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-        self.numCornersEntry = SubFrameElement(self, self.areaFrame, '# corners',  numCorners, cornerRow+1, cornerCol, cornerCol+1, valCmd=numbersCallback)
+        self.numCornersEntry = SubFrameElement(self, self.areaFrame, '# corners',  numCorners, cornerRow+1, startingCol+cornerCol, startingCol+cornerCol+1, valCmd=numbersCallback)
         # +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
         self.numCornersButton = ttk.Button(self.areaFrame, text='Update # Corners', command=self.NumCornersUpdate)
-        self.numCornersButton.grid(row=cornerRow+1, column=cornerCol+2)
+        self.numCornersButton.grid(row=cornerRow+1, column=startingCol+cornerCol+2)
         # +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-        self.corners = [SubFrameXY(self, self.areaFrame, str(i+1), 2, i+cornerCol, labelArr)  for i in range(numCornersMax)]
+        self.corners = [SubFrameXY(self, self.areaFrame, str(i+1), 2, i+startingCol+cornerCol, labelArr)  for i in range(numCornersMax)]
         # now hide unwanted corners
         for i in range(numCorners, numCornersMax):
             self.corners[i].cornerFrame.grid_remove()

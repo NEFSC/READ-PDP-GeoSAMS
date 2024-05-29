@@ -32,6 +32,7 @@ from tkinter import filedialog
 
 from Widgets import *
 from PointInPolygon import *
+from AreaManager import *
 
 #===============================================================================================================
 ##
@@ -46,7 +47,7 @@ class SortByArea(ttk.Frame):
         self.root = os.environ['ROOT']
         self.startDir = os.path.join(self.root, 'DataSort')
         self.friend = friend
-
+        self.areaFName = None
 
         self.numAreasMax = maxAreas
         self.numCornersMax = maxCorners
@@ -104,12 +105,13 @@ class SortByArea(ttk.Frame):
         self.saveDataSortButton = ttk.Button(self.sortAreaFrame, text='Run Sort', command=self.RunSort)
         self.saveDataSortButton.grid(row=2, column=2, sticky='w')
         # +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-        self.areas = [SubFrameArea(self, self.sortAreaFrame, a, self.numCorners, self.numCornersMax, self.maxYears, 
-                                         self.yearStart, self.yearStop, 3+a, 0, labelArr) for a in range(self.numAreasMax)]
+        self.areas = AreaManager(self, self.sortAreaFrame, self.numAreasMax, self.numCornersMax,
+                                   elementRow=3, elementCol=0, cornerRow=0, cornerColumn=0, labelArr=labelArr,
+                                   includeYears=True, numYearsMax=self.maxYears, yearStart=self.yearStart, yearStop=self.yearStop)
 
         # now hide
         for a in range(self.numAreas, self.numAreasMax):
-            self.areas[a].areaFrame.grid_remove()
+            self.areas.areaSubFrame[a].areaFrame.grid_remove()
 
         self.sortAreaFrame.grid(row=4, column=0, columnspan=10)
         self.sortAreaFrame.grid_columnconfigure(0,weight=2)
@@ -117,11 +119,12 @@ class SortByArea(ttk.Frame):
         # --------------------------------------------------------------------------------------------------------
         self.scrollFrame.grid(row=0, column=0, sticky='nsew')
 
-        self.UpdateWidgets()
-
         self.bind("<Visibility>", self.on_visibility)
 
+    #---------------------------------------------------------------------------------------------------------
+    #---------------------------------------------------------------------------------------------------------
     def on_visibility(self, event):
+        self.areaFName = os.path.join(self.startDir, self.dataSortFileEntry.get())
         self.paramStr = []
         parmVal = self.friend.GetSelectedOutputs()
         # ordering of string may not matter. The user ultimately selects the desired vale
@@ -149,10 +152,13 @@ class SortByArea(ttk.Frame):
             self.friend.stopYr.myEntry.insert(0, self.yearStop)
         for i in range(self.numAreas):
             for j in range(self.numYears):
-                self.areas[i].results[j].myEntry.grid()
-                self.areas[i].results[j].myLabel.grid()
-                self.areas[i].results[j].myLabel.config(text = str(self.yearStart+j))
+                self.areas.areaSubFrame[i].results[j].myEntry.grid()
+                self.areas.areaSubFrame[i].results[j].myLabel.grid()
+                self.areas.areaSubFrame[i].results[j].myLabel.config(text = str(self.yearStart+j))
+        self.UpdateWidgets()
 
+    #---------------------------------------------------------------------------------------------------------
+    #---------------------------------------------------------------------------------------------------------
     def RunSort(self):
         paramData = [0.0 for _ in range(self.numYears)] # data read in from file
         rows = self.numAreas
@@ -167,10 +173,10 @@ class SortByArea(ttk.Frame):
         # if grid parameter is within area of interest
         self.numAreas = int(self.numAreasEntry.get())
         for i in range(self.numAreas):
-            self.areaData[i].numCorners = int(self.areas[i].numCornersEntry.myEntry.get())
+            self.areaData[i].numCorners = int(self.areas.areaSubFrame[i].numCornersEntry.myEntry.get())
             for j in range(self.areaData[i].numCorners):
-                self.areaData[i].long[j] = float(self.areas[i].corners[j].longitude.myEntry.get())
-                self.areaData[i].lat[j] = float(self.areas[i].corners[j].latitude.myEntry.get())
+                self.areaData[i].long[j] = float(self.areas.areaSubFrame[i].corners[j].longitude.myEntry.get())
+                self.areaData[i].lat[j] = float(self.areas.areaSubFrame[i].corners[j].latitude.myEntry.get())
 
         of = open('temp.txt', 'w')
 
@@ -193,7 +199,7 @@ class SortByArea(ttk.Frame):
                         paramData[i] = float(dataArray[i+3]) 
                     
                     # Now check if the data point (lon, lat) is located in one of the desired areas
-                    # self.areas[i] with given coordinates self.areas[i].corners[j]
+                    # self.areas.areaSubFrame[i] with given coordinates self.areas.areaSubFrame[i].corners[j]
                     #
                     # if so, add to accumParamData[i][0:n] += paramData[0:n]
 
@@ -214,44 +220,38 @@ class SortByArea(ttk.Frame):
         # display results
         for i in range(self.numAreas):
             for j in range(self.numYears):
-                old = self.areas[i].results[j].myEntry.get()
+                old = self.areas.areaSubFrame[i].results[j].myEntry.get()
                 n = len(old)
-                self.areas[i].results[j].myEntry.delete(0, n)
+                self.areas.areaSubFrame[i].results[j].myEntry.delete(0, n)
                 # round to 4 decimal places
                 # round(x,4) can have unpredicable results, use simple math instead
                 r = 1e4
                 y = int(accumParamData[i][j] * r + 0.5) / r
-                self.areas[i].results[j].myEntry.insert(0, str(y))
+                self.areas.areaSubFrame[i].results[j].myEntry.insert(0, str(y))
 
-
-    def UpdateWidgets(self, filePath=None):
-        # Populate from known file
-        currentParam = 0
-        self.comboParameter.configure(values=self.paramStr)
-        self.comboParameter.current(currentParam)
-        self.numAreas = self.ReadAreaCorners(filePath)
+    #---------------------------------------------------------------------------------------------------------
+    #---------------------------------------------------------------------------------------------------------
+    def UpdateWidgets(self):
+        self.numAreas = self.areas.ReadAreaCorners(self.areaFName)
         self.numAreasEntry.delete(0,3)
         self.numAreasEntry.insert(0, str(self.numAreas))
         self.NumAreasUpdate()
-        for i in range(self.numAreas):
-            self.areas[i].numCornersEntry.myEntry.delete(0,3)
-            self.areas[i].numCornersEntry.myEntry.insert(0, str(self.areaData[i].numCorners))
-            self.areas[i].NumCornersUpdate()
-            for j in range(self.areaData[i].numCorners):
-                self.areas[i].corners[j].longitude.myEntry.delete(0,10)
-                self.areas[i].corners[j].longitude.myEntry.insert(0, str(self.areaData[i].long[j]))
-                self.areas[i].corners[j].latitude.myEntry.delete(0,10)
-                self.areas[i].corners[j].latitude.myEntry.insert(0, str(self.areaData[i].lat[j]))
+        self.areas.UpdateWidgets()
 
+    #---------------------------------------------------------------------------------------------------------
+    #---------------------------------------------------------------------------------------------------------
     def GetDataSortFile(self):
         file_path = filedialog.askopenfilename(title="Open CSV File", filetypes=[("CSV files", "*.csv")], defaultextension='csv', initialdir=self.startDir)
         if file_path:
-            self.UpdateWidgets(file_path)
+            self.areaFName = file_path
+            self.UpdateWidgets()
             n = len(self.dataSortFileEntry.get())
             self.dataSortFileEntry.delete(0,n)
             f = file_path.split('/')
             self.dataSortFileEntry.insert(0, f[-1])
     
+    #---------------------------------------------------------------------------------------------------------
+    #---------------------------------------------------------------------------------------------------------
     def SaveDataSortFile(self):
         fName = filedialog.asksaveasfilename(title="Save CSV File", filetypes=[("CSV files", "*.csv")], defaultextension='csv', initialdir=self.startDir)
         if fName:
@@ -259,26 +259,27 @@ class SortByArea(ttk.Frame):
                 for i in range(int(self.numAreasEntry.get())):
 
                     # write longitude values
-                    for j in range(int(self.areas[i].numCornersEntry.myEntry.get()) - 1):
-                        f.write(self.areas[i].corners[j].longitude.myEntry.get()+',')
-                    f.write(self.areas[i].corners[j+1].longitude.myEntry.get()+'\n')
+                    for j in range(int(self.areas.areaSubFrame[i].numCornersEntry.myEntry.get()) - 1):
+                        f.write(self.areas.areaSubFrame[i].corners[j].longitude.myEntry.get()+',')
+                    f.write(self.areas.areaSubFrame[i].corners[j+1].longitude.myEntry.get()+'\n')
                 
                     # write latitude values
-                    for j in range(int(self.areas[i].numCornersEntry.myEntry.get()) - 1):
-                        f.write(self.areas[i].corners[j].latitude.myEntry.get()+',')
-                    f.write(self.areas[i].corners[j+1].latitude.myEntry.get()+'\n')
+                    for j in range(int(self.areas.areaSubFrame[i].numCornersEntry.myEntry.get()) - 1):
+                        f.write(self.areas.areaSubFrame[i].corners[j].latitude.myEntry.get()+',')
+                    f.write(self.areas.areaSubFrame[i].corners[j+1].latitude.myEntry.get()+'\n')
             f.close()
             n = len(self.dataSortFileEntry.get())
             self.dataSortFileEntry.delete(0,n)
             f = fName.split('/')
             self.dataSortFileEntry.insert(0, f[-1])
 
-
+    #---------------------------------------------------------------------------------------------------------
+    #---------------------------------------------------------------------------------------------------------
     def NumAreasUpdate(self):
         """ Updates the number of areas functions. """
 
         for i in range(self.numAreasMax):
-            self.areas[i].areaFrame.grid_remove()
+            self.areas.areaSubFrame[i].areaFrame.grid_remove()
 
         n = int(self.numAreasEntry.get())
         if n > self.numAreasMax:
@@ -287,74 +288,4 @@ class SortByArea(ttk.Frame):
             self.numAreasEntry.delete(0,3)
             self.numAreasEntry.insert(0, str(n))
         self.numAreas = n
-        # Now update desired funtion definitions
-        for i in range(self.numAreasMax):
-            self.areas[i].areaFrame.grid_remove()
-        for i in range(self.numAreas):
-            self.areas[i].areaFrame.grid()
-
-    def ReadAreaCorners(self, fName=None):
-        """Reads a DataSort file and returns the number of areas defined"""
-        areaIndex = 0
-        if fName == None: fName = 'DataSort/AreasOfInterestDataSort.csv'
-        if os.path.isfile(fName):
-            with open(fName, 'r') as f:
-                while True:
-                    if (areaIndex >= self.numAreasMax):
-                        messagebox.showerror("Reading Areas File", f'Max reached {self.numAreasMax}\nStopping at {areaIndex}')
-                        break
-
-                    # read longitude values
-                    inputStr = f.readline()
-                    if not inputStr:
-                        f.close()
-                        break
-
-                    if inputStr[0] == '#': continue
-                    inputArr = [s.strip() for s in inputStr.split(',')]
-                    # remove trailing commas
-                    inputArr = list(filter(None, inputArr))
-                    numCorners = len(inputArr)
-                    if (numCorners > self.numCornersMax):
-                        messagebox.showerror("Reading Data Sort Areas File", f'Max corners reached. Stoppin at {self.numCornersMax}\n')
-                        numCorners = self.numCornersMax
-                    
-                    for longIndex in range(numCorners):
-                        self.areaData[areaIndex].long[longIndex] = float(inputArr[longIndex])
-                    longIndex += 1
-
-                    # read latiitude values
-                    inputStr = f.readline()
-                    if not inputStr:
-                        f.close()
-                        break
-                    if inputStr[0] == '#': continue
-                    inputArr = [s.strip() for s in inputStr.split(',')]
-                    # remove trailing commas
-                    inputArr = list(filter(None, inputArr))
-                    numCorners = len(inputArr)
-                    if (numCorners > self.numCornersMax):
-                        messagebox.showerror("Reading Data Sort Areas File", f'Max corners reached. Stoppin at {self.numCornersMax}\n')
-                        numCorners = self.numCornersMax
-
-                    for latIndex in range(numCorners):
-                        self.areaData[areaIndex].lat[latIndex] = float(inputArr[latIndex])
-                    latIndex += 1
-
-                    if (longIndex != latIndex):
-                        messagebox.showerror("Invalid Area Data File", f'Ignoring Corner Data Set @ {areaIndex}')
-                    else:
-                        self.areaData[areaIndex].numCorners = latIndex
-                        areaIndex += 1
-
-                f.close()
-            return areaIndex
-        else: 
-            messagebox.showerror("Data Sort", f'No Data Sort File Has Been Read')
-            return 1
-
-class Corner:
-    def __init__(self, maxCorners):
-        self.long = [0.0 for _ in range(maxCorners)]
-        self.lat = [0.0 for _ in range(maxCorners)]
-        self.numCorners = 0
+        self.areas.NumAreasUpdate(n)
