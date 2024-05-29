@@ -156,11 +156,10 @@ class MainApplication(tk.Tk):
         # No check for variables changed, therefore update all configuration files with current values in GUI
         # OR
         # Create new files based on names given by user, or same if not changed
-        self.SaveConfigFiles
+        self.SaveConfigFiles()
         # 
         # typical command line:
         # > ./SRC/ScallopPopDensity.exe Scallop.cfg StartYear StopYear Domain
-
         ex = os.path.join(self.root, 'SRC', 'ScallopPopDensity')
         simCfgFile = self.frame1.simCfgFile.myEntry.get()
         ukCfgFile = self.frame1.ukCfgFile.myEntry.get()
