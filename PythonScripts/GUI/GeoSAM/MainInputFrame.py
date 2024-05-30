@@ -56,7 +56,7 @@ class MainInput(ttk.Frame):
 
         self.style = ttk.Style()
         self.style.configure('MainInput.TFrame', borderwidth=10, relief='solid', labelmargins=20)
-        self.style.configure('MainInput.TFrame.Label', font=('courier', 8, 'bold'))
+        self.style.configure('MainInput.TFrame.Label', font=('courier', 10, 'bold'))
         #-------------------------------------------------------------------------------------------
         growthFrame = ttk.LabelFrame(self, text='Growth', style='MainInput.TFrame')
         self.startYr    = SubFrameElement(self, growthFrame, 'Start Year', '2015',          0, 0, 1)

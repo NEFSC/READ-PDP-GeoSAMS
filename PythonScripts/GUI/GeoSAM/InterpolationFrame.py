@@ -103,7 +103,7 @@ class UKInterpolation(ttk.Frame):
             self.nsf = 5
         self.style = ttk.Style()
         self.style.configure('UKInterpolation.TFrame', borderwidth=10, relief='solid', labelmargins=20)
-        self.style.configure('UKInterpolation.TFrame.Label', font=('courier', 8, 'bold'))
+        self.style.configure('UKInterpolation.TFrame.Label', font=('courier', 10, 'bold'))
 
         self.scrollFrame = ScrollFrame(self) # add a new scrollable frame.
 

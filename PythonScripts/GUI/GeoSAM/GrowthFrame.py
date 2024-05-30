@@ -146,7 +146,7 @@ class Growth(ttk.Frame, MainApplication):
 
         self.style = ttk.Style()
         self.style.configure('Growth.TFrame', borderwidth=10, relief='solid', labelmargins=20)
-        self.style.configure('Growth.TFrame.Label', font=('courier', 8, 'bold'))
+        self.style.configure('Growth.TFrame.Label', font=('courier', 10, 'bold'))
         fishingFrame= ttk.LabelFrame(self, text='Growth', style='Growth.TFrame')
         self.fishMort   = SubFrameElement(self, fishingFrame, 'Fishing Mortality', self.fmortStr,       0, 0, 1)
         #self.fishSelect = SubFrameElement(self, fishingFrame, 'Fishing Effort\n(USD, BMS, or CAS)', self.fishStr, row, 0, 1)

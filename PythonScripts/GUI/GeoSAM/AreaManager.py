@@ -56,7 +56,7 @@ class AreaManager(ttk.Frame):
 
         self.style = ttk.Style()
         self.style.configure('SortByArea.TFrame', borderwidth=10, relief='solid', labelmargins=20)
-        self.style.configure('SortByArea.TFrame.Label', font=('courier', 8, 'bold'))
+        self.style.configure('SortByArea.TFrame.Label', font=('courier', 10, 'bold'))
 
         self.scrollFrame = ScrollFrame(self) # add a new scrollable frame.
         
