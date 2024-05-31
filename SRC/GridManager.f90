@@ -350,7 +350,7 @@ integer function Load_Grid_State(grid, state)
     real(dp), intent(out):: state(1:num_grids, 1:num_size_classes)
 
     character(csv_line_len) input_str
-    integer n, io, is_closed
+    integer n, io, is_closed, region
 
     if (init_cond_fname .eq. "") then
         write(*,*) term_red, '"Initial Conditions" is not defined, Check setting in GridManager.cfg', term_blk
@@ -370,9 +370,10 @@ integer function Load_Grid_State(grid, state)
         read(input_str,*) grid(n)%year, grid(n)%x, grid(n)%y, grid(n)%lat, grid(n)%lon, grid(n)%z, &
         &               is_closed, grid(n)%stratum, state(n,1:num_size_classes)
 
-        ! if domain is GB, determine if survey data is in GB region
-        if (domain_name .EQ. 'GB') then
-            if (Get_GB_region(grid(n)%lat, grid(n)%lon, grid(n)%stratum) > 0) then
+        ! if region is GB, determine if survey data is in GB region
+        if (grid(n)%lon > ma_gb_border) then
+            region = Get_Region(grid(n)%lat, grid(n)%lon, grid(n)%stratum) 
+            if ((region > region_none) .AND. (region .NE. region_MA )) then
                 grid(n)%is_closed = (is_closed > 0)
                 grid(n)%special_access_index = 0
             else
@@ -587,65 +588,63 @@ logical function Point_In_Polygon_Vector(polyX, polyY, x, y, nodes)
 endfunction Point_In_Polygon_Vector
 
 !--------------------------------------------------------------------------------------------------
-!! Get_GB_region
+!! Get_Region
 !> Returns a region number based on stratum
 !> 0: not used
-!> 1: N North region
-!> 2: S South region
-!> 3: SW Southwest region
-!> 4: W West region
+!> 1: region_N North region
+!> 2: region_S South region
+!> 3: region_SW Southwest region
+!> 4: region_W West region
+!> 5: region_MA Entire Mid-Atlantic Region
 !> Inputs:
 !> grid: locations of survey data
 !--------------------------------------------------------------------------------------------------
 ! Tom Callaghan
 !--------------------------------------------------------------------------------------------------
-integer function Get_GB_region(lat, lon, stratum)
+integer function Get_Region(lat, lon, stratum)
 use globals
 implicit none
 real(dp), intent(in) :: lat, lon, stratum
-integer, parameter :: none=0
-integer, parameter :: N=1
-integer, parameter :: S=2
-integer, parameter :: SW=3
-integer, parameter :: W=4
 
-if( (stratum < 6460._dp) .OR. (stratum .EQ. 6652._dp) .OR. (stratum .EQ. 6662._dp) ) then
-    Get_GB_region = none
+if (stratum < 6400) then
+    Get_Region = region_MA
+elseif( (stratum < 6460._dp) .OR. (stratum .EQ. 6652._dp) .OR. (stratum .EQ. 6662._dp) ) then
+    Get_Region = region_none
 elseif (stratum < 6490._dp) then
     if ((lat > 40.7_dp) .AND. (lon > -69.35_dp)) then
-        Get_GB_region = W
+        Get_Region = region_W
     else
-        Get_GB_region = SW
+        Get_Region = region_SW
     endif
 elseif (stratum < 6530._dp) then
-    Get_GB_region = W
+    Get_Region = region_W
 elseif (stratum < 6560._dp) then
-    Get_GB_region = N
+    Get_Region = region_N
 elseif (stratum < 6610._dp) then
-    Get_GB_region = S
+    Get_Region = region_S
 elseif (stratum < 6622._dp) then
-    Get_GB_region = S
+    Get_Region = region_S
 elseif (stratum < 6651._dp) then
-    Get_GB_region = none
+    Get_Region = region_none
 elseif (stratum < 6680._dp) then
-    Get_GB_region = N
+    Get_Region = region_N
 elseif (stratum < 6710._dp) then
-    Get_GB_region = none
+    Get_Region = region_none
 elseif (stratum < 6730._dp) then
-    Get_GB_region = N
+    Get_Region = region_N
 elseif (stratum < 6740._dp) then
-    Get_GB_region = none
+    Get_Region = region_none
 elseif (stratum < 6960._dp) then
     if (lat > 41.5_dp) then
-        Get_GB_region = N
+        Get_Region = region_N
     else 
-        Get_GB_region = S
+        Get_Region = region_S
     endif
 else
-    Get_GB_region = none
+    Get_Region = region_none
 endif
 
-endfunction Get_GB_region
+endfunction Get_Region
 
 
 endmodule Grid_Manager_Mod

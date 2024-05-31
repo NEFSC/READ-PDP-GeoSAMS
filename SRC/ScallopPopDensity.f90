@@ -563,11 +563,12 @@ endsubroutine Write_Lat_Lon_Preamble
 !! Write_X_Y_Preamble
 !> @brief Writes year, UTM-X, UTM-Y, and Depth columns with headers to named file
 !--------------------------------------------------------------------------------
-subroutine Write_X_Y_Preamble(num_grids, grid, fname, save_by_stratum)
+subroutine Write_X_Y_Preamble(num_grids, grid, yr_offset, fname, save_by_stratum)
 use globals
 use Grid_Manager_Mod
 integer, intent(in) :: num_grids
 type(Grid_Data_Class), intent(in) :: grid(*)
+real(dp), intent(in) :: yr_offset
 character(*), intent(in) :: fname
 logical, intent(in) :: save_by_stratum
 
@@ -576,7 +577,7 @@ integer k
 if (save_by_stratum) then
     k = index(fname, '.') -1
     file_name = fname(1:k)
-    call Write_Column_CSV_By_Stratum(num_grids, grid(1:num_grids)%year, &
+    call Write_Column_CSV_By_Stratum(num_grids, grid(1:num_grids)%year+yr_offset, &
     &                                           grid(1:num_grids)%lat, &
     &                                           grid(1:num_grids)%lon, &
     &                                           grid(1:num_grids)%stratum, 'YEAR', trim(file_name),.false.)
@@ -593,7 +594,7 @@ if (save_by_stratum) then
     &                                           grid(1:num_grids)%lon, &
     &                                           grid(1:num_grids)%stratum, 'DEPTH', trim(file_name),.true.)
 else
-    call Write_Column_CSV(num_grids, grid(1:num_grids)%year, 'YEAR', fname,.false.)
+    call Write_Column_CSV(num_grids, grid(1:num_grids)%year+yr_offset, 'YEAR', fname,.false.)
     call Write_Column_CSV(num_grids, grid(1:num_grids)%x,    'UTM_X', fname,.true.)
     call Write_Column_CSV(num_grids, grid(1:num_grids)%y,    'UTM_Y', fname,.true.)
     call Write_Column_CSV(num_grids, grid(1:num_grids)%z,    'DEPTH', fname,.true.)
@@ -626,12 +627,12 @@ character(5000) output_str
 integer, parameter :: temp_dev = 70
 integer, parameter :: appd_dev = 80
 integer offset
-character(3) :: rgn(num_GB_regions) = (/ '_N ', '_S ', '_SW', '_W '/)
+character(3) :: rgn(num_regions) = (/ '_N ', '_S ', '_SW', '_W ', '_MA'/)
 if (append) then
     ! read existing files by region0
     ! create a temp file by region to write output then move temp to existing file_name
     ! read and write header row for each temp file
-    do offset = 1, num_GB_regions
+    do offset = 1, num_regions
         open(appd_dev+offset, file=file_name//trim(rgn(offset))//'.csv', status='old')
         open(unit=temp_dev+offset, iostat=io, file=output_dir//'TEMP'//trim(rgn(offset)), status='replace')
         read(appd_dev+offset,'(A)',iostat=io) input_str
@@ -639,19 +640,19 @@ if (append) then
         write(temp_dev+offset, '(A)'//NEW_LINE(cr)) trim(output_str)
     enddo
     do k=1,n
-        offset = Get_GB_region(lat(k), lon(k), stratum(k))
+        offset = Get_Region(lat(k), lon(k), stratum(k))
         if (offset > 0) then
             read(appd_dev+offset,'(A)',iostat=io) input_str
             write(output_str,'(A,A,(ES14.7 : ))') trim(input_str),',',f(k)
             write(temp_dev+offset, '(A)'//NEW_LINE(cr)) trim(output_str)
         endif
     enddo
-    do k = 1, num_GB_regions
+    do k = 1, num_regions
         close(appd_dev+k)
         close(temp_dev+k)
     enddo
     ! copy temp file to file name and delete temp file
-    do offset = 1,num_GB_regions
+    do offset = 1,num_regions
         open(temp_dev+offset, file=output_dir//'TEMP'//trim(rgn(offset)), status='old')
         open(unit=appd_dev+offset, iostat=io, file=file_name//trim(rgn(offset))//'.csv', status='replace')
         ! number of rows in temp file varies read until no more lines
@@ -666,17 +667,17 @@ if (append) then
 else
     ! empty file, write header to first line
     fmtstr='(ES14.7 : )'//NEW_LINE(cr)
-    do offset = 1,num_GB_regions
+    do offset = 1,num_regions
         open(appd_dev+offset, file=file_name//trim(rgn(offset))//'.csv')
         write(appd_dev+offset, '(A)') header
     enddo
     
     ! write data to first column
     do k=1,n
-        offset = Get_GB_region(lat(k), lon(k), stratum(k))
+        offset = Get_Region(lat(k), lon(k), stratum(k))
         if (offset>0) write(appd_dev+offset,fmtstr) f(k)
     enddo
-    do offset = 1,num_GB_regions
+    do offset = 1,num_regions
         close(appd_dev+offset)
     enddo
 endif
@@ -698,6 +699,7 @@ logical, intent(in) :: save_by_stratum
 integer, intent(in) :: start_year, stop_year
 
 character(4) buf
+real(dp) yr_offset
 
 ! write latitude and longitude out for later use by Matlab Geographic Scatter Plot ------------------------------ 
 if (plot_data_sel%plot_ABUN) call Write_Lat_Lon_Preamble(num_grids, grid, output_dir//'Lat_Lon_Surv_ABUN_'//domain_name//'.csv')
@@ -712,61 +714,64 @@ if (plot_data_sel%plot_RECR) call Write_Lat_Lon_Preamble(num_grids, grid, output
 
 ! Write similar data for later interpolation by UK (Universal Kriging)
 write(buf,'(I4)') start_year
+yr_offset = 0.
 if (plot_data_sel%plot_ABUN) &
-&    call Write_X_Y_Preamble(num_grids, grid, data_dir//'X_Y_ABUN_'//domain_name//buf//'_0.csv', save_by_stratum)
+&    call Write_X_Y_Preamble(num_grids, grid, yr_offset, data_dir//'X_Y_ABUN_'//domain_name//buf//'_0.csv', save_by_stratum)
 
 if (plot_data_sel%plot_BMMT) &
-&    call Write_X_Y_Preamble(num_grids, grid, data_dir//'X_Y_BMMT_'//domain_name//buf//'_0.csv', save_by_stratum)
+&    call Write_X_Y_Preamble(num_grids, grid, yr_offset, data_dir//'X_Y_BMMT_'//domain_name//buf//'_0.csv', save_by_stratum)
 
 if (plot_data_sel%plot_EBMS) &
-&    call Write_X_Y_Preamble(num_grids, grid, data_dir//'X_Y_EBMS_'//domain_name//buf//'_0.csv', save_by_stratum)
+&    call Write_X_Y_Preamble(num_grids, grid, yr_offset, data_dir//'X_Y_EBMS_'//domain_name//buf//'_0.csv', save_by_stratum)
 
 if (plot_data_sel%plot_FEFF) &
-&    call Write_X_Y_Preamble(num_grids, grid, data_dir//'X_Y_FEFF_'//domain_name//buf//'_0.csv', save_by_stratum)
+&    call Write_X_Y_Preamble(num_grids, grid, yr_offset, data_dir//'X_Y_FEFF_'//domain_name//buf//'_0.csv', save_by_stratum)
 
 if (plot_data_sel%plot_FMOR) &
-&    call Write_X_Y_Preamble(num_grids, grid, data_dir//'X_Y_FMOR_'//domain_name//buf//'_0.csv', save_by_stratum)
+&    call Write_X_Y_Preamble(num_grids, grid, yr_offset, data_dir//'X_Y_FMOR_'//domain_name//buf//'_0.csv', save_by_stratum)
 
 if (plot_data_sel%plot_LAND) & 
-&    call Write_X_Y_Preamble(num_grids, grid, data_dir//'X_Y_LAND_'//domain_name//buf//'_0.csv', save_by_stratum)
+&    call Write_X_Y_Preamble(num_grids, grid, yr_offset, data_dir//'X_Y_LAND_'//domain_name//buf//'_0.csv', save_by_stratum)
 
 if (plot_data_sel%plot_LNDW) & 
-&    call Write_X_Y_Preamble(num_grids, grid, data_dir//'X_Y_LNDW_'//domain_name//buf//'_0.csv', save_by_stratum)
+&    call Write_X_Y_Preamble(num_grids, grid, yr_offset, data_dir//'X_Y_LNDW_'//domain_name//buf//'_0.csv', save_by_stratum)
 
 if (plot_data_sel%plot_LPUE) &
-&    call Write_X_Y_Preamble(num_grids, grid, data_dir//'X_Y_LPUE_'//domain_name//buf//'_0.csv', save_by_stratum)
+&    call Write_X_Y_Preamble(num_grids, grid, yr_offset, data_dir//'X_Y_LPUE_'//domain_name//buf//'_0.csv', save_by_stratum)
 
 if (plot_data_sel%plot_RECR) &
-&    call Write_X_Y_Preamble(num_grids, grid, data_dir//'X_Y_RECR_'//domain_name//buf//'_0.csv', save_by_stratum)
+&    call Write_X_Y_Preamble(num_grids, grid, yr_offset, data_dir//'X_Y_RECR_'//domain_name//buf//'_0.csv', save_by_stratum)
 
 do n = start_year, stop_year
     write(buf,'(I4)') n
     if (plot_data_sel%plot_ABUN) &
-    &    call Write_X_Y_Preamble(num_grids, grid, data_dir//'X_Y_ABUN_'//domain_name//buf//'.csv', save_by_stratum)
+    &    call Write_X_Y_Preamble(num_grids, grid, yr_offset, data_dir//'X_Y_ABUN_'//domain_name//buf//'.csv', save_by_stratum)
 
     if (plot_data_sel%plot_BMMT) &
-    &    call Write_X_Y_Preamble(num_grids, grid, data_dir//'X_Y_BMMT_'//domain_name//buf//'.csv', save_by_stratum)
+    &    call Write_X_Y_Preamble(num_grids, grid, yr_offset, data_dir//'X_Y_BMMT_'//domain_name//buf//'.csv', save_by_stratum)
 
     if (plot_data_sel%plot_EBMS) &
-    &    call Write_X_Y_Preamble(num_grids, grid, data_dir//'X_Y_EBMS_'//domain_name//buf//'.csv', save_by_stratum)
+    &    call Write_X_Y_Preamble(num_grids, grid, yr_offset, data_dir//'X_Y_EBMS_'//domain_name//buf//'.csv', save_by_stratum)
 
     if (plot_data_sel%plot_FEFF) &
-    &    call Write_X_Y_Preamble(num_grids, grid, data_dir//'X_Y_FEFF_'//domain_name//buf//'.csv', save_by_stratum)
+    &    call Write_X_Y_Preamble(num_grids, grid, yr_offset, data_dir//'X_Y_FEFF_'//domain_name//buf//'.csv', save_by_stratum)
 
     if (plot_data_sel%plot_FMOR) &
-    &    call Write_X_Y_Preamble(num_grids, grid, data_dir//'X_Y_FMOR_'//domain_name//buf//'.csv', save_by_stratum)
+    &    call Write_X_Y_Preamble(num_grids, grid, yr_offset, data_dir//'X_Y_FMOR_'//domain_name//buf//'.csv', save_by_stratum)
 
     if (plot_data_sel%plot_LAND) &
-    &    call Write_X_Y_Preamble(num_grids, grid, data_dir//'X_Y_LAND_'//domain_name//buf//'.csv', save_by_stratum)
+    &    call Write_X_Y_Preamble(num_grids, grid, yr_offset, data_dir//'X_Y_LAND_'//domain_name//buf//'.csv', save_by_stratum)
 
     if (plot_data_sel%plot_LNDW) &
-    &    call Write_X_Y_Preamble(num_grids, grid, data_dir//'X_Y_LNDW_'//domain_name//buf//'.csv', save_by_stratum)
+    &    call Write_X_Y_Preamble(num_grids, grid, yr_offset, data_dir//'X_Y_LNDW_'//domain_name//buf//'.csv', save_by_stratum)
 
     if (plot_data_sel%plot_LPUE) &
-    &    call Write_X_Y_Preamble(num_grids, grid, data_dir//'X_Y_LPUE_'//domain_name//buf//'.csv', save_by_stratum)
+    &    call Write_X_Y_Preamble(num_grids, grid, yr_offset, data_dir//'X_Y_LPUE_'//domain_name//buf//'.csv', save_by_stratum)
 
     if (plot_data_sel%plot_RECR) &
-    &    call Write_X_Y_Preamble(num_grids, grid, data_dir//'X_Y_RECR_'//domain_name//buf//'.csv', save_by_stratum)
+    &    call Write_X_Y_Preamble(num_grids, grid, yr_offset, data_dir//'X_Y_RECR_'//domain_name//buf//'.csv', save_by_stratum)
+
+    yr_offset = yr_offset + 1.0
 end do
 endsubroutine Setup_Data_Files
 

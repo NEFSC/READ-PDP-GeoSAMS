@@ -20,7 +20,13 @@ integer, parameter :: num_size_classes = (shell_len_max - shell_len_min) / shell
 integer, parameter :: max_num_years  = 50
 integer, parameter :: max_num_areas = 25
 integer, parameter :: max_sides = 8
-integer, parameter :: num_GB_regions = 4
+integer, parameter :: num_regions = 5
+integer, parameter :: region_none=0
+integer, parameter :: region_N=1
+integer, parameter :: region_S=2
+integer, parameter :: region_SW=3
+integer, parameter :: region_W=4
+integer, parameter :: region_MA=5
 
 ! used by configuration files
 integer, parameter :: tag_len = 40
