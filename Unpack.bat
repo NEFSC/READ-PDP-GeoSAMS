@@ -43,6 +43,7 @@ goto args_count_ok
     @echo "Domain"
     @echo "    MA"
     @echo "    GB"
+    @echo "    ALL, both MA and GB"
     exit /b
 
 :args_count_ok

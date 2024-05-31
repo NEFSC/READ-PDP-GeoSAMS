@@ -7,6 +7,8 @@
 %   ALL ==> 0
 function TrawlData5mmbin(yrStart, yrEnd, src, domain)
 
+domList = {'MA', 'GB', 'AL'};
+
 isOctave = (exist('OCTAVE_VERSION', 'builtin') ~= 0);
 
 if isOctave
@@ -25,18 +27,11 @@ if isOctave
 end
 srcText = src;
 
-if strcmp(domain, 'GB')
-  d = 1;
-elseif strcmp(domain, 'MA')
-  d = 2;
-else
+if sum(ismember(domList, domain)) == 0
     fprintf( 'Invalid Domain %s\n',  domain);
+    fprintf( "Use: 'MA' or 'GB' or 'AL'\n" )
     return;
 end
-% UTM Zone. Zone 18 if lon <= -72.0
-%           Zone 19 if lon >  -72.0
-% Zone is approx CEILING((180 + lon)/6,1), therefore not truly needed
-utmZone = [19,18];
 
 if isOctave
 
@@ -46,20 +41,21 @@ if isOctave
     M=M(j,:);
     %------- new M table ----------------------
 
-    lon=-M(:,19);
-    if strcmp(domain, 'GB')
-        j=find(lon>-70.5);%GB
-    else
-        j=find(lon<=-70.5);%MA
-    end
+    if ~strcmp(domain, 'AL')
+        lon=-M(:,19);
+        if strcmp(domain, 'GB')
+            j=find(lon>-70.5);%GB
+        else
+            j=find(lon<=-70.5);%MA
+        end
 
-    M = M(j,:);
-    %------- new M table ----------------------
+        M = M(j,:);
+        %------- new M table ----------------------
+	end
 
     lat=M(:,18);
     lon=-M(:,19);
-    [xx,yy]=ll2utm(lat,lon,utmZone(d));
-
+    [xx,yy]=ll2utm(lat,lon);
     year = M(:,4);
     sg = M(:,27);
     dataSrc = M(:,37);
@@ -71,19 +67,21 @@ else
     M=M(j,:);
     %------- new M table ----------------------
 
-    lon = -table2array(M(:,19));
-    if strcmp(domain, 'GB')
-        j = lon>-70.5;%GB
-    else
-        j = lon<-70.5;%MA
-    end
+    if ~strcmp(domain, 'AL')
+        lon = -table2array(M(:,19));
+        if strcmp(domain, 'GB')
+            j = lon>-70.5;%GB
+        else
+            j = lon<-70.5;%MA
+        end
 
-    M = M(j,:);
-    %------- new M table ----------------------
+        M = M(j,:);
+        %------- new M table ----------------------
+    end
 
     lat=table2array(M(:,18));
     lon=-table2array(M(:,19));
-    [xx,yy]=ll2utm(lat,lon,utmZone(d));
+    [xx,yy]=ll2utm(lat,lon);
 
     year = table2array(M(:,4));
     sg = table2array(M(:,27));
@@ -143,12 +141,7 @@ for yr=yrStart:yrEnd
             x_t = array2table(xx(j),'VariableNames',{'x'});
             y_t = array2table(yy(j),'VariableNames',{'y'});
         end
-        %
-        % At this point x_t, y_t would be the same as
-        % lat=table2array(M(j,18));
-        % lon=-table2array(M(j,19));
-        % [xx,yy]=ll2utm(lat,lon,utmZone(d));
-        %
+
         n=find(and(year==yr,sg==3.));
         for k=1:numel(lat_t)
             % bring in the surv_n data from size group 3 to 18, centimeters

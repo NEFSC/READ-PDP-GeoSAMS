@@ -315,8 +315,6 @@ class MainApplication(tk.Tk):
         with open(simCfgFile, 'w') as f:
             f.write('# configuration file for mortality\n')
             f.write('Fishing Mortality = ' + self.frame3.fishMort.myEntry.get()   + '\n')
-            f.write('# Fishing can be USD, BMS, or, CAS\n')
-            f.write('Fishing = BMS')#          + self.frame3.fishSelect.myEntry.get() + '\n')
             f.write('# Fishing Mortality proportional to LPUE^alpha\n')
             f.write('Alpha Mortality = '   + self.frame3.alphaMort.myEntry.get()  + '\n')
             f.write('MA Cull size = '     + self.frame3.maCullSize.myEntry.get() + '\n')
@@ -337,7 +335,7 @@ class MainApplication(tk.Tk):
             f.write('GB Incidental = '     + self.frame3.gbIncident.myEntry.get() + '\n')
             f.write('MA Length_0 = '       + self.frame3.maLength0.myEntry.get() + '\n')
             f.write('GB Length_0 = '       + self.frame3.gbLength0.myEntry.get() + '\n')
-            f.write('# special area fishing mortalities\n# to use default value set to NONE\n')
+            f.write('# special area fishing mortalities\n# if not used set to NONE\n')
             f.write('Fishing Mortality File = '+ self.frame7.fishMortFile.myEntry.get() + '\n')
             f.write('# Used to compute LPUE\n')
             f.write('LPUE Slope = '        + self.frame3.lpueSlope.myEntry.get() +   '\n')

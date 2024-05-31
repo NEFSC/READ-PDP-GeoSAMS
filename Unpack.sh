@@ -33,9 +33,10 @@ then
     echo "    VIMSRSA  ==> 4444"
     echo "    NMFSSHRP ==> 5555"
     echo "    ALL      ==> 0"
-    echo Domain
-    echo "    MA"
-    echo "    GB"
+    @echo "Domain"
+    @echo "    MA"
+    @echo "    GB"
+    @echo "    ALL, both MA and GB"
     exit
 fi
 
@@ -52,12 +53,13 @@ then
     exit
 fi
 
-if [[ "$4" != "MA" && "$4" != "GB" ]] 
+if [[ "$4" != "MA" && "$4" != "GB" && "$4" != "AL"]] 
 then
     echo [31mInvalid Domain: [0m "$4"
     echo Domain
     echo "    'MA'"
     echo "    'GB'"
+    echo "    'AL', both MA and GB"
     exit
 fi
 
@@ -123,24 +125,24 @@ cd ..
 
 octave PreProcess/TrawlData5mmbin.m $1 $2 $3 $4
 if [ $? != 0 ]; then
-    echo [31mError in MATLAB TrawlData5mmbin. Stopping[0m
+    echo [31mError in octave TrawlData5mmbin. Stopping[0m
     exit
 fi
 
 octave PreProcess/PullOutRecruitData.m $3
 if [ $? != 0 ]; then
-    echo [31mError in MATLAB PullOutRecruitData. Stopping[0m
+    echo [31mError in octave PullOutRecruitData. Stopping[0m
     exit
 fi
 
 octave PreProcess/ProcessRecruitData.m $1 $2 $4
 if [ $? != 0 ]; then
-    echo [31mError in MATLAB ProcessRecruitData. Stopping[0m
+    echo [31mError in octave ProcessRecruitData. Stopping[0m
     exit
 fi
 
 octave mfiles/NearestNeighborRecInterp.m $1 $2 $4
 if [ $? != 0 ]; then
-    echo [31mError in MATLAB NearestNeighborRecInterp. Stopping[0m
+    echo [31mError in octave NearestNeighborRecInterp. Stopping[0m
     exit
 fi

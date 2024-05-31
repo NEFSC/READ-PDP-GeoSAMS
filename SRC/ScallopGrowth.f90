@@ -216,32 +216,26 @@ subroutine Set_Growth(growth, grid, shell_lengths, num_ts, ts_per_year, dom_name
     ! Needs grid information to establish closed|open, depth, and latitude
     do n = 1, num_grids
         weight_grams(n,1:num_size_classes) =  Shell_to_Weight(shell_lengths(1:num_size_classes), &
-        &                grid(n)%is_closed, grid(n)%z, grid(n)%lat)
+        &                grid(n)%is_closed, grid(n)%z, grid(n)%lat, grid(n)%lon)
     enddo
     call Write_CSV(num_grids, num_size_classes, weight_grams, growth_out_dir//'WeightShellHeight.csv', &
     &    size(weight_grams,1), .FALSE.)
 
     allocate(Gpar(1:num_grids, 1:growth_param_size))
     ! Compute Growth Parameters, L_inf_mu, K_mu, L_inf_sd, K_sd based on depth, latitude, and if grid is closed
-    if(domain_name .eq. 'GB')then
-        do n=1,num_grids
+    do n=1,num_grids
+        if (grid(n)%lon > ma_gb_border) then  ! GB
             call Get_Growth_GB(grid(n)%z, grid(n)%lat, grid(n)%is_closed, &
-            &                  growth(n)%L_inf_mu, growth(n)%K_mu,&
-            &                  growth(n)%L_inf_sd, growth(n)%K_sd)
-            ! Compute Growth Transition Matrix
-            growth(n)%G = Gen_Size_Trans_Matrix(growth(n)%L_inf_mu, growth(n)%L_inf_sd, &
-            &                              growth(n)%K_mu, growth(n)%K_sd, shell_lengths, 'AppxC')
-        enddo
-    else
-        do n=1,num_grids
+            &  growth(n)%L_inf_mu, growth(n)%K_mu, growth(n)%L_inf_sd, growth(n)%K_sd) !d values returne
+        else
             call Get_Growth_MA(grid(n)%z, grid(n)%lat, grid(n)%is_closed, &
-            &                  growth(n)%L_inf_mu, growth(n)%K_mu,&
-            &                  growth(n)%L_inf_sd, growth(n)%K_sd)
-            ! Compute Growth Transition Matrix
-            growth(n)%G = Gen_Size_Trans_Matrix(growth(n)%L_inf_mu, growth(n)%L_inf_sd, &
-            &                              growth(n)%K_mu, growth(n)%K_sd, shell_lengths, 'AppxC')
-        enddo
-    endif
+            &  growth(n)%L_inf_mu, growth(n)%K_mu, growth(n)%L_inf_sd, growth(n)%K_sd) !d values returne
+        endif
+        ! Compute Growth Transition Matrix using returned values
+        growth(n)%G = Gen_Size_Trans_Matrix(growth(n)%L_inf_mu, growth(n)%L_inf_sd, &
+        &                              growth(n)%K_mu, growth(n)%K_sd, shell_lengths, 'AppxC')
+    enddo
+
     ! save grid paramaters
     Gpar(1:num_grids,1) = growth(1:num_grids)%L_inf_mu
     Gpar(1:num_grids,2) = growth(1:num_grids)%L_inf_sd
@@ -746,7 +740,7 @@ end subroutine enforce_non_negative_growth
 !> @param[out] state_time_steps State at each time step
 !> @param[in] start_year under considration
 !==================================================================================================================
-function Time_To_Grow(ts, growth, mortality, recruit, state, fishing_effort, year)
+function Time_To_Grow(ts, growth, mortality, recruit, state, fishing_effort, year, longitude)
 
     use Mortality_Mod, only : Mortality_Class, Compute_Natural_Mortality
     use Recruit_Mod, only : Recruitment_Class
@@ -759,7 +753,7 @@ function Time_To_Grow(ts, growth, mortality, recruit, state, fishing_effort, yea
     integer, intent(in) :: year
     real(dp),intent(inout) :: state(*)
     real(dp) :: Time_To_Grow(num_size_classes)
-    real(dp), intent(in) :: fishing_effort
+    real(dp), intent(in) :: fishing_effort, longitude
     real(dp) t
     integer Rindx
     real(dp), allocatable :: M(:), Rec(:)
@@ -777,7 +771,7 @@ function Time_To_Grow(ts, growth, mortality, recruit, state, fishing_effort, yea
     Rec(1:recruit%max_rec_ind) = recruit%recruitment(Rindx)
 
     ! Compute natural mortality based on current state
-    mortality%natural_mortality(1:num_size_classes) = Compute_Natural_Mortality(recruit%max_rec_ind, mortality, state)
+    mortality%natural_mortality(1:num_size_classes) = Compute_Natural_Mortality(recruit%max_rec_ind, mortality, state, longitude)
 
     ! adjust population state based on von Bertalanffy growth
     state(1:num_size_classes) = matmul(growth%G(1:num_size_classes, 1:num_size_classes), state(1:num_size_classes))
@@ -847,14 +841,14 @@ endfunction Time_To_Grow
 !> @param[in] ispp Logic to indiate is Peter Pan???
 !> @returns weight in grams
 !==================================================================================================================
-elemental real(dp) function Shell_to_Weight(shell_length_mm, is_closed, depth, latitude)
+elemental real(dp) function Shell_to_Weight(shell_length_mm, is_closed, depth, latitude, longitude)
     use globals
     implicit none
-    real(dp) , intent(in) :: shell_length_mm, depth, latitude
+    real(dp) , intent(in) :: shell_length_mm, depth, latitude, longitude
     logical , intent(in) :: is_closed
 
     !mm to grams
-    if(domain_name.eq.'GB')then
+    if (longitude > ma_gb_border) then  ! GB
         !for GB scallops, open covariate is 1 in the former groundfish closed areas or access areas and 0 in the open areas (includes NLS-EXT and CAII-EXT)
         Shell_to_Weight = exp(-6.69 + 2.878 * log(shell_length_mm) + (-0.0073 * depth) + (-0.073 * latitude) &
         &                + (1.28 - 0.25 * log(shell_length_mm)) * Logic_To_Double(is_closed))

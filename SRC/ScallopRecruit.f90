@@ -157,6 +157,9 @@ subroutine Set_Recruitment(recruit, n_grids, dom_name, dom_area, L_inf_mu, K_mu,
     character(72) buf
     real(dp) L30mm
 
+    character(fname_len) fname
+    logical exists
+
     ! set default values
     recr_period_start = 0./365.
     recr_period_stop = 100./365.
@@ -184,7 +187,15 @@ subroutine Set_Recruitment(recruit, n_grids, dom_name, dom_area, L_inf_mu, K_mu,
     do year = recr_start_year, recr_stop_year
         year_index = year_index + 1
         write(buf,'(I6)')year
-        call Read_Scalar_Field(rec_input_dir//'RecruitEstimate'//domain_name//trim(adjustl(buf))//'.txt', tmp, num_grids)
+        fname = rec_input_dir//'RecruitEstimate'//domain_name//trim(adjustl(buf))//'.txt'
+        inquire(file=fname, exist=exists)
+        if (exists) then
+            PRINT *, term_blu, trim(fname), ' FOUND', term_blk
+        else
+            PRINT *, term_red, trim(fname), ' NOT FOUND', term_blk
+            stop 1
+        endif
+        call Read_Scalar_Field(fname, tmp, num_grids)
         do j = 1,num_grids
             recruit(j)%recruitment(year_index) = tmp(j)
             recruit(j)%year(year_index) = year

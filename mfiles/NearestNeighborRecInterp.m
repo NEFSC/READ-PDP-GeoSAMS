@@ -14,8 +14,9 @@ if isOctave
   end
 end
 
-if ~strcmp(domain, 'GB') & ~strcmp(domain, 'MA')
+if ~strcmp(domain, 'GB') & ~strcmp(domain, 'MA') & ~strcmp(domain, 'AL')
     fprintf( 'Invalid Domain %s\n',  domain);
+    fprintf( "Use: 'MA' or 'GB' or 'AL'\n" )
     return;
 end
   

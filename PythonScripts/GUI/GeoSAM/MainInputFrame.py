@@ -64,8 +64,8 @@ class MainInput(ttk.Frame):
         self.tsPerYear  = SubFrameElement(self, growthFrame, 'tsPerYear', str(tsPerYear),   2, 0, 1)
         self.domainNameLabel = ttk.Label(growthFrame, text='Domain Name')
         self.domainNameLabel.grid(row=3, column=0)
-        self.domainNameCombo = ttk.Combobox(growthFrame, width=3, values=['MA', 'GB'])
-        self.domainNameCombo.current(0)
+        self.domainNameCombo = ttk.Combobox(growthFrame, width=3, values=['MA', 'GB', 'AL'])
+        self.domainNameCombo.current(2)
         self.domainNameCombo.grid(row=3, column=1, sticky='w')
 
         self.useStratumLabel = ttk.Label(growthFrame, text='Use Stratum\n(Not Used by MA)')

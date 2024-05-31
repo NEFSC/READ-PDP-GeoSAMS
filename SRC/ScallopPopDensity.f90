@@ -331,7 +331,6 @@ write(*,'(A,I6)') ' Working with #grids ', num_grids
 write(*,'(A,A6)') ' Domain:             ', domain_name
 write(*,'(A,I6)') ' Start Year:         ', start_year
 write(*,'(A,I6)') ' Stop Year:          ', stop_year
-write(*,'(A,A6)') ' Fishing Type:       ', Get_Fishing_Type()
 write(*,'(A,I6,A,F7.4)') ' Time steps/year:', ts_per_year
 write(*,'(A,I6,A,F7.4)') ' Total number time steps:', num_time_steps
 write(*,*) ' Saving Output by Stratum: ', save_by_stratum
@@ -362,7 +361,7 @@ do ts = 1, num_time_steps
         !  a. Compute new state
         !- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - 
         state(n, 1:num_size_classes) = Time_To_Grow(ts, growth(n), mortality(n), recruit(n), &
-        &                         state(n, 1:num_size_classes), fishing_effort(n), year)
+        &                         state(n, 1:num_size_classes), fishing_effort(n), year, grid(n)%lon)
     enddo ! n = 1, num_grids
 
     ! finished with time_steps_year, increment year
@@ -532,7 +531,7 @@ subroutine Read_Startup_Config(time_steps_per_year, save_by_stratum, start_year,
     read(arg,*) stop_year
     
     call get_command_argument(4, domain_name)
-    if (.not. ( any ((/ domain_name.eq.'MA', domain_name.eq.'GB'/)) )) then
+    if (.not. ( any ((/ domain_name.eq.'MA', domain_name.eq.'GB', domain_name.eq.'AL'/)) )) then
         write(*,*) term_red, ' **** INVALID DOMAIN NAME: ', domain_name, term_blk
         stop 1
     endif

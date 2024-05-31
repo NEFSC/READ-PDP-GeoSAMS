@@ -43,6 +43,7 @@ goto args_count_ok
     @echo "Domain"
     @echo "    MA"
     @echo "    GB"
+    @echo "    ALL, both MA and GB"
     exit /b
 
 :args_count_ok
@@ -158,7 +159,6 @@ IF ERRORLEVEL 1 (
     exit /b
 )
 
-@REM If domain is GB F for whole region, T for subregion, i.e. by stratum
 python .\PythonScripts\Process%4Results.py %1 %2
 IF ERRORLEVEL 1 (
     @echo [31mError in Process%4Results.py. Stopping[0m

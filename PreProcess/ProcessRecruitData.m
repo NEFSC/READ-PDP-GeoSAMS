@@ -14,8 +14,9 @@ if isOctave
   end
 end
 
-if ~strcmp(domain, 'GB') & ~strcmp(domain, 'MA')
+if ~strcmp(domain, 'GB') & ~strcmp(domain, 'MA') & ~strcmp(domain, 'AL')
   fprintf( 'Invalid Domain %s\n',  domain);
+  fprintf( "Use: 'MA' or 'GB' or 'AL'\n" )
   return;
 end
 
@@ -188,15 +189,20 @@ else
   rec=table2array(F(:,7));
 end
 
-if strcmp(domain, 'MA')
-  j=find(lon<-70.5);
-  [x,y]=ll2utm(lat,lon,18);
+if ~strcmp(domain, 'AL')
+  if strcmp(domain, 'MA')
+    j=find(lon<-70.5);
+    [x,y]=ll2utm(lat,lon,18);
+  else
+    j=find(lon>=-70.5);
+    [x,y]=ll2utm(lat,lon,19);
+  end
+  M=[DecYr(j), x(j), y(j), Depth(j), rec(j)];
 else
-  j=find(lon>=-70.5);
-  [x,y]=ll2utm(lat,lon,19);
+  [x,y]=ll2utm(lat,lon);
+  M=[DecYr, x, y, Depth, rec];
 end
 
-M=[DecYr(j), x(j), y(j), Depth(j), rec(j)];
 flnm=['Data/Recruits', domain, '.csv'];
 header='"decmal year", "x utm", "y utm", "bottom depth(m)","recruits per sq m"';
 fprintf('Writing to %s\n', flnm)

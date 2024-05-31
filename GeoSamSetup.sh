@@ -33,9 +33,10 @@ then
     echo "    VIMSRSA  ==> 4444"
     echo "    NMFSSHRP ==> 5555"
     echo "    ALL      ==> 0"
-    echo Domain
-    echo "    MA"
-    echo "    GB"
+    @echo "Domain"
+    @echo "    MA"
+    @echo "    GB"
+    @echo "    ALL, both MA and GB"
     exit
 fi
 
@@ -52,12 +53,13 @@ then
     exit
 fi
 
-if [[ "$4" != "MA" && "$4" != "GB" ]] 
+if [[ "$4" != "MA" && "$4" != "GB" && "$4" != "AL" ]] 
 then
     echo [31mInvalid Domain: [0m "$4"
     echo Domain
     echo "    'MA'"
     echo "    'GB'"
+    echo "    'AL', both MA and GB"
     exit
 fi
 
