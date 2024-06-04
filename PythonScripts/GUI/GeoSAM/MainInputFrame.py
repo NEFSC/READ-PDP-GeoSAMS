@@ -102,11 +102,11 @@ class MainInput(ttk.Frame):
         #-------------------------------------------------------------------------------------------
         #-------------------------------------------------------------------------------------------
         configFrame = ttk.LabelFrame(self, text='Configuration Files', style='MainInput.TFrame')
-        self.mortCfgFile = SubFrameElement(self, configFrame, 'Mortality Config File', 'Mortality.cfg',  0, 0, 1, width=20)
-        self.recrCfgFile = SubFrameElement(self, configFrame, 'Recruitment File',      'Recruitment.cfg',1, 0, 1, width=20)
-        self.gmCfgFile   = SubFrameElement(self, configFrame, 'Grid Manager File',     'GridManager.cfg',2, 0, 1, width=20)
-        self.simCfgFile  = SubFrameElement(self, configFrame, 'Sim Config File',       'Scallop.cfg',    3, 0, 1, width=20)
-        self.ukCfgFile   = SubFrameElement(self, configFrame, 'UK Config File',        'UK.cfg',         4, 0, 1, width=20)
+        self.mortCfgFile = SubFrameElement(self, configFrame, 'Growth Config File   ', 'Growth.cfg',  0, 0, 1, width=20)
+        self.recrCfgFile = SubFrameElement(self, configFrame, 'Recruit Config File  ',      'Recruitment.cfg',1, 0, 1, width=20)
+        self.gmCfgFile   = SubFrameElement(self, configFrame, 'Grid Mgr Config File ',     'GridManager.cfg',2, 0, 1, width=20)
+        self.simCfgFile  = SubFrameElement(self, configFrame, 'Sim Config File      ',       'Scallop.cfg',    3, 0, 1, width=20)
+        self.ukCfgFile   = SubFrameElement(self, configFrame, 'UK Config File       ',        'UK.cfg',         4, 0, 1, width=20)
 
         self.style.configure("Frame1.TLabel", padding=6, relief='raised', background="#0FF")
         self.openMortConfigtButton = ttk.Button(configFrame, text='Change/Save Mort File', style="Frame1.TLabel", command=self.GetMortConfigFName)
@@ -144,6 +144,9 @@ class MainInput(ttk.Frame):
         ttk.Checkbutton(outputSelFrame, text='Recruitment',   variable=self.recrVar , command=self.CBSelectedOutput).grid(row=2, column=2, sticky='sw', padx=10, pady=5)
         outputSelFrame.grid(row=1, column=0, padx=5, sticky='n')
         #-------------------------------------------------------------------------------------------
+        helpButton = ttk.Button(self, text= "Main\nHelp", command = self.pop_up)
+        helpButton.grid(row=2, column=1)
+
 
     #--------------------------------------------------------------------------------------------------
     ## 
@@ -246,4 +249,43 @@ class MainInput(ttk.Frame):
             self.ukCfgFile.myEntry.delete(0,n)
             self.ukCfgFile.myEntry.insert(0,f[-1])
             self.friend.WriteUKConfig()
+
+    #-------------------------------------------------------------------------------------
+    ## 
+    #-------------------------------------------------------------------------------------
+    def pop_up(self):
+        about = '''
+Configuration Files
+    These are the names for the configuration files. The user can change the names in order to 
+    prevent overwriting the installed configuration files.
+
+    Use the Change/Save buttons to use a different name. This also saves the data under that name.
+
+Growth
+    This defines the start and stop years over which the simulation will forecast growth at time 
+    intervals specified by tsPerYear, time steps per year. For example, for the default value of 13
+    - 1/13 = 0.077 years
+    - 0.077 * 365 = 28.077 days or roughly every 4 weeks
+
+    The domain name shows the region where the growth takes place, Georges Bank or Mid-Atlantic,
+    GB or MA, respectively. AL covers both regions. Use Stratum should not be changed.
+
+Output Section
+    Selects the desired outputs to be analyzed.
+
+Recruitment
+    Defines the period over which recruitment is factored in to the growth calculations.
+'''
+        #about = re.sub("\n\s*", "\n", about) # remove leading whitespace from each line
+        popup = tk.Toplevel()
+        nrows = 25
+        ncols = 100
+        popup.geometry(str(ncols*9)+"x"+str(nrows*20))
+        T = tk.Text(popup, width=ncols, height=nrows, padx=10)
+        T.insert('end', about)
+        T.config(state='disabled')
+        T.grid()
+        btn = tk.Button(popup, text ="Close", command= popup.destroy)
+        btn.grid(row =1)
+
             

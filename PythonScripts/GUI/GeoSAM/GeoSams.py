@@ -83,7 +83,7 @@ class MainApplication(tk.Tk):
 
         # setup
         self.title(title)
-        #self.geometry('800x800')
+        self.geometry('1020x725')
         self.style = ttk.Style()
 
         # vscode will not set this variable, must be done via control panel
@@ -122,12 +122,11 @@ class MainApplication(tk.Tk):
         self.frame6.specAccFile.myEntry.insert(0, self.specAccFileStr)
 
         self.notebook.add(self.frame1, text='Main')
-        #self.notebook.add(self.frame2, text='Special Access')
         self.notebook.add(self.frame3, text='Growth')
-        self.notebook.add(self.frame4, text='UKInterpolation')
-        self.notebook.add(self.frame5, text='SortByArea')
-        self.notebook.add(self.frame6, text='SpecialArea')
+        self.notebook.add(self.frame6, text='Special Access')
         self.notebook.add(self.frame7, text='Fishing Mort in\n Special Access')
+        self.notebook.add(self.frame5, text='SortByArea')
+        self.notebook.add(self.frame4, text='UKInterpolation')
         self.notebook.pack()
 
         self.style.configure("Custom.TLabel", padding=6, relief="flat", background="#0F0")
@@ -206,7 +205,7 @@ class MainApplication(tk.Tk):
     def SaveConfigFiles(self):
         self.WriteScallopConfig()
         self.WriteRecruitmentConfig()
-        self.WriteMortalityConfig()
+        self.WriteGrowthConfig()
         self.WriteGridMgrConfig()
         self.WriteUKConfig()
         self.WriteSpatialFncsConfig()
@@ -312,10 +311,12 @@ class MainApplication(tk.Tk):
     # Saves mortality parameters to a configuration file.
     #
     #-------------------------------------------------------------------------------------
-    def WriteMortalityConfig(self):
+    def WriteGrowthConfig(self):
         simCfgFile  = os.path.join(self.root,'Configuration', self.frame1.mortCfgFile.myEntry.get())
         with open(simCfgFile, 'w') as f:
-            f.write('# configuration file for mortality\n')
+            f.write('# Was configuration file for mortality\n')
+            f.write('# Actually contains parameters that define both Growth and Mortality\n')
+            f.write('#\n')
             f.write('Fishing Mortality = ' + self.frame3.fishMort.myEntry.get()   + '\n')
             f.write('# Fishing Mortality proportional to LPUE^alpha\n')
             f.write('Alpha Mortality = '   + self.frame3.alphaMort.myEntry.get()  + '\n')
@@ -516,18 +517,42 @@ class MainApplication(tk.Tk):
     ## 
     #-------------------------------------------------------------------------------------
     def pop_up(self):
-        about = '''Top/bottom 3 - Reports only the top/bottom 3 rows for a param you will later specify.
-         - Filters results with deltas below the specified noise threshold in ps.
-         - Sorts by test,pre,post,unit,delta,abs(delta).
-         - Reports only the top 2 IDD2P/IDD6 registers.
-         - Reports only critical registers.
-         - Converts the output file from csv to tilda.
-         - Converts the output file from csv to html.'''
+        about = '''
+SHOW Args
+    Shows the limits for Number of Areas, Nodes in each Area, Year range
+	To Change, restart with python .\PythonScripts\GUI\GeoSAM\GeoSams.py Areas Nodes Years
+	
+START Sim
+    Will run the GeoSAMS simulation base on the parameters given by the GUI
+	First saves config files to use latest data provided in the GUI using the names provided
+       - Sim Config File
+       - Recruitment File
+       - Growth Config File
+       - Grid Mgr Config File
+       - UK Config File
+       - Spatial Fcn Config File (in UKIterpolation tab)
+    If simulation completed successfully, will the interpolate the results from 
+	the survey grid to the region grid.
+	
+	NOTE: 
+    1) Before running with Domain Name 'AL', Go to UKIterpolation tab and make sure
+	the Spatial Fcn Config File 'SpatialFcnsMA.cfg' and 'SpatialFcnsGB.cfg' have the 
+	function definitions desired. These files are used to interpolate data in their 
+	respective regions
+
+    2) This does not save the Special Access File or the Fishing Mort File. 
+       See Special Acces Tab and the FishingMort in Special Access Tab
+
+SAVE ALL Configs
+    Same as the first step in START Sim'''
         #about = re.sub("\n\s*", "\n", about) # remove leading whitespace from each line
         popup = tk.Toplevel()
-        popup.geometry("900x300")
-        T = tk.Text(popup, width=100, height=15, padx=10)
+        nrows = 30
+        ncols = 100
+        popup.geometry(str(ncols*9)+"x"+str(nrows*20))
+        T = tk.Text(popup, width=ncols, height=nrows, padx=10)
         T.insert('end', about)
+        T.config(state='disabled')
         T.grid()
         btn = tk.Button(popup, text ="Close", command= popup.destroy)
         btn.grid(row =1)

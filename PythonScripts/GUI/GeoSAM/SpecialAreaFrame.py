@@ -96,7 +96,10 @@ class SpecialArea(ttk.Frame):
         self.specialAreaFrame.grid_columnconfigure(0,weight=2)
         self.specialAreaFrame.grid_columnconfigure(1,weight=1)
         # --------------------------------------------------------------------------------------------------------
-        self.scrollFrame.grid(row=0, column=0, sticky='nsew')
+        self.scrollFrame.grid(row=1, column=0, sticky='nsew')
+        #-------------------------------------------------------------------------------------------
+        helpButton = ttk.Button(self, text= "SpecialAccess\nHelp", command = self.pop_up)
+        helpButton.grid(row=0, column=0)
 
         self.bind("<Visibility>", self.on_visibility)
 
@@ -120,7 +123,10 @@ class SpecialArea(ttk.Frame):
 
     def UpdateWidgets(self):
         # Populate from known file
-        self.numAreas = self.areaMgr.ReadAreaCorners(self.areaFName)
+        if self.areaFName == os.path.join(self.startDir, 'NONE'):
+            self.numAreas = 0
+        else:
+            self.numAreas = self.areaMgr.ReadAreaCorners(self.areaFName)
         self.numAreasEntry.delete(0,3)
         self.numAreasEntry.insert(0, str(self.numAreas))
         self.NumAreasUpdate()
@@ -144,3 +150,53 @@ class SpecialArea(ttk.Frame):
             f = self.areaFName.split('/')
             self.specAccFile.myEntry.insert(0, f[-1])
 
+    #-------------------------------------------------------------------------------------
+    ## Help Window for Special Access Area
+    #-------------------------------------------------------------------------------------
+    def pop_up(self):
+        about = '''Special Area
+    This frame in conjunction with the FishingMort in Special Access frame is used to define
+    fishing mortalities within a defined area for a specified year. If a location falls within the
+    defined area given in this frame and assigned the area number. Then if the current year is the 
+    same as the year given in the FishingMort in Special Access frame and the area number is listed
+    then the fishing mortality is specified by the Mortality value. Otherwise it is the default
+    value which is defined in the Growth Frame as Fishing mortality
+
+# of Areas
+    The number of areas the user wishes to define. This is limited by Max Areas of Interest.
+    See SHOW Args button
+
+Update # Areas
+    Click this button after entering a value in # of Areas to populate/show the Area N defintions
+
+Special Access File
+    The name of the file used to hold this information. The user can load the default file
+    'SpecialAreas.csv' or define and save their own configuration.
+
+    If this feature is not desired then enter NONE in the window
+
+    Use Load Special Area File to load a predefined set of data
+
+    Use Save Special Area File to save the currently displayed setting
+
+Area N
+    Comment: Optional. Enter a comment to describe the area being specfied.
+    # Corners: Also called nodes or sides. Enter the Longitude and Latitude of the vertices
+                 for the area. It is up to the user to ensure that a close shape is defined.
+    Update # Corners
+        Click this button to populate the corner entries for the given number
+
+    Corner N
+        These are the coordinates of the area vertices.
+'''
+        #about = re.sub("\n\s*", "\n", about) # remove leading whitespace from each line
+        popup = tk.Toplevel()
+        nrows = 35
+        ncols = 100
+        popup.geometry(str(ncols*9)+"x"+str(nrows*20))
+        T = tk.Text(popup, width=ncols, height=nrows, padx=10)
+        T.insert('end', about)
+        T.config(state='disabled')
+        T.grid()
+        btn = tk.Button(popup, text ="Close", command= popup.destroy)
+        btn.grid(row =1)

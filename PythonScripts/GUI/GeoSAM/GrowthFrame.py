@@ -46,7 +46,7 @@
 # @subsubsection p4p2p2p2 Value to use for GB Closed
 # @subsubsection p4p2p2p3 Value to use for GB 
 #
-# @section    p4p3 Computing Landings Per Unit Effor, LPUE
+# @section    p4p3 Computing Landings Per Unit Effort, LPUE
 # The simulation uses the following parameters to compute LPUE
 #
 # @f[ W_{expl} = \frac{EBMS}{N_{scallops}} \text{, weight in grams} @f]
@@ -57,11 +57,9 @@
 #
 # @f[ slope_2 = LPUE_{slope_2} * EBMS_{tow}  @f]
 #
-# @f[ LPUE = min(slope_1, slope_2)  @f]
-#
 # @f[ LPUE_{limit} = max_{per_{day}} * W_{expl} / 453.592 @f]
 # 
-# @f[ LPUE = min(LPUE, LPUE_{limit})  @f]
+# @f[ LPUE = min(slope_1, slope_2, LPUE_{limit})  @f]
 #
 # @subsection p4p3p1 LPUE Slope
 #
@@ -147,7 +145,7 @@ class Growth(ttk.Frame, MainApplication):
         self.style = ttk.Style()
         self.style.configure('Growth.TFrame', borderwidth=10, relief='solid', labelmargins=20)
         self.style.configure('Growth.TFrame.Label', font=('courier', 10, 'bold'))
-        fishingFrame= ttk.LabelFrame(self, text='Growth', style='Growth.TFrame')
+        fishingFrame= ttk.LabelFrame(self, text='Mortality', style='Growth.TFrame')
         self.fishMort   = SubFrameElement(self, fishingFrame, 'Fishing Mortality', self.fmortStr,       0, 0, 1)
         #self.fishSelect = SubFrameElement(self, fishingFrame, 'Fishing Effort\n(USD, BMS, or CAS)', self.fishStr, row, 0, 1)
         self.alphaMort  = SubFrameElement(self, fishingFrame, 'Alpha Mortality',self.alphStr,           1, 0, 1)
@@ -187,6 +185,9 @@ class Growth(ttk.Frame, MainApplication):
         self.gbCullSize = SubFrameElement(self, discardFrame, 'GB Cull Size', self.gbCullStr, 0, 2, 3)
         self.gbDiscard  = SubFrameElement(self, discardFrame, 'GB Discard',   self.gbDiscStr, 1, 2, 3)
         discardFrame.grid(row=1, column=1, columnspan=2, padx=10)
+        #-------------------------------------------------------------------------------------------
+        helpButton = ttk.Button(self, text= "Growth\nHelp", command = self.pop_up)
+        helpButton.grid(row=2, column=1)
 
     #--------------------------------------------------------------------------------------------------
     ##
@@ -225,3 +226,53 @@ class Growth(ttk.Frame, MainApplication):
             elif tag == 'Max Time':           self.maxTimeStr = value
             elif tag == 'Dredge Width':       self.dredgeWdStr = value
             elif tag == 'Towing Speed':       self.towSpdStr = value
+
+    #-------------------------------------------------------------------------------------
+    ## 
+    #-------------------------------------------------------------------------------------
+    def pop_up(self):
+        about = '''Mortality
+    Define parameters to compute fishing mortality
+    - Fishing Mortality: This is the default fishing mortality
+    - Alpha Mortality: Uses as an exponent to set fishing mortality proportional to LPUE
+    - Adult Mortality and Length_0: Used to compute Natural Mortality
+        ALPHA = 1 - 1 / ( 1 + exp( - (shell_length - length_0) /10._dp ) )
+        NATURAL MORT = ALPHA * JuvenileMort + (1 - ALPHA) * AdultMort
+
+Selectivity
+    Region dependent values to compute Ring Size Selectivity:
+    RingSizeSelectivity = 1 / ( 1 + exp( select_a - select_b * (shell_length + 5/2)))
+        where 5 is the steps between shell lenghts, or 5 mm.
+
+LPUE
+    Parameters used to compute Landings per Unit Effort 
+    - LPUE Slope, LPUE Slope2, LPUE Intercept, Max Per Day
+        slope1 = LPUE slope * EBMS + LPUE Intercept, 
+                where EBMS is the biomass in tow area in grams
+        slope2 = LPUE slope2 * EBMS
+        LPUE Limit = Max [shucking] Per Day * EBMS_lbs
+        LPUE = min(slope1, slope2, LPUE Limit)
+    - Max Time: ancillary computation to determine Dredge Time in hours
+    - Dredge Width and Towing Speed used to determine the dredge area to convert biomass
+      density to grams.
+
+Discard
+    - Cull Size and Discard: Determines SetDiscard Value
+      If Shell Length > Cull Size then SetDiscard = 0
+                                  else SetDiscard = discard * selectivity
+
+Incidental
+    Used to compute overall mortality, M
+    M = NaturalMortality + FishingEffort * (Selectivity + Incidental + SetDiscard)
+'''
+        #about = re.sub("\n\s*", "\n", about) # remove leading whitespace from each line
+        popup = tk.Toplevel()
+        nrows = 35
+        ncols = 100
+        popup.geometry(str(ncols*9)+"x"+str(nrows*20))
+        T = tk.Text(popup, width=ncols, height=nrows, padx=10)
+        T.insert('end', about)
+        T.config(state='disabled')
+        T.grid()
+        btn = tk.Button(popup, text ="Close", command= popup.destroy)
+        btn.grid(row =1)
