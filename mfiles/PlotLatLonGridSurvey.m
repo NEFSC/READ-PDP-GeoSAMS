@@ -53,14 +53,14 @@ c = c - 2; % deduct for lat, lon
 grid=NaN(r,c); % pre-allocate
 
 if isOctave
-    lat_g=D(:,1);
-    lon_g=D(:,2);
+    latGrid=D(:,1);
+    lonGrid=D(:,2);
     for k=1:c
         grid(:,k) = D(:,k+2);
     end
 else
-    lat_g=table2array(D(:,1));
-    lon_g=table2array(D(:,2));
+    latGrid=table2array(D(:,1));
+    lonGrid=table2array(D(:,2));
     for k=1:c
         grid(:,k)=table2array(D(:,k+2));
     end
@@ -101,7 +101,9 @@ end
 end
 
 % Split MA
-cut = ceil((max(lat_g) + min(lat_g)) / 2);
+cutNS = 39.0;
+% Split AJ
+cutWE = -70.5;
 
 %++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 
@@ -113,53 +115,59 @@ if isOctave
 else
     D=readtable([surveyFname '.csv']);
 end
-[r_s, c_s]=size(D);
-c_s = c_s - 2; % deduct for lat, lon
+[rSurvey, cSurvey]=size(D);
+cSurvey = cSurvey - 2; % deduct for lat, lon
 
 % We are only going to plot annual data, so every tsPerYear columns
-numCol = floor(c_s/tsPerYear) + 1;
-survey=NaN(r_s,numCol); % pre-allocate
+numCol = floor(cSurvey/tsPerYear) + 1;
+survey=NaN(rSurvey,numCol); % pre-allocate
 
 if isOctave
-    lat_s=D(:,1);
-    lon_s=D(:,2);
+    latSurvey=D(:,1);
+    lonSurvey=D(:,2);
     n=1;
-    for k=1:tsPerYear:c_s
+    for k=1:tsPerYear:cSurvey
         survey(:,n) = D(:,k+2);
         n=n+1;
     end
 else
-    lat_s=table2array(D(:,1));
-    lon_s=table2array(D(:,2));
+    latSurvey=table2array(D(:,1));
+    lonSurvey=table2array(D(:,2));
     n=1;
-    for k=1:tsPerYear:c_s
+    for k=1:tsPerYear:cSurvey
         survey(:,n) =table2array(D(:,k+2));
         n=n+1;
     end
 end
 
 for k=1:numCol
-for n=1:r_s
+for n=1:rSurvey
     % geoscatter does not accept 0.0, must be positive or NaN
     if survey(n,k)<=0 ; survey(n,k) = 1e-6; end
 end
 end
 
 % Split MA
-if strcmp(domain, 'MA')
-    u = 0;
-    l = 0;
-    for n=1:r_s
-        if lat_s(n) > cut
-            u = u + 1;
-            lat_s_u(u) = lat_s(n);
-            lon_s_u(u) = lon_s(n);
-            survey_u(u,:) = survey(n,:);
+if or(strcmp(domain, 'MA'), strcmp(domain, 'AL'))
+    N = 0;
+    S = 0;
+    NE = 0;
+    for n=1:rSurvey
+        if lonSurvey(n) > cutWE
+            NE = NE + 1;
+            latSurvey_NE(NE) = latSurvey(n);
+            lonSurvey_NE(NE) = lonSurvey(n);
+            survey_NE(NE,:) = survey(n,:);
+        elseif latSurvey(n) > cutNS
+            N = N + 1;
+            latSurvey_N(N) = latSurvey(n);
+            lonSurvey_N(N) = lonSurvey(n);
+            survey_N(N,:) = survey(n,:);
         else
-            l = l + 1;
-            lat_s_l(l) = lat_s(n);
-            lon_s_l(l) = lon_s(n);
-            survey_l(l,:) = survey(n,:);
+            S = S + 1;
+            latSurvey_S(S) = latSurvey(n);
+            lonSurvey_S(S) = lonSurvey(n);
+            survey_S(S,:) = survey(n,:);
         end
     end
 end
@@ -169,35 +177,49 @@ end
 %
 % Scale grid data proportional to survey data
 %
-if strcmp(domain, 'MA')
-    u = 0;
-    l = 0;
+if or(strcmp(domain, 'MA'), strcmp(domain, 'AL'))
+    N = 0;
+    S = 0;
+    NE = 0;
     for n=1:r
-        if lat_g(n) > cut
-            u = u + 1;
-            lat_g_u(u) = lat_g(n);
-            lon_g_u(u) = lon_g(n);
-            grid_u(u,:) = grid(n,:);
+        if lonGrid(n) > cutWE
+            NE = NE + 1;
+            latGrid_NE(NE) = latGrid(n);
+            lonGrid_NE(NE) = lonGrid(n);
+            grid_NE(NE,:) = grid(n,:);
+        elseif latGrid(n) > cutNS
+            N = N + 1;
+            latGrid_N(N) = latGrid(n);
+            lonGrid_N(N) = lonGrid(n);
+            grid_N(N,:) = grid(n,:);
         else
-            l = l + 1;
-            lat_g_l(l) = lat_g(n);
-            lon_g_l(l) = lon_g(n);
-            grid_l(l,:) = grid(n,:);
+            S = S + 1;
+            latGrid_S(S) = latGrid(n);
+            lonGrid_S(S) = lonGrid(n);
+            grid_S(S,:) = grid(n,:);
         end
     end
-    mx_s = max(survey_u);
-    mx_g = max(grid_u);
-    mx = mx_g ./ mx_s;
-    grid_u = grid_u ./ mx;
 
-    mx_s = max(survey_l);
-    mx_g = max(grid_l);
-    mx = mx_g ./ mx_s;
-    grid_l = grid_l ./ mx;
+    if strcmp(domain, 'AL')
+        mxSurvey = max(survey_NE);
+        mxGrid = max(grid_NE);
+        mx = mxGrid ./ mxSurvey;
+        grid_NE = grid_NE ./ mx;
+    end
+
+    mxSurvey = max(survey_N);
+    mxGrid = max(grid_N);
+    mx = mxGrid ./ mxSurvey;
+    grid_N = grid_N ./ mx;
+
+    mxSurvey = max(survey_S);
+    mxGrid = max(grid_S);
+    mx = mxGrid ./ mxSurvey;
+    grid_S = grid_S ./ mx;
 else
-    mx_s = max(survey);
-    mx_g = max(grid);
-    mx = mx_g ./ mx_s;
+    mxSurvey = max(survey);
+    mxGrid = max(grid);
+    mx = mxGrid ./ mxSurvey;
     grid = grid ./ mx;
 end
 
@@ -218,88 +240,56 @@ end
 for i=1:c
     year = yrStart + i - 2 + offset;
     thisTitle = [useTitle int2str(year) '_' int2str(saturate)];
-    if strcmp(domain, 'MA'); thisTitle = [thisTitle '_Upper']; end
-    f = figure('Name', thisTitle);
+    if or(strcmp(domain, 'MA'), strcmp(domain, 'AL')); thisTitle = [thisTitle '_MA_North']; end
 
-    if isOctave
-        if strcmp(domain, 'MA')
-            p_surv = scatter(lon_s_u, lat_s_u, survey_u(:,i+offset), survey_u(:,i+offset), "filled");
+    if or(strcmp(domain, 'MA'), strcmp(domain, 'AL'))
+        surveyLon = lonSurvey_N;
+        surveyLat = latSurvey_N;
+        if isOctave
+            surveyData = survey_N(:,i+offset);
         else
-            p_surv = scatter(lon_s, lat_s, survey(:,i+offset), survey(:,i+offset), "filled");
+            surveyData = survey_N(:,i);
         end
-        set(p_surv, 'sizedata', 10); % size of dots
-        hold on
-
-        if strcmp(domain, 'MA')
-            p_grid = scatter(lon_g_u, lat_g_u, grid_u(:,i), grid_u(:,i), "filled");
-        else
-            p_grid = scatter(lon_g, lat_g, grid(:,i), grid(:,i), "filled");
-        end
-        set(p_grid, 'sizedata', 3); % size of dots
-
-        % enlarge figure
-        figure(f,"position",get(0,"screensize"))
-
+        gridLon = lonGrid_N;
+        gridLat = latGrid_N;
+        gridData = grid_N(:,i);
     else
-        if strcmp(domain, 'MA')
-            p_surv = geoscatter(lat_s_u, lon_s_u, survey_u(:,i), survey_u(:,i), "filled");
+        surveyLon = lonSurvey;
+        surveyLat = latSurvey;
+        if isOctave
+            surveyData = survey(:,i+offset);
         else
-            p_surv = geoscatter(lat_s, lon_s, survey(:,i), survey(:,i), "filled");
+            surveyData = survey(:,i);
         end
-        p_surv.SizeData = 10; % size of dots
-        hold on
-
-        if strcmp(domain, 'MA')
-            p_grid = geoscatter(lat_g_u, lon_g_u, grid_u(:,i), grid_u(:,i), "filled");
-        else
-            p_grid = geoscatter(lat_g, lon_g, grid(:,i), grid(:,i), "filled");
-        end
-        p_grid.SizeData = 3; % size of dots
-
-   	    % enlarge figure
-	    if strcmp(domain, 'GB')
-    		f.OuterPosition = [1963.4 -221.4 1500 1087.2];
-	    else
-		    f.OuterPosition = [1963.4 -221.4 1000 1087.2];
-	    end
-
+        gridLon = lonGrid;
+        gridLat = latGrid;
+        gridData = grid(:,i);
     end
-
-    title([useTitle int2str(year)], 'Interpreter', 'none');
+    PlotGrid(domain, thisTitle, isOctave, surveyLon, surveyLat, surveyData, gridLon, gridLat, gridData)
+    if or(strcmp(domain, 'MA'), strcmp(domain, 'AL'))
+        title([useTitle int2str(year) '_MA_North'], 'Interpreter', 'none');
+    else
+        title([useTitle int2str(year)], 'Interpreter', 'none');
+    end
     SetColorbar(isOctave)
     SizePaper(domain, isOctave)
     saveas(gcf,[thisTitle '.pdf'])
 
     % Plot lower data
-    if strcmp(domain, 'MA')
-        thisTitle = [useTitle int2str(year) '_' int2str(saturate) '_Lower'];
+    if or(strcmp(domain, 'MA'), strcmp(domain, 'AL'))
+        thisTitle = [useTitle int2str(year) '_' int2str(saturate) '_MA_South'];
+        PlotGrid(domain, thisTitle, isOctave, lonSurvey_S, latSurvey_S, survey_S(:,i), lonGrid_S, latGrid_S, grid_S(:,i))
+        title([useTitle int2str(year) '_MA_South'], 'Interpreter', 'none');
+        SetColorbar(isOctave)
+        SizePaper(domain, isOctave)
+        saveas(gcf,[thisTitle '.pdf'])
+    end
 
-        f = figure('Name', thisTitle);
-        if isOctave
-            p_surv = scatter(lon_s_l, lat_s_l, survey_l(:,i), survey_l(:,i), "filled");
-            set(p_surv, 'sizedata', 10); % size of dots
-            hold on
-
-            p_grid = scatter(lon_g_l, lat_g_l, grid_l(:,i), grid_l(:,i), "filled");
-            set(p_grid, 'sizedata', 3); % size of dots
-
-            % enlarge figure
-            figure(f,"position",get(0,"screensize"))
-        else
-            p_surv = geoscatter(lat_s_l, lon_s_l, survey_l(:,i), survey_l(:,i), "filled");
-            p_surv.SizeData = 10; % size of dots
-            hold on
-
-            p_grid = geoscatter(lat_g_l, lon_g_l, grid_l(:,i), grid_l(:,i), "filled");
-            p_grid.SizeData = 3; % size of dots
-       	    % enlarge figure
-	        if strcmp(domain, 'GB')
-    	    	f.OuterPosition = [1963.4 -221.4 1500 1087.2];
-	        else
-		        f.OuterPosition = [1963.4 -221.4 1000 1087.2];
-	        end
-        end
-        title([useTitle int2str(year) '_Lower'], 'Interpreter', 'none');
+    % Plot NE, i.e. GB data
+    if strcmp(domain, 'AL')
+        thisTitle = [useTitle int2str(year) '_' int2str(saturate) '_GB'];
+        PlotGrid(domain, thisTitle, isOctave, lonSurvey_NE, latSurvey_NE, survey_NE(:,i), lonGrid_NE, latGrid_NE, grid_NE(:,i))
+        title([useTitle int2str(year) '_GB'], 'Interpreter', 'none');
         SetColorbar(isOctave)
         SizePaper(domain, isOctave)
         saveas(gcf,[thisTitle '.pdf'])
@@ -338,9 +328,37 @@ function SetColorbar(isOctave)
 if isOctave
     set(gca, 'color', [193 245 247]/255);     %RGB as a fraction
 else
-    geobasemap bluegreen;
+    geobasemap bluegreen
 end
 c=hot(100);
 colormap(c);
 colorbar;
 end % function
+
+function PlotGrid(domain, thisTitle, isOctave, surveyLon, surveyLat, surveyData, gridLon, gridLat, gridData)
+f = figure('Name', thisTitle);
+if isOctave
+    pSurvey = scatter(surveyLon, surveyLat, surveyData, surveyData, "filled");
+    set(pSurvey, 'sizedata', 10); % size of dots
+    hold on
+
+    pGrid = scatter(gridLon, gridLat, gridData, gridData, "filled");
+    set(pGrid, 'sizedata', 3); % size of dots
+
+    % enlarge figure
+    figure(f,"position",get(0,"screensize"))
+else
+    pSurvey = geoscatter(surveyLat, surveyLon, surveyData, surveyData, "filled");
+    pSurvey.SizeData = 10; % size of dots
+    hold on
+
+    pGrid = geoscatter(gridLat, gridLon, gridData, gridData, "filled");
+    pGrid.SizeData = 3; % size of dots
+	% enlarge figure
+    if strcmp(domain, 'GB')
+    	f.OuterPosition = [1963.4 -221.4 1500 1087.2];
+    else
+        f.OuterPosition = [1963.4 -221.4 1000 1087.2];
+    end
+end
+end 

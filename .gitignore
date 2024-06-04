@@ -10,6 +10,7 @@ InputDataError.txt
 *.asv
 *.pdf
 *.pyc
+*.HOLD
 fort.8
 mod/
 obj/

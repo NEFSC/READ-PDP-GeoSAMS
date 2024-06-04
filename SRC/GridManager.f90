@@ -601,40 +601,44 @@ endfunction Point_In_Polygon_Vector
 !--------------------------------------------------------------------------------------------------
 ! Tom Callaghan
 !--------------------------------------------------------------------------------------------------
-integer function Get_Region(lat, lon, stratum)
+integer function Get_Region(lat, lon, stratum_real)
 use globals
 implicit none
-real(dp), intent(in) :: lat, lon, stratum
+real(dp), intent(in) :: lat, lon, stratum_real
+
+integer stratum
+
+stratum = int(stratum_real)
 
 if (stratum < 6400) then
     Get_Region = region_MA
-elseif( (stratum < 6460._dp) .OR. (stratum .EQ. 6652._dp) .OR. (stratum .EQ. 6662._dp) ) then
+elseif( (stratum < 6460) .OR. (stratum .EQ. 6652) .OR. (stratum .EQ. 6662) ) then
     Get_Region = region_none
-elseif (stratum < 6490._dp) then
+elseif (stratum < 6490) then
     if ((lat > 40.7_dp) .AND. (lon > -69.35_dp)) then
         Get_Region = region_W
     else
         Get_Region = region_SW
     endif
-elseif (stratum < 6530._dp) then
+elseif (stratum < 6530) then
     Get_Region = region_W
-elseif (stratum < 6560._dp) then
+elseif (stratum < 6560) then
     Get_Region = region_N
-elseif (stratum < 6610._dp) then
+elseif (stratum < 6610) then
     Get_Region = region_S
-elseif (stratum < 6622._dp) then
+elseif (stratum < 6622) then
     Get_Region = region_S
-elseif (stratum < 6651._dp) then
+elseif (stratum < 6651) then
     Get_Region = region_none
-elseif (stratum < 6680._dp) then
+elseif (stratum < 6680) then
     Get_Region = region_N
-elseif (stratum < 6710._dp) then
+elseif (stratum < 6710) then
     Get_Region = region_none
-elseif (stratum < 6730._dp) then
+elseif (stratum < 6730) then
     Get_Region = region_N
-elseif (stratum < 6740._dp) then
+elseif (stratum < 6740) then
     Get_Region = region_none
-elseif (stratum < 6960._dp) then
+elseif (stratum < 6960) then
     if (lat > 41.5_dp) then
         Get_Region = region_N
     else 

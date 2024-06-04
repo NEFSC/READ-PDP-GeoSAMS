@@ -40,11 +40,11 @@ class SubFrameInterpFunction(tk.Frame):
         self.myShapeC = ttk.Radiobutton(shapeFrame, text='CosExp',   value='CosExp',   variable=self.shapeVal).pack()
         shapeFrame.grid(row=elementRow, column=1, rowspan=3, sticky='nsew', padx=5, pady=10)
 
-        self.precon = ttk.Label(self.funcFrame, text='precon')
-        self.precon.grid (row=elementRow, column=2, columnspan=1, sticky='n', padx=5, pady=10)
-        self.myEntry=ttk.Entry(self.funcFrame, width=5)
-        self.myEntry.grid(row=elementRow, column=2, columnspan=1, sticky='s', padx=5, pady=10)
-        self.myEntry.insert(0, preconNum)
+        self.preconLabel = ttk.Label(self.funcFrame, text='precon')
+        self.preconLabel.grid (row=elementRow, column=2, columnspan=1, sticky='n', padx=5, pady=10)
+        self.preconEntry=ttk.Entry(self.funcFrame, width=5)
+        self.preconEntry.grid(row=elementRow, column=2, columnspan=1, sticky='s', padx=5, pady=10)
+        self.preconEntry.insert(0, preconNum)
 
         self.funcFrame.grid(row=elementRow, column=elementCol)
 

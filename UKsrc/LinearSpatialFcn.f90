@@ -131,30 +131,33 @@ end function LSF_Simple_Linear_Regression
 !>  - f [n] recruitment observations from the same year.
 !> @author Keston Smith 2022
 !----------------------------------------------------------------------------------------
-subroutine LSF_Limit_Z(n, f, z, fpeak, Domain)
+subroutine LSF_Limit_Z(n, f, z, fpeak, lon)
 
 integer, intent(in) :: n
-real(dp), intent(in) :: z(*), fpeak
+real(dp), intent(in) :: z(*), lon(*), fpeak
 real(dp), intent(inout) :: f(*)
-character(domain_len), intent(in):: Domain
 real(dp) a, w, zc, fmax 
 integer j, kappa
 
-if(Domain(1:2).eq.'MA')then
-    zc=60
-    w=33
-    a=.01
-    kappa=10
-endif
-
-if(Domain(1:2).eq.'GB')then
-    zc=70
-    w=50
-    a=.01
-    kappa=20
-endif
+! default
+zc=60
+w=33
+a=.01
+kappa=10
 
 do j=1, n
+    if (lon(n) > ma_gb_border) then
+        zc=70
+        w=50
+        a=.01
+        kappa=20
+    else
+        zc=60
+        w=33
+        a=.01
+        kappa=10
+    endif
+
     f(j)=max( f(j) , 0.D0 )
     fmax= fpeak*(a +   exp(- ( (z(j)-zc)/w )**kappa ))
     f(j)=min( f(j) , fmax )

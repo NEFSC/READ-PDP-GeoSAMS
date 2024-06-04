@@ -48,6 +48,7 @@ import subprocess
 import sys
 import os
 import sys
+import re
 
 from MainInputFrame import *
 from GrowthFrame import *
@@ -133,6 +134,7 @@ class MainApplication(tk.Tk):
         ttk.Button(self, text='SHOW Args',    style="Custom.TLabel", command=self.ShowArgs).place(relx=0, rely=1, anchor='sw')
         ttk.Button(self, text='START Sim',    style="Custom.TLabel", command=self.Run_Sim).place(relx=.25, rely=1, anchor='s')
         ttk.Button(self, text='SAVE ALL Configs', style="Custom.TLabel", command=self.SaveConfigFiles).place(relx=.5, rely=1, anchor='s')
+        ttk.Button(self, text= "Help", command = self.pop_up).place(relx=.75, rely=1, anchor='s')
 
     #-------------------------------------------------------------------------------------
     ##
@@ -421,7 +423,7 @@ class MainApplication(tk.Tk):
             for i in range(int(self.frame4.numFcnsEntry.get())):
                f.write('Function, dim='+self.frame4.functions[i].dimVal.get())
                f.write(', shape='+self.frame4.functions[i].shapeVal.get())
-               f.write(', precon='+self.frame4.functions[i].myEntry.get()+'\n')
+               f.write(', precon='+self.frame4.functions[i].preconEntry.get()+'\n')
             f.close()
 
     #-------------------------------------------------------------------------------------
@@ -509,6 +511,26 @@ class MainApplication(tk.Tk):
 
         for (tag, value) in tags:
             if (tag == 'Special Access Config File'): self.specAccFileStr = value
+
+    #-------------------------------------------------------------------------------------
+    ## 
+    #-------------------------------------------------------------------------------------
+    def pop_up(self):
+        about = '''Top/bottom 3 - Reports only the top/bottom 3 rows for a param you will later specify.
+         - Filters results with deltas below the specified noise threshold in ps.
+         - Sorts by test,pre,post,unit,delta,abs(delta).
+         - Reports only the top 2 IDD2P/IDD6 registers.
+         - Reports only critical registers.
+         - Converts the output file from csv to tilda.
+         - Converts the output file from csv to html.'''
+        #about = re.sub("\n\s*", "\n", about) # remove leading whitespace from each line
+        popup = tk.Toplevel()
+        popup.geometry("900x300")
+        T = tk.Text(popup, width=100, height=15, padx=10)
+        T.insert('end', about)
+        T.grid()
+        btn = tk.Button(popup, text ="Close", command= popup.destroy)
+        btn.grid(row =1)
 
 #======================================================================================================
 #======================================================================================================

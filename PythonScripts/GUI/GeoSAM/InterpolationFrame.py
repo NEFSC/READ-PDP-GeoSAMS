@@ -164,9 +164,13 @@ class UKInterpolation(ttk.Frame):
         self.powerTrans  = SubFrameElement(self, paramFrame, 'Power Tranform\n(Not used if Log = T)', '1.0', 3, 0, 1)
         self.spatCfgFile  = SubFrameElement(self, paramFrame, 'Spatial Fcn Config File', 'SpatialFcns.cfg', 4, 0, 1, width=20)
 
-        self.style.configure("Frame4.TLabel", padding=6, relief='raised', background="#0FF")
-        self.openMortConfigButton = ttk.Button(paramFrame, text='Change/Save Spat Fcn File', style="Frame4.TLabel", command=self.GetSpatialFcnConfigFName)
-        self.openMortConfigButton.grid(row=5, column=0)
+        self.style.configure("Frame4.TLabel", padding=6, relief='raised', background="#0F0")
+        self.style.configure("Frame4A.TLabel", padding=6, relief='raised', background="#0FF")
+        self.openSpatFncConfigButton = ttk.Button(paramFrame, text='Load Spat Fcn File', style="Frame4.TLabel", command=self.GetSpatialFcnConfigFName)
+        self.openSpatFncConfigButton.grid(row=5, column=0)
+
+        self.saveSpatFncConfigButton = ttk.Button(paramFrame, text='Save Spat Fcn File', style="Frame4A.TLabel", command=self.SaveSpatialFcnConfigFName)
+        self.saveSpatFncConfigButton.grid(row=5, column=1)
 
         paramFrame.grid(row=0, column=4, sticky='n')
         # --------------------------------------------------------------------------------------------------------
@@ -180,7 +184,7 @@ class UKInterpolation(ttk.Frame):
     # file. It then writes out the defined parameters to this file using the 'tag = value' format. 
     #
     #--------------------------------------------------------------------------------------------------
-    def GetSpatialFcnConfigFName(self):
+    def SaveSpatialFcnConfigFName(self):
         file_path = filedialog.asksaveasfilename(title="Open Configuration File", filetypes=[("CFG files", "*.cfg")], defaultextension='cfg', initialdir=self.startDir)
         f = file_path.split('/')
         if file_path:
@@ -188,6 +192,115 @@ class UKInterpolation(ttk.Frame):
             self.spatCfgFile.myEntry.delete(0,n)
             self.spatCfgFile.myEntry.insert(0,f[-1])
             self.parent.WriteSpatialFncsConfig()
+
+    #--------------------------------------------------------------------------------------------------
+    ## 
+    # Calls the filedialog method askopenfilename to name a file to be used for the Spatial Function Cfg File
+    # file. It then writes out the defined parameters to this file using the 'tag = value' format. 
+    #
+    #--------------------------------------------------------------------------------------------------
+    def GetSpatialFcnConfigFName(self):
+        fName = filedialog.askopenfilename(title="Open Configuration File", filetypes=[("CFG files", "*.cfg")], defaultextension='cfg', initialdir=self.startDir)
+        f = fName.split('/')
+        if fName:
+            n = len(self.spatCfgFile.myEntry.get())
+            self.spatCfgFile.myEntry.delete(0,n)
+            self.spatCfgFile.myEntry.insert(0,f[-1])
+            self.ReadSpactialFunctionFile(fName)
+
+    #--------------------------------------------------------------------------------------------------
+    ## 
+    # Read in the Spactial Function File. 
+    # @param fName Name of the file to read, assumes it is valid.
+    # It then writes parameters to the widgets.
+    #
+    #--------------------------------------------------------------------------------------------------
+    def ReadSpactialFunctionFile(self, fName):
+        correctDimStr =['x', 'y', 'z']
+        correctShapeStr = ['Gaussian', 'Logistic', 'SinExp', 'CosExp']
+        nsf = 0
+
+        with open(fName, 'r') as f:
+            while True:
+                if (nsf >= self.nsfMax):
+                    messagebox.showerror("Reading Spatial Function File", f'Max reached {self.nsfMax}\nStopping at {nsf}')
+                    break
+
+                # read longitude values
+                inputStr = f.readline()
+                if not inputStr:
+                    f.close()
+                    break
+
+                if inputStr[0] == '#':
+                    continue
+
+                inputArr = [s.strip() for s in inputStr.split(',')]
+                if (inputArr[0][0]) == 'F':
+
+                    # set dim
+                    token =  [s.strip() for s in inputArr[1].split('=')]
+                    tag = token[0].strip()
+                    val = token[1].strip()
+                    if tag == 'dim':
+                        if val not in correctDimStr:
+                            messagebox.showerror("Reading Spatial Function File", 
+                                                    f'Unknown string for dim value {val}\nSkipping Function Defintion')
+                            continue
+                        else:
+                            self.functions[nsf].dimVal.set(val)
+                    else:
+                        messagebox.showerror("Reading Spatial Function File", 
+                                                f'Unexpected string for dim tag {tag}\nSkipping Function Defintion')
+                        continue
+
+
+                    # set shape
+                    token =  [s.strip() for s in inputArr[2].split('=')]
+                    tag = token[0].strip()
+                    val = token[1].strip()
+                    if tag == 'shape':
+                        if val not in correctShapeStr:
+                            messagebox.showerror("Reading Spatial Function File", 
+                                                    f'Unknown string for shape value {val}\nSkipping Function Defintion')
+                            continue
+                        else:
+                            self.functions[nsf].shapeVal.set(val)
+                    else:
+                        messagebox.showerror("Reading Spatial Function File", 
+                                                f'Unexpected string for shape tag {tag}\nSkipping Function Defintion')
+                        continue
+
+                    # set precon
+                    token =  [s.strip() for s in inputArr[3].split('=')]
+                    tag = token[0].strip()
+                    val = token[1].strip()
+                    # first remove any inline comment
+                    k = val.find('#')
+                    if k>0:
+                        val = val[0:k].strip()
+                    if tag == 'precon':
+                        if not val.isdigit():
+                            messagebox.showerror("Reading Spatial Function File", 
+                                                    f'Unknown string for precon value {val}\nSkipping Function Defintion')
+                            continue
+                        else:
+                            self.functions[nsf].preconEntry.delete(0,3)
+                            self.functions[nsf].preconEntry.insert(0, val)
+                    else:
+                        messagebox.showerror("Reading Spatial Function File", 
+                                                f'Unexpected string for precon tag {tag}\nSkipping Function Defintion')
+                        continue
+
+                    nsf += 1
+            f.close()
+
+        self.nsf = nsf
+        self.numFcnsEntry.delete(0,2)
+        self.numFcnsEntry.insert(0, str(nsf))
+        self.NumFuncsUpdate()
+
+
     #--------------------------------------------------------------------------------------------------
     ## 
     # This method is used to update widgets each time the user switches to this tab

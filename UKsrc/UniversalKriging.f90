@@ -217,11 +217,10 @@ resOBS(1:num_obs_points) = obs%field(1:num_obs_points) - trndOBS(1:num_obs_point
 write(*,'(A,F10.6)')'GLSres:', Compute_RMS(resOBS(:), num_obs_points)
 
 if (save_data) then
-    call OutputUK(num_points, num_spat_fcns, grid, nlsf, beta, eps, Ceps, Cbeta, fmax, SF, &
-    &                    IsLogT, IsHiLimit, domain_name, alpha)
+    call OutputUK(num_points, num_spat_fcns, grid, nlsf, beta, eps, Ceps, Cbeta, fmax, SF, IsLogT, IsHiLimit, alpha)
 else
     !DEPRECATE trend!call OutputEstimates(num_points, num_spat_fcns, grid, Ceps, IsLogT, IsHiLimit, fmax, SF, domain_name, alpha)
-    call OutputEstimates(num_points, grid, Ceps, IsLogT, IsHiLimit, fmax, SF, domain_name, alpha)
+    call OutputEstimates(num_points, grid, Ceps, IsLogT, IsHiLimit, fmax, SF, alpha)
 endif
 
 write(*,*)'num_points, num_survey', num_points, num_obs_points
@@ -277,7 +276,7 @@ real(dp), intent(out) :: f0_max
 
 integer ncla
 character(fname_len) cfg_file_name
-character(fname_len) obsfile, cmd
+character(fname_len) cmd, obsfile, gridfile
 logical exists
 
 ! set default values for parameters not in file
@@ -331,13 +330,16 @@ do
         select case (tag)
         case('Domain Name')
             domain_name = value(1:2)
-            if (.not. ( any ((/ domain_name.eq.'MA', domain_name.eq.'GB'/)) )) then
+            if (.not. ( any ((/ domain_name.eq.'MA', domain_name.eq.'GB', domain_name.eq.'AL'/)) )) then
                 write(*,*) term_red, ' **** INVALID DOMAIN NAME: ', domain_name, term_blk
                 stop 1
             endif
-            ! Force Grid file name
+            ! Force Grid file name form MA and GB. 
+            ! AL sets it on the command line, as does GB if saveByStratum was used during sim
             value = domain_name//'xyzLatLon.csv'
-            Call GridMgr_Set_Grid_Data_File_Name(value)
+            if ( any ((/ domain_name.eq.'MA', domain_name.eq.'GB'/)) ) then
+                Call GridMgr_Set_Grid_Data_File_Name(value)
+            endif
 
         case('Observation File')
             Call GridMgr_Set_Obs_Data_File_Name(value)
@@ -381,13 +383,16 @@ close(69)
 !override UK.cfg with command line arguments if present. Used by python scripts
 if(ncla.ge.2) then 
     call get_command_argument(2, domain_name)
-    if (.not. ( any ((/ domain_name.eq.'MA', domain_name.eq.'GB'/)) )) then
+    if (.not. ( any ((/ domain_name.eq.'MA', domain_name.eq.'GB', domain_name.eq.'AL'/)) )) then
         write(*,*) term_red, ' **** INVALID DOMAIN NAME: ', domain_name, term_blk
         stop 1
     endif
     ! Force default grid file name
     cmd = domain_name//'xyzLatLon.csv'
-    Call GridMgr_Set_Grid_Data_File_Name(cmd)
+    ! AL sets it via command line, as does GB if saveByStratum was used during sim
+    if ( any ((/ domain_name.eq.'MA', domain_name.eq.'GB'/)) ) then
+        Call GridMgr_Set_Grid_Data_File_Name(cmd)
+    endif
 endif
 
 if(ncla.ge.3) then
@@ -409,8 +414,10 @@ if (ncla .ge. 4) then
         ! 2) GBxyzLatLon_S
         ! 3) GBxyzLatLon_SW
         ! 4) GBxyzLatLon_W
-        call get_command_argument(4, obsfile)
-        call GridMgr_Set_Grid_Data_File_Name(obsfile)
+        ! AL adds a fifth Region, but uses the same grid as MA
+        ! 5) MAxyzLatLon
+        call get_command_argument(4, gridfile)
+        call GridMgr_Set_Grid_Data_File_Name(gridfile)
 
         call get_command_argument(5, cmd)
         read(cmd, *) f0_max
@@ -425,7 +432,7 @@ endsubroutine Read_Startup_Config
 !> Function coefficient 
 !---------------------------------------------------------------------------------------------------
 subroutine OutputUK(num_points, num_spat_fcns, grid, nlsf, beta, eps, Ceps, Cbeta, fmax, SF, &
-    &                  IsLogT, IsHiLimit, domain_name, alpha)
+    &                  IsLogT, IsHiLimit, alpha)
 use globals
 use Grid_Manager_Mod
 use NLSF_Mod
@@ -436,7 +443,6 @@ implicit none
 type(Grid_Data_Class), intent(inout) :: grid
 type(NLSF_Class), intent(in)::nlsf(*)
                                     
-character(2), intent(in) :: domain_name
 integer, intent(in) :: num_points, num_spat_fcns
 real(dp), intent(in) :: eps(*), beta(*), Cbeta(num_spat_fcns,*), fmax, SF, alpha
 real(dp), intent(inout) :: Ceps(num_points,*)
@@ -454,7 +460,7 @@ grid%field(1:num_points) = grid%field(1:num_points)**(1./alpha)
 
 logf(1:num_points) = grid%field(1:num_points)
 if(IsLogT) grid%field(1:num_points) = SF * exp( grid%field(1:num_points) + V(1:num_points)/2. ) - one_scallop_per_tow  ! adjusted inverse log(one_scallop_per_tow+f)
-if(IsHiLimit) call LSF_Limit_Z(num_points, grid%field, grid%z, fmax, domain_name)
+if(IsHiLimit) call LSF_Limit_Z(num_points, grid%field, grid%z, fmax, grid%lon)
 call Write_Vector_Scalar_Field(num_points, grid%field, 'KrigingEstimate.txt')
 
 Fg = Krig_Eval_Spatial_Function(grid, num_spat_fcns, num_points, nlsf, save_data)
@@ -490,7 +496,7 @@ endsubroutine OutputUK
 !> That is moving from survey data locations to MA/GB grid locations
 !---------------------------------------------------------------------------------------------------
 !DEPRECATE trend!subroutine OutputEstimates(num_points, num_spat_fcns, grid, Ceps, IsLogT, IsHiLimit, fmax, SF, domain_name, nlsf, alpha, beta)
-subroutine OutputEstimates(num_points, grid, Ceps, IsLogT, IsHiLimit, fmax, SF, domain_name, alpha)
+subroutine OutputEstimates(num_points, grid, Ceps, IsLogT, IsHiLimit, fmax, SF, alpha)
 use globals
 use Grid_Manager_Mod
 use NLSF_Mod
@@ -504,7 +510,6 @@ type(Grid_Data_Class), intent(inout) :: grid
 real(dp), intent(in) :: Ceps(num_points,*)
 logical, intent(in) ::IsLogT, IsHiLimit
 real(dp), intent(in) :: fmax, SF
-character(2), intent(in) :: domain_name
 
 !DEPRECATE trend!type(NLSF_Class), intent(in)::nlsf(*)
 real(dp), intent(in) :: alpha
@@ -522,7 +527,7 @@ do n=1, num_points
 enddo
 grid%field(1:num_points) = grid%field(1:num_points)**(1./alpha)    
 if(IsLogT) grid%field(1:num_points) = SF * exp( grid%field(1:num_points) + V(1:num_points)/2. ) - one_scallop_per_tow  ! adjusted inverse log(one_scallop_per_tow+f)
-if(IsHiLimit) call LSF_Limit_Z(num_points, grid%field, grid%z, fmax, domain_name)
+if(IsHiLimit) call LSF_Limit_Z(num_points, grid%field, grid%z, fmax, grid%lon)
 
 fname = GridMgr_Get_Obs_Data_File_Name()
 ! Change output directory and file prefix

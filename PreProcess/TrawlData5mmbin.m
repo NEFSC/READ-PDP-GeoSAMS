@@ -44,22 +44,39 @@ if isOctave
     if ~strcmp(domain, 'AL')
         lon=-M(:,19);
         if strcmp(domain, 'GB')
-            j=find(lon>-70.5);%GB
+            j = lon>-70.5;%GB
+            zone=19;
         else
-            j=find(lon<=-70.5);%MA
+            j = lon<-70.5;%MA
+            zone=18;
         end
 
+        %------- new M with just MA or GB ----------------------
         M = M(j,:);
-        %------- new M table ----------------------
-	end
+        lat=table2array(M(:,18));
+        lon=-table2array(M(:,19));
+        [xx,yy]=ll2utm(lat,lon,zone);
+        
+    else % working with AL
+        lat=M(:,18);
+        lon=-M(:,19);
+        % preallocate
+        xx=lon;
+        yy=lat;
+        for i = 1:size(lon,1)
+            if lon(i)>-70.5
+                zone=19;
+            else
+                zone=18;
+            end
+            [xx(i),yy(i)]=ll2utm(lat(i),lon(i),zone);
+        end
+    end
 
-    lat=M(:,18);
-    lon=-M(:,19);
-    [xx,yy]=ll2utm(lat,lon);
     year = M(:,4);
     sg = M(:,27);
     dataSrc = M(:,37);
-else
+else % NOT Octave
     M = readtable('OriginalData/dredgetowbysize7917.csv',"FileType","text");
 
     mon=table2array(M(:,5));
@@ -70,18 +87,34 @@ else
     if ~strcmp(domain, 'AL')
         lon = -table2array(M(:,19));
         if strcmp(domain, 'GB')
-            j = lon>-70.5;%GB
+            j = lon>-70.5;
+            zone=19;
         else
-            j = lon<-70.5;%MA
+            j = lon<=-70.5;
+            zone=18;
         end
 
+        %------- new M with just MA or GB ----------------------
         M = M(j,:);
-        %------- new M table ----------------------
-    end
+        lat=table2array(M(:,18));
+        lon=-table2array(M(:,19));
+        [xx,yy]=ll2utm(lat,lon,zone);
 
-    lat=table2array(M(:,18));
-    lon=-table2array(M(:,19));
-    [xx,yy]=ll2utm(lat,lon);
+    else % working with AL
+        lat=table2array(M(:,18));
+        lon=-table2array(M(:,19));
+        % preallocate
+        xx=lon;
+        yy=lat;
+        for i = 1:size(lon,1)
+            if lon(i)>-70.5
+                zone=19;
+            else
+                zone=18;
+            end
+            [xx(i),yy(i)]=ll2utm(lat(i),lon(i),zone);
+        end
+    end
 
     year = table2array(M(:,4));
     sg = table2array(M(:,27));

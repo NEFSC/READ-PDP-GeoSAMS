@@ -5,6 +5,7 @@ import os
 import sys
 import csv
 import platform
+import shutil
 
 from collections import defaultdict
 from ReadSimConfigFile import *
@@ -35,13 +36,23 @@ nyears = year_end - year_start + 2
 ex = os.path.join('UKsrc', 'UK')
 [paramStr, tsInYear, savedByStratum] = ReadSimConfigFile('Configuration/'+simCfgFile)
 if dn=='MA': savedByStratum = False
-print(paramStr, tsInYear, savedByStratum)
 if savedByStratum:
-    rgn = ['_SW', '_N', '_S', '_W']
+    # Only GB and AL[L] use savedByStratum
+    if dn=='GB':
+        rgn = ['_SW', '_N', '_S', '_W']
+    else:
+        # This would be AL
+        rgn = ['_SW', '_N', '_S', '_W', '_MA']
 else:
+    # This would be just MA
     rgn = ['']
 
 prefix = ['Results/Lat_Lon_Grid_'] #, 'Results/Lat_Lon_Grid_Trend-']
+
+# backup SpatialFcns
+src = os.path.join('Configuration', 'SpatialFcns.cfg')
+dst = os.path.join('Configuration', 'SpatialFcns.HOLD')
+shutil.copy(src, dst)
 
 for pStr in paramStr:
 
@@ -58,7 +69,24 @@ for pStr in paramStr:
     #  arg#        1     2              3                  4                   5
     for r in rgn:
         obsFile = 'X_Y_' + pStr + dn + str(year_start) + '_0' + r + '.csv'
-        gridFile = dn+'xyzLatLon' + r + '.csv'
+        if dn == 'AL':
+            # ALxyzLatLon_MA uses the same grid file as MA
+            #     'MA'+'xyzLatLon' + '' + '.csv'
+            # ALxyzLatLon_SW to ALxyzLatLon_W use the same grid files as GB
+            # 'GBxyzLatLon' + r + '.csv'
+            #
+            # These data files also need to use separate spatial functions
+            if r == '_MA':
+                gridFile = 'MAxyzLatLon.csv'
+                src = os.path.join('Configuration', 'SpatialFcnsMA.cfg')
+                dst = os.path.join('Configuration', 'SpatialFcns.cfg')
+            else:
+                gridFile = 'GBxyzLatLon' + r + '.csv'
+                src = os.path.join('Configuration', 'SpatialFcnsGB.cfg')
+                dst = os.path.join('Configuration', 'SpatialFcns.cfg')
+            shutil.copy(src, dst)
+        else:
+            gridFile = dn+'xyzLatLon' + r + '.csv'
         cmd = [ex, ukCfgFile, dn, obsFile, gridFile, zArg]
         result = subprocess.run(cmd)
         if (result.returncode != 0):
@@ -147,6 +175,11 @@ for pStr in paramStr:
 
     # end savedByStratum
 # end for pStr
+
+# restore SpatialFcns
+src = os.path.join('Configuration', 'SpatialFcns.HOLD')
+dst = os.path.join('Configuration', 'SpatialFcns.cfg')
+shutil.copy(src, dst)
 
 # We have needed output paramters so lets plot data and save to pdf files
 print('Plotting Results')

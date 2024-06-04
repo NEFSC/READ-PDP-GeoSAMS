@@ -112,27 +112,27 @@ flnm='Data/RecruitsUnadjusted.csv';
 fprintf('Reading from to %s\n', flnm)
 
 if isOctave
-  F=csvreadK(flnm);
+    F=csvreadK(flnm);
 else
-  warning('OFF', 'MATLAB:table:ModifiedAndSavedVarnames')
-  F=table2array(readtable(flnm,'PreserveVariableNames', true));
+    warning('OFF', 'MATLAB:table:ModifiedAndSavedVarnames')
+    F=table2array(readtable(flnm,'PreserveVariableNames', true));
 end
 
 [N,five]=size(F);lat=F(:,2);lon=F(:,3);DecYr=F(:,1);Depth=F(:,4);Rec=F(:,5);
 G = shaperead('ShapeFiles/Shellfish_Strata.shp');
 IsRock=zeros(size(lat));
 for k=1:NRS
-  [k,RSI(k),NRS];
-  lonStrat=G(RSI(k)).X;
-  latStrat=G(RSI(k)).Y;
-  for n=1:N
-    j0(n)=inside(lon(n),lat(n),lonStrat,latStrat);
-  end
-  j0=find(j0==1);
-  j1=find(lon>MinLon(k));
-  j2=find(lat>MinLat(k));
-  j=intersect(intersect(j0,j1),j2);
-  IsRock(j)=1;
+    [k,RSI(k),NRS];
+    lonStrat=G(RSI(k)).X;
+    latStrat=G(RSI(k)).Y;
+    for n=1:N
+        j0(n)=inside(lon(n),lat(n),lonStrat,latStrat);
+    end
+    j0=find(j0==1);
+    j1=find(lon>MinLon(k));
+    j2=find(lat>MinLat(k));
+    j=intersect(intersect(j0,j1),j2);
+    IsRock(j)=1;
 end
 RecA=0*Rec(:);
 j0=find(IsRock==0);
@@ -152,19 +152,19 @@ j1=find(IsRock==1);
 plot(lon(j0),lat(j0),'c.',lon(j1),lat(j1),'r.');
 hold on;
 for k=1:length(G)
-  lonStrat=G(k).X;
-  latStrat=G(k).Y;
-  plot(lonStrat,latStrat,'k');hold on;
+    lonStrat=G(k).X;
+    latStrat=G(k).Y;
+    plot(lonStrat,latStrat,'k');hold on;
 end
 for k=1:NRS
-  lonStrat=G(RSI(k)).X;
-  latStrat=G(RSI(k)).Y;
-  plot(lonStrat,latStrat,'r');
+    lonStrat=G(RSI(k)).X;
+    latStrat=G(RSI(k)).Y;
+    plot(lonStrat,latStrat,'r');
 end
 if isOctave % Octave did not need 3rd term
-  daspect([1,cos(mean(lat)*pi/180)]);
+    daspect([1,cos(mean(lat)*pi/180)]);
 else
-  daspect([1,cos(mean(lat)*pi/180), 1]);
+    daspect([1,cos(mean(lat)*pi/180), 1]);
 end
 print -djpeg RockStrata.
 
@@ -173,34 +173,49 @@ print -djpeg RockStrata.
 flnm='Data/RecruitsRockStrataAdjustment.csv';
 fprintf('Reading from %s\n', flnm)
 if isOctave
-  F=csvreadK(flnm);
-  DecYr=F(:,1);
-  lat=F(:,2);
-  lon=F(:,3);
-  Depth=F(:,4);
-  rec=F(:,7);
+    F=csvreadK(flnm);
+    DecYr=F(:,1);
+    lat=F(:,2);
+    lon=F(:,3);
+    Depth=F(:,4);
+    rec=F(:,7);
 else
-  warning('OFF', 'MATLAB:table:ModifiedAndSavedVarnames')
-  F=readtable(flnm,"FileType","text");
-  DecYr=table2array(F(:,1));
-  lat=table2array(F(:,2));
-  lon=table2array(F(:,3));
-  Depth=table2array(F(:,4));
-  rec=table2array(F(:,7));
+    warning('OFF', 'MATLAB:table:ModifiedAndSavedVarnames')
+    F=readtable(flnm,"FileType","text");
+    DecYr=table2array(F(:,1));
+    lat=table2array(F(:,2));
+    lon=table2array(F(:,3));
+    Depth=table2array(F(:,4));
+    rec=table2array(F(:,7));
 end
 
 if ~strcmp(domain, 'AL')
-  if strcmp(domain, 'MA')
-    j=find(lon<-70.5);
-    [x,y]=ll2utm(lat,lon,18);
-  else
-    j=find(lon>=-70.5);
-    [x,y]=ll2utm(lat,lon,19);
-  end
-  M=[DecYr(j), x(j), y(j), Depth(j), rec(j)];
+    if strcmp(domain, 'GB')
+        j = lon>-70.5;
+        zone=19;
+    else
+        j = lon<=-70.5;
+        zone=18;
+    end
+    % preallocate
+    xx = lat(j);
+    yy = lon(j);
+    [xx, yy] = ll2utm(lat(j),lon(j),zone);
+
+    M=[DecYr(j), xx, yy, Depth(j), rec(j)];
 else
-  [x,y]=ll2utm(lat,lon);
-  M=[DecYr, x, y, Depth, rec];
+    % preallocate
+    xx=lon;
+    yy=lat;
+    for i = 1:size(lon,1)
+        if lon(i)>-70.5
+            zone=19;
+        else
+            zone=18;
+        end
+        [xx(i),yy(i)]=ll2utm(lat(i),lon(i),zone);
+        M=[DecYr, xx, yy, Depth, rec];
+    end
 end
 
 flnm=['Data/Recruits', domain, '.csv'];
@@ -210,28 +225,28 @@ writecsv(M,flnm,'%g, %f, %f, %f, %e',header);
 
 fprintf('Reading from %s\n', flnm);
 if isOctave
-  F=csvreadK(flnm);
-  DecYr=F(:,1);
+    F=csvreadK(flnm);
+    DecYr=F(:,1);
 else
-  warning('OFF', 'MATLAB:table:ModifiedAndSavedVarnames')
-  F=readtable(flnm,"FileType","text");
-  DecYr=table2array(F(:,1));
+    warning('OFF', 'MATLAB:table:ModifiedAndSavedVarnames')
+    F=readtable(flnm,"FileType","text");
+    DecYr=table2array(F(:,1));
 end
 yearMin = min(floor(DecYr));
 yearMax = max(floor(DecYr));
 if yrStart >= yearMin && yrEnd <= yearMax
     for yr=yrStart:yrEnd
-      j=find(floor(DecYr)==yr);
-      if isOctave
-        M=F(j,:);
-      else
-        M=table2array(F(j,:));
-      end
-      G = LumpDataDx (M,1000.);
-      flnm=['Data/Recruits',int2str(yr),domain,'.csv'];
-      header='"decmal year", "x utm", "y utm", "bottom depth(m)","recruits per sq m"';
-      writecsv(G,flnm,'%g, %f, %f, %f, %e',header);
-      fprintf('Writing to %s\n', flnm)
+        j=find(floor(DecYr)==yr);
+        if isOctave
+            M=F(j,:);
+        else
+            M=table2array(F(j,:));
+        end
+        G = LumpDataDx (M,1000.);
+        flnm=['Data/Recruits',int2str(yr),domain,'.csv'];
+        header='"decmal year", "x utm", "y utm", "bottom depth(m)","recruits per sq m"';
+        writecsv(G,flnm,'%g, %f, %f, %f, %e',header);
+        fprintf('Writing to %s\n', flnm)
     end
 else
     fprintf('INPUT YEARS OUT OF RANGE: %i to %i : actual %i to %i\n', yearMin, yearMax, yrStart, yrEnd )
