@@ -144,7 +144,8 @@ class MainInput(ttk.Frame):
         ttk.Checkbutton(outputSelFrame, text='Recruitment',   variable=self.recrVar , command=self.CBSelectedOutput).grid(row=2, column=2, sticky='sw', padx=10, pady=5)
         outputSelFrame.grid(row=1, column=0, padx=5, sticky='n')
         #-------------------------------------------------------------------------------------------
-        helpButton = ttk.Button(self, text= "Main\nHelp", command = self.pop_up)
+        self.style.configure("Help.TLabel", padding=6, relief="flat", foreground='white', background="#5783db")
+        helpButton = ttk.Button(self, text= "Main Help", style="Help.TLabel", command = self.pop_up)
         helpButton.grid(row=2, column=1)
 
 
@@ -254,33 +255,35 @@ class MainInput(ttk.Frame):
     ## 
     #-------------------------------------------------------------------------------------
     def pop_up(self):
-        about = '''
-Configuration Files
-    These are the names for the configuration files. The user can change the names in order to 
-    prevent overwriting the installed configuration files.
+        about = '''Configuration Files
+    These are the names for the configuration files. The user can change the 
+    names in order to prevent overwriting the installed configuration files.
 
-    Use the Change/Save buttons to use a different name. This also saves the data under that name.
+    Use the Change/Save buttons to use a different name. This also saves the 
+    data under that name.
 
 Growth
-    This defines the start and stop years over which the simulation will forecast growth at time 
-    intervals specified by tsPerYear, time steps per year. For example, for the default value of 13
+    This defines the start and stop years over which the simulation will 
+    forecast growth at time intervals specified by tsPerYear, time steps per 
+    year. For example, for the default value of 13
     - 1/13 = 0.077 years
     - 0.077 * 365 = 28.077 days or roughly every 4 weeks
 
-    The domain name shows the region where the growth takes place, Georges Bank or Mid-Atlantic,
-    GB or MA, respectively. AL covers both regions. Use Stratum should not be changed.
+    The domain name shows the region where the growth takes place, Georges Bank
+    or Mid-Atlantic, GB or MA, respectively. AL covers both regions. 
+    Use Stratum should not be changed.
 
 Output Section
     Selects the desired outputs to be analyzed.
 
 Recruitment
-    Defines the period over which recruitment is factored in to the growth calculations.
+    Defines the period in which recruitment is used in the growth calculations.
 '''
         #about = re.sub("\n\s*", "\n", about) # remove leading whitespace from each line
         popup = tk.Toplevel()
-        nrows = 25
-        ncols = 100
-        popup.geometry(str(ncols*9)+"x"+str(nrows*20))
+        nrows = 24
+        ncols = 80
+        popup.geometry(str(int(ncols*8.5))+"x"+str(nrows*18))
         T = tk.Text(popup, width=ncols, height=nrows, padx=10)
         T.insert('end', about)
         T.config(state='disabled')

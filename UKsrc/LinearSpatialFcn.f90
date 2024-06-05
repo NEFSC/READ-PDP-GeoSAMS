@@ -116,52 +116,53 @@ alpha=(Sy / n) - (beta*Sx / n)
 LSF_Simple_Linear_Regression(1:n) = alpha + beta * x(1:n)
 end function LSF_Simple_Linear_Regression
 
-!----------------------------------------------------------------------------------------
-!> Purpose: Restrict maximum recruit density based on historical relation ship between 
-!> peak recruitment and bathymetry within a year.  The curves here are derived from scallop 
-!> dredge survey data from 1979 to 2018.
-!>
-!> inputs: 
-!>  - n      length of vectors f and z
-!>  - z      [num_points] bathymetric depth
-!>  - fpeak  highest observed value of recruitment
-!>  - Domain 'MA', Mid Atlantic or 'GB' Georges Bank
-!>
-!> input/output
-!>  - f [n] recruitment observations from the same year.
-!> @author Keston Smith 2022
-!----------------------------------------------------------------------------------------
-subroutine LSF_Limit_Z(n, f, z, fpeak, lon)
+! ------------------------------------- DEPRECATE ------------------------------------------
+! !----------------------------------------------------------------------------------------
+! !> Purpose: Restrict maximum recruit density based on historical relation ship between 
+! !> peak recruitment and bathymetry within a year.  The curves here are derived from scallop 
+! !> dredge survey data from 1979 to 2018.
+! !>
+! !> inputs: 
+! !>  - n      length of vectors f and z
+! !>  - z      [num_points] bathymetric depth
+! !>  - fpeak  highest observed value of recruitment
+! !>  - Domain 'MA', Mid Atlantic or 'GB' Georges Bank
+! !>
+! !> input/output
+! !>  - f [n] recruitment observations from the same year.
+! !> @author Keston Smith 2022
+! !----------------------------------------------------------------------------------------
+! subroutine LSF_Limit_Z(n, f, z, fpeak, lon)
 
-integer, intent(in) :: n
-real(dp), intent(in) :: z(*), lon(*), fpeak
-real(dp), intent(inout) :: f(*)
-real(dp) a, w, zc, fmax 
-integer j, kappa
+! integer, intent(in) :: n
+! real(dp), intent(in) :: z(*), lon(*), fpeak
+! real(dp), intent(inout) :: f(*)
+! real(dp) a, w, zc, fmax 
+! integer j, kappa
 
-! default
-zc=60
-w=33
-a=.01
-kappa=10
+! ! default
+! zc=60
+! w=33
+! a=.01
+! kappa=10
 
-do j=1, n
-    if (lon(n) > ma_gb_border) then
-        zc=70
-        w=50
-        a=.01
-        kappa=20
-    else
-        zc=60
-        w=33
-        a=.01
-        kappa=10
-    endif
+! do j=1, n
+!     if (lon(n) > ma_gb_border) then
+!         zc=70
+!         w=50
+!         a=.01
+!         kappa=20
+!     else
+!         zc=60
+!         w=33
+!         a=.01
+!         kappa=10
+!     endif
 
-    f(j)=max( f(j) , 0.D0 )
-    fmax= fpeak*(a +   exp(- ( (z(j)-zc)/w )**kappa ))
-    f(j)=min( f(j) , fmax )
-enddo    
-end subroutine
+!     f(j)=max( f(j) , 0.D0 )
+!     fmax= fpeak*(a +   exp(- ( (z(j)-zc)/w )**kappa ))
+!     f(j)=min( f(j) , fmax )
+! enddo    
+! end subroutine
 
 end module LSF_Mod

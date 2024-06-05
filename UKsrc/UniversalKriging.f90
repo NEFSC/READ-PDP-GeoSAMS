@@ -22,7 +22,7 @@
 !> @subsubsection m0p1p1p1 High Limit Factor
 !> 
 !> This configuration item is used to set an upper limit for the observed data. That is,
-!> * fmax = fmax * maxval(observed data)\n
+!> * fmax = fmax_multiplier * maxval(observed data)\n
 !> Used with logical IsHighLimit. IsHighLimit is the inverse of Log Transform. Typically runs as false. 
 !> Not fully tested.
 !>
@@ -43,6 +43,7 @@
 !>
 !> @subsubsection m0p1p1p5 Power Transform Parameter
 !>
+!> DEPRECATED
 !> Power transform interpolates f(x)^alpha, generally 0< alpha < 1 but this has not been tested .
 !> Not used if "Log Transform = T"
 !>
@@ -78,16 +79,17 @@ real(dp), allocatable :: beta(:), Cbeta(:,:), eps(:), Ceps(:,:), residual_cov(:,
 real(dp), allocatable :: spatial_fcn(:,:), residual(:), trndOBS(:), resOBS(:)
 real(dp), allocatable :: dist(:,:)
 integer num_points, num_spat_fcns, num_obs_points, j
-real(dp)  fmax, SF
+! DEPRECATE !real(dp)  fmax, SF, fmax_multiplier
+real(dp)  SF
 ! variables for nonlinear fitting
 integer nsf
-logical IsHiLimit, IsLogT
+! DEPRECATE !logical IsHiLimit, IsLogT
 character(domain_len) domain_name
 type(Grid_Data_Class):: grid
 type(Grid_Data_Class):: obs
 type(Krig_Class):: par
 type(NLSF_Class), allocatable ::nlsf(:)
-real(dp) alpha
+real(dp) alpha_obs
 logical save_data
 real(dp) f0_max
 real e, etime, t(2)
@@ -100,14 +102,15 @@ par = Krig_Class(0.0, 0.0, 0.0, 'spherical')
 write (*,*) term_grn, "PROGRAM STARTING  ", &
 & 'elapsed:', term_yel, e, term_grn, ', user:', term_yel, t(1), term_grn, ', sys:', term_yel, t(2), term_blk
 
-call Read_Startup_Config(domain_name, IsLogT, IsHiLimit, fmax, par, alpha, save_data, f0_max)
+! DEPRECATE !call Read_Startup_Config(domain_name, IsLogT, IsHiLimit, fmax_multiplier, par, alpha, save_data, f0_max)
+call Read_Startup_Config(domain_name, par, alpha_obs, save_data, f0_max)
 
 call random_seed( )
 
 !--------------------------------------------------------------------------
 ! Get observation data and regional grid data
 !--------------------------------------------------------------------------
-call GridMgr_Set_Grid_Manager(obs, grid, alpha, num_obs_points, num_points, fmax)
+call GridMgr_Set_Grid_Manager(obs, grid, alpha_obs, num_obs_points, num_points) !, fmax_multiplier, fmax)
 
 allocate( eps(1:num_points), Ceps(1:num_points, 1:num_points))
 allocate(residual_cov(1:num_obs_points, 1:num_obs_points))
@@ -125,9 +128,9 @@ nsf = NLSF_Define_Functions(nlsf, grid, f0_max)
 
 write (*,*) term_blu,"Reading ", domain_name
 write(*,*) 'Observation file:  ', trim(GridMgr_Get_Obs_Data_File_Name())
-write(*,*) 'Logtransorm:       ', IsLogT
-write(*,*) 'Using High Limit:  ', IsHiLimit
-write(*,'(A,F10.4)') ' High limit fmax:   ', fmax
+! write(*,*) 'Logtransorm:       ', IsLogT
+! write(*,*) 'Using High Limit:  ', IsHiLimit
+! write(*,'(A,F10.4)') ' High limit fmax:   ', fmax
 write(*,*) 'Form of variagram: ', par%form
 if (save_data) then
     write(*,*) 'All data is saved'
@@ -140,7 +143,7 @@ else
     write(*,*) 'Force 1D fit to residual data'
 endif 
 write(*,*) term_blk
-write(*,*)'num_obs_points=', num_obs_points, 'nsf limit=', NLSF_Get_NSF_Limit(), ' alpha = ', alpha
+write(*,*)'num_obs_points=', num_obs_points, 'nsf limit=', NLSF_Get_NSF_Limit(), ' alpha = ', alpha_obs
 write(*,*)'num_grid_points=', num_points
 write(*,'(A,L2)') 'Is Truncate Range: ', NLSF_Get_Is_Truncate_Range()
 write(*,'(A,L2)') 'Using Greedy Fit:  ', NLSF_Get_Use_Greedy_Fit()
@@ -151,10 +154,10 @@ else
     write(*,*) 'Using f0_max setting: Determined by algorithm', term_blk
 endif
    
-if(IsLogT) then
+!if(IsLogT) then
     SF = Compute_MEAN(obs%field(1:num_obs_points), num_obs_points) / 5.D0
     obs%field(1:num_obs_points) = log((one_scallop_per_tow + obs%field(1:num_obs_points)) / SF)
-endif
+!endif
 
 !-----------------------------------------------------------------------------------------------------
 ! Performs a brute force least squares fit of nonlinear spatial function parameters to data points in obs.
@@ -217,10 +220,12 @@ resOBS(1:num_obs_points) = obs%field(1:num_obs_points) - trndOBS(1:num_obs_point
 write(*,'(A,F10.6)')'GLSres:', Compute_RMS(resOBS(:), num_obs_points)
 
 if (save_data) then
-    call OutputUK(num_points, num_spat_fcns, grid, nlsf, beta, eps, Ceps, Cbeta, fmax, SF, IsLogT, IsHiLimit, alpha)
+    !DEPRECATE LogT HiLimit!call OutputUK(num_points, num_spat_fcns, grid, nlsf, beta, eps, Ceps, Cbeta, fmax, SF, IsLogT, IsHiLimit, alpha)
+    call OutputUK(num_points, num_spat_fcns, grid, nlsf, beta, eps, Ceps, Cbeta, SF, alpha_obs)
 else
     !DEPRECATE trend!call OutputEstimates(num_points, num_spat_fcns, grid, Ceps, IsLogT, IsHiLimit, fmax, SF, domain_name, alpha)
-    call OutputEstimates(num_points, grid, Ceps, IsLogT, IsHiLimit, fmax, SF, alpha)
+    !DEPRECATE LogT HiLimit!call OutputEstimates(num_points, grid, Ceps, IsLogT, IsHiLimit, fmax, SF, alpha)
+    call OutputEstimates(num_points, grid, Ceps, SF, alpha_obs)
 endif
 
 write(*,*)'num_points, num_survey', num_points, num_obs_points
@@ -257,7 +262,8 @@ endprogram
 !--------------------------------------------------------------------------------------------------
 ! Keston Smith, Tom Callaghan (IBSS) 2024
 !--------------------------------------------------------------------------------------------------
-subroutine Read_Startup_Config(domain_name, IsLogT, IsHiLimit, fmax, par, alpha, save_data, f0_max)
+!DEPRECATE!subroutine Read_Startup_Config(domain_name, IsLogT, IsHiLimit, fmax_multiplier, par, alpha, save_data, f0_max)
+subroutine Read_Startup_Config(domain_name, par, alpha_obs, save_data, f0_max)
 use globals
 use Krig_Mod
 use NLSF_Mod, only : NLS_Set_Config_File_Name => Set_Config_File_Name
@@ -266,25 +272,28 @@ character(2),intent(out):: domain_name
 type(Krig_Class), intent(out):: par
 integer j, k, io
 
-logical IsLogT,IsHiLimit
+!DEPRECATE!logical IsLogT,IsHiLimit
 character(72) :: input_string
 character(tag_len) tag
 character(value_len) value
-real(dp),intent(out)::  fmax,alpha
+!DEPRECATE!real(dp),intent(out)::  fmax_multiplier
+real(dp), intent(out) :: alpha_obs
 logical, intent(out) :: save_data
 real(dp), intent(out) :: f0_max
 
 integer ncla
 character(fname_len) cfg_file_name
 character(fname_len) cmd, obsfile, gridfile
+character(form_len) form
 logical exists
 
 ! set default values for parameters not in file
-IsLogT=.true.
-IsHiLimit=.false.
-alpha=1.D0
+!DEPRECATE!IsLogT=.true.
+!DEPRECATE!IsHiLimit=.false.
+alpha_obs=1.D0
 save_data = .false.
 f0_max = 0._dp
+!DEPRECATE!fmax_multiplier = 1.5
 
 ! Check what was entered on command line
 ncla=command_argument_count()
@@ -344,25 +353,31 @@ do
         case('Observation File')
             Call GridMgr_Set_Obs_Data_File_Name(value)
 
-        case('Log Transform')
-            read(value,*) IsLogT
+        ! case('Log Transform')
+        !     read(value,*) IsLogT
 
-        case('High Limit Factor')
-            read(value, *) fmax
+        ! case('High Limit Factor')
+        !     read(value, *) fmax_multiplier
 
-        case('Power Transform Parameter')
-            if (IsLogT) then
-                ! Forcing alpha to 1.0
-                alpha=1.D0
-                write(*,*) term_yel, 'Log Transform is T, ignoring Power Transform Param', term_blk
-            else
-                read(value,*) alpha
-                IsHiLimit = .true.
-                write(*,*)'Is this the fmax you were searching for?', fmax
-            endif
+        ! case('Power Transform Parameter')
+        !     if (IsLogT) then
+        !         ! Forcing alpha to 1.0
+        !         alpha=1.D0
+        !         write(*,*) term_yel, 'Log Transform is T, ignoring Power Transform Param', term_blk
+        !     else
+        !         read(value,*) alpha
+        !         IsHiLimit = .true.
+        !         !write(*,*)'Is this the fmax you were searching for?', fmax
+        !     endif
 
         case('Kriging variogram form')
-            read(value,*) par%form
+            read(value,*) form
+            form=trim(form)
+            if (.not. ( any ((/ form.eq.'spherical', form.eq.'exponential', form.eq.'gaussian', form.eq.'matern'/)) )) then
+                write(*,*) term_red, ' **** INVALID FORM NAME: ', form, term_blk
+                stop 1
+            endif
+            par%form = form
 
         case('NLS Spatial Fcn File Name')
             call NLS_Set_Config_File_Name(value)
@@ -431,8 +446,7 @@ endsubroutine Read_Startup_Config
 !> "KrigingEstimate.txt" Predictor standard deviation  is output to "KrigSTD.txt".
 !> Function coefficient 
 !---------------------------------------------------------------------------------------------------
-subroutine OutputUK(num_points, num_spat_fcns, grid, nlsf, beta, eps, Ceps, Cbeta, fmax, SF, &
-    &                  IsLogT, IsHiLimit, alpha)
+subroutine OutputUK(num_points, num_spat_fcns, grid, nlsf, beta, eps, Ceps, Cbeta, SF, alpha_obs)
 use globals
 use Grid_Manager_Mod
 use NLSF_Mod
@@ -444,29 +458,31 @@ type(Grid_Data_Class), intent(inout) :: grid
 type(NLSF_Class), intent(in)::nlsf(*)
                                     
 integer, intent(in) :: num_points, num_spat_fcns
-real(dp), intent(in) :: eps(*), beta(*), Cbeta(num_spat_fcns,*), fmax, SF, alpha
+real(dp), intent(in) :: eps(*), beta(*), Cbeta(num_spat_fcns,*), SF, alpha_obs! , fmax
 real(dp), intent(inout) :: Ceps(num_points,*)
-logical, intent(in) ::IsLogT, IsHiLimit
+!DEPRECATE)logical, intent(in) ::IsLogT, IsHiLimit
 integer n 
 real(dp) trend(num_points), V(num_points), Fg(num_points, num_spat_fcns)
 real(dp) logf(num_points)
 logical, parameter :: save_data = .true.
 
-write(*,*)'output fmax, SF, A=', fmax, SF, one_scallop_per_tow
+write(*,*)'output SF, A=', SF, one_scallop_per_tow
 do n=1, num_points
     V(n)=Ceps(n, n)
 enddo
-grid%field(1:num_points) = grid%field(1:num_points)**(1./alpha)
+grid%field(1:num_points) = grid%field(1:num_points)**(1._dp/alpha_obs)
 
 logf(1:num_points) = grid%field(1:num_points)
-if(IsLogT) grid%field(1:num_points) = SF * exp( grid%field(1:num_points) + V(1:num_points)/2. ) - one_scallop_per_tow  ! adjusted inverse log(one_scallop_per_tow+f)
-if(IsHiLimit) call LSF_Limit_Z(num_points, grid%field, grid%z, fmax, grid%lon)
+!if(IsLogT) 
+grid%field(1:num_points) = SF * exp( grid%field(1:num_points) + V(1:num_points)/2. ) - one_scallop_per_tow  ! adjusted inverse log(one_scallop_per_tow+f)
+!if(IsHiLimit) call LSF_Limit_Z(num_points, grid%field, grid%z, fmax, grid%lon)
 call Write_Vector_Scalar_Field(num_points, grid%field, 'KrigingEstimate.txt')
 
 Fg = Krig_Eval_Spatial_Function(grid, num_spat_fcns, num_points, nlsf, save_data)
 trend(1:num_points) = matmul( Fg(1:num_points, 1:num_spat_fcns), beta(1:num_spat_fcns)) 
 
-if(IsLogT) trend(1:num_points) = SF*exp(trend(1:num_points))-one_scallop_per_tow
+!if(IsLogT) 
+trend(1:num_points) = SF*exp(trend(1:num_points))-one_scallop_per_tow
 call Write_Vector_Scalar_Field(num_points, trend, 'SpatialTrend.txt')
 
 call Write_Vector_Scalar_Field(num_points, eps, 'epsilon.txt')
@@ -481,8 +497,9 @@ Ceps(1:num_points, 1:num_points) = Ceps(1:num_points, 1:num_points)&
 do n=1, num_points
    V(n) = Ceps(n, n)
 enddo
-if(IsLogT) call Write_Vector_Scalar_Field(num_points, SF*exp(sqrt(V(1:num_points)))-one_scallop_per_tow, 'KrigSTD.txt')
-if(.not.IsLogT) call Write_Vector_Scalar_Field(num_points, sqrt(V(1:num_points)), 'KrigSTD.txt')
+!if(IsLogT) 
+call Write_Vector_Scalar_Field(num_points, SF*exp(sqrt(V(1:num_points)))-one_scallop_per_tow, 'KrigSTD.txt')
+!if(.not.IsLogT) call Write_Vector_Scalar_Field(num_points, sqrt(V(1:num_points)), 'KrigSTD.txt')
 
 endsubroutine OutputUK
 
@@ -496,7 +513,7 @@ endsubroutine OutputUK
 !> That is moving from survey data locations to MA/GB grid locations
 !---------------------------------------------------------------------------------------------------
 !DEPRECATE trend!subroutine OutputEstimates(num_points, num_spat_fcns, grid, Ceps, IsLogT, IsHiLimit, fmax, SF, domain_name, nlsf, alpha, beta)
-subroutine OutputEstimates(num_points, grid, Ceps, IsLogT, IsHiLimit, fmax, SF, alpha)
+subroutine OutputEstimates(num_points, grid, Ceps, SF, alpha_obs)
 use globals
 use Grid_Manager_Mod
 use NLSF_Mod
@@ -508,11 +525,11 @@ implicit none
 integer, intent(in) :: num_points!DEPRECATE trend!, num_spat_fcns
 type(Grid_Data_Class), intent(inout) :: grid
 real(dp), intent(in) :: Ceps(num_points,*)
-logical, intent(in) ::IsLogT, IsHiLimit
-real(dp), intent(in) :: fmax, SF
+!DEPRECATE!logical, intent(in) ::IsLogT, IsHiLimit
+real(dp), intent(in) :: SF !,fmax
 
 !DEPRECATE trend!type(NLSF_Class), intent(in)::nlsf(*)
-real(dp), intent(in) :: alpha
+real(dp), intent(in) :: alpha_obs
 !DEPRECATE trend!real(dp), intent(in) :: beta(*)
 
 integer n
@@ -525,9 +542,10 @@ character(80) fmtstr
 do n=1, num_points
     V(n)=Ceps(n, n)
 enddo
-grid%field(1:num_points) = grid%field(1:num_points)**(1./alpha)    
-if(IsLogT) grid%field(1:num_points) = SF * exp( grid%field(1:num_points) + V(1:num_points)/2. ) - one_scallop_per_tow  ! adjusted inverse log(one_scallop_per_tow+f)
-if(IsHiLimit) call LSF_Limit_Z(num_points, grid%field, grid%z, fmax, grid%lon)
+grid%field(1:num_points) = grid%field(1:num_points)**(1./alpha_obs)    
+!if(IsLogT) 
+grid%field(1:num_points) = SF * exp( grid%field(1:num_points) + V(1:num_points)/2. ) - one_scallop_per_tow  ! adjusted inverse log(one_scallop_per_tow+f)
+! DEPRECATE !if(IsHiLimit) call LSF_Limit_Z(num_points, grid%field, grid%z, fmax, grid%lon)
 
 fname = GridMgr_Get_Obs_Data_File_Name()
 ! Change output directory and file prefix
@@ -538,7 +556,7 @@ fout = output_dir//'Lat_Lon_Grid_'//fname(n:)
 !DEPRECATE trend!ftrend = output_dir//'Lat_Lon_Grid_Trend-'//fname(n:)
 fmtstr='(2(ES14.7 : ", ") (ES14.7 : ))'
 
-write(*,'(A,A,3F12.6)') term_blu, 'output fmax, SF, A=', fmax, SF, one_scallop_per_tow
+write(*,'(A,A,2F12.6)') term_blu, 'output SF, A=', SF, one_scallop_per_tow
 write(*,*) 'Writing ouput to: ', trim(fout)
 !DEPRECATE trend! write(*,*) 'Writing ouput to: ', trim(ftrend), term_blk
 

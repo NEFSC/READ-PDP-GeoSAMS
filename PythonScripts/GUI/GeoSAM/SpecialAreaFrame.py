@@ -69,6 +69,8 @@ class SpecialArea(ttk.Frame):
         reg=self.numAreasEntry.register(numbersCallback)
         self.numAreasEntry.configure(validate='key', validatecommand=(reg, '%P'))
         self.numAreasEntry.grid(row=0, column=1, sticky='w')
+        self.numAreasEntry.focus()
+        self.numAreasEntry.bind('<Return>', self.EnterKeyCliced)
         # +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
         self.specAccFile  = SubFrameElement(self, self.specialAreaFrame, 'Special Access File\nSet to NONE if not used\nAlso blocks Fish Mort File', '', 0, 2, 3, width=20)
 
@@ -97,8 +99,9 @@ class SpecialArea(ttk.Frame):
         self.specialAreaFrame.grid_columnconfigure(1,weight=1)
         # --------------------------------------------------------------------------------------------------------
         self.scrollFrame.grid(row=1, column=0, sticky='nsew')
-        #-------------------------------------------------------------------------------------------
-        helpButton = ttk.Button(self, text= "SpecialAccess\nHelp", command = self.pop_up)
+        #---------------------------------------------------------------------------------------------------------
+        self.style.configure("Help.TLabel", padding=6, relief="flat", foreground='white', background="#5783db")
+        helpButton = ttk.Button(self, text= "Special Access Help", style="Help.TLabel", command = self.pop_up)
         helpButton.grid(row=0, column=0)
 
         self.bind("<Visibility>", self.on_visibility)
@@ -108,6 +111,11 @@ class SpecialArea(ttk.Frame):
     def on_visibility(self, event):
         self.areaFName = os.path.join(self.startDir, self.specAccFile.myEntry.get())
         self.UpdateWidgets()
+
+    # --------------------------------------------------------------------------------------------------------
+    # --------------------------------------------------------------------------------------------------------
+    def EnterKeyCliced(self, event):
+        self.NumAreasUpdate()
 
     # --------------------------------------------------------------------------------------------------------
     # --------------------------------------------------------------------------------------------------------
@@ -155,23 +163,26 @@ class SpecialArea(ttk.Frame):
     #-------------------------------------------------------------------------------------
     def pop_up(self):
         about = '''Special Area
-    This frame in conjunction with the FishingMort in Special Access frame is used to define
-    fishing mortalities within a defined area for a specified year. If a location falls within the
-    defined area given in this frame and assigned the area number. Then if the current year is the 
-    same as the year given in the FishingMort in Special Access frame and the area number is listed
-    then the fishing mortality is specified by the Mortality value. Otherwise it is the default
-    value which is defined in the Growth Frame as Fishing mortality
+    This frame in conjunction with the FishingMort in Special Access frame is 
+    used to define fishing mortalities within a defined area for a specified 
+    year. If a location falls within the defined area given in this frame and 
+    assigned the area number. Then if the current year is the same as the year 
+    given in the FishingMort in Special Access frame and the area number is 
+    listed then the fishing mortality is specified by the Mortality value. 
+    Otherwise it is the default value which is defined in the Growth Frame as 
+    Fishing mortality
 
 # of Areas
-    The number of areas the user wishes to define. This is limited by Max Areas of Interest.
-    See SHOW Args button
+    The number of areas the user wishes to define. This is limited by Max Areas
+    of Interest. See SHOW Args button
 
 Update # Areas
-    Click this button after entering a value in # of Areas to populate/show the Area N defintions
+    Click this button after entering a value in # of Areas to populate/show the
+    Area N defintions
 
 Special Access File
-    The name of the file used to hold this information. The user can load the default file
-    'SpecialAreas.csv' or define and save their own configuration.
+    The name of the file used to hold this information. The user can load the 
+    default file 'SpecialAreas.csv' or define and save their own configuration.
 
     If this feature is not desired then enter NONE in the window
 
@@ -181,19 +192,23 @@ Special Access File
 
 Area N
     Comment: Optional. Enter a comment to describe the area being specfied.
-    # Corners: Also called nodes or sides. Enter the Longitude and Latitude of the vertices
-                 for the area. It is up to the user to ensure that a close shape is defined.
+
+    # Corners: Also called nodes or sides. This is limited by Max Nodes in Area.
+               See SHOW Args button
+
     Update # Corners
         Click this button to populate the corner entries for the given number
 
     Corner N
-        These are the coordinates of the area vertices.
+        These are the coordinates of the area vertices. Enter the Longitude and
+        Latitude of the vertices for the area. It is up to the user to ensure 
+        that a closed shape is defined.
 '''
         #about = re.sub("\n\s*", "\n", about) # remove leading whitespace from each line
         popup = tk.Toplevel()
-        nrows = 35
-        ncols = 100
-        popup.geometry(str(ncols*9)+"x"+str(nrows*20))
+        nrows = 42
+        ncols = 80
+        popup.geometry(str(int(ncols*8.5))+"x"+str(nrows*18))
         T = tk.Text(popup, width=ncols, height=nrows, padx=10)
         T.insert('end', about)
         T.config(state='disabled')

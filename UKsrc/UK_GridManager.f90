@@ -30,19 +30,20 @@ CONTAINS
 !> Initialize survey and grid location data
 !> 
 !-----------------------------------------------------------------------------------------------
-subroutine GridMgr_Set_Grid_Manager(obs, grid, alpha, nobs, ngrid, fmax)
+subroutine GridMgr_Set_Grid_Manager(obs, grid, alpha_obs, nobs, ngrid) !, fmax_multiplier, fmax)
 type(Grid_Data_Class), intent(out):: grid
 type(Grid_Data_Class), intent(out):: obs
-real(dp), intent(in) :: alpha
+real(dp), intent(in) :: alpha_obs
 integer, intent(out) :: nobs, ngrid
-real(dp), intent(inout) :: fmax
+! real(dp), intent(in) :: fmax_multiplier
+! real(dp), intent(inout) :: fmax
 
 !
 ! Initalize data point coordinates, bathymetry and data - initialize no
 !
 obs%num_points = GridMgr_Load_Observation_Data(obs%x, obs%y, obs%z, obs%field)
 nobs = obs%num_points
-obs%field(1:nobs) = obs%field(1:nobs)**alpha
+obs%field(1:nobs) = obs%field(1:nobs)**alpha_obs
 
 !
 ! Initalize grid point coordinates and bathymetry - initialize num_points
@@ -50,8 +51,8 @@ obs%field(1:nobs) = obs%field(1:nobs)**alpha
 ngrid = GridMgr_Load_Grid(grid%x, grid%y, grid%z, grid%lat, grid%lon)
 grid%num_points = ngrid
 
-! Used if IsHiLimit is true
-fmax = fmax * maxval(obs%field(1:nobs))
+! ! Used if IsHiLimit is true
+! fmax = fmax_multiplier * maxval(obs%field(1:nobs))
 
 endsubroutine
 

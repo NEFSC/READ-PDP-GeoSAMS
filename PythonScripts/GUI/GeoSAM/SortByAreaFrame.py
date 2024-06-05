@@ -79,7 +79,9 @@ class SortByArea(ttk.Frame):
         reg=self.numAreasEntry.register(numbersCallback)
         self.numAreasEntry.configure(validate='key', validatecommand=(reg, '%P'))
         self.numAreasEntry.grid(row=1, column=0, sticky='w')
-
+        self.numAreasEntry.focus()
+        self.numAreasEntry.bind('<Return>', self.EnterKeyCliced)
+        # +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
         self.outputParmLabel = ttk.Label(self.sortAreaFrame, text='Output Parameters')
         self.outputParmLabel.grid(row=0, column=0, sticky='ns')
         self.comboParameter = ttk.Combobox(self.sortAreaFrame, values=paramStr)
@@ -117,7 +119,11 @@ class SortByArea(ttk.Frame):
         self.sortAreaFrame.grid_columnconfigure(0,weight=2)
         self.sortAreaFrame.grid_columnconfigure(1,weight=1)
         # --------------------------------------------------------------------------------------------------------
-        self.scrollFrame.grid(row=0, column=0, sticky='nsew')
+        self.scrollFrame.grid(row=1, column=0, sticky='nsew')
+        #---------------------------------------------------------------------------------------------------------
+        self.style.configure("Help.TLabel", padding=6, relief="flat", foreground='white', background="#5783db")
+        helpButton = ttk.Button(self, text= "Sort By Area Help", style="Help.TLabel", command = self.pop_up)
+        helpButton.grid(row=0, column=0)
 
         self.bind("<Visibility>", self.on_visibility)
 
@@ -273,6 +279,11 @@ class SortByArea(ttk.Frame):
             f = fName.split('/')
             self.dataSortFileEntry.insert(0, f[-1])
 
+    # --------------------------------------------------------------------------------------------------------
+    # --------------------------------------------------------------------------------------------------------
+    def EnterKeyCliced(self, event):
+        self.NumAreasUpdate()
+
     #---------------------------------------------------------------------------------------------------------
     #---------------------------------------------------------------------------------------------------------
     def NumAreasUpdate(self):
@@ -289,3 +300,60 @@ class SortByArea(ttk.Frame):
             self.numAreasEntry.insert(0, str(n))
         self.numAreas = n
         self.areas.NumAreasUpdate(n)
+
+    #-------------------------------------------------------------------------------------
+    ## Help Window for Sort By Area
+    #-------------------------------------------------------------------------------------
+    def pop_up(self):
+        about = '''Sort By Area
+    This frame allows the user to determine the amount of a given parameter 
+    that is located in a specific area defined by long, lat coordinates of the
+    vertices or corners.
+    1) The areas must first be defined by specifyin the number of areas, update
+    2) For each area
+       a) Enter the number of corners
+
+# Defined
+    The number of defined areas as determined by the user. This is limited by 
+    Max Areas of Interest. See SHOW Args button
+
+Update # Defined
+    Click this button after entering a value in # Defined to populate/show the 
+    Area N defintions.
+
+Fishing Mort File
+    The name of the file used to hold this information. The user can load the 
+    default file 'FishingMortality.csv' or save their own configuration.
+
+    If this feature is not desired then enter NONE in the window
+
+    Use Load Fishing Mort File to load a predefined set of data
+
+    Use Save Fishing Mort File to save the currently displayed setting
+
+Year
+    The year for which Area N is valid
+
+Area N
+    Comment: Optional. Enter a comment to describe the area being specfied.
+    # Corners: Specifically, the number of Fields for the year given. This is 
+    limited by Max Nodes in Area. See SHOW Args button
+
+    Update # Corners
+        Click this button to populate the field entries for the given number
+
+    Field N
+        These are the area numbers as determined in Special Access Frame. Enter
+        the area number and its Mortality.
+'''
+        #about = re.sub("\n\s*", "\n", about) # remove leading whitespace from each line
+        popup = tk.Toplevel()
+        nrows = 41
+        ncols = 80
+        popup.geometry(str(int(ncols*8.5))+"x"+str(nrows*18))
+        T = tk.Text(popup, width=ncols, height=nrows, padx=10)
+        T.insert('end', about)
+        T.config(state='disabled')
+        T.grid()
+        btn = tk.Button(popup, text ="Close", command= popup.destroy)
+        btn.grid(row =1)

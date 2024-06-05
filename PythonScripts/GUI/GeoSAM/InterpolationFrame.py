@@ -119,6 +119,9 @@ class UKInterpolation(ttk.Frame):
         self.numFcnsEntry.grid(row=0, column=0, sticky='e')
         reg=self.numFcnsEntry.register(numbersCallback)
         self.numFcnsEntry.configure(validate='key', validatecommand=(reg, '%P'))
+        self.numFcnsEntry.focus()
+        self.numFcnsEntry.bind('<Return>', self.EnterKeyCliced)
+
         # +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
         self.numFncsButton = ttk.Button(self.funcFrame, text='Update', command=self.NumFuncsUpdate)
         self.numFncsButton.grid(row=0, column=1)
@@ -146,35 +149,39 @@ class UKInterpolation(ttk.Frame):
         self.funcFrame.grid(row=0, column=0, sticky='n')
         # --------------------------------------------------------------------------------------------------------
         paramFrame= ttk.LabelFrame(self.scrollFrame.viewPort, text='Parameters', style='UKInterpolation.TFrame')
-        self.highLimit   = SubFrameElement(self, paramFrame, 'High Limit Factor ', '1.5',  0, 0, 1)
+        #DEPRECATE#self.highLimit   = SubFrameElement(self, paramFrame, 'High Limit Factor ', '1.5',  0, 0, 1)
 
         formComboList = ['spherical', 'exponential', 'gaussian', 'matern']
         self.formLabel = ttk.Label(paramFrame, text='Variogram Form')
-        self.formLabel.grid(row=1, column=0)
+        self.formLabel.grid(row=0, column=0)
         self.formCombo = ttk.Combobox(paramFrame, values=formComboList, width=10)
         self.formCombo.current(0)
-        self.formCombo.grid(row=1, column=1, pady=5)
+        self.formCombo.grid(row=0, column=1, pady=5)
 
-        self.useLogTransLabel = ttk.Label(paramFrame, text='Use Log Transfrom)')
-        self.useLogTransLabel.grid(row=2, column=0)
-        self.useLogTransCombo = ttk.Combobox(paramFrame, width=3, values=['T', 'F'])
-        self.useLogTransCombo.current(0)
-        self.useLogTransCombo.grid(row=2, column=1, pady=5)
+        #DEPRECATE#self.useLogTransLabel = ttk.Label(paramFrame, text='Use Log Transfrom)')
+        #DEPRECATE#self.useLogTransLabel.grid(row=2, column=0)
+        #DEPRECATE#self.useLogTransCombo = ttk.Combobox(paramFrame, width=3, values=['T', 'F'])
+        #DEPRECATE#self.useLogTransCombo.current(0)
+        #DEPRECATE#self.useLogTransCombo.grid(row=2, column=1, pady=5)
 
-        self.powerTrans  = SubFrameElement(self, paramFrame, 'Power Tranform\n(Not used if Log = T)', '1.0', 3, 0, 1)
-        self.spatCfgFile  = SubFrameElement(self, paramFrame, 'Spatial Fcn Config File', 'SpatialFcns.cfg', 4, 0, 1, width=20)
+        #DEPRECATE#self.powerTrans  = SubFrameElement(self, paramFrame, 'Power Tranform\n(Not used if Log = T)', '1.0', 3, 0, 1)
+        self.spatCfgFile  = SubFrameElement(self, paramFrame, 'Spatial Fcn Config File', 'SpatialFcns.cfg', 1, 0, 1, width=20)
 
         self.style.configure("Frame4.TLabel", padding=6, relief='raised', background="#0F0")
         self.style.configure("Frame4A.TLabel", padding=6, relief='raised', background="#0FF")
         self.openSpatFncConfigButton = ttk.Button(paramFrame, text='Load Spat Fcn File', style="Frame4.TLabel", command=self.GetSpatialFcnConfigFName)
-        self.openSpatFncConfigButton.grid(row=5, column=0)
+        self.openSpatFncConfigButton.grid(row=2, column=0)
 
         self.saveSpatFncConfigButton = ttk.Button(paramFrame, text='Save Spat Fcn File', style="Frame4A.TLabel", command=self.SaveSpatialFcnConfigFName)
-        self.saveSpatFncConfigButton.grid(row=5, column=1)
+        self.saveSpatFncConfigButton.grid(row=2, column=1)
 
         paramFrame.grid(row=0, column=4, sticky='n')
         # --------------------------------------------------------------------------------------------------------
-        self.scrollFrame.grid(row=0, column=0, sticky='nsew')
+        self.scrollFrame.grid(row=1, column=0, sticky='nsew')
+        #---------------------------------------------------------------------------------------------------------
+        self.style.configure("Help.TLabel", padding=6, relief="flat", foreground='white', background="#5783db")
+        helpButton = ttk.Button(self, text= "UK Interpolation Help", style="Help.TLabel", command = self.pop_up)
+        helpButton.grid(row=0, column=0)
 
         self.bind("<Visibility>", self.on_visibility)
 
@@ -322,6 +329,11 @@ class UKInterpolation(ttk.Frame):
                 for i in range(self.nsf):
                     self.functions[i].funcFrame.grid()
 
+    # --------------------------------------------------------------------------------------------------------
+    # --------------------------------------------------------------------------------------------------------
+    def EnterKeyCliced(self, event):
+        self.NumFuncsUpdate()
+
     #--------------------------------------------------------------------------------------------------
     ##
     # This method updates the number of spatial functions. Overrides default value for MA and GB
@@ -345,3 +357,79 @@ class UKInterpolation(ttk.Frame):
             self.functions[i].funcFrame.grid_remove()
         for i in range(self.nsf):
             self.functions[i].funcFrame.grid()
+
+    #-------------------------------------------------------------------------------------
+    ## Help Window for Sort By Area
+    #-------------------------------------------------------------------------------------
+    def pop_up(self):
+        about = '''Universal Krigin Interpolation
+    (This frame is scrollable, use mouse wheel)
+    This frame allows the user to customize how the interpolation is performed.
+
+Parameters
+    Variogram Form: This describes the shape of the variogram
+
+    Spatial Fcn Config File:
+    This is the name of the file used to hold the spatial function definitions.
+    It is saved in the UK Configuration file.
+
+    Load/Save Spat Fcn File:
+    Used to load predefined spatial functions and save user defined spatial
+    functions. respectively.
+
+    Note: If MA is selected in the Main Tab, then the Spatial Functions are 
+    populated with MA defaults. If GB is selected then similarly loaded with
+    GB defaults. Once # of Functions is changed then this no longer occurs.
+
+Spatial Functions
+    Define non linear spatial functions and paramater search range.
+
+    - "Function 1, dim=z, shape=Logistic, precon=0 "
+    - "Function 2, dim=z, shape=Gaussian, precon=0 "
+    - "Function 3, dim=x, shape=Logistic, precon=1 "
+
+    These define spatial functions for setting the spatial trend in the 
+    universal kriging algorithm. 
+
+    The precon=0 term means that the function is not multiplied by another 
+    function. For example,
+       "Function 3, dim=x, shape=Logistic, precon=1 "
+    indicates that the third function is multiplied by the first function.  
+    This is true for fitting the nonlinear parameters of function 3 hence 
+    the parameters of function 1 must be fit before the parameters of 
+    function 3.
+
+Function N
+    These are the Function definitions as explained above
+
+    Dim
+       - x: computations along longitude paramater
+       - y: computations along latitude paramater
+       - z: computations along depth paramater
+
+    Shape
+       Let vector{A} = Vector{dim} - f0
+       Gaussian:  exp( -( Vector{A} / lambda )^2 )
+       Logistic: 1 / ( 1 + exp( - Vector{A}/lambda) )
+       SinExp: sin(Vector{A}/lambda) * exp(-(Vector{A}/lambda )^2)
+       CosExp: cos(Vector{A}/lambda) * exp(-(Vector{A}/lambda )^2)
+
+       f0 is used for a linear interpolation and is approximately
+       λ_max = max(Vector{A}) - min(Vector{A})
+       λ_min = 5000 for x and y, 5 for z
+       f0 = min(Vector{A}) + (λ_max - λ_min) * LinearPlot
+
+    Precon
+       Precon value determines order of computation. See above.
+'''
+        #about = re.sub("\n\s*", "\n", about) # remove leading whitespace from each line
+        popup = tk.Toplevel()
+        nrows = 30
+        ncols = 80
+        popup.geometry(str(int(ncols*8.5))+"x"+str(nrows*18))
+        T = tk.Text(popup, width=ncols, height=nrows, padx=10)
+        T.insert('end', about)
+        T.config(state='disabled')
+        T.grid()
+        btn = tk.Button(popup, text ="Close", command= popup.destroy)
+        btn.grid(row =1)

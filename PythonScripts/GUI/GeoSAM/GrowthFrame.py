@@ -186,7 +186,8 @@ class Growth(ttk.Frame, MainApplication):
         self.gbDiscard  = SubFrameElement(self, discardFrame, 'GB Discard',   self.gbDiscStr, 1, 2, 3)
         discardFrame.grid(row=1, column=1, columnspan=2, padx=10)
         #-------------------------------------------------------------------------------------------
-        helpButton = ttk.Button(self, text= "Growth\nHelp", command = self.pop_up)
+        self.style.configure("Help.TLabel", padding=6, relief="flat", foreground='white', background="#5783db")
+        helpButton = ttk.Button(self, text= "Growth Help", style="Help.TLabel", command = self.pop_up)
         helpButton.grid(row=2, column=1)
 
     #--------------------------------------------------------------------------------------------------
@@ -234,14 +235,16 @@ class Growth(ttk.Frame, MainApplication):
         about = '''Mortality
     Define parameters to compute fishing mortality
     - Fishing Mortality: This is the default fishing mortality
-    - Alpha Mortality: Uses as an exponent to set fishing mortality proportional to LPUE
+    - Alpha Mortality: Uses as an exponent to set fishing mortality 
+      proportional to LPUE
     - Adult Mortality and Length_0: Used to compute Natural Mortality
         ALPHA = 1 - 1 / ( 1 + exp( - (shell_length - length_0) /10._dp ) )
         NATURAL MORT = ALPHA * JuvenileMort + (1 - ALPHA) * AdultMort
 
 Selectivity
     Region dependent values to compute Ring Size Selectivity:
-    RingSizeSelectivity = 1 / ( 1 + exp( select_a - select_b * (shell_length + 5/2)))
+    RingSizeSelectivity = 1 / 
+        ( 1 + exp( select_a - select_b * (shell_length + 5/2)) )
         where 5 is the steps between shell lenghts, or 5 mm.
 
 LPUE
@@ -253,8 +256,8 @@ LPUE
         LPUE Limit = Max [shucking] Per Day * EBMS_lbs
         LPUE = min(slope1, slope2, LPUE Limit)
     - Max Time: ancillary computation to determine Dredge Time in hours
-    - Dredge Width and Towing Speed used to determine the dredge area to convert biomass
-      density to grams.
+    - Dredge Width and Towing Speed used to determine the dredge area to 
+      convert biomass density to grams.
 
 Discard
     - Cull Size and Discard: Determines SetDiscard Value
@@ -263,13 +266,14 @@ Discard
 
 Incidental
     Used to compute overall mortality, M
-    M = NaturalMortality + FishingEffort * (Selectivity + Incidental + SetDiscard)
+    M = NaturalMortality 
+        + FishingEffort * (Selectivity + Incidental + SetDiscard)
 '''
         #about = re.sub("\n\s*", "\n", about) # remove leading whitespace from each line
         popup = tk.Toplevel()
-        nrows = 35
-        ncols = 100
-        popup.geometry(str(ncols*9)+"x"+str(nrows*20))
+        nrows = 37
+        ncols = 80
+        popup.geometry(str(int(ncols*8.5))+"x"+str(nrows*18))
         T = tk.Text(popup, width=ncols, height=nrows, padx=10)
         T.insert('end', about)
         T.config(state='disabled')

@@ -133,7 +133,8 @@ class MainApplication(tk.Tk):
         ttk.Button(self, text='SHOW Args',    style="Custom.TLabel", command=self.ShowArgs).place(relx=0, rely=1, anchor='sw')
         ttk.Button(self, text='START Sim',    style="Custom.TLabel", command=self.Run_Sim).place(relx=.25, rely=1, anchor='s')
         ttk.Button(self, text='SAVE ALL Configs', style="Custom.TLabel", command=self.SaveConfigFiles).place(relx=.5, rely=1, anchor='s')
-        ttk.Button(self, text= "Help", command = self.pop_up).place(relx=.75, rely=1, anchor='s')
+        self.style.configure("Help.TLabel", padding=6, relief="flat", foreground='white', background="#5783db")
+        ttk.Button(self, text= "Help", style="Help.TLabel", command = self.pop_up).place(relx=.75, rely=1, anchor='s')
 
     #-------------------------------------------------------------------------------------
     ##
@@ -375,22 +376,22 @@ class MainApplication(tk.Tk):
         cfgFile  = os.path.join(self.root,'Configuration', self.frame1.ukCfgFile.myEntry.get())
         with open(cfgFile, 'w') as f:
             f.write('# Set inputs for universal kriging\n')
-            f.write('# Observation files are expecting in the Data subdirectory\n')
-            f.write('#\n')
-            f.write('#(max interp field < hlf*max(obs))\n')
-            f.write('High Limit Factor = '+self.frame4.highLimit.myEntry.get()+'\n')
+            #DEPRECATE#f.write('# Observation files are expecting in the Data subdirectory\n')
+            #DEPRECATE#f.write('#\n')
+            #DEPRECATE#f.write('#(max interp field < hlf*max(obs))\n')
+            #DEPRECATE#f.write('High Limit Factor = '+self.frame4.highLimit.myEntry.get()+'\n')
             f.write('Kriging variogram form = '+self.frame4.formCombo.get()+'\n')
             f.write('#\n')
-            f.write('# Keep this line before "Power Transform Parameter"\n')
-            f.write('#\n')
-            f.write('Log Transform = '+self.frame4.useLogTransCombo.get()+'\n')
-            f.write('#\n')
-            f.write('# Power transform interpolates f(x)^alpha \n')
-            f.write('# generally 0< alpha < 1 but this has not been tested \n')
-            f.write('# not used if "Log Transform = T"\n')
-            f.write('#\n')
-            f.write('Power Transform Parameter = '+self.frame4.powerTrans.myEntry.get()+'\n')
-            f.write('#\n')
+            #DEPRECATE#f.write('# Keep this line before "Power Transform Parameter"\n')
+            #DEPRECATE#f.write('#\n')
+            #DEPRECATE#f.write('Log Transform = '+self.frame4.useLogTransCombo.get()+'\n')
+            #DEPRECATE#f.write('#\n')
+            #DEPRECATE#f.write('# Power transform interpolates f(x)^alpha \n')
+            #DEPRECATE#f.write('# generally 0< alpha < 1 but this has not been tested \n')
+            #DEPRECATE#f.write('# not used if "Log Transform = T"\n')
+            #DEPRECATE#f.write('#\n')
+            #DEPRECATE#f.write('Power Transform Parameter = '+self.frame4.powerTrans.myEntry.get()+'\n')
+            #DEPRECATE#f.write('#\n')
             f.write('# Configuration files are expected to be in the Configuration directory\n')
             f.write('#\n')
             f.write('NLS Spatial Fcn File Name = '+self.frame4.spatCfgFile.myEntry.get()+'\n')
@@ -517,39 +518,41 @@ class MainApplication(tk.Tk):
     ## 
     #-------------------------------------------------------------------------------------
     def pop_up(self):
-        about = '''
-SHOW Args
+        about = '''SHOW Args
     Shows the limits for Number of Areas, Nodes in each Area, Year range
-	To Change, restart with python .\PythonScripts\GUI\GeoSAM\GeoSams.py Areas Nodes Years
+	To Change, restart with 
+    > python .\PythonScripts\GUI\GeoSAM\GeoSams.py Areas Nodes Years
 	
 START Sim
-    Will run the GeoSAMS simulation base on the parameters given by the GUI
-	First saves config files to use latest data provided in the GUI using the names provided
+    Will run the GeoSAMS simulation base on the parameters given by the GUI. 
+    First saves config files to use latest data provided in the GUI using the
+    names provided
        - Sim Config File
        - Recruitment File
        - Growth Config File
        - Grid Mgr Config File
        - UK Config File
        - Spatial Fcn Config File (in UKIterpolation tab)
-    If simulation completed successfully, will the interpolate the results from 
+    If simulation completed successfully, will the interpolate the results from
 	the survey grid to the region grid.
 	
 	NOTE: 
-    1) Before running with Domain Name 'AL', Go to UKIterpolation tab and make sure
-	the Spatial Fcn Config File 'SpatialFcnsMA.cfg' and 'SpatialFcnsGB.cfg' have the 
-	function definitions desired. These files are used to interpolate data in their 
-	respective regions
+    1) Before running with Domain Name 'AL', Go to UKIterpolation tab and make 
+    sure the Spatial Fcn Config File 'SpatialFcnsMA.cfg' and 
+    'SpatialFcnsGB.cfg' have the function definitions desired. These files are
+    used to interpolate data in their respective regions
 
     2) This does not save the Special Access File or the Fishing Mort File. 
        See Special Acces Tab and the FishingMort in Special Access Tab
 
 SAVE ALL Configs
-    Same as the first step in START Sim'''
+    Same as the first step in START Sim
+'''
         #about = re.sub("\n\s*", "\n", about) # remove leading whitespace from each line
         popup = tk.Toplevel()
-        nrows = 30
-        ncols = 100
-        popup.geometry(str(ncols*9)+"x"+str(nrows*20))
+        nrows = 31
+        ncols = 80
+        popup.geometry(str(int(ncols*8.5))+"x"+str(nrows*18))
         T = tk.Text(popup, width=ncols, height=nrows, padx=10)
         T.insert('end', about)
         T.config(state='disabled')

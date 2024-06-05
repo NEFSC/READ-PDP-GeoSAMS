@@ -303,7 +303,9 @@ class AreaMgrSubFrame(tk.Frame):
         # +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
         self.commentEntry = SubFrameElement(self, self.areaFrame, 'Comment',  '',  cornerRow, startingCol+cornerCol, startingCol+cornerCol+1, width=25)
         # +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-        self.numCornersEntry = SubFrameElement(self, self.areaFrame, '# corners',  numCorners, cornerRow+1, startingCol+cornerCol, startingCol+cornerCol+1, valCmd=numbersCallback)
+        self.numCornersEntry = SubFrameElement(self, self.areaFrame, '# corners',  numCorners, 
+                                cornerRow+1, startingCol+cornerCol, startingCol+cornerCol+1,
+                                valCmd=numbersCallback, enterCmd=self.EnterKeyCliced)
         # +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
         self.numCornersButton = ttk.Button(self.areaFrame, text='Update # Corners', command=self.NumCornersUpdate)
         self.numCornersButton.grid(row=cornerRow+1, column=startingCol+cornerCol+2)
@@ -314,6 +316,9 @@ class AreaMgrSubFrame(tk.Frame):
             self.corners[i].cornerFrame.grid_remove()
         # +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
         self.areaFrame.grid(row=elementRow, column=elementCol, columnspan=10, sticky='ew')
+
+    def EnterKeyCliced(self, event):
+        self.NumCornersUpdate()
 
     def NumCornersUpdate(self):
         for i in range(self.numCornersMax):

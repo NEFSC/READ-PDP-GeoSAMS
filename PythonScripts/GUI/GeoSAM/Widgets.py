@@ -5,13 +5,18 @@ from tkinter import ttk
 # *************************************************************************************************
 # *************************************************************************************************
 class SubFrameElement(tk.Frame):
-    def __init__(self, container, parent, label, value, elementRow, labelCol, entryCol, width=5, valCmd=None):
+    def __init__(self, container, parent, label, value, elementRow, labelCol, entryCol, width=5,
+                 valCmd=None, enterCmd=None):
         super().__init__()
         if valCmd == None: self.myEntry=ttk.Entry(parent, width=width)
         else: 
             self.myEntry=ttk.Entry(parent, validatecommand=valCmd, width=width)
             reg=self.myEntry.register(valCmd)
             self.myEntry.configure(validate='key', validatecommand=(reg, '%P'))
+        
+        if not enterCmd == None:
+            self.myEntry.focus()
+            self.myEntry.bind('<Return>', enterCmd)
 
         self.myEntry.insert(0, value)
         self.myEntry.grid(row=elementRow, column=entryCol, sticky='n', padx=5, pady=10)
