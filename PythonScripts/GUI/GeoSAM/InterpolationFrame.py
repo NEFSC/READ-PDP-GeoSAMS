@@ -367,7 +367,35 @@ class UKInterpolation(ttk.Frame):
     This frame allows the user to customize how the interpolation is performed.
 
 Parameters
-    Variogram Form: This describes the shape of the variogram
+    Variogram Form: 
+    This defines the shape of the variogram models. The kriging refernces 
+    identify a typical variogram shape. It is a positive sloped function with a
+    y intercept defined as nugget. The assymptote is defined as the sill. The 
+    inflection point at the sill is defined as the range. Four shapes are 
+    implemented for UK interpolation
+    •	spherical
+    •	exponential
+    •	gaussian
+    •	matern
+
+    spherical:   
+    γ(h) = nugget + sill * (3h/2 * range) - 0.5 * (h/range)^3   0 < h <= range
+         = nugget + sill                                        h > range
+         = 0                                                    h = 0
+
+    exponential:
+    γ(h) = nugget + sill * (1 - exp(-h/range))                  h > 0
+         = 0                                                    , & h = 0
+
+    gaussian
+    γ(h) = nugget + sill * (1 - exp(-(h/range)^2))              h > 0
+         = 0                                                    h = 0 
+    
+    matern
+    γ(h) = nugget + sill 
+         * (1 - {sqrt(2)/Γ(0.5)} * Jn(2, h/range) * sqrt(h/range))  h > 0
+         = 0                                                        h = 0
+    where Jn is the Bessel function of the first kind
 
     Spatial Fcn Config File:
     This is the name of the file used to hold the spatial function definitions.
@@ -384,16 +412,16 @@ Parameters
 Spatial Functions
     Define non linear spatial functions and paramater search range.
 
-    - "Function 1, dim=z, shape=Logistic, precon=0 "
-    - "Function 2, dim=z, shape=Gaussian, precon=0 "
-    - "Function 3, dim=x, shape=Logistic, precon=1 "
+    - Function 1, dim=z, shape=Logistic, precon=0 
+    - Function 2, dim=z, shape=Gaussian, precon=0 
+    - Function 3, dim=x, shape=Logistic, precon=1 
 
     These define spatial functions for setting the spatial trend in the 
     universal kriging algorithm. 
 
     The precon=0 term means that the function is not multiplied by another 
     function. For example,
-       "Function 3, dim=x, shape=Logistic, precon=1 "
+       Function 3, dim=x, shape=Logistic, precon=1
     indicates that the third function is multiplied by the first function.  
     This is true for fitting the nonlinear parameters of function 3 hence 
     the parameters of function 1 must be fit before the parameters of 
