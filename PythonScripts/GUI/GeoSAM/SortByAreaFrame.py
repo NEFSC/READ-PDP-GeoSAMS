@@ -350,7 +350,8 @@ Area N
         popup = tk.Toplevel()
         nrows = 41
         ncols = 80
-        popup.geometry(str(int(ncols*8.5))+"x"+str(nrows*18))
+        parentPosn = '+'+str(self.winfo_rootx()+50)+'+'+str(self.winfo_rooty()+50)
+        popup.geometry(str(int(ncols*8.5))+"x"+str(nrows*18)+parentPosn)
         T = tk.Text(popup, width=ncols, height=nrows, padx=10)
         T.insert('end', about)
         T.config(state='disabled')
