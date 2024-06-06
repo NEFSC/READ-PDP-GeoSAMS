@@ -283,13 +283,22 @@ Growth
 
 Output Section
     Selects the desired outputs to be analyzed.
+    Checkboxes allow the user to select the desired parameters of interest.
+    This is used to save processing time rather than processing everything. 
+    Especially true during interpolation as it would take over and hour to do 
+    the interpolation. For example for MA with 11631 grid locations.
+      - Approx 2 minutes per interpolation
+      - Given 3 years worth of data, plus initial conditions
+      - 9 listed outputs
+    Thus 9 x 4 x 2 or 72 minutes. 
+    GB is proportionately shorter with only 6802 grid locations.
 
 Recruitment
     Defines the period in which recruitment is used in the growth calculations.
 '''
         #about = re.sub("\n\s*", "\n", about) # remove leading whitespace from each line
         popup = tk.Toplevel()
-        nrows = 29
+        nrows = 38
         ncols = 80
         parentPosn = '+'+str(self.winfo_rootx()+700)+'+'+str(self.winfo_rooty()+50)
         popup.geometry(str(int(ncols*8.5))+"x"+str(nrows*18)+parentPosn)

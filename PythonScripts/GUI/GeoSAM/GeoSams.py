@@ -83,7 +83,7 @@ class MainApplication(tk.Tk):
 
         # setup
         self.title(title)
-        self.geometry('1020x725')
+        self.geometry('1020x725+10+10')
         self.style = ttk.Style()
 
         # vscode will not set this variable, must be done via control panel
@@ -182,7 +182,9 @@ class MainApplication(tk.Tk):
 
         cmd = [ex, simCfgFile, startYear, stopYear, dn]
         print(cmd)
+        messagebox.showinfo("GeoSAMS Sim", "Program Started")
         result = subprocess.run(cmd)
+
         if result.returncode == 0:
             messagebox.showinfo("GeoSAM Sim", f'Completed Successfully\n{result.args}')
             # python .\PythonScripts\ProcessResults.py GB 2015 2017 Scallop.cfg UK.cfg
@@ -210,6 +212,7 @@ class MainApplication(tk.Tk):
         self.WriteGridMgrConfig()
         self.WriteUKConfig()
         self.WriteSpatialFncsConfig()
+        messagebox.showinfo("Save Files", "Configuration Files Saved")
 
     #-------------------------------------------------------------------------------------
     ##

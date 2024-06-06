@@ -367,7 +367,8 @@ class UKInterpolation(ttk.Frame):
     This frame allows the user to customize how the interpolation is performed.
 
 Parameters
-    Variogram Form: 
+
+Variogram Form: 
     This defines the shape of the variogram models. The kriging refernces 
     identify a typical variogram shape. It is a positive sloped function with a
     y intercept defined as nugget. The assymptote is defined as the sill. The 
@@ -397,11 +398,19 @@ Parameters
          = 0                                                        h = 0
     where Jn is the Bessel function of the first kind
 
-    Spatial Fcn Config File:
+Spatial Fcn Config File:
     This is the name of the file used to hold the spatial function definitions.
     It is saved in the UK Configuration file.
 
-    Load/Save Spat Fcn File:
+    SPECIAL NOTE: When process AL domain, the scripts will use 
+    'SpatialFcnsMA.cfg' to interpolate data points in the MA region. Similarly
+    'SpatialFcnsGB.cfg' to interpolate data points in the GB region. Therefore,
+    the user can customize these values by loading, making changes, and then
+    saving the respective files while keeping the same names. When done
+    return this setting to 'SpatialFcns.cfg' either by Loading that file
+    or changing the name in the entry box.
+
+Load/Save Spat Fcn File:
     Used to load predefined spatial functions and save user defined spatial
     functions. respectively.
 
