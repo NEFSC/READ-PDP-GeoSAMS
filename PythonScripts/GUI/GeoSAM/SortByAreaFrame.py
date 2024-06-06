@@ -306,7 +306,8 @@ class SortByArea(ttk.Frame):
     #-------------------------------------------------------------------------------------
     def pop_up(self):
         about = '''Sort By Area
-    This frame allows the user to determine the amount of a given parameter 
+    (This frame is scrollable, use mouse wheel)
+    This frame allows the user to determine the amount of a given parameter
     that is located in a specific area defined by long, lat coordinates of the
     vertices or corners.
     1) The areas must first be defined by specifyin the number of areas, update
@@ -317,9 +318,15 @@ class SortByArea(ttk.Frame):
     The number of defined areas as determined by the user. This is limited by 
     Max Areas of Interest. See SHOW Args button
 
+    The # Defined is limited by default to 25. See SHOW Args for current values.
+    The user can modify this on the command line:
+    > python .\PythonScripts\GUI\GeoSAM\GeoSams.py #Areas #Nodes #Years
+    Default:
+    > python .\PythonScripts\GUI\GeoSAM\GeoSams.py 25 8 5
+
 Update # Defined
-    Click this button after entering a value in # Defined to populate/show the 
-    Area N defintions.
+    Use Enter Key or click this button after entering a value in # Defined to 
+    populate/show the Area N defintions.
 
 Fishing Mort File
     The name of the file used to hold this information. The user can load the 
@@ -336,11 +343,14 @@ Year
 
 Area N
     Comment: Optional. Enter a comment to describe the area being specfied.
-    # Corners: Specifically, the number of Fields for the year given. This is 
-    limited by Max Nodes in Area. See SHOW Args button
+
+    # Corners: Specifically, the number of Fields for the year given. 
+        This is limited by Max Nodes in Area. See SHOW Args for current values.
+        This can be changed on the command line. See above
 
     Update # Corners
-        Click this button to populate the field entries for the given number
+        Use Enter Key or click this button to populate the field entries for 
+        the given number
 
     Field N
         These are the area numbers as determined in Special Access Frame. Enter
@@ -348,9 +358,9 @@ Area N
 '''
         #about = re.sub("\n\s*", "\n", about) # remove leading whitespace from each line
         popup = tk.Toplevel()
-        nrows = 41
+        nrows = 35
         ncols = 80
-        parentPosn = '+'+str(self.winfo_rootx()+50)+'+'+str(self.winfo_rooty()+50)
+        parentPosn = '+'+str(self.winfo_rootx()+700)+'+'+str(self.winfo_rooty()+50)
         popup.geometry(str(int(ncols*8.5))+"x"+str(nrows*18)+parentPosn)
         T = tk.Text(popup, width=ncols, height=nrows, padx=10)
         T.insert('end', about)

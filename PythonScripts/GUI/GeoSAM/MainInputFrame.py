@@ -58,6 +58,27 @@ class MainInput(ttk.Frame):
         self.style.configure('MainInput.TFrame', borderwidth=10, relief='solid', labelmargins=20)
         self.style.configure('MainInput.TFrame.Label', font=('courier', 10, 'bold'))
         #-------------------------------------------------------------------------------------------
+        configFrame = ttk.LabelFrame(self, text='Configuration Files', style='MainInput.TFrame')
+        self.mortCfgFile = SubFrameElement(self, configFrame, 'Growth Config File   ', 'Growth.cfg',  0, 0, 1, width=20)
+        self.recrCfgFile = SubFrameElement(self, configFrame, 'Recruit Config File  ',      'Recruitment.cfg',1, 0, 1, width=20)
+        self.gmCfgFile   = SubFrameElement(self, configFrame, 'Grid Mgr Config File ',     'GridManager.cfg',2, 0, 1, width=20)
+        self.simCfgFile  = SubFrameElement(self, configFrame, 'Sim Config File      ',       'Scallop.cfg',    3, 0, 1, width=20)
+        self.ukCfgFile   = SubFrameElement(self, configFrame, 'UK Config File       ',        'UK.cfg',         4, 0, 1, width=20)
+
+        self.style.configure("Frame1.TLabel", padding=6, relief='raised', background="#0FF")
+        self.openMortConfigtButton = ttk.Button(configFrame, text='Change/Save Mort File', style="Frame1.TLabel", command=self.GetMortConfigFName)
+        self.openMortConfigtButton.grid(row=0, column=3)
+        self.openRecrConfigtButton = ttk.Button(configFrame, text='Change/Save Recr File', style="Frame1.TLabel", command=self.GetRecrConfigFName)
+        self.openRecrConfigtButton.grid(row=1, column=3)
+        self.openGmgrConfigtButton = ttk.Button(configFrame, text='Change/Save GMgr File', style="Frame1.TLabel", command=self.GetGMgrConfigFName)
+        self.openGmgrConfigtButton.grid(row=2, column=3)
+        self.openSimConfigtButton = ttk.Button(configFrame, text='Change/Save Sim File', style="Frame1.TLabel", command=self.GetSimConfigFName)
+        self.openSimConfigtButton.grid(row=3, column=3)
+        self.openUKConfigtButton = ttk.Button(configFrame, text='Change/Save UK File', style="Frame1.TLabel", command=self.GetUKConfigFName)
+        self.openUKConfigtButton.grid(row=4, column=3)
+
+        configFrame.grid(row=1, column=0, padx=5, sticky='n')
+        #-------------------------------------------------------------------------------------------
         growthFrame = ttk.LabelFrame(self, text='Growth', style='MainInput.TFrame')
         self.startYr    = SubFrameElement(self, growthFrame, 'Start Year', '2015',          0, 0, 1)
         self.stopYr     = SubFrameElement(self, growthFrame, 'Stop Year ', '2017',          1, 0, 1)
@@ -74,8 +95,33 @@ class MainInput(ttk.Frame):
         self.useStratumCombo.current(0)
         self.useStratumCombo.grid(row=4, column=1, sticky='w')
 
-        growthFrame.grid(row=0, column=1, padx=5, sticky='n')
+        self.useStratumLabel.grid_remove()
+        self.useStratumCombo.grid_remove()
+
+        growthFrame.grid(row=1, column=1, padx=5, sticky='n')
         #-------------------------------------------------------------------------------------------
+        #-------------------------------------------------------------------------------------------
+        outputSelFrame = ttk.LabelFrame(self, text='Output Selection', style='MainInput.TFrame')
+        # Check Buttons
+        self.lpueVar = tk.IntVar(value=(selectedOutputs   )&1)
+        self.ebmsVar = tk.IntVar(value=(selectedOutputs>>1)&1)
+        self.bmsVar  = tk.IntVar(value=(selectedOutputs>>2)&1)
+        self.abunVar = tk.IntVar(value=(selectedOutputs>>3)&1)
+        self.lndwVar = tk.IntVar(value=(selectedOutputs>>4)&1)
+        self.landVar = tk.IntVar(value=(selectedOutputs>>5)&1)
+        self.feffVar = tk.IntVar(value=(selectedOutputs>>6)&1)
+        self.fmortVar= tk.IntVar(value=(selectedOutputs>>7)&1)
+        self.recrVar = tk.IntVar(value=(selectedOutputs>>8)&1)
+        ttk.Checkbutton(outputSelFrame, text='Abundance',     variable=self.abunVar,  command=self.CBSelectedOutput).grid(row=0, column=0, sticky='sw', padx=10, pady=5)
+        ttk.Checkbutton(outputSelFrame, text='Biomass',       variable=self.bmsVar,   command=self.CBSelectedOutput).grid(row=0, column=1, sticky='sw', padx=10, pady=5)
+        ttk.Checkbutton(outputSelFrame, text='ExplBiomass',   variable=self.ebmsVar,  command=self.CBSelectedOutput).grid(row=0, column=2, sticky='sw', padx=10, pady=5)
+        ttk.Checkbutton(outputSelFrame, text='Fish Mort',    variable=self.fmortVar,  command=self.CBSelectedOutput).grid(row=1, column=0, sticky='sw', padx=10, pady=5)
+        ttk.Checkbutton(outputSelFrame, text='Fish Effort',  variable=self.feffVar ,  command=self.CBSelectedOutput).grid(row=1, column=1, sticky='sw', padx=10, pady=5)
+        ttk.Checkbutton(outputSelFrame, text='Lands By Num',  variable=self.landVar,  command=self.CBSelectedOutput).grid(row=1, column=2, sticky='sw', padx=10, pady=5)
+        ttk.Checkbutton(outputSelFrame, text='Lands By Wght', variable=self.lndwVar , command=self.CBSelectedOutput).grid(row=2, column=0, sticky='sw', padx=10, pady=5)
+        ttk.Checkbutton(outputSelFrame, text='LPUE',          variable=self.lpueVar,  command=self.CBSelectedOutput).grid(row=2, column=1, sticky='sw', padx=10, pady=5)
+        ttk.Checkbutton(outputSelFrame, text='Recruitment',   variable=self.recrVar , command=self.CBSelectedOutput).grid(row=2, column=2, sticky='sw', padx=10, pady=5)
+        outputSelFrame.grid(row=2, column=0, padx=5, sticky='n')
         #-------------------------------------------------------------------------------------------
         recruitFrame = ttk.LabelFrame(self, text='Recruitment', style='MainInput.TFrame')
 
@@ -98,55 +144,12 @@ class MainInput(ttk.Frame):
         self.stopDayComboDay.current(10)
         self.stopDayComboDay.grid(row=1, column=2, padx=5, sticky='e')
 
-        recruitFrame.grid(row=1, column=1, padx=5, sticky='n')
+        recruitFrame.grid(row=2, column=1, padx=5, sticky='n')
         #-------------------------------------------------------------------------------------------
-        #-------------------------------------------------------------------------------------------
-        configFrame = ttk.LabelFrame(self, text='Configuration Files', style='MainInput.TFrame')
-        self.mortCfgFile = SubFrameElement(self, configFrame, 'Growth Config File   ', 'Growth.cfg',  0, 0, 1, width=20)
-        self.recrCfgFile = SubFrameElement(self, configFrame, 'Recruit Config File  ',      'Recruitment.cfg',1, 0, 1, width=20)
-        self.gmCfgFile   = SubFrameElement(self, configFrame, 'Grid Mgr Config File ',     'GridManager.cfg',2, 0, 1, width=20)
-        self.simCfgFile  = SubFrameElement(self, configFrame, 'Sim Config File      ',       'Scallop.cfg',    3, 0, 1, width=20)
-        self.ukCfgFile   = SubFrameElement(self, configFrame, 'UK Config File       ',        'UK.cfg',         4, 0, 1, width=20)
-
-        self.style.configure("Frame1.TLabel", padding=6, relief='raised', background="#0FF")
-        self.openMortConfigtButton = ttk.Button(configFrame, text='Change/Save Mort File', style="Frame1.TLabel", command=self.GetMortConfigFName)
-        self.openMortConfigtButton.grid(row=0, column=3)
-        self.openRecrConfigtButton = ttk.Button(configFrame, text='Change/Save Recr File', style="Frame1.TLabel", command=self.GetRecrConfigFName)
-        self.openRecrConfigtButton.grid(row=1, column=3)
-        self.openGmgrConfigtButton = ttk.Button(configFrame, text='Change/Save GMgr File', style="Frame1.TLabel", command=self.GetGMgrConfigFName)
-        self.openGmgrConfigtButton.grid(row=2, column=3)
-        self.openSimConfigtButton = ttk.Button(configFrame, text='Change/Save Sim File', style="Frame1.TLabel", command=self.GetSimConfigFName)
-        self.openSimConfigtButton.grid(row=3, column=3)
-        self.openUKConfigtButton = ttk.Button(configFrame, text='Change/Save UK File', style="Frame1.TLabel", command=self.GetUKConfigFName)
-        self.openUKConfigtButton.grid(row=4, column=3)
-
-        configFrame.grid(row=0, column=0, padx=5, sticky='n')
-        #-------------------------------------------------------------------------------------------
-        outputSelFrame = ttk.LabelFrame(self, text='Output Selection', style='MainInput.TFrame')
-        # Check Buttons
-        self.lpueVar = tk.IntVar(value=(selectedOutputs   )&1)
-        self.ebmsVar = tk.IntVar(value=(selectedOutputs>>1)&1)
-        self.bmsVar  = tk.IntVar(value=(selectedOutputs>>2)&1)
-        self.abunVar = tk.IntVar(value=(selectedOutputs>>3)&1)
-        self.lndwVar = tk.IntVar(value=(selectedOutputs>>4)&1)
-        self.landVar = tk.IntVar(value=(selectedOutputs>>5)&1)
-        self.feffVar = tk.IntVar(value=(selectedOutputs>>6)&1)
-        self.fmortVar= tk.IntVar(value=(selectedOutputs>>7)&1)
-        self.recrVar = tk.IntVar(value=(selectedOutputs>>8)&1)
-        ttk.Checkbutton(outputSelFrame, text='Abundance',     variable=self.abunVar,  command=self.CBSelectedOutput).grid(row=0, column=0, sticky='sw', padx=10, pady=5)
-        ttk.Checkbutton(outputSelFrame, text='Biomass',       variable=self.bmsVar,   command=self.CBSelectedOutput).grid(row=0, column=1, sticky='sw', padx=10, pady=5)
-        ttk.Checkbutton(outputSelFrame, text='ExplBiomass',   variable=self.ebmsVar,  command=self.CBSelectedOutput).grid(row=0, column=2, sticky='sw', padx=10, pady=5)
-        ttk.Checkbutton(outputSelFrame, text='Fish Mort',    variable=self.fmortVar,  command=self.CBSelectedOutput).grid(row=1, column=0, sticky='sw', padx=10, pady=5)
-        ttk.Checkbutton(outputSelFrame, text='Fish Effort',  variable=self.feffVar ,  command=self.CBSelectedOutput).grid(row=1, column=1, sticky='sw', padx=10, pady=5)
-        ttk.Checkbutton(outputSelFrame, text='Lands By Num',  variable=self.landVar,  command=self.CBSelectedOutput).grid(row=1, column=2, sticky='sw', padx=10, pady=5)
-        ttk.Checkbutton(outputSelFrame, text='Lands By Wght', variable=self.lndwVar , command=self.CBSelectedOutput).grid(row=2, column=0, sticky='sw', padx=10, pady=5)
-        ttk.Checkbutton(outputSelFrame, text='LPUE',          variable=self.lpueVar,  command=self.CBSelectedOutput).grid(row=2, column=1, sticky='sw', padx=10, pady=5)
-        ttk.Checkbutton(outputSelFrame, text='Recruitment',   variable=self.recrVar , command=self.CBSelectedOutput).grid(row=2, column=2, sticky='sw', padx=10, pady=5)
-        outputSelFrame.grid(row=1, column=0, padx=5, sticky='n')
         #-------------------------------------------------------------------------------------------
         self.style.configure("Help.TLabel", padding=6, relief="flat", foreground='white', background="#5783db")
         helpButton = ttk.Button(self, text= "Main Help", style="Help.TLabel", command = self.pop_up)
-        helpButton.grid(row=2, column=1)
+        helpButton.grid(row=0, column=1)
 
 
     #--------------------------------------------------------------------------------------------------
@@ -269,9 +272,14 @@ Growth
     - 1/13 = 0.077 years
     - 0.077 * 365 = 28.077 days or roughly every 4 weeks
 
+    The year range is limited by default to 5 years, e.g. 2015 to 2019.
+    See SHOW Args. The user can modify this on the command line:
+    > python .\PythonScripts\GUI\GeoSAM\GeoSams.py #Areas #Nodes #Years
+    Default:
+    > python .\PythonScripts\GUI\GeoSAM\GeoSams.py 25 8 5
+
     The domain name shows the region where the growth takes place, Georges Bank
     or Mid-Atlantic, GB or MA, respectively. AL covers both regions. 
-    Use Stratum should not be changed.
 
 Output Section
     Selects the desired outputs to be analyzed.
@@ -281,9 +289,9 @@ Recruitment
 '''
         #about = re.sub("\n\s*", "\n", about) # remove leading whitespace from each line
         popup = tk.Toplevel()
-        nrows = 24
+        nrows = 29
         ncols = 80
-        parentPosn = '+'+str(self.winfo_rootx()+50)+'+'+str(self.winfo_rooty()+50)
+        parentPosn = '+'+str(self.winfo_rootx()+700)+'+'+str(self.winfo_rooty()+50)
         popup.geometry(str(int(ncols*8.5))+"x"+str(nrows*18)+parentPosn)
         T = tk.Text(popup, width=ncols, height=nrows, padx=10)
         T.insert('end', about)

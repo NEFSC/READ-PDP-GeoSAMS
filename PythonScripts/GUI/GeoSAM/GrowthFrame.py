@@ -153,7 +153,7 @@ class Growth(ttk.Frame, MainApplication):
         self.gbAdultMort= SubFrameElement(self, fishingFrame, 'GB Adult Mortality',self.gbAdultMortStr, 3, 0, 1)
         self.maLength0  = SubFrameElement(self, fishingFrame, 'MA Length_0',  self.maLen0Str,           4, 0, 1)
         self.gbLength0  = SubFrameElement(self, fishingFrame, 'GB Length_0',  self.gbLen0Str,           5, 0, 1)
-        fishingFrame.grid(row=0, column=0, padx=10, sticky='n')
+        fishingFrame.grid(row=1, column=0, padx=10, sticky='n')
 
         selectivityFrame = ttk.LabelFrame(self, text='Selectivity', style='Growth.TFrame')
         self.maFSelectA       = SubFrameElement(self, selectivityFrame, 'MA FSelectA', self.maFSelAStr,          0, 0, 1, width=10)
@@ -162,7 +162,7 @@ class Growth(ttk.Frame, MainApplication):
         self.gbClosedFSelectB = SubFrameElement(self, selectivityFrame, 'GB Closed FSelectB', self.gbClFSelBStr, 3, 0, 1, width=10)
         self.gbOpenFSelectA   = SubFrameElement(self, selectivityFrame, 'GB Open FSelectA', self.gbOpFSelAStr,   4, 0, 1, width=10)
         self.gbOpenFSelectB   = SubFrameElement(self, selectivityFrame, 'GB Open FSelectB', self.gbOpFSelBStr,   5, 0, 1, width=10)
-        selectivityFrame.grid(row=0, column=1, padx=10, sticky='n')
+        selectivityFrame.grid(row=1, column=1, padx=10, sticky='n')
         
         lpueFrame   = ttk.LabelFrame(self, text='LPUE', style='Growth.TFrame')
         self.lpueSlope   = SubFrameElement(self, lpueFrame, 'LPUE Slope', self.lpueSlStr,       0, 0, 1, width=10)
@@ -172,23 +172,23 @@ class Growth(ttk.Frame, MainApplication):
         self.maxTime     = SubFrameElement(self, lpueFrame, 'Max Time', self.maxTimeStr,        4, 0, 1, width=10)
         self.dredgeWth   = SubFrameElement(self, lpueFrame, 'Dredge Width', self.dredgeWdStr,   5, 0, 1, width=10)
         self.towSpeed    = SubFrameElement(self, lpueFrame, 'Towing Speed', self.towSpdStr,     6, 0, 1, width=10)
-        lpueFrame.grid(row=0, column=2, padx=10, sticky='n')
+        lpueFrame.grid(row=1, column=2, padx=10, sticky='n')
 
         incidentalFrame = ttk.LabelFrame(self, text='Incidental', style='Growth.TFrame')
         self.maIncident = SubFrameElement(self, incidentalFrame, 'MA Incidental', self.maIncidStr, 0, 0, 1)
         self.gbIncident = SubFrameElement(self, incidentalFrame, 'GB Incidental', self.gbIncidStr, 1, 0, 1)
-        incidentalFrame.grid(row=1, column=0, padx=10)
+        incidentalFrame.grid(row=2, column=0, padx=10)
 
         discardFrame   = ttk.LabelFrame(self, text='Discard', style='Growth.TFrame')
         self.maCullSize = SubFrameElement(self, discardFrame, 'MA Cull Size', self.maCullStr, 0, 0, 1)
         self.maDiscard  = SubFrameElement(self, discardFrame, 'MA Discard',   self.maDiscStr, 1, 0, 1)
         self.gbCullSize = SubFrameElement(self, discardFrame, 'GB Cull Size', self.gbCullStr, 0, 2, 3)
         self.gbDiscard  = SubFrameElement(self, discardFrame, 'GB Discard',   self.gbDiscStr, 1, 2, 3)
-        discardFrame.grid(row=1, column=1, columnspan=2, padx=10)
+        discardFrame.grid(row=2, column=1, columnspan=2, padx=10)
         #-------------------------------------------------------------------------------------------
         self.style.configure("Help.TLabel", padding=6, relief="flat", foreground='white', background="#5783db")
         helpButton = ttk.Button(self, text= "Growth Help", style="Help.TLabel", command = self.pop_up)
-        helpButton.grid(row=2, column=1)
+        helpButton.grid(row=0, column=1)
 
     #--------------------------------------------------------------------------------------------------
     ##
@@ -235,7 +235,7 @@ class Growth(ttk.Frame, MainApplication):
         about = '''Mortality
     Define parameters to compute fishing mortality
     - Fishing Mortality: This is the default fishing mortality
-    - Alpha Mortality: Uses as an exponent to set fishing mortality 
+    - Alpha Mortality: Used as an exponent to set fishing mortality 
       proportional to LPUE
     - Adult Mortality and Length_0: Used to compute Natural Mortality
         ALPHA = 1 - 1 / ( 1 + exp( - (shell_length - length_0) /10._dp ) )
@@ -260,7 +260,7 @@ LPUE
       convert biomass density to grams.
 
 Discard
-    - Cull Size and Discard: Determines SetDiscard Value
+    - Region dependent Cull Size and Discard: Determines SetDiscard Value
       If Shell Length > Cull Size then SetDiscard = 0
                                   else SetDiscard = discard * selectivity
 
@@ -273,7 +273,7 @@ Incidental
         popup = tk.Toplevel()
         nrows = 37
         ncols = 80
-        parentPosn = '+'+str(self.winfo_rootx()+50)+'+'+str(self.winfo_rooty()+50)
+        parentPosn = '+'+str(self.winfo_rootx()+700)+'+'+str(self.winfo_rooty()+50)
         popup.geometry(str(int(ncols*8.5))+"x"+str(nrows*18)+parentPosn)
         T = tk.Text(popup, width=ncols, height=nrows, padx=10)
         T.insert('end', about)

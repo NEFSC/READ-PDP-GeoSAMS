@@ -427,6 +427,10 @@ Spatial Functions
     the parameters of function 1 must be fit before the parameters of 
     function 3.
 
+    # of Functions: This is limited to 20.
+
+    Update: Use Enter Key or click this button to populate the function entries.
+
 Function N
     These are the Function definitions as explained above
 
@@ -452,9 +456,9 @@ Function N
 '''
         #about = re.sub("\n\s*", "\n", about) # remove leading whitespace from each line
         popup = tk.Toplevel()
-        nrows = 30
+        nrows = 35
         ncols = 80
-        parentPosn = '+'+str(self.winfo_rootx()+50)+'+'+str(self.winfo_rooty()+50)
+        parentPosn = '+'+str(self.winfo_rootx()+700)+'+'+str(self.winfo_rooty()+50)
         popup.geometry(str(int(ncols*8.5))+"x"+str(nrows*18)+parentPosn)
         T = tk.Text(popup, width=ncols, height=nrows, padx=10)
         T.insert('end', about)

@@ -552,7 +552,7 @@ SAVE ALL Configs
         popup = tk.Toplevel()
         nrows = 31
         ncols = 80
-        parentPosn = '+'+str(self.winfo_rootx()+50)+'+'+str(self.winfo_rooty()+50)
+        parentPosn = '+'+str(self.winfo_rootx()+700)+'+'+str(self.winfo_rooty()+50)
         popup.geometry(str(int(ncols*8.5))+"x"+str(nrows*18)+parentPosn)
         T = tk.Text(popup, width=ncols, height=nrows, padx=10)
         T.insert('end', about)

@@ -163,6 +163,7 @@ class SpecialArea(ttk.Frame):
     #-------------------------------------------------------------------------------------
     def pop_up(self):
         about = '''Special Area
+    (This frame is scrollable, use mouse wheel)
     This frame in conjunction with the FishingMort in Special Access frame is 
     used to define fishing mortalities within a defined area for a specified 
     year. If a location falls within the defined area given in this frame and 
@@ -177,8 +178,15 @@ class SpecialArea(ttk.Frame):
     of Interest. See SHOW Args button
 
 Update # Areas
-    Click this button after entering a value in # of Areas to populate/show the
-    Area N defintions
+    Use Enter Key or click this button after entering a value in # of Areas to 
+    populate/show the Area N defintions
+
+    The # of Areas is limited by default to 25. See SHOW Args. 
+    The user can modify this on the command line:
+    > python .\PythonScripts\GUI\GeoSAM\GeoSams.py #Areas #Nodes #Years
+    Default:
+    > python .\PythonScripts\GUI\GeoSAM\GeoSams.py 25 8 5
+
 
 Special Access File
     The name of the file used to hold this information. The user can load the 
@@ -193,11 +201,13 @@ Special Access File
 Area N
     Comment: Optional. Enter a comment to describe the area being specfied.
 
-    # Corners: Also called nodes or sides. This is limited by Max Nodes in Area.
-               See SHOW Args button
-
+    # Corners: Also called nodes or sides. 
+        This is limited by Max Nodes in Area. See SHOW Args for current values.
+        This can be changed on the command line. See above
+               
     Update # Corners
-        Click this button to populate the corner entries for the given number
+        Use Enter Key or click this button to populate the corner entries for 
+        the given number
 
     Corner N
         These are the coordinates of the area vertices. Enter the Longitude and
@@ -206,9 +216,9 @@ Area N
 '''
         #about = re.sub("\n\s*", "\n", about) # remove leading whitespace from each line
         popup = tk.Toplevel()
-        nrows = 42
+        nrows = 35
         ncols = 80
-        parentPosn = '+'+str(self.winfo_rootx()+50)+'+'+str(self.winfo_rooty()+50)
+        parentPosn = '+'+str(self.winfo_rootx()+700)+'+'+str(self.winfo_rooty()+50)
         popup.geometry(str(int(ncols*8.5))+"x"+str(nrows*18)+parentPosn)
         T = tk.Text(popup, width=ncols, height=nrows, padx=10)
         T.insert('end', about)
