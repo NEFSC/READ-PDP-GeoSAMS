@@ -48,6 +48,7 @@ import subprocess
 import sys
 import os
 import sys
+import platform
 import re
 
 from MainInputFrame import *
@@ -179,26 +180,47 @@ class MainApplication(tk.Tk):
             messagebox.showerror("Too many years", f'Setting Stop Year to {stopYear}')
             self.frame1.stopYr.myEntry.delete(0,4)
             self.frame1.stopYr.myEntry.insert(0, stopYear)
-
-        cmd = [ex, simCfgFile, startYear, stopYear, dn]
-        print(cmd)
-        messagebox.showinfo("GeoSAMS Sim", "Program Started")
-        result = subprocess.run(cmd)
-
-        if result.returncode == 0:
-            messagebox.showinfo("GeoSAM Sim", f'Completed Successfully\n{result.args}')
-            # python .\PythonScripts\ProcessResults.py GB 2015 2017 Scallop.cfg UK.cfg
-            ex = 'python'
-            script = os.path.join(self.root, 'PythonScripts', 'ProcessResults.py')
-            cmd = [ex, script, dn, startYear, stopYear, simCfgFile, ukCfgFile] 
-            print(cmd)
-            result = subprocess.run(cmd)
-            if result.returncode == 0:
-                messagebox.showinfo("UK", f'Completed Successfully\n{result.args}')
-            else:
-                messagebox.showerror("UK", f'Failed\n{result.args}\nReturn Code = {result.returncode}')
+        
+        # First ensure data is available
+        if platform.system() == 'Windows':
+            cmd = [os.path.join(self.root, 'Unpack.bat'), startYear, stopYear, '0', dn]
         else:
-            messagebox.showerror("GeoSAM Sim", f'Failed\n{result.args}\nReturn Code = {result.returncode}')
+            cmd = [os.path.join(self.root, 'Unpack.sh'), startYear, stopYear, '0', dn]
+
+        result = subprocess.run(cmd)
+        if result.returncode == 0:
+            messagebox.showinfo("Unpack", f'Completed Successfully\n{result.args}')
+
+            cmd = [ex, simCfgFile, startYear, stopYear, dn]
+            print(cmd)
+            messagebox.showinfo("GeoSAMS Sim", "Program Started")
+            result = subprocess.run(cmd)
+
+            if result.returncode == 0:
+                messagebox.showinfo("GeoSAM Sim", f'Completed Successfully\n{result.args}')
+                # python .\PythonScripts\ProcessResults.py GB 2015 2017 Scallop.cfg UK.cfg
+                ex = 'python'
+                script = os.path.join(self.root, 'PythonScripts', 'ProcessResults.py')
+                cmd = [ex, script, dn, startYear, stopYear, simCfgFile, ukCfgFile] 
+                print(cmd)
+                result = subprocess.run(cmd)
+                if result.returncode == 0:
+                    messagebox.showinfo("UK", f'Completed Successfully\n{result.args}')
+                else:
+                    messagebox.showerror("UK", f'Failed\n{result.args}\nReturn Code = {result.returncode}')
+            else:
+                messagebox.showerror("GeoSAM Sim", f'Failed\n{result.args}\nReturn Code = {result.returncode}')
+        else:
+            if result.returncode == 1:
+                messagebox.showerror("TrawlData5mmbin", f'Failed\n{result.args}\nReturn Code = {result.returncode}\nSee Monitor for Reason')
+            elif result.returncode == 2:
+                messagebox.showerror("PullOutRecruitData", f'Failed\n{result.args}\nReturn Code = {result.returncode}\nSee Monitor for Reason')
+            elif result.returncode == 3:
+                messagebox.showerror("ProcessRecruitData", f'Failed\n{result.args}\nReturn Code = {result.returncode}\nSee Monitor for Reason')
+            elif result.returncode == 4:
+                messagebox.showerror("NearestNeighborRecInterp", f'Failed\n{result.args}\nReturn Code = {result.returncode}\nSee Monitor for Reason')
+            else:
+                messagebox.showerror("Unpack", f'Failed\n{result.args}\nReturn Code = {result.returncode}\nSee Monitor for Reason')
 
     #-------------------------------------------------------------------------------------
     ##
@@ -211,7 +233,8 @@ class MainApplication(tk.Tk):
         self.WriteGrowthConfig()
         self.WriteGridMgrConfig()
         self.WriteUKConfig()
-        self.WriteSpatialFncsConfig()
+        cfgFile  = os.path.join(self.root,'Configuration', self.frame4.spatCfgFile.myEntry.get())
+        self.WriteSpatialFncsConfig(cfgFile)
         messagebox.showinfo("Save Files", "Configuration Files Saved")
 
     #-------------------------------------------------------------------------------------
@@ -409,8 +432,7 @@ class MainApplication(tk.Tk):
     # Saves spatial function parameters to a configuration file.
     #
     #-------------------------------------------------------------------------------------
-    def WriteSpatialFncsConfig(self):
-        cfgFile  = os.path.join(self.root,'Configuration', self.frame4.spatCfgFile.myEntry.get())
+    def WriteSpatialFncsConfig(self, cfgFile):
         with open(cfgFile, 'w') as f:
             f.write('# Define non linear spatial functions(NLSF) and paramater search range.\n')
             f.write('#\n')

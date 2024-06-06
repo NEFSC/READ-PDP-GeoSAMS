@@ -250,4 +250,8 @@ if yrStart >= yearMin && yrEnd <= yearMax
     end
 else
     fprintf('INPUT YEARS OUT OF RANGE: %i to %i : actual %i to %i\n', yearMin, yearMax, yrStart, yrEnd )
+    msg = sprintf( 'INPUT YEARS OUT OF RANGE: %i to %i : actual %i to %i\n', yearMin, yearMax, yrStart, yrEnd);
+    errorStruct.message = msg;
+    errorStruct.identifier = 'myComponent:inputError';        
+    error(errorStruct)
 end

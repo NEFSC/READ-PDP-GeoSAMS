@@ -126,23 +126,23 @@ cd ..
 octave PreProcess/TrawlData5mmbin.m $1 $2 $3 $4
 if [ $? != 0 ]; then
     echo [31mError in octave TrawlData5mmbin. Stopping[0m
-    exit
+    exit 1
 fi
 
 octave PreProcess/PullOutRecruitData.m $3
 if [ $? != 0 ]; then
     echo [31mError in octave PullOutRecruitData. Stopping[0m
-    exit
+    exit 2
 fi
 
 octave PreProcess/ProcessRecruitData.m $1 $2 $4
 if [ $? != 0 ]; then
     echo [31mError in octave ProcessRecruitData. Stopping[0m
-    exit
+    exit 3
 fi
 
 octave mfiles/NearestNeighborRecInterp.m $1 $2 $4
 if [ $? != 0 ]; then
     echo [31mError in octave NearestNeighborRecInterp. Stopping[0m
-    exit
+    exit 4
 fi

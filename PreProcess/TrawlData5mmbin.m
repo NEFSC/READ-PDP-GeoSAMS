@@ -30,7 +30,7 @@ srcText = src;
 if sum(ismember(domList, domain)) == 0
     fprintf( 'Invalid Domain %s\n',  domain);
     fprintf( "Use: 'MA' or 'GB' or 'AL'\n" )
-    return;
+    error( "Use: 'MA' or 'GB' or 'AL'\n" )
 end
 
 if isOctave
@@ -140,6 +140,10 @@ for yr=yrStart:yrEnd
     if sum(j) == 0
         % no data found
         fprintf( 'Skipping %s Year %d\n',  domain, yr);
+        msg = sprintf( 'No Data for %s Year %d',  domain, yr);
+        errorStruct.message = msg;
+        errorStruct.identifier = 'myComponent:inputError';        
+        error(errorStruct)
     else
         fprintf( 'Working on %s Year %d\n',  domain, yr);
 

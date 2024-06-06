@@ -49,11 +49,6 @@ else:
 
 prefix = ['Results/Lat_Lon_Grid_'] #, 'Results/Lat_Lon_Grid_Trend-']
 
-# backup SpatialFcns
-src = os.path.join('Configuration', 'SpatialFcns.cfg')
-dst = os.path.join('Configuration', 'SpatialFcns.HOLD')
-shutil.copy(src, dst)
-
 for pStr in paramStr:
 
     if (pStr == 'RECR_'):
@@ -76,15 +71,13 @@ for pStr in paramStr:
             # 'GBxyzLatLon' + r + '.csv'
             #
             # These data files also need to use separate spatial functions
+            # Override command line argument
             if r == '_MA':
                 gridFile = 'MAxyzLatLon.csv'
-                src = os.path.join('Configuration', 'SpatialFcnsMA.cfg')
-                dst = os.path.join('Configuration', 'SpatialFcns.cfg')
+                ukCfgFile = 'UK_MA.cfg'
             else:
                 gridFile = 'GBxyzLatLon' + r + '.csv'
-                src = os.path.join('Configuration', 'SpatialFcnsGB.cfg')
-                dst = os.path.join('Configuration', 'SpatialFcns.cfg')
-            shutil.copy(src, dst)
+                ukCfgFile = 'UK_GB.cfg'
         else:
             gridFile = dn+'xyzLatLon' + r + '.csv'
         cmd = [ex, ukCfgFile, dn, obsFile, gridFile, zArg]
@@ -98,11 +91,11 @@ for pStr in paramStr:
         for year in years:
             obsFile = 'X_Y_' + pStr + dn + str(year) + r + '.csv'
             cmd = [ex, ukCfgFile, dn, obsFile, gridFile, zArg]
+            print(cmd)
             result = subprocess.run(cmd)
             if (result.returncode != 0):
                 print('[31m' + ''.join(str(e)+' ' for e in cmd) + ' error: ' + hex(result.returncode) + '[0m')
                 sys.exit(result.returncode)
-            print(cmd)
             os.remove(dataDir + obsFile)
 
         for pfix in prefix:

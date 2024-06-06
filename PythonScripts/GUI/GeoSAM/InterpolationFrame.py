@@ -146,7 +146,7 @@ class UKInterpolation(ttk.Frame):
         for i in range(self.nsf, self.nsfMax):
             self.functions[i].funcFrame.grid_remove()
 
-        self.funcFrame.grid(row=0, column=0, sticky='n')
+        self.funcFrame.grid(row=0, column=1, rowspan=3, sticky='n')
         # --------------------------------------------------------------------------------------------------------
         paramFrame= ttk.LabelFrame(self.scrollFrame.viewPort, text='Parameters', style='UKInterpolation.TFrame')
         #DEPRECATE#self.highLimit   = SubFrameElement(self, paramFrame, 'High Limit Factor ', '1.5',  0, 0, 1)
@@ -154,7 +154,7 @@ class UKInterpolation(ttk.Frame):
         formComboList = ['spherical', 'exponential', 'gaussian', 'matern']
         self.formLabel = ttk.Label(paramFrame, text='Variogram Form')
         self.formLabel.grid(row=0, column=0)
-        self.formCombo = ttk.Combobox(paramFrame, values=formComboList, width=10)
+        self.formCombo = ttk.Combobox(paramFrame, values=formComboList, width=14)
         self.formCombo.current(0)
         self.formCombo.grid(row=0, column=1, pady=5)
 
@@ -175,9 +175,57 @@ class UKInterpolation(ttk.Frame):
         self.saveSpatFncConfigButton = ttk.Button(paramFrame, text='Save Spat Fcn File', style="Frame4A.TLabel", command=self.SaveSpatialFcnConfigFName)
         self.saveSpatFncConfigButton.grid(row=2, column=1)
 
-        paramFrame.grid(row=0, column=4, sticky='n')
+        paramFrame.grid(row=0, column=0, sticky='n')
         # --------------------------------------------------------------------------------------------------------
-        self.scrollFrame.grid(row=1, column=0, sticky='nsew')
+        # --------------------------------------------------------------------------------------------------------
+        self.paramMAFrame= ttk.LabelFrame(self.scrollFrame.viewPort, text='MA Parameters', style='UKInterpolation.TFrame')
+
+        self.formMALabel = ttk.Label(self.paramMAFrame, text='MA Variogram Form')
+        self.formMALabel.grid(row=0, column=0)
+        self.formMACombo = ttk.Combobox(self.paramMAFrame, values=formComboList, width=14)
+        self.formMACombo.current(0)
+        self.formMACombo.grid(row=0, column=1, pady=5)
+
+        self.spatMACfgFile  = SubFrameElement(self, self.paramMAFrame, 'MA Spatial Fcn File', 'SpatialFcnsMA.cfg', 1, 0, 1, width=20)
+
+        self.style.configure("Frame4.TLabel", padding=6, relief='raised', background="#0F0")
+        self.style.configure("Frame4A.TLabel", padding=6, relief='raised', background="#0FF")
+        self.openMASpatFncConfigButton = ttk.Button(self.paramMAFrame, text='Load MA Fcn File', style="Frame4.TLabel", command=self.GetMASpatialFcnConfigFName)
+        self.openMASpatFncConfigButton.grid(row=2, column=0)
+
+        self.saveMASpatFncConfigButton = ttk.Button(self.paramMAFrame, text='Save MA Fcn File', style="Frame4A.TLabel", command=self.SaveMASpatialFcnConfigFName)
+        self.saveMASpatFncConfigButton.grid(row=2, column=1)
+
+        self.paramMAFrame.grid(row=1, column=0, sticky='n')
+        # This window is only needed with domain AL
+        if not self.parent.frame1.domainNameCombo.get() == 'AL':
+            self.paramMAFrame.grid_remove()
+        # --------------------------------------------------------------------------------------------------------
+        # --------------------------------------------------------------------------------------------------------
+        self.paramGBFrame= ttk.LabelFrame(self.scrollFrame.viewPort, text='GB Parameters', style='UKInterpolation.TFrame')
+
+        self.formGBLabel = ttk.Label(self.paramGBFrame, text='GB Variogram Form')
+        self.formGBLabel.grid(row=0, column=0)
+        self.formGBCombo = ttk.Combobox(self.paramGBFrame, values=formComboList, width=14)
+        self.formGBCombo.current(0)
+        self.formGBCombo.grid(row=0, column=1, pady=5)
+
+        self.spatGBCfgFile  = SubFrameElement(self, self.paramGBFrame, 'GB Spatial Fcn File', 'SpatialFcnsGB.cfg', 1, 0, 1, width=20)
+
+        self.style.configure("Frame4.TLabel", padding=6, relief='raised', background="#0F0")
+        self.style.configure("Frame4A.TLabel", padding=6, relief='raised', background="#0FF")
+        self.openGBSpatFncConfigButton = ttk.Button(self.paramGBFrame, text='Load GB Fcn File', style="Frame4.TLabel", command=self.GetGBSpatialFcnConfigFName)
+        self.openGBSpatFncConfigButton.grid(row=2, column=0)
+
+        self.saveGBSpatFncConfigButton = ttk.Button(self.paramGBFrame, text='Save GB Fcn File', style="Frame4A.TLabel", command=self.SaveGBSpatialFcnConfigFName)
+        self.saveGBSpatFncConfigButton.grid(row=2, column=1)
+
+        self.paramGBFrame.grid(row=2, column=0, sticky='n')
+        # This window is only needed with domain AL
+        if not self.parent.frame1.domainNameCombo.get() == 'AL':
+            self.paramGBFrame.grid_remove()
+        # --------------------------------------------------------------------------------------------------------
+        self.scrollFrame.grid(row=2, column=0, sticky='nsew')
         #---------------------------------------------------------------------------------------------------------
         self.style.configure("Help.TLabel", padding=6, relief="flat", foreground='white', background="#5783db")
         helpButton = ttk.Button(self, text= "UK Interpolation Help", style="Help.TLabel", command = self.pop_up)
@@ -200,6 +248,55 @@ class UKInterpolation(ttk.Frame):
             self.spatCfgFile.myEntry.insert(0,f[-1])
             self.parent.WriteSpatialFncsConfig()
 
+    def SaveMASpatialFcnConfigFName(self):
+        file_path = filedialog.asksaveasfilename(title="Open Configuration File", filetypes=[("CFG files", "*.cfg")], defaultextension='cfg', initialdir=self.startDir)
+        f = file_path.split('/')
+        if file_path:
+            n = len(self.spatMACfgFile.myEntry.get())
+            self.spatMACfgFile.myEntry.delete(0,n)
+            self.spatMACfgFile.myEntry.insert(0,f[-1])
+            self.parent.WriteSpatialFncsConfig(file_path)
+        
+        # Save MA Unique UK Config file
+        cfgFile  = os.path.join(self.root,'Configuration', 'UK_MA.cfg')
+        with open(cfgFile, 'w') as f:
+            f.write('# Set inputs for universal kriging\n')
+            f.write('Kriging variogram form = '+self.formMACombo.get()+'\n')
+            f.write('#\n')
+            f.write('# Configuration files are expected to be in the Configuration directory\n')
+            f.write('#\n')
+            f.write('NLS Spatial Fcn File Name = '+self.spatMACfgFile.myEntry.get()+'\n')
+            f.write('#\n')
+            f.write('# Save interim data by writing out supporting data files\n')
+            f.write('#\n')
+            f.write('Save Data = F\n')
+            f.close()
+
+
+    def SaveGBSpatialFcnConfigFName(self):
+        file_path = filedialog.asksaveasfilename(title="Open Configuration File", filetypes=[("CFG files", "*.cfg")], defaultextension='cfg', initialdir=self.startDir)
+        f = file_path.split('/')
+        if file_path:
+            n = len(self.spatGBCfgFile.myEntry.get())
+            self.spatGBCfgFile.myEntry.delete(0,n)
+            self.spatGBCfgFile.myEntry.insert(0,f[-1])
+            self.parent.WriteSpatialFncsConfig(file_path)
+        
+        # Save GB Unique UK Config file
+        cfgFile  = os.path.join(self.root,'Configuration', 'UK_GB.cfg')
+        with open(cfgFile, 'w') as f:
+            f.write('# Set inputs for universal kriging\n')
+            f.write('Kriging variogram form = '+self.formGBCombo.get()+'\n')
+            f.write('#\n')
+            f.write('# Configuration files are expected to be in the Configuration directory\n')
+            f.write('#\n')
+            f.write('NLS Spatial Fcn File Name = '+self.spatGBCfgFile.myEntry.get()+'\n')
+            f.write('#\n')
+            f.write('# Save interim data by writing out supporting data files\n')
+            f.write('#\n')
+            f.write('Save Data = F\n')
+            f.close()
+
     #--------------------------------------------------------------------------------------------------
     ## 
     # Calls the filedialog method askopenfilename to name a file to be used for the Spatial Function Cfg File
@@ -215,6 +312,23 @@ class UKInterpolation(ttk.Frame):
             self.spatCfgFile.myEntry.insert(0,f[-1])
             self.ReadSpactialFunctionFile(fName)
 
+    def GetMASpatialFcnConfigFName(self):
+        fName = filedialog.askopenfilename(title="Open Configuration File", filetypes=[("CFG files", "*.cfg")], defaultextension='cfg', initialdir=self.startDir)
+        f = fName.split('/')
+        if fName:
+            n = len(self.spatMACfgFile.myEntry.get())
+            self.spatMACfgFile.myEntry.delete(0,n)
+            self.spatMACfgFile.myEntry.insert(0,f[-1])
+            self.ReadSpactialFunctionFile(fName)
+
+    def GetGBSpatialFcnConfigFName(self):
+        fName = filedialog.askopenfilename(title="Open Configuration File", filetypes=[("CFG files", "*.cfg")], defaultextension='cfg', initialdir=self.startDir)
+        f = fName.split('/')
+        if fName:
+            n = len(self.spatGBCfgFile.myEntry.get())
+            self.spatGBCfgFile.myEntry.delete(0,n)
+            self.spatGBCfgFile.myEntry.insert(0,f[-1])
+            self.ReadSpactialFunctionFile(fName)
     #--------------------------------------------------------------------------------------------------
     ## 
     # Read in the Spactial Function File. 
@@ -314,20 +428,28 @@ class UKInterpolation(ttk.Frame):
     #
     #--------------------------------------------------------------------------------------------------
     def on_visibility(self, event):
-            if self.okToRepaintFunctions:
-                self.domainName = self.friend.domainNameCombo.get()
-                self.numFcnsEntry.delete(0,2)
-                if self.domainName == 'MA':
-                    self.nsf = 9
-                else:
-                    self.nsf = 5
-                self.numFcnsEntry.insert(0, str(self.nsf))
+        if self.okToRepaintFunctions:
+            self.domainName = self.friend.domainNameCombo.get()
+            self.numFcnsEntry.delete(0,2)
+            if self.domainName == 'MA':
+                self.nsf = 9
+            else:
+                self.nsf = 5
+            self.numFcnsEntry.insert(0, str(self.nsf))
 
-                # Now update desired funtion definitions
-                for i in range(self.nsfMax):
-                    self.functions[i].funcFrame.grid_remove()
-                for i in range(self.nsf):
-                    self.functions[i].funcFrame.grid()
+            # Now update desired funtion definitions
+            for i in range(self.nsfMax):
+                self.functions[i].funcFrame.grid_remove()
+            for i in range(self.nsf):
+                self.functions[i].funcFrame.grid()
+
+        # This window is only needed with domain AL
+        if not self.parent.frame1.domainNameCombo.get() == 'AL':
+            self.paramMAFrame.grid_remove()
+            self.paramGBFrame.grid_remove()
+        else:
+            self.paramMAFrame.grid()
+            self.paramGBFrame.grid()
 
     # --------------------------------------------------------------------------------------------------------
     # --------------------------------------------------------------------------------------------------------
@@ -402,13 +524,24 @@ Spatial Fcn Config File:
     This is the name of the file used to hold the spatial function definitions.
     It is saved in the UK Configuration file.
 
-    SPECIAL NOTE: When process AL domain, the scripts will use 
-    'SpatialFcnsMA.cfg' to interpolate data points in the MA region. Similarly
-    'SpatialFcnsGB.cfg' to interpolate data points in the GB region. Therefore,
-    the user can customize these values by loading, making changes, and then
-    saving the respective files while keeping the same names. When done
-    return this setting to 'SpatialFcns.cfg' either by Loading that file
-    or changing the name in the entry box.
+    SPECIAL NOTE: When processing AL domain, two additional boxes will appear
+
+    MA Parameters:
+        MA Spatial Fcn: 'SpatialFcnsMA.cfg' 
+        Is used to interpolate data points within the MA region.
+        The user can load this file, change the setting, and then save to a
+        different file to preserve installed file.
+
+    GB Parameters:
+        GB Spatial Fcn: 'SpatialFcnsGB.cfg' 
+        Is used to interpolate data points within the GB region.
+        The user can load this file, change the setting, and then save to a
+        different file to preserve installed file.
+
+    UK_MA.cfg, UK_GB.cfg:
+        These file names are not configurable. The GUI will save the config
+        parameters for MA and GB to these files, respectively. 
+        The interpolation scripts will then use these files when processing AL.
 
 Load/Save Spat Fcn File:
     Used to load predefined spatial functions and save user defined spatial

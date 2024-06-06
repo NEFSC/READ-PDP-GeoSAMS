@@ -132,20 +132,20 @@ cd ..
 matlab.exe -batch "TrawlData5mmbin(%1, %2, %3, '%4'); exit;"
 IF ERRORLEVEL 1 (
     @echo [31mError in MATLAB TrawlData5mmbin. Stopping[0m
-    exit /b
+    exit 1/b
 )
 matlab.exe -batch "PullOutRecruitData(%3); exit;"
 IF ERRORLEVEL 1 (
     @echo [31mError in MATLAB PullOutRecruitData. Stopping[0m
-    exit /b
+    exit 2/b
 )
 matlab.exe -batch "ProcessRecruitData(%1, %2, '%4'); exit;"
 IF ERRORLEVEL 1 (
     @echo [31mError in MATLAB ProcessRecruitData. Stopping[0m
-    exit /b
+    exit 3/b
 )
 matlab.exe -batch "NearestNeighborRecInterp(%1, %2, '%4'); exit;"
 IF ERRORLEVEL 1 (
     @echo [31mError in MATLAB NearestNeighborRecInterp. Stopping[0m
-    exit /b
+    exit 4/b
 )
