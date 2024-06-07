@@ -34,7 +34,8 @@ nyears = year_end - year_start + 2
 
 # set configuration file name for UK.exe
 ex = os.path.join('UKsrc', 'UK')
-[paramStr, tsInYear, savedByStratum] = ReadSimConfigFile('Configuration/'+simCfgFile)
+simFile = os.path.join('Configuration', 'Simulation', simCfgFile)
+[paramStr, tsInYear, savedByStratum] = ReadSimConfigFile(simFile)
 if dn=='MA': savedByStratum = False
 if savedByStratum:
     # Only GB and AL[L] use savedByStratum
@@ -85,17 +86,17 @@ for pStr in paramStr:
         if (result.returncode != 0):
             print('[31m' + ''.join(str(e)+' ' for e in cmd) + ' error: ' + hex(result.returncode) + '[0m')
             sys.exit(result.returncode)
-        print(cmd)
+        print( 'Just Finished: ', cmd)
         os.remove(dataDir + obsFile)
 
         for year in years:
             obsFile = 'X_Y_' + pStr + dn + str(year) + r + '.csv'
             cmd = [ex, ukCfgFile, dn, obsFile, gridFile, zArg]
-            print(cmd)
             result = subprocess.run(cmd)
             if (result.returncode != 0):
                 print('[31m' + ''.join(str(e)+' ' for e in cmd) + ' error: ' + hex(result.returncode) + '[0m')
                 sys.exit(result.returncode)
+            print( 'Just Finished: ', cmd)
             os.remove(dataDir + obsFile)
 
         for pfix in prefix:
@@ -168,11 +169,6 @@ for pStr in paramStr:
 
     # end savedByStratum
 # end for pStr
-
-# restore SpatialFcns
-src = os.path.join('Configuration', 'SpatialFcns.HOLD')
-dst = os.path.join('Configuration', 'SpatialFcns.cfg')
-shutil.copy(src, dst)
 
 # We have needed output paramters so lets plot data and save to pdf files
 print('Plotting Results')

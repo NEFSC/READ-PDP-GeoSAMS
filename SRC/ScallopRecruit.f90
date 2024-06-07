@@ -240,7 +240,7 @@ subroutine Set_Config_File_Name(fname)
     character(*), intent(in) :: fname
     logical exists
 
-    config_file_name = config_dir//fname
+    config_file_name = config_dir_sim//fname
     inquire(file=config_file_name, exist=exists)
 
     if (exists) then

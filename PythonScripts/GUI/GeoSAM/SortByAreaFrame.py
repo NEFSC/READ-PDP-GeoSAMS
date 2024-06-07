@@ -44,7 +44,7 @@ class SortByArea(ttk.Frame):
         super().__init__()
         
         labelArr = ['Corner', 'Long', 'Lat ', '0.0', '0.0']
-        self.root = os.environ['ROOT']
+        self.root = os.getcwd() #os.environ['ROOT']
         self.startDir = os.path.join(self.root, 'DataSort')
         self.friend = friend
         self.areaFName = None
@@ -65,49 +65,46 @@ class SortByArea(ttk.Frame):
         self.style.configure('SortByArea.TFrame', borderwidth=10, relief='solid', labelmargins=20)
         self.style.configure('SortByArea.TFrame.Label', font=('courier', 10, 'bold'))
 
-        self.scrollFrame = ScrollFrame(self) # add a new scrollable frame.
-        
-        # --------------------------------------------------------------------------------------------------------
-        self.sortAreaFrame = ttk.LabelFrame(self.scrollFrame.viewPort, text='Sort By Area', style='SortByArea.TFrame', width=400, height=200)
-
         # +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-        self.numAreasLabel = ttk.Label(self.sortAreaFrame, text='# of Areas')
+        self.scrollFrame = ScrollFrame(self) # add a new scrollable frame.
+        # +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+        sortAreaFrame = ttk.LabelFrame(self.scrollFrame.viewPort, text='Sort By Area', style='SortByArea.TFrame', width=400, height=200)
+        # --------------------------------------------------------------------------------------------------------
+        self.numAreasLabel = ttk.Label(sortAreaFrame, text='# of Areas')
         self.numAreasLabel.grid(row=0, column=0, sticky='w')
-
-        self.numAreasEntry=ttk.Entry(self.sortAreaFrame,validatecommand=numbersCallback, width=5)
+        # --------------------------------------------------------------------------------------------------------
+        self.numAreasEntry=ttk.Entry(sortAreaFrame,validatecommand=numbersCallback, width=5)
         self.numAreasEntry.insert(0, str(self.numAreas))
         reg=self.numAreasEntry.register(numbersCallback)
         self.numAreasEntry.configure(validate='key', validatecommand=(reg, '%P'))
         self.numAreasEntry.grid(row=1, column=0, sticky='w')
         self.numAreasEntry.focus()
-        self.numAreasEntry.bind('<Return>', self.EnterKeyCliced)
-        # +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-        self.outputParmLabel = ttk.Label(self.sortAreaFrame, text='Output Parameters')
+        self.numAreasEntry.bind('<Return>', self.EnterKeyClicked)
+        # --------------------------------------------------------------------------------------------------------
+        self.outputParmLabel = ttk.Label(sortAreaFrame, text='Output Parameters')
         self.outputParmLabel.grid(row=0, column=0, sticky='ns')
-        self.comboParameter = ttk.Combobox(self.sortAreaFrame, values=paramStr)
+        self.comboParameter = ttk.Combobox(sortAreaFrame, values=paramStr)
         self.comboParameter.grid(row=1, column=0, sticky='ns')
-        # +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-        self.dataSortFileEntry = self.myEntry=ttk.Entry(self.sortAreaFrame, width=25)
+        # --------------------------------------------------------------------------------------------------------
+        self.dataSortFileEntry = self.myEntry=ttk.Entry(sortAreaFrame, width=25)
         self.dataSortFileEntry.insert(0, 'AreasOfInterestDataSort.csv')
         self.dataSortFileEntry.grid(row=0, column=1, sticky='we', padx=5)
-        # +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+        # --------------------------------------------------------------------------------------------------------
         self.style.configure("SortByArea.TLabel", padding=6, relief='raised', background="#0F0")
         self.style.configure("Frame5a.TLabel", padding=6, relief='raised', background="#0FF")
-        
-        self.openDataSortButton = ttk.Button(self.sortAreaFrame, text='Load Data Sort File', style="SortByArea.TLabel", command=self.GetDataSortFile)
+        self.openDataSortButton = ttk.Button(sortAreaFrame, text='Load Data Sort File', style="SortByArea.TLabel", command=self.GetDataSortFile)
         self.openDataSortButton.grid(row=0, column=2, sticky='w')
-
-        self.saveDataSortButton = ttk.Button(self.sortAreaFrame, text='Save Data Sort File', style="Frame5a.TLabel", command=self.SaveDataSortFile)
+        # --------------------------------------------------------------------------------------------------------
+        self.saveDataSortButton = ttk.Button(sortAreaFrame, text='Save Data Sort File', style="Frame5a.TLabel", command=self.SaveDataSortFile)
         self.saveDataSortButton.grid(row=1, column=2, sticky='w')
-
-        # +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-        self.numAreasButton = ttk.Button(self.sortAreaFrame, text='Update # Areas', command=self.NumAreasUpdate)
+        # --------------------------------------------------------------------------------------------------------
+        self.numAreasButton = ttk.Button(sortAreaFrame, text='Update # Areas', command=self.NumAreasUpdate)
         self.numAreasButton.grid(row=2, column=0, sticky='w')
-
-        self.saveDataSortButton = ttk.Button(self.sortAreaFrame, text='Run Sort', command=self.RunSort)
+        # --------------------------------------------------------------------------------------------------------
+        self.saveDataSortButton = ttk.Button(sortAreaFrame, text='Run Sort', command=self.RunSort)
         self.saveDataSortButton.grid(row=2, column=2, sticky='w')
-        # +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-        self.areas = AreaManager(self, self.sortAreaFrame, self.numAreasMax, self.numCornersMax,
+        # --------------------------------------------------------------------------------------------------------
+        self.areas = AreaManager(self, sortAreaFrame, self.numAreasMax, self.numCornersMax,
                                    elementRow=3, elementCol=0, cornerRow=0, cornerColumn=0, labelArr=labelArr,
                                    includeYears=True, numYearsMax=self.maxYears, yearStart=self.yearStart, yearStop=self.yearStop)
 
@@ -115,12 +112,13 @@ class SortByArea(ttk.Frame):
         for a in range(self.numAreas, self.numAreasMax):
             self.areas.areaSubFrame[a].areaFrame.grid_remove()
 
-        self.sortAreaFrame.grid(row=4, column=0, columnspan=10)
-        self.sortAreaFrame.grid_columnconfigure(0,weight=2)
-        self.sortAreaFrame.grid_columnconfigure(1,weight=1)
-        # --------------------------------------------------------------------------------------------------------
+        sortAreaFrame.grid(row=4, column=0, columnspan=10)
+        sortAreaFrame.grid_columnconfigure(0,weight=2)
+        sortAreaFrame.grid_columnconfigure(1,weight=1)
+        # +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+        # +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
         self.scrollFrame.grid(row=1, column=0, sticky='nsew')
-        #---------------------------------------------------------------------------------------------------------
+        # +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
         self.style.configure("Help.TLabel", padding=6, relief="flat", foreground='white', background="#5783db")
         helpButton = ttk.Button(self, text= "Sort By Area Help", style="Help.TLabel", command = self.pop_up)
         helpButton.grid(row=0, column=0)
@@ -281,7 +279,7 @@ class SortByArea(ttk.Frame):
 
     # --------------------------------------------------------------------------------------------------------
     # --------------------------------------------------------------------------------------------------------
-    def EnterKeyCliced(self, event):
+    def EnterKeyClicked(self, event):
         self.NumAreasUpdate()
 
     #---------------------------------------------------------------------------------------------------------

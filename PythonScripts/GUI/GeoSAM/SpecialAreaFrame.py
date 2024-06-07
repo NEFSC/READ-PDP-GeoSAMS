@@ -43,8 +43,8 @@ class SpecialArea(ttk.Frame):
         super().__init__()
         
         labelArr = ['Corner', 'Long', 'Lat ', '0.0', '0.0']
-        self.root = os.environ['ROOT']
-        self.startDir = os.path.join(self.root, 'Configuration')
+        self.root = os.getcwd() #os.environ['ROOT']
+        self.startDir = os.path.join(self.root, 'Configuration', 'SpecialAccess')
         self.areaFName = None
 
         self.numAreasMax = maxAreas
@@ -56,50 +56,48 @@ class SpecialArea(ttk.Frame):
         self.style.configure('SpecialArea.TFrame', borderwidth=10, relief='solid', labelmargins=20)
         self.style.configure('SpecialArea.TFrame.Label', font=('courier', 10, 'bold'))
 
-        self.scrollFrame = ScrollFrame(self) # add a new scrollable frame.
-        
-        # --------------------------------------------------------------------------------------------------------
-        self.specialAreaFrame = ttk.LabelFrame(self.scrollFrame.viewPort, text='Special Area', style='SpecialArea.TFrame', width=400, height=200)
-
         # +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-        self.numAreasLabel = ttk.Label(self.specialAreaFrame, text='# of Areas')
+        scrollFrame = ScrollFrame(self) # add a new scrollable frame.
+        # +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+        specialAreaFrame = ttk.LabelFrame(scrollFrame.viewPort, text='Special Area', style='SpecialArea.TFrame', width=400, height=200)
+        # --------------------------------------------------------------------------------------------------------
+        self.numAreasLabel = ttk.Label(specialAreaFrame, text='# of Areas')
         self.numAreasLabel.grid(row=0, column=0, sticky='w')
-        self.numAreasEntry=ttk.Entry(self.specialAreaFrame,validatecommand=numbersCallback, width=5)
+        self.numAreasEntry=ttk.Entry(specialAreaFrame,validatecommand=numbersCallback, width=5)
         self.numAreasEntry.insert(0, str(self.numAreas))
         reg=self.numAreasEntry.register(numbersCallback)
         self.numAreasEntry.configure(validate='key', validatecommand=(reg, '%P'))
         self.numAreasEntry.grid(row=0, column=1, sticky='w')
         self.numAreasEntry.focus()
-        self.numAreasEntry.bind('<Return>', self.EnterKeyCliced)
-        # +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-        self.specAccFile  = SubFrameElement(self, self.specialAreaFrame, 'Special Access File\nSet to NONE if not used\nAlso blocks Fish Mort File', '', 0, 2, 3, width=20)
-
-        # +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-        self.numAreasButton = ttk.Button(self.specialAreaFrame, text='Update # Areas', command=self.NumAreasUpdate)
+        self.numAreasEntry.bind('<Return>', self.EnterKeyClicked)
+        # --------------------------------------------------------------------------------------------------------
+        self.specAccFile  = SubFrameElement(self, specialAreaFrame, 'Special Access File\nSet to NONE if not used\nAlso blocks Fish Mort File', '', 0, 2, 3, width=20)
+        # --------------------------------------------------------------------------------------------------------
+        self.numAreasButton = ttk.Button(specialAreaFrame, text='Update # Areas', command=self.NumAreasUpdate)
         self.numAreasButton.grid(row=1, column=0, sticky='w')
-        # +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+        # --------------------------------------------------------------------------------------------------------
         self.style.configure("SpecialArea.TLabel", padding=6, relief='raised', background="#0F0")
         self.style.configure("SpecialAreaA.TLabel", padding=6, relief='raised', background="#0FF")
         
-        self.openAreaFileButton = ttk.Button(self.specialAreaFrame, text='Load Special Area File', style="SpecialArea.TLabel", command=self.GetAreaFile)
+        self.openAreaFileButton = ttk.Button(specialAreaFrame, text='Load Special Area File', style="SpecialArea.TLabel", command=self.GetAreaFile)
         self.openAreaFileButton.grid(row=0, column=4, sticky='w')
-
-        self.saveAreaFileButton = ttk.Button(self.specialAreaFrame, text='Save Special Area File', style="SpecialAreaA.TLabel", command=self.SaveAreaFile)
+        # --------------------------------------------------------------------------------------------------------
+        self.saveAreaFileButton = ttk.Button(specialAreaFrame, text='Save Special Area File', style="SpecialAreaA.TLabel", command=self.SaveAreaFile)
         self.saveAreaFileButton.grid(row=1, column=4, sticky='w')
-        # +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-        self.areaMgr = AreaManager(self, self.specialAreaFrame, self.numAreasMax, self.numCornersMax,
+        # --------------------------------------------------------------------------------------------------------
+        self.areaMgr = AreaManager(self, specialAreaFrame, self.numAreasMax, self.numCornersMax,
                                    elementRow=2, elementCol=0, cornerRow=0, cornerColumn=0, labelArr=labelArr)
 
         # now hide
         for a in range(self.numAreas, self.numAreasMax):
             self.areaMgr.areaSubFrame[a].areaFrame.grid_remove()
-
-        self.specialAreaFrame.grid(row=4, column=0, columnspan=10)
-        self.specialAreaFrame.grid_columnconfigure(0,weight=2)
-        self.specialAreaFrame.grid_columnconfigure(1,weight=1)
         # --------------------------------------------------------------------------------------------------------
-        self.scrollFrame.grid(row=1, column=0, sticky='nsew')
-        #---------------------------------------------------------------------------------------------------------
+        specialAreaFrame.grid(row=4, column=0, columnspan=10)
+        specialAreaFrame.grid_columnconfigure(0,weight=2)
+        specialAreaFrame.grid_columnconfigure(1,weight=1)
+        # +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+        scrollFrame.grid(row=1, column=0, sticky='nsew')
+        # +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
         self.style.configure("Help.TLabel", padding=6, relief="flat", foreground='white', background="#5783db")
         helpButton = ttk.Button(self, text= "Special Access Help", style="Help.TLabel", command = self.pop_up)
         helpButton.grid(row=0, column=0)
@@ -114,7 +112,7 @@ class SpecialArea(ttk.Frame):
 
     # --------------------------------------------------------------------------------------------------------
     # --------------------------------------------------------------------------------------------------------
-    def EnterKeyCliced(self, event):
+    def EnterKeyClicked(self, event):
         self.NumAreasUpdate()
 
     # --------------------------------------------------------------------------------------------------------
@@ -166,10 +164,10 @@ class SpecialArea(ttk.Frame):
     (This frame is scrollable, use mouse wheel)
     This frame in conjunction with the FishingMort in Special Access frame is 
     used to define fishing mortalities within a defined area for a specified 
-    year. If a location falls within the defined area given in this frame and 
-    assigned the area number. Then if the current year is the same as the year 
-    given in the FishingMort in Special Access frame and the area number is 
-    listed then the fishing mortality is specified by the Mortality value. 
+    year. If a sim data point falls within a defined area given in this frame 
+    by the assigned area number. Then if the current year is the same as the 
+    year given in the FishingMort in Special Access frame and the area number 
+    is listed then the fishing mortality is specified by the Mortality value. 
     Otherwise it is the default value which is defined in the Growth Frame as 
     Fishing mortality
 

@@ -89,18 +89,19 @@ class MainApplication(tk.Tk):
 
         # vscode will not set this variable, must be done via control panel
         # in command terminal on Windows, assuming user is in the install directory
+        # Now using cwd assuming python is started from there.
         #   > set ROOT=%CD%
-        self.root = os.environ['ROOT']
-        self.simConfigFile  = os.path.join(self.root,'Configuration', 'Scallop.cfg')
+        self.root = os.getcwd() #os.environ['ROOT']
+        self.simConfigFile  = os.path.join(self.root,'Configuration', 'Simulation','Scallop.cfg')
         (self.paramStr, self.paramVal) = self.ReadSimConfigFile()
         self.notebook = ttk.Notebook(self)
 
         self.frame1 = MainInput(self.notebook, self, self.tsPerYear, self.paramVal)
         # NOTE: These will still be default values as the user would not as yet entered anything!!
-        self.simConfigFile  = os.path.join(self.root,'Configuration', self.frame1.simCfgFile.myEntry.get())
-        self.mortConfigFile = os.path.join(self.root,'Configuration', self.frame1.mortCfgFile.myEntry.get())
-        self.recrConfigFile = os.path.join(self.root,'Configuration', self.frame1.recrCfgFile.myEntry.get())
-        self.gmConfigFile   = os.path.join(self.root,'Configuration', self.frame1.gmCfgFile.myEntry.get())
+        self.simConfigFile  = os.path.join(self.root,'Configuration', 'Simulation', self.frame1.simCfgFile.myEntry.get())
+        self.mortConfigFile = os.path.join(self.root,'Configuration', 'Simulation', self.frame1.mortCfgFile.myEntry.get())
+        self.recrConfigFile = os.path.join(self.root,'Configuration', 'Simulation', self.frame1.recrCfgFile.myEntry.get())
+        self.gmConfigFile   = os.path.join(self.root,'Configuration', 'Simulation', self.frame1.gmCfgFile.myEntry.get())
 
         # Read in configuration parameters
         (self.paramStr, self.paramVal) = self.ReadSimConfigFile()
@@ -181,16 +182,39 @@ class MainApplication(tk.Tk):
             self.frame1.stopYr.myEntry.delete(0,4)
             self.frame1.stopYr.myEntry.insert(0, stopYear)
         
-        # First ensure data is available
-        if platform.system() == 'Windows':
-            cmd = [os.path.join(self.root, 'Unpack.bat'), startYear, stopYear, '0', dn]
-        else:
-            cmd = [os.path.join(self.root, 'Unpack.sh'), startYear, stopYear, '0', dn]
-
-        result = subprocess.run(cmd)
-        if result.returncode == 0:
-            messagebox.showinfo("Unpack", f'Completed Successfully\n{result.args}')
-
+        # Ensure data is available, by first checking if data files have been created.
+        # Typical data file name: Data/bin5mm2015AL.csv
+        filesExist = True
+        for yr in range(self.yearStart, self.yearStop+1):
+            dataFName = os.path.join(self.root, 'Data', 'bin5mm'+str(yr)+dn+'.csv')
+            if not os.path.isfile(dataFName): 
+                filesExist = False
+                break
+        
+        if not filesExist: 
+            # Create them
+            if platform.system() == 'Windows':
+                cmd = [os.path.join(self.root, 'Unpack.bat'), startYear, stopYear, '0', dn]
+            else:
+                cmd = [os.path.join(self.root, 'Unpack.sh'), startYear, stopYear, '0', dn]
+            result = subprocess.run(cmd)
+            if result.returncode == 0:
+                messagebox.showinfo("Unpack", f'Completed Successfully\n{result.args}')
+                filesExist = True
+            else:
+                if result.returncode == 1:
+                    messagebox.showerror("TrawlData5mmbin", f'Failed\n{result.args}\nReturn Code = {result.returncode}\nSee Monitor for Reason')
+                elif result.returncode == 2:
+                    messagebox.showerror("PullOutRecruitData", f'Failed\n{result.args}\nReturn Code = {result.returncode}\nSee Monitor for Reason')
+                elif result.returncode == 3:
+                    messagebox.showerror("ProcessRecruitData", f'Failed\n{result.args}\nReturn Code = {result.returncode}\nSee Monitor for Reason')
+                elif result.returncode == 4:
+                    messagebox.showerror("NearestNeighborRecInterp", f'Failed\n{result.args}\nReturn Code = {result.returncode}\nSee Monitor for Reason')
+                else:
+                    messagebox.showerror("Unpack", f'Failed\n{result.args}\nReturn Code = {result.returncode}\nSee Monitor for Reason')
+            
+        if filesExist:
+            # Continue with starting the GeoSAMS simulation ----------------------------------------------------------------------
             cmd = [ex, simCfgFile, startYear, stopYear, dn]
             print(cmd)
             messagebox.showinfo("GeoSAMS Sim", "Program Started")
@@ -198,7 +222,10 @@ class MainApplication(tk.Tk):
 
             if result.returncode == 0:
                 messagebox.showinfo("GeoSAM Sim", f'Completed Successfully\n{result.args}')
-                # python .\PythonScripts\ProcessResults.py GB 2015 2017 Scallop.cfg UK.cfg
+
+                # Then Continue with Interpolation and Plotting Results -----------------------------------------------------------
+                #       python .\PythonScripts\ProcessResults.py dn startYear stopYear simCfgFile ukCfgFile
+                # e.g.: python .\PythonScripts\ProcessResults.py GB 2015 2017 Scallop.cfg UK_GB.cfg
                 ex = 'python'
                 script = os.path.join(self.root, 'PythonScripts', 'ProcessResults.py')
                 cmd = [ex, script, dn, startYear, stopYear, simCfgFile, ukCfgFile] 
@@ -210,17 +237,6 @@ class MainApplication(tk.Tk):
                     messagebox.showerror("UK", f'Failed\n{result.args}\nReturn Code = {result.returncode}')
             else:
                 messagebox.showerror("GeoSAM Sim", f'Failed\n{result.args}\nReturn Code = {result.returncode}')
-        else:
-            if result.returncode == 1:
-                messagebox.showerror("TrawlData5mmbin", f'Failed\n{result.args}\nReturn Code = {result.returncode}\nSee Monitor for Reason')
-            elif result.returncode == 2:
-                messagebox.showerror("PullOutRecruitData", f'Failed\n{result.args}\nReturn Code = {result.returncode}\nSee Monitor for Reason')
-            elif result.returncode == 3:
-                messagebox.showerror("ProcessRecruitData", f'Failed\n{result.args}\nReturn Code = {result.returncode}\nSee Monitor for Reason')
-            elif result.returncode == 4:
-                messagebox.showerror("NearestNeighborRecInterp", f'Failed\n{result.args}\nReturn Code = {result.returncode}\nSee Monitor for Reason')
-            else:
-                messagebox.showerror("Unpack", f'Failed\n{result.args}\nReturn Code = {result.returncode}\nSee Monitor for Reason')
 
     #-------------------------------------------------------------------------------------
     ##
@@ -233,7 +249,7 @@ class MainApplication(tk.Tk):
         self.WriteGrowthConfig()
         self.WriteGridMgrConfig()
         self.WriteUKConfig()
-        cfgFile  = os.path.join(self.root,'Configuration', self.frame4.spatCfgFile.myEntry.get())
+        cfgFile  = os.path.join(self.root,'Configuration', 'Interpolation', self.frame4.spatCfgFile.myEntry.get())
         self.WriteSpatialFncsConfig(cfgFile)
         messagebox.showinfo("Save Files", "Configuration Files Saved")
 
@@ -244,7 +260,7 @@ class MainApplication(tk.Tk):
     #
     #-------------------------------------------------------------------------------------
     def WriteScallopConfig(self):
-        simCfgFile  = os.path.join(self.root,'Configuration', self.frame1.simCfgFile.myEntry.get())
+        simCfgFile  = os.path.join(self.root,'Configuration', 'Simulation', self.frame1.simCfgFile.myEntry.get())
         with open(simCfgFile, 'w') as f:
             f.write('# input file for Scallops \n')
             f.write('Time steps per Year = ' + str(self.frame1.tsPerYear.myEntry.get())+'\n')
@@ -298,7 +314,7 @@ class MainApplication(tk.Tk):
     #
     #-------------------------------------------------------------------------------------
     def WriteRecruitmentConfig(self):
-        cfgFile  = os.path.join(self.root,'Configuration', self.frame1.recrCfgFile.myEntry.get())
+        cfgFile  = os.path.join(self.root,'Configuration', 'Simulation', self.frame1.recrCfgFile.myEntry.get())
 
         periodMonthStr = self.frame1.startDayComboMonth.get()
         periodDayStr = self.frame1.startDayComboDay.get()
@@ -339,7 +355,7 @@ class MainApplication(tk.Tk):
     #
     #-------------------------------------------------------------------------------------
     def WriteGrowthConfig(self):
-        simCfgFile  = os.path.join(self.root,'Configuration', self.frame1.mortCfgFile.myEntry.get())
+        simCfgFile  = os.path.join(self.root,'Configuration', 'Simulation', self.frame1.mortCfgFile.myEntry.get())
         with open(simCfgFile, 'w') as f:
             f.write('# Was configuration file for mortality\n')
             f.write('# Actually contains parameters that define both Growth and Mortality\n')
@@ -383,7 +399,7 @@ class MainApplication(tk.Tk):
     #
     #-------------------------------------------------------------------------------------
     def WriteGridMgrConfig(self):
-        cfgFile  = os.path.join(self.root,'Configuration', self.frame1.gmCfgFile.myEntry.get())
+        cfgFile  = os.path.join(self.root,'Configuration', 'Simulation', self.frame1.gmCfgFile.myEntry.get())
         with open(cfgFile, 'w') as f:
             f.write('# configuration file for GridManager\n')
             f.write('# The following is the file name with corner coordinates associated with Special Access Areas.\n')
@@ -399,7 +415,7 @@ class MainApplication(tk.Tk):
     #
     #-------------------------------------------------------------------------------------
     def WriteUKConfig(self):
-        cfgFile  = os.path.join(self.root,'Configuration', self.frame1.ukCfgFile.myEntry.get())
+        cfgFile  = os.path.join(self.root,'Configuration', 'Interpolation', self.frame1.ukCfgFile.myEntry.get())
         with open(cfgFile, 'w') as f:
             f.write('# Set inputs for universal kriging\n')
             #DEPRECATE#f.write('# Observation files are expecting in the Data subdirectory\n')
@@ -488,7 +504,7 @@ class MainApplication(tk.Tk):
     #
     #-------------------------------------------------------------------------------------
     def ReadSimConfigFile(self):
-        # need to read Configuration/Scallop.cfg to determine which parameters are output
+        # need to read Configuration/Simulation/Scallop.cfg to determine which parameters are output
         paramStr = []
         paramVal = 0
         tags = self.ReadConfigFile(self.simConfigFile)

@@ -1,5 +1,7 @@
+#-----------------------------------------------------------------------
+#-----------------------------------------------------------------------
 def ReadSimConfigFile(simCfgFile):
-    # need to read Configuration/Scallop.cfg to determine which parameters were output
+    # need to read Configuration/Simulation/Scallop.cfg to determine which parameters were output
     tsInYear = 0
     paramStr = []
     with open(simCfgFile, 'r') as f:

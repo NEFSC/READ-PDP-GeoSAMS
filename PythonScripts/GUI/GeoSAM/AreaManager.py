@@ -33,6 +33,16 @@ from Widgets import *
 from PointInPolygon import *
 
 #======================================================================================================
+##
+# This class is used to paint area grouped by
+# 
+# Area N
+#    Comment
+#    Number of Nodes         Update Nodes
+#    Node 1 .... Node N
+#    X data .... X data
+#    Y data .... Y data
+
 #======================================================================================================
 class AreaManager(ttk.Frame):
     
@@ -63,8 +73,6 @@ class AreaManager(ttk.Frame):
         # --------------------------------------------------------------------------------------------------------
         self.sortAreaFrame = ttk.LabelFrame(self.scrollFrame.viewPort, text='Sort By Area', style='SortByArea.TFrame', width=400, height=200)
 
-        # +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-        # +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 
     #------------------------------------------------------------------------------------------------
     #------------------------------------------------------------------------------------------------
@@ -274,6 +282,9 @@ class AreaManager(ttk.Frame):
         f.close()
 
 #======================================================================================================
+## Defines floating point data for corner defintions
+#
+# long, lat have become interchangeable with x, y
 #======================================================================================================
 class Corner:
     def __init__(self, maxCorners):
@@ -305,7 +316,7 @@ class AreaMgrSubFrame(tk.Frame):
         # +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
         self.numCornersEntry = SubFrameElement(self, self.areaFrame, '# corners',  numCorners, 
                                 cornerRow+1, startingCol+cornerCol, startingCol+cornerCol+1,
-                                valCmd=numbersCallback, enterCmd=self.EnterKeyCliced)
+                                valCmd=numbersCallback, enterCmd=self.EnterKeyClicked)
         # +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
         self.numCornersButton = ttk.Button(self.areaFrame, text='Update # Corners', command=self.NumCornersUpdate)
         self.numCornersButton.grid(row=cornerRow+1, column=startingCol+cornerCol+2)
@@ -317,9 +328,13 @@ class AreaMgrSubFrame(tk.Frame):
         # +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
         self.areaFrame.grid(row=elementRow, column=elementCol, columnspan=10, sticky='ew')
 
-    def EnterKeyCliced(self, event):
+    # ----------------------------------------------------------------------------
+    # ----------------------------------------------------------------------------
+    def EnterKeyClicked(self, event):
         self.NumCornersUpdate()
 
+    # ----------------------------------------------------------------------------
+    # ----------------------------------------------------------------------------
     def NumCornersUpdate(self):
         for i in range(self.numCornersMax):
             self.corners[i].cornerFrame.grid_remove()

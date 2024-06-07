@@ -39,8 +39,8 @@ class FishMortBySpecAcc(ttk.Frame):
         super().__init__()
         
         labelArr = ['Field', 'SpecArea', 'Mortality', '0', '0.4']
-        self.root = os.environ['ROOT']
-        self.startDir = os.path.join(self.root, 'Configuration')
+        self.root = os.getcwd() #os.environ['ROOT']
+        self.startDir = os.path.join(self.root, 'Configuration', 'SpecialAccess')
         self.fmFName = None
 
         self.numDefinedMax = maxAreas
@@ -52,46 +52,42 @@ class FishMortBySpecAcc(ttk.Frame):
         self.style.configure('FishMort.TFrame', borderwidth=10, relief='solid', labelmargins=20)
         self.style.configure('FishMort.TFrame.Label', font=('courier', 10, 'bold'))
 
-        self.scrollFrame = ScrollFrame(self) # add a new scrollable frame.
+        scrollFrame = ScrollFrame(self) # add a new scrollable frame.
         
-        # --------------------------------------------------------------------------------------------------------
-        self.fishMortFrame = ttk.LabelFrame(self.scrollFrame.viewPort, text='Fishing Mort in Special Access', style='FishMort.TFrame', width=400, height=200)
-
         # +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-        self.numDefinedLabel = ttk.Label(self.fishMortFrame, text='# Defined')
+        fishMortFrame = ttk.LabelFrame(scrollFrame.viewPort, text='Fishing Mort in Special Access', style='FishMort.TFrame', width=400, height=200)
+        # --------------------------------------------------------------------------------------------------------
+        self.numDefinedLabel = ttk.Label(fishMortFrame, text='# Defined')
         self.numDefinedLabel.grid(row=0, column=0, sticky='w')
-        self.numDefinedEntry=ttk.Entry(self.fishMortFrame,validatecommand=numbersCallback, width=5)
+        # --------------------------------------------------------------------------------------------------------
+        self.numDefinedEntry=ttk.Entry(fishMortFrame,validatecommand=numbersCallback, width=5)
         self.numDefinedEntry.insert(0, str(self.numDefined))
         reg=self.numDefinedEntry.register(numbersCallback)
         self.numDefinedEntry.configure(validate='key', validatecommand=(reg, '%P'))
         self.numDefinedEntry.grid(row=0, column=1, sticky='w')
         self.numDefinedEntry.focus()
-        self.numDefinedEntry.bind('<Return>', self.EnterKeyCliced)
-        # +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-        self.fishMortFile  = SubFrameElement(self, self.fishMortFrame, 'Fishing Mort File\nSet to NONE if not used', '', 0, 2, 3, width=20)
-
-        # +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-        self.numDefinedButton = ttk.Button(self.fishMortFrame, text='Update # Defined', command=self.NumDefinedUpdate)
+        self.numDefinedEntry.bind('<Return>', self.EnterKeyClicked)
+        # --------------------------------------------------------------------------------------------------------
+        self.fishMortFile  = SubFrameElement(self, fishMortFrame, 'Fishing Mort File\nSet to NONE if not used', '', 0, 2, 3, width=20)
+        # --------------------------------------------------------------------------------------------------------
+        self.numDefinedButton = ttk.Button(fishMortFrame, text='Update # Defined', command=self.NumDefinedUpdate)
         self.numDefinedButton.grid(row=1, column=0, sticky='w')
-        # +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+        # --------------------------------------------------------------------------------------------------------
         self.style.configure("FishMort.TLabel", padding=6, relief='raised', background="#0F0")
         self.style.configure("FishMortA.TLabel", padding=6, relief='raised', background="#0FF")
-        
-        self.openFMFileButton = ttk.Button(self.fishMortFrame, text='Load Fishing Mort File', style="FishMort.TLabel", command=self.GetFMFile)
+        self.openFMFileButton = ttk.Button(fishMortFrame, text='Load Fishing Mort File', style="FishMort.TLabel", command=self.GetFMFile)
         self.openFMFileButton.grid(row=0, column=4, sticky='w')
-
-        self.saveFMFileButton = ttk.Button(self.fishMortFrame, text='Save Fishing Mort File', style="FishMortA.TLabel", command=self.SaveFMFile)
+        # --------------------------------------------------------------------------------------------------------
+        self.saveFMFileButton = ttk.Button(fishMortFrame, text='Save Fishing Mort File', style="FishMortA.TLabel", command=self.SaveFMFile)
         self.saveFMFileButton.grid(row=1, column=4, sticky='w')
-        # +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-
-        self.yearEntry = [ttk.Entry(self.fishMortFrame, width=5) for _ in range(self.numDefinedMax)]
-        self.yearLabel = [ttk.Label(self.fishMortFrame, text='Year', width=4, justify='right') for _ in range(self.numDefinedMax)]
+        # --------------------------------------------------------------------------------------------------------
+        self.yearEntry = [ttk.Entry(fishMortFrame, width=5) for _ in range(self.numDefinedMax)]
+        self.yearLabel = [ttk.Label(fishMortFrame, text='Year', width=4, justify='right') for _ in range(self.numDefinedMax)]
         for i in range(self.numDefinedMax):
             self.yearEntry[i].grid(row=2+i, column=0, sticky='ne')
             self.yearLabel[i].grid(row=2+i, column=0, sticky='nw', padx=5)
-        
-        # +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-        self.areaMgr = AreaManager(self, self.fishMortFrame, self.numDefinedMax, self.numFieldsMax, 
+        # --------------------------------------------------------------------------------------------------------
+        self.areaMgr = AreaManager(self, fishMortFrame, self.numDefinedMax, self.numFieldsMax, 
                                    elementRow=2, elementCol=1, cornerRow=0, cornerColumn=0, labelArr=labelArr)
 
         # now hide
@@ -99,13 +95,14 @@ class FishMortBySpecAcc(ttk.Frame):
             self.areaMgr.areaSubFrame[a].areaFrame.grid_remove()
             self.yearEntry[a].grid_remove()
             self.yearLabel[a].grid_remove()
-
-        self.fishMortFrame.grid(row=4, column=0, columnspan=10)
-        self.fishMortFrame.grid_columnconfigure(0,weight=2)
-        self.fishMortFrame.grid_columnconfigure(1,weight=1)
         # --------------------------------------------------------------------------------------------------------
-        self.scrollFrame.grid(row=1, column=0, sticky='nsew')
-        #---------------------------------------------------------------------------------------------------------
+        # +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+        fishMortFrame.grid(row=4, column=0, columnspan=10)
+        fishMortFrame.grid_columnconfigure(0,weight=2)
+        fishMortFrame.grid_columnconfigure(1,weight=1)
+        # +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+        scrollFrame.grid(row=1, column=0, sticky='nsew')
+        # +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
         self.style.configure("Help.TLabel", padding=6, relief="flat", foreground='white', background="#5783db")
         helpButton = ttk.Button(self, text= "Fishing Mort Help", style="Help.TLabel", command = self.pop_up)
         helpButton.grid(row=0, column=0)
@@ -120,7 +117,7 @@ class FishMortBySpecAcc(ttk.Frame):
 
     # --------------------------------------------------------------------------------------------------------
     # --------------------------------------------------------------------------------------------------------
-    def EnterKeyCliced(self, event):
+    def EnterKeyClicked(self, event):
         self.NumDefinedUpdate()
 
     # --------------------------------------------------------------------------------------------------------

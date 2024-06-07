@@ -3,6 +3,10 @@ import platform
 from tkinter import ttk
 
 # *************************************************************************************************
+## Generic Element
+# 
+# Provides a label and an entery field. Optionally allows programmer to specify a method to
+# validate entry and another method to respond to Enter Key.
 # *************************************************************************************************
 class SubFrameElement(tk.Frame):
     def __init__(self, container, parent, label, value, elementRow, labelCol, entryCol, width=5,
@@ -54,6 +58,9 @@ class SubFrameInterpFunction(tk.Frame):
         self.funcFrame.grid(row=elementRow, column=elementCol)
 
 # *************************************************************************************************
+## Widget for XY label and entery
+# 
+# Longitude, Latitude have become interchangeable with X, Y
 # *************************************************************************************************
 class SubFrameXY(tk.Frame):
     def __init__(self, container, parent, fieldNum, elementRow, elementCol, lableArr):

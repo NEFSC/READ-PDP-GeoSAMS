@@ -313,7 +313,7 @@ if (ncla .eq. 0) then
 endif
 
 if(ncla.ge.1) call get_command_argument(1, cfg_file_name)
-cfg_file_name = config_dir//trim(cfg_file_name)
+cfg_file_name = config_dir_interp//trim(cfg_file_name)
 inquire(file=cfg_file_name, exist=exists)
 if (exists) then
     PRINT *, term_blu, trim(cfg_file_name), ' FOUND', term_blk

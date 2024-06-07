@@ -436,7 +436,7 @@ subroutine Read_Startup_Config(time_steps_per_year, save_by_stratum, start_year,
     endif
 
     call get_command_argument(1, arg)
-    file_name = config_dir//trim(arg)
+    file_name = config_dir_sim//trim(arg)
     inquire(file=file_name, exist=exists)
     if (exists) then
         PRINT *, term_blu, trim(file_name), ' FOUND', term_blk

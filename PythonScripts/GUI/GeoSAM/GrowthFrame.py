@@ -145,47 +145,80 @@ class Growth(ttk.Frame, MainApplication):
         self.style = ttk.Style()
         self.style.configure('Growth.TFrame', borderwidth=10, relief='solid', labelmargins=20)
         self.style.configure('Growth.TFrame.Label', font=('courier', 10, 'bold'))
+        # ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
         fishingFrame= ttk.LabelFrame(self, text='Mortality', style='Growth.TFrame')
         self.fishMort   = SubFrameElement(self, fishingFrame, 'Fishing Mortality', self.fmortStr,       0, 0, 1)
-        #self.fishSelect = SubFrameElement(self, fishingFrame, 'Fishing Effort\n(USD, BMS, or CAS)', self.fishStr, row, 0, 1)
+        #-------------------------------------------------------------------------------------------
         self.alphaMort  = SubFrameElement(self, fishingFrame, 'Alpha Mortality',self.alphStr,           1, 0, 1)
+        #-------------------------------------------------------------------------------------------
         self.maAdultMort= SubFrameElement(self, fishingFrame, 'MA Adult Mortality',self.maAdultMortStr, 2, 0, 1)
+        #-------------------------------------------------------------------------------------------
         self.gbAdultMort= SubFrameElement(self, fishingFrame, 'GB Adult Mortality',self.gbAdultMortStr, 3, 0, 1)
+        #-------------------------------------------------------------------------------------------
         self.maLength0  = SubFrameElement(self, fishingFrame, 'MA Length_0',  self.maLen0Str,           4, 0, 1)
+        #-------------------------------------------------------------------------------------------
         self.gbLength0  = SubFrameElement(self, fishingFrame, 'GB Length_0',  self.gbLen0Str,           5, 0, 1)
+        #-------------------------------------------------------------------------------------------
         fishingFrame.grid(row=1, column=0, padx=10, sticky='n')
-
+        # ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+        # ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
         selectivityFrame = ttk.LabelFrame(self, text='Selectivity', style='Growth.TFrame')
+        #-------------------------------------------------------------------------------------------
         self.maFSelectA       = SubFrameElement(self, selectivityFrame, 'MA FSelectA', self.maFSelAStr,          0, 0, 1, width=10)
+        #-------------------------------------------------------------------------------------------
         self.maFSelectB       = SubFrameElement(self, selectivityFrame, 'MA FSelectB', self.maFSelBStr,          1, 0, 1, width=10)
+        #-------------------------------------------------------------------------------------------
         self.gbClosedFSelectA = SubFrameElement(self, selectivityFrame, 'GB Closed FSelectA', self.gbClFSelAStr, 2, 0, 1, width=10)
+        #-------------------------------------------------------------------------------------------
         self.gbClosedFSelectB = SubFrameElement(self, selectivityFrame, 'GB Closed FSelectB', self.gbClFSelBStr, 3, 0, 1, width=10)
+        #-------------------------------------------------------------------------------------------
         self.gbOpenFSelectA   = SubFrameElement(self, selectivityFrame, 'GB Open FSelectA', self.gbOpFSelAStr,   4, 0, 1, width=10)
+        #-------------------------------------------------------------------------------------------
         self.gbOpenFSelectB   = SubFrameElement(self, selectivityFrame, 'GB Open FSelectB', self.gbOpFSelBStr,   5, 0, 1, width=10)
+        #-------------------------------------------------------------------------------------------
         selectivityFrame.grid(row=1, column=1, padx=10, sticky='n')
-        
+        # ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+        # ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
         lpueFrame   = ttk.LabelFrame(self, text='LPUE', style='Growth.TFrame')
+        #-------------------------------------------------------------------------------------------
         self.lpueSlope   = SubFrameElement(self, lpueFrame, 'LPUE Slope', self.lpueSlStr,       0, 0, 1, width=10)
+        #-------------------------------------------------------------------------------------------
         self.lpueSlope2  = SubFrameElement(self, lpueFrame, 'LPUE Slope2', self.lpueSl2Str,     1, 0, 1, width=10)
+        #-------------------------------------------------------------------------------------------
         self.lpueIntcept = SubFrameElement(self, lpueFrame, 'LPUE Intercept', self.lpueIntcStr, 2, 0, 1, width=10)
+        #-------------------------------------------------------------------------------------------
         self.maxPerDay   = SubFrameElement(self, lpueFrame, 'Max Per Day', self.maxPerDayStr,   3, 0, 1, width=10)
+        #-------------------------------------------------------------------------------------------
         self.maxTime     = SubFrameElement(self, lpueFrame, 'Max Time', self.maxTimeStr,        4, 0, 1, width=10)
+        #-------------------------------------------------------------------------------------------
         self.dredgeWth   = SubFrameElement(self, lpueFrame, 'Dredge Width', self.dredgeWdStr,   5, 0, 1, width=10)
+        #-------------------------------------------------------------------------------------------
         self.towSpeed    = SubFrameElement(self, lpueFrame, 'Towing Speed', self.towSpdStr,     6, 0, 1, width=10)
+        #-------------------------------------------------------------------------------------------
         lpueFrame.grid(row=1, column=2, padx=10, sticky='n')
-
+        # ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+        # ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
         incidentalFrame = ttk.LabelFrame(self, text='Incidental', style='Growth.TFrame')
+        #-------------------------------------------------------------------------------------------
         self.maIncident = SubFrameElement(self, incidentalFrame, 'MA Incidental', self.maIncidStr, 0, 0, 1)
+        #-------------------------------------------------------------------------------------------
         self.gbIncident = SubFrameElement(self, incidentalFrame, 'GB Incidental', self.gbIncidStr, 1, 0, 1)
+        #-------------------------------------------------------------------------------------------
         incidentalFrame.grid(row=2, column=0, padx=10)
-
+        # ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+        # ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
         discardFrame   = ttk.LabelFrame(self, text='Discard', style='Growth.TFrame')
         self.maCullSize = SubFrameElement(self, discardFrame, 'MA Cull Size', self.maCullStr, 0, 0, 1)
-        self.maDiscard  = SubFrameElement(self, discardFrame, 'MA Discard',   self.maDiscStr, 1, 0, 1)
-        self.gbCullSize = SubFrameElement(self, discardFrame, 'GB Cull Size', self.gbCullStr, 0, 2, 3)
-        self.gbDiscard  = SubFrameElement(self, discardFrame, 'GB Discard',   self.gbDiscStr, 1, 2, 3)
-        discardFrame.grid(row=2, column=1, columnspan=2, padx=10)
         #-------------------------------------------------------------------------------------------
+        self.maDiscard  = SubFrameElement(self, discardFrame, 'MA Discard',   self.maDiscStr, 1, 0, 1)
+        #-------------------------------------------------------------------------------------------
+        self.gbCullSize = SubFrameElement(self, discardFrame, 'GB Cull Size', self.gbCullStr, 0, 2, 3)
+        #-------------------------------------------------------------------------------------------
+        self.gbDiscard  = SubFrameElement(self, discardFrame, 'GB Discard',   self.gbDiscStr, 1, 2, 3)
+        #-------------------------------------------------------------------------------------------
+        discardFrame.grid(row=2, column=1, columnspan=2, padx=10)
+        # ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+        # ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
         self.style.configure("Help.TLabel", padding=6, relief="flat", foreground='white', background="#5783db")
         helpButton = ttk.Button(self, text= "Growth Help", style="Help.TLabel", command = self.pop_up)
         helpButton.grid(row=0, column=1)

@@ -50,58 +50,101 @@ class MainInput(ttk.Frame):
 
     def __init__(self, container, friend, tsPerYear, selectedOutputs):
         super().__init__()
-        self.root = os.environ['ROOT']
-        self.startDir = os.path.join(self.root, 'Configuration')
+        self.root = os.getcwd() #os.environ['ROOT']
+        self.simStartDir = os.path.join(self.root, 'Configuration', 'Simulation')
+        self.interpStartDir = os.path.join(self.root, 'Configuration', 'Interpolation')
         self.friend = friend
 
         self.style = ttk.Style()
         self.style.configure('MainInput.TFrame', borderwidth=10, relief='solid', labelmargins=20)
         self.style.configure('MainInput.TFrame.Label', font=('courier', 10, 'bold'))
-        #-------------------------------------------------------------------------------------------
-        configFrame = ttk.LabelFrame(self, text='Configuration Files', style='MainInput.TFrame')
-        self.mortCfgFile = SubFrameElement(self, configFrame, 'Growth Config File   ', 'Growth.cfg',  0, 0, 1, width=20)
-        self.recrCfgFile = SubFrameElement(self, configFrame, 'Recruit Config File  ',      'Recruitment.cfg',1, 0, 1, width=20)
-        self.gmCfgFile   = SubFrameElement(self, configFrame, 'Grid Mgr Config File ',     'GridManager.cfg',2, 0, 1, width=20)
-        self.simCfgFile  = SubFrameElement(self, configFrame, 'Sim Config File      ',       'Scallop.cfg',    3, 0, 1, width=20)
-        self.ukCfgFile   = SubFrameElement(self, configFrame, 'UK Config File       ',        'UK.cfg',         4, 0, 1, width=20)
+        # +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+        simFrame = ttk.LabelFrame(self, text='Simulation Configuration Files', style='MainInput.TFrame')
+        self.mortCfgFile = SubFrameElement(self, simFrame, 'Growth Config File   ', 'Growth.cfg',  0, 0, 1, width=20)
+        self.recrCfgFile = SubFrameElement(self, simFrame, 'Recruit Config File  ',      'Recruitment.cfg',1, 0, 1, width=20)
+        self.gmCfgFile   = SubFrameElement(self, simFrame, 'Grid Mgr Config File ',     'GridManager.cfg',2, 0, 1, width=20)
+        self.simCfgFile  = SubFrameElement(self, simFrame, 'Sim Config File      ',       'Scallop.cfg',    3, 0, 1, width=20)
 
         self.style.configure("Frame1.TLabel", padding=6, relief='raised', background="#0FF")
-        self.openMortConfigtButton = ttk.Button(configFrame, text='Change/Save Mort File', style="Frame1.TLabel", command=self.GetMortConfigFName)
+        self.openMortConfigtButton = ttk.Button(simFrame, text='Change/Save Growth File', style="Frame1.TLabel", command=self.GetMortConfigFName)
         self.openMortConfigtButton.grid(row=0, column=3)
-        self.openRecrConfigtButton = ttk.Button(configFrame, text='Change/Save Recr File', style="Frame1.TLabel", command=self.GetRecrConfigFName)
-        self.openRecrConfigtButton.grid(row=1, column=3)
-        self.openGmgrConfigtButton = ttk.Button(configFrame, text='Change/Save GMgr File', style="Frame1.TLabel", command=self.GetGMgrConfigFName)
-        self.openGmgrConfigtButton.grid(row=2, column=3)
-        self.openSimConfigtButton = ttk.Button(configFrame, text='Change/Save Sim File', style="Frame1.TLabel", command=self.GetSimConfigFName)
-        self.openSimConfigtButton.grid(row=3, column=3)
-        self.openUKConfigtButton = ttk.Button(configFrame, text='Change/Save UK File', style="Frame1.TLabel", command=self.GetUKConfigFName)
-        self.openUKConfigtButton.grid(row=4, column=3)
-
-        configFrame.grid(row=1, column=0, padx=5, sticky='n')
         #-------------------------------------------------------------------------------------------
-        growthFrame = ttk.LabelFrame(self, text='Growth', style='MainInput.TFrame')
-        self.startYr    = SubFrameElement(self, growthFrame, 'Start Year', '2015',          0, 0, 1)
-        self.stopYr     = SubFrameElement(self, growthFrame, 'Stop Year ', '2017',          1, 0, 1)
-        self.tsPerYear  = SubFrameElement(self, growthFrame, 'tsPerYear', str(tsPerYear),   2, 0, 1)
-        self.domainNameLabel = ttk.Label(growthFrame, text='Domain Name')
+        self.openRecrConfigtButton = ttk.Button(simFrame, text='Change/Save Recr File', style="Frame1.TLabel", command=self.GetRecrConfigFName)
+        self.openRecrConfigtButton.grid(row=1, column=3)
+        #-------------------------------------------------------------------------------------------
+        self.openGmgrConfigtButton = ttk.Button(simFrame, text='Change/Save GMgr File', style="Frame1.TLabel", command=self.GetGMgrConfigFName)
+        self.openGmgrConfigtButton.grid(row=2, column=3)
+        #-------------------------------------------------------------------------------------------
+        self.openSimConfigtButton = ttk.Button(simFrame, text='Change/Save Sim File', style="Frame1.TLabel", command=self.GetSimConfigFName)
+        self.openSimConfigtButton.grid(row=3, column=3)
+        #-------------------------------------------------------------------------------------------
+        simFrame.grid(row=1, column=0, padx=5, sticky='n')
+        # +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+        # +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+        interpFrame = ttk.LabelFrame(self, text='Interpolation Configuration Files', style='MainInput.TFrame')
+        self.ukCfgFile = SubFrameElement(self, interpFrame, 'UK Config File', 'UK.cfg', 0, 0, 1, width=20)
+        self.openUKConfigtButton = ttk.Button(interpFrame, text='Change/Save UK File', style="Frame1.TLabel", command=self.GetUKConfigFName)
+        self.openUKConfigtButton.grid(row=0, column=3)
+        interpFrame.grid(row=2, column=0, padx=5, sticky='n')
+        # +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+        # +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+        recruitFrame = ttk.LabelFrame(self, text='Recruitment', style='MainInput.TFrame')
+
+        self.monthsArr = ['JAN', 'FEB', 'MAR', 'APR', 'MAY', 'JUN', 'JUL', 'AUG', 'SEP', 'OCT', 'NOV', 'DEC']
+        self.startDayLabel = ttk.Label(recruitFrame, text='Start Day')
+        self.startDayLabel.grid(row=0, column=0)
+        #-------------------------------------------------------------------------------------------
+        self.startDayComboMonth = ttk.Combobox(recruitFrame, width=4, values=self.monthsArr)
+        self.startDayComboMonth.current(0)
+        self.startDayComboMonth.grid(row=0, column=1, padx=5, sticky='w')
+        #-------------------------------------------------------------------------------------------
+        self.startDayComboDay = ttk.Combobox(recruitFrame, width=2, values=[str(i) for i in range(1,32)])
+        self.startDayComboDay.current(0)
+        self.startDayComboDay.grid(row=0, column=2, padx=5, sticky='e')
+        #-------------------------------------------------------------------------------------------
+        self.stopDayLabel = ttk.Label(recruitFrame, text='Stop Day')
+        self.stopDayLabel.grid(row=1, column=0)
+        #-------------------------------------------------------------------------------------------
+        self.stopDayComboMonth = ttk.Combobox(recruitFrame, width=4, values=self.monthsArr)
+        self.stopDayComboMonth.current(3)
+        self.stopDayComboMonth.grid(row=1, column=1, padx=5, sticky='w')
+        #-------------------------------------------------------------------------------------------
+        self.stopDayComboDay = ttk.Combobox(recruitFrame, width=2, values=[str(i) for i in range(1,32)])
+        self.stopDayComboDay.current(10)
+        self.stopDayComboDay.grid(row=1, column=2, padx=5, sticky='e')
+        #-------------------------------------------------------------------------------------------
+        recruitFrame.grid(row=2, column=1, padx=5, sticky='e')
+        # +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+        # +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+        durationFrame = ttk.LabelFrame(self, text='Duration', style='MainInput.TFrame')
+        self.startYr    = SubFrameElement(self, durationFrame, 'Start Year',       '2015',            0, 0, 1)
+        #-------------------------------------------------------------------------------------------
+        self.stopYr     = SubFrameElement(self, durationFrame, 'Stop Year ',       '2017',            1, 0, 1)
+        #-------------------------------------------------------------------------------------------
+        self.tsPerYear  = SubFrameElement(self, durationFrame, 'Time Steps / Year', str(tsPerYear),   2, 0, 1)
+        #-------------------------------------------------------------------------------------------
+        self.domainNameLabel = ttk.Label(durationFrame, text='Domain Name')
         self.domainNameLabel.grid(row=3, column=0)
-        self.domainNameCombo = ttk.Combobox(growthFrame, width=3, values=['MA', 'GB', 'AL'])
+        #-------------------------------------------------------------------------------------------
+        self.domainNameCombo = ttk.Combobox(durationFrame, width=3, values=['MA', 'GB', 'AL'])
         self.domainNameCombo.current(2)
         self.domainNameCombo.grid(row=3, column=1, sticky='w')
-
-        self.useStratumLabel = ttk.Label(growthFrame, text='Use Stratum\n(Not Used by MA)')
+        #-------------------------------------------------------------------------------------------
+        self.useStratumLabel = ttk.Label(durationFrame, text='Use Stratum\n(Not Used by MA)')
         self.useStratumLabel.grid(row=4, column=0)
-        self.useStratumCombo = ttk.Combobox(growthFrame, width=3, values=['T', 'F'])
+        #-------------------------------------------------------------------------------------------
+        self.useStratumCombo = ttk.Combobox(durationFrame, width=3, values=['T', 'F'])
         self.useStratumCombo.current(0)
         self.useStratumCombo.grid(row=4, column=1, sticky='w')
-
+        # Not user configurable at this time        
         self.useStratumLabel.grid_remove()
         self.useStratumCombo.grid_remove()
-
-        growthFrame.grid(row=1, column=1, padx=5, sticky='n')
         #-------------------------------------------------------------------------------------------
-        #-------------------------------------------------------------------------------------------
+        durationFrame.grid(row=2, column=1, padx=5, sticky='w')
+        # +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+        # +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
         outputSelFrame = ttk.LabelFrame(self, text='Output Selection', style='MainInput.TFrame')
+        #-------------------------------------------------------------------------------------------
         # Check Buttons
         self.lpueVar = tk.IntVar(value=(selectedOutputs   )&1)
         self.ebmsVar = tk.IntVar(value=(selectedOutputs>>1)&1)
@@ -112,41 +155,28 @@ class MainInput(ttk.Frame):
         self.feffVar = tk.IntVar(value=(selectedOutputs>>6)&1)
         self.fmortVar= tk.IntVar(value=(selectedOutputs>>7)&1)
         self.recrVar = tk.IntVar(value=(selectedOutputs>>8)&1)
+        #-------------------------------------------------------------------------------------------
         ttk.Checkbutton(outputSelFrame, text='Abundance',     variable=self.abunVar,  command=self.CBSelectedOutput).grid(row=0, column=0, sticky='sw', padx=10, pady=5)
+        #-------------------------------------------------------------------------------------------
         ttk.Checkbutton(outputSelFrame, text='Biomass',       variable=self.bmsVar,   command=self.CBSelectedOutput).grid(row=0, column=1, sticky='sw', padx=10, pady=5)
+        #-------------------------------------------------------------------------------------------
         ttk.Checkbutton(outputSelFrame, text='ExplBiomass',   variable=self.ebmsVar,  command=self.CBSelectedOutput).grid(row=0, column=2, sticky='sw', padx=10, pady=5)
+        #-------------------------------------------------------------------------------------------
         ttk.Checkbutton(outputSelFrame, text='Fish Mort',    variable=self.fmortVar,  command=self.CBSelectedOutput).grid(row=1, column=0, sticky='sw', padx=10, pady=5)
+        #-------------------------------------------------------------------------------------------
         ttk.Checkbutton(outputSelFrame, text='Fish Effort',  variable=self.feffVar ,  command=self.CBSelectedOutput).grid(row=1, column=1, sticky='sw', padx=10, pady=5)
+        #-------------------------------------------------------------------------------------------
         ttk.Checkbutton(outputSelFrame, text='Lands By Num',  variable=self.landVar,  command=self.CBSelectedOutput).grid(row=1, column=2, sticky='sw', padx=10, pady=5)
+        #-------------------------------------------------------------------------------------------
         ttk.Checkbutton(outputSelFrame, text='Lands By Wght', variable=self.lndwVar , command=self.CBSelectedOutput).grid(row=2, column=0, sticky='sw', padx=10, pady=5)
+        #-------------------------------------------------------------------------------------------
         ttk.Checkbutton(outputSelFrame, text='LPUE',          variable=self.lpueVar,  command=self.CBSelectedOutput).grid(row=2, column=1, sticky='sw', padx=10, pady=5)
+        #-------------------------------------------------------------------------------------------
         ttk.Checkbutton(outputSelFrame, text='Recruitment',   variable=self.recrVar , command=self.CBSelectedOutput).grid(row=2, column=2, sticky='sw', padx=10, pady=5)
-        outputSelFrame.grid(row=2, column=0, padx=5, sticky='n')
         #-------------------------------------------------------------------------------------------
-        recruitFrame = ttk.LabelFrame(self, text='Recruitment', style='MainInput.TFrame')
-
-        self.monthsArr = ['JAN', 'FEB', 'MAR', 'APR', 'MAY', 'JUN', 'JUL', 'AUG', 'SEP', 'OCT', 'NOV', 'DEC']
-        self.startDayLabel = ttk.Label(recruitFrame, text='Start Day')
-        self.startDayLabel.grid(row=0, column=0)
-        self.startDayComboMonth = ttk.Combobox(recruitFrame, width=4, values=self.monthsArr)
-        self.startDayComboMonth.current(0)
-        self.startDayComboMonth.grid(row=0, column=1, padx=5, sticky='w')
-        self.startDayComboDay = ttk.Combobox(recruitFrame, width=2, values=[str(i) for i in range(1,32)])
-        self.startDayComboDay.current(0)
-        self.startDayComboDay.grid(row=0, column=2, padx=5, sticky='e')
-
-        self.stopDayLabel = ttk.Label(recruitFrame, text='Stop Day')
-        self.stopDayLabel.grid(row=1, column=0)
-        self.stopDayComboMonth = ttk.Combobox(recruitFrame, width=4, values=self.monthsArr)
-        self.stopDayComboMonth.current(3)
-        self.stopDayComboMonth.grid(row=1, column=1, padx=5, sticky='w')
-        self.stopDayComboDay = ttk.Combobox(recruitFrame, width=2, values=[str(i) for i in range(1,32)])
-        self.stopDayComboDay.current(10)
-        self.stopDayComboDay.grid(row=1, column=2, padx=5, sticky='e')
-
-        recruitFrame.grid(row=2, column=1, padx=5, sticky='n')
-        #-------------------------------------------------------------------------------------------
-        #-------------------------------------------------------------------------------------------
+        outputSelFrame.grid(row=1, column=1, padx=5, sticky='n')
+        # +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+        # +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
         self.style.configure("Help.TLabel", padding=6, relief="flat", foreground='white', background="#5783db")
         helpButton = ttk.Button(self, text= "Main Help", style="Help.TLabel", command = self.pop_up)
         helpButton.grid(row=0, column=1)
@@ -186,7 +216,7 @@ class MainInput(ttk.Frame):
     #
     #--------------------------------------------------------------------------------------------------
     def GetMortConfigFName(self):
-        file_path = filedialog.asksaveasfilename(title="Open Configuration File", filetypes=[("CFG files", "*.cfg")], defaultextension='cfg', initialdir=self.startDir)
+        file_path = filedialog.asksaveasfilename(title="Open Configuration File", filetypes=[("CFG files", "*.cfg")], defaultextension='cfg', initialdir=self.simStartDir)
         f = file_path.split('/')
         if file_path:
             n = len(self.mortCfgFile.myEntry.get())
@@ -201,7 +231,7 @@ class MainInput(ttk.Frame):
     #
     #--------------------------------------------------------------------------------------------------
     def GetRecrConfigFName(self):
-        file_path = filedialog.asksaveasfilename(title="Open Configuration File", filetypes=[("CFG files", "*.cfg")], defaultextension='cfg', initialdir=self.startDir)
+        file_path = filedialog.asksaveasfilename(title="Open Configuration File", filetypes=[("CFG files", "*.cfg")], defaultextension='cfg', initialdir=self.simStartDir)
         f = file_path.split('/')
         if file_path:
             n = len(self.recrCfgFile.myEntry.get())
@@ -216,7 +246,7 @@ class MainInput(ttk.Frame):
     #
     #--------------------------------------------------------------------------------------------------
     def GetGMgrConfigFName(self):
-        file_path = filedialog.asksaveasfilename(title="Open Configuration File", filetypes=[("CFG files", "*.cfg")], defaultextension='cfg', initialdir=self.startDir)
+        file_path = filedialog.asksaveasfilename(title="Open Configuration File", filetypes=[("CFG files", "*.cfg")], defaultextension='cfg', initialdir=self.simStartDir)
         f = file_path.split('/')
         if file_path:
             n = len(self.gmCfgFile.myEntry.get())
@@ -231,7 +261,7 @@ class MainInput(ttk.Frame):
     #
     #--------------------------------------------------------------------------------------------------
     def GetSimConfigFName(self):
-        file_path = filedialog.asksaveasfilename(title="Open Configuration File", filetypes=[("CFG files", "*.cfg")], defaultextension='cfg', initialdir=self.startDir)
+        file_path = filedialog.asksaveasfilename(title="Open Configuration File", filetypes=[("CFG files", "*.cfg")], defaultextension='cfg', initialdir=self.simStartDir)
         f = file_path.split('/')
         if file_path:
             n = len(self.simCfgFile.myEntry.get())
@@ -246,7 +276,7 @@ class MainInput(ttk.Frame):
     #
     #--------------------------------------------------------------------------------------------------
     def GetUKConfigFName(self):
-        file_path = filedialog.asksaveasfilename(title="Open Configuration File", filetypes=[("CFG files", "*.cfg")], defaultextension='cfg', initialdir=self.startDir)
+        file_path = filedialog.asksaveasfilename(title="Open Configuration File", filetypes=[("CFG files", "*.cfg")], defaultextension='cfg', initialdir=self.interpStartDir)
         f = file_path.split('/')
         if file_path:
             n = len(self.ukCfgFile.myEntry.get())
@@ -258,17 +288,41 @@ class MainInput(ttk.Frame):
     ## 
     #-------------------------------------------------------------------------------------
     def pop_up(self):
-        about = '''Configuration Files
+        about = '''Simulation Configuration Files
+    (This frame is scrollable, use mouse wheel)
     These are the names for the configuration files. The user can change the 
     names in order to prevent overwriting the installed configuration files.
 
     Use the Change/Save buttons to use a different name. This also saves the 
     data under that name.
 
-Growth
+    Growth Config File: This file holds the data from the Growth Tab.
+    Recruit Config File: This file holds the data for recruitment, this Tab.
+    Grid Mgr Config File: This file holds the data from Special Access Tab.
+    Sim Config File: This file holds the names of the previous files, the time
+        steps per year, and the selected outputs
+
+Interpolation Configuration Files
+    UK Config File: This file holds the data from UKInterpolation Tab.
+        namely the form selected. The remaining data is kept in the 
+        Spatial Fcn Config File
+
+Output Selection
+    Selects the desired outputs to be analyzed.
+    Checkboxes allow the user to select the desired parameters of interest.
+    This is used to save processing time rather than processing everything. 
+    Especially true during interpolation as it would take over an hour to do 
+    the interpolation. For example for MA with 11631 grid locations.
+      - Approx 2 minutes per interpolation
+      - Given 3 years worth of data, plus initial conditions
+      - 9 listed outputs
+    Thus 9 x 4 x 2 or 72 minutes. 
+    GB is proportionately shorter with only 6802 grid locations.
+
+Duration
     This defines the start and stop years over which the simulation will 
-    forecast growth at time intervals specified by tsPerYear, time steps per 
-    year. For example, for the default value of 13
+    forecast growth at time intervals specified by time steps per year.
+    For example, for the default value of 13
     - 1/13 = 0.077 years
     - 0.077 * 365 = 28.077 days or roughly every 4 weeks
 
@@ -281,24 +335,12 @@ Growth
     The domain name shows the region where the growth takes place, Georges Bank
     or Mid-Atlantic, GB or MA, respectively. AL covers both regions. 
 
-Output Section
-    Selects the desired outputs to be analyzed.
-    Checkboxes allow the user to select the desired parameters of interest.
-    This is used to save processing time rather than processing everything. 
-    Especially true during interpolation as it would take over and hour to do 
-    the interpolation. For example for MA with 11631 grid locations.
-      - Approx 2 minutes per interpolation
-      - Given 3 years worth of data, plus initial conditions
-      - 9 listed outputs
-    Thus 9 x 4 x 2 or 72 minutes. 
-    GB is proportionately shorter with only 6802 grid locations.
-
 Recruitment
     Defines the period in which recruitment is used in the growth calculations.
 '''
         #about = re.sub("\n\s*", "\n", about) # remove leading whitespace from each line
         popup = tk.Toplevel()
-        nrows = 38
+        nrows = 35
         ncols = 80
         parentPosn = '+'+str(self.winfo_rootx()+700)+'+'+str(self.winfo_rooty()+50)
         popup.geometry(str(int(ncols*8.5))+"x"+str(nrows*18)+parentPosn)

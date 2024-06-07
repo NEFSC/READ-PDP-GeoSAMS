@@ -46,7 +46,7 @@
 !> * 'Gaussian': @f$exp( - ( \vec{A} / \lambda )^2 )@f$
 !> * 'Logistic': @f$1 / \left( 1 + exp( - \vec{A} / \lambda ) \right)@f$
 !> * 'SinExp': @f$sin(\vec{A}/\lambda ) * exp(-(\vec{A}/\lambda )^2)@f$
-!> * 'CosExp': @f$cos(\vec{A}/\lambda ) * exp(-(\vec{A}/\lambda )^2)@f$
+!> * 'CosExp': @f$cos(\vec{A}/\lambda ) * exp(-(\vec{A}/(2\lambda) )^2)@f$
 !>
 !> @section m3p2 Greedy Fit
 !>
@@ -153,7 +153,7 @@ subroutine Set_Config_File_Name(fname)
     character(*), intent(in) :: fname
     logical exists
 
-    config_file_name = config_dir//fname
+    config_file_name = config_dir_interp//fname
     inquire(file=config_file_name, exist=exists)
 
     if (exists) then

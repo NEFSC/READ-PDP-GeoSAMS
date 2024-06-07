@@ -212,7 +212,7 @@ subroutine Set_Config_File_Name(fname)
     character(*), intent(in) :: fname
     logical exists
 
-    config_file_name = config_dir//fname
+    config_file_name = config_dir_sim//fname
     inquire(file=config_file_name, exist=exists)
 
     if (exists) then
@@ -259,7 +259,7 @@ subroutine Set_Special_Access_File_Name(fname)
     use_spec_access_data =  (fname(1:4) .ne. 'NONE')
 
     if (use_spec_access_data) then
-        special_accesss_fname = config_dir//fname
+        special_accesss_fname = config_dir_special//fname
 
         inquire(file=special_accesss_fname, exist=exists)
 

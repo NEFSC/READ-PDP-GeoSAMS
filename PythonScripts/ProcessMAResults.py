@@ -36,8 +36,8 @@ nyears = year_end - year_start + 2
 # set configuration file name for UK.exe
 cfgFile = 'UK_MA.cfg'
 ex = os.path.join('UKsrc', 'UK')
-
-[paramStr, tsInYear, savedByStratum] = ReadSimConfigFile('Configuration/'+simCfgFile)
+simFile = os.path.join('Configuration', 'Simulation', simCfgFile)
+[paramStr, tsInYear, savedByStratum] = ReadSimConfigFile(simFile)
 print(paramStr, tsInYear, savedByStratum)
 # NOTE: MA does not use savedByStratum so only the first two values are used.
 

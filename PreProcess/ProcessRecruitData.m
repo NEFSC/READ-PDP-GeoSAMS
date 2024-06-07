@@ -147,26 +147,26 @@ writecsv(M,flnm,['%g, %g, %g, %g, %e, %i ,%e' ],header);
 fprintf('Writing to %s\n\n', flnm)
 
 close all;
-j0=find(IsRock==0);
-j1=find(IsRock==1);
-plot(lon(j0),lat(j0),'c.',lon(j1),lat(j1),'r.');
-hold on;
-for k=1:length(G)
-    lonStrat=G(k).X;
-    latStrat=G(k).Y;
-    plot(lonStrat,latStrat,'k');hold on;
-end
-for k=1:NRS
-    lonStrat=G(RSI(k)).X;
-    latStrat=G(RSI(k)).Y;
-    plot(lonStrat,latStrat,'r');
-end
-if isOctave % Octave did not need 3rd term
-    daspect([1,cos(mean(lat)*pi/180)]);
-else
-    daspect([1,cos(mean(lat)*pi/180), 1]);
-end
-print -djpeg RockStrata.
+%j0=find(IsRock==0);
+%j1=find(IsRock==1);
+%plot(lon(j0),lat(j0),'c.',lon(j1),lat(j1),'r.');
+%hold on;
+%for k=1:length(G)
+%    lonStrat=G(k).X;
+%    latStrat=G(k).Y;
+%    plot(lonStrat,latStrat,'k');hold on;
+%end
+%for k=1:NRS
+%    lonStrat=G(RSI(k)).X;
+%    latStrat=G(RSI(k)).Y;
+%    plot(lonStrat,latStrat,'r');
+%end
+%if isOctave % Octave did not need 3rd term
+%    daspect([1,cos(mean(lat)*pi/180)]);
+%else
+%    daspect([1,cos(mean(lat)*pi/180), 1]);
+%end
+%print -djpeg RockStrata.
 
 %XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX
 

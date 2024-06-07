@@ -744,7 +744,7 @@ subroutine Set_Config_File_Name(fname)
     character(*), intent(in) :: fname
     logical exists
 
-    config_file_name = config_dir//fname
+    config_file_name = config_dir_sim//fname
     inquire(file=config_file_name, exist=exists)
 
     if (exists) then
@@ -762,7 +762,7 @@ subroutine Set_Fishing_Mort_File_Name(fname)
     use_spec_access_data =  ((fname(1:4) .ne. 'NONE') .and. (num_areas .ne. 0))
 
     if (use_spec_access_data) then
-        fishing_mort_fname = config_dir//fname
+        fishing_mort_fname = config_dir_special//fname
         inquire(file=fishing_mort_fname, exist=exists)
 
         if (exists) then
