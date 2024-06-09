@@ -52,14 +52,10 @@ class SpecialArea(ttk.Frame):
         self.numAreas = 1
         self.numCorners = 1
 
-        self.style = ttk.Style()
-        self.style.configure('SpecialArea.TFrame', borderwidth=10, relief='solid', labelmargins=20)
-        self.style.configure('SpecialArea.TFrame.Label', font=('courier', 10, 'bold'))
-
         # +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
         scrollFrame = ScrollFrame(self) # add a new scrollable frame.
         # +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-        specialAreaFrame = ttk.LabelFrame(scrollFrame.viewPort, text='Special Area', style='SpecialArea.TFrame', width=400, height=200)
+        specialAreaFrame = ttk.LabelFrame(scrollFrame.viewPort, text='Special Area', style='SAMS.TFrame', width=400, height=200)
         # --------------------------------------------------------------------------------------------------------
         self.numAreasLabel = ttk.Label(specialAreaFrame, text='# of Areas')
         self.numAreasLabel.grid(row=0, column=0, sticky='w')
@@ -76,13 +72,10 @@ class SpecialArea(ttk.Frame):
         self.numAreasButton = ttk.Button(specialAreaFrame, text='Update # Areas', command=self.NumAreasUpdate)
         self.numAreasButton.grid(row=1, column=0, sticky='w')
         # --------------------------------------------------------------------------------------------------------
-        self.style.configure("SpecialArea.TLabel", padding=6, relief='raised', background="#0F0")
-        self.style.configure("SpecialAreaA.TLabel", padding=6, relief='raised', background="#0FF")
-        
-        self.openAreaFileButton = ttk.Button(specialAreaFrame, text='Load Special Area File', style="SpecialArea.TLabel", command=self.GetAreaFile)
+        self.openAreaFileButton = ttk.Button(specialAreaFrame, text='Load Special Area File', style="BtnGreen.TLabel", command=self.GetAreaFile)
         self.openAreaFileButton.grid(row=0, column=4, sticky='w')
         # --------------------------------------------------------------------------------------------------------
-        self.saveAreaFileButton = ttk.Button(specialAreaFrame, text='Save Special Area File', style="SpecialAreaA.TLabel", command=self.SaveAreaFile)
+        self.saveAreaFileButton = ttk.Button(specialAreaFrame, text='Save Special Area File', style="BtnBluGrn.TLabel", command=self.SaveAreaFile)
         self.saveAreaFileButton.grid(row=1, column=4, sticky='w')
         # --------------------------------------------------------------------------------------------------------
         self.areaMgr = AreaManager(self, specialAreaFrame, self.numAreasMax, self.numCornersMax,
@@ -98,7 +91,6 @@ class SpecialArea(ttk.Frame):
         # +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
         scrollFrame.grid(row=1, column=0, sticky='nsew')
         # +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-        self.style.configure("Help.TLabel", padding=6, relief="flat", foreground='white', background="#5783db")
         helpButton = ttk.Button(self, text= "Special Access Help", style="Help.TLabel", command = self.pop_up)
         helpButton.grid(row=0, column=0)
 
@@ -122,7 +114,7 @@ class SpecialArea(ttk.Frame):
         if n > self.numAreasMax:
             messagebox.showerror("Number of Areas ", f'Max is {self.numAreasMax}\nSetting to max')
             n = self.numAreasMax
-            self.numAreasEntry.delete(0,3)
+            self.numAreasEntry.delete(0,tk.END)
             self.numAreasEntry.insert(0, str(n))
         self.numAreas = n
         self.areaMgr.NumAreasUpdate(self.numAreas)
@@ -133,7 +125,7 @@ class SpecialArea(ttk.Frame):
             self.numAreas = 0
         else:
             self.numAreas = self.areaMgr.ReadAreaCorners(self.areaFName)
-        self.numAreasEntry.delete(0,3)
+        self.numAreasEntry.delete(0,tk.END)
         self.numAreasEntry.insert(0, str(self.numAreas))
         self.NumAreasUpdate()
         self.areaMgr.UpdateWidgets()
@@ -142,8 +134,7 @@ class SpecialArea(ttk.Frame):
         self.areaFName = filedialog.askopenfilename(title="Open CSV File", filetypes=[("CSV files", "*.csv")], defaultextension='csv', initialdir=self.startDir)
         if self.areaFName:
             self.UpdateWidgets()
-            n = len(self.specAccFile.myEntry.get())
-            self.specAccFile.myEntry.delete(0,n)
+            self.specAccFile.myEntry.delete(0,tk.END)
             f = self.areaFName.split('/')
             self.specAccFile.myEntry.insert(0, f[-1])
     
@@ -151,8 +142,7 @@ class SpecialArea(ttk.Frame):
         self.areaFName = filedialog.asksaveasfilename(title="Save CSV File", filetypes=[("CSV files", "*.csv")], defaultextension='csv', initialdir=self.startDir)
         if self.areaFName:
             self.areaMgr.SaveSpecialAreaData(self.areaFName, int(self.numAreasEntry.get()))
-            n = len(self.specAccFile.myEntry.get())
-            self.specAccFile.myEntry.delete(0,n)
+            self.specAccFile.myEntry.delete(0,tk.END)
             f = self.areaFName.split('/')
             self.specAccFile.myEntry.insert(0, f[-1])
 

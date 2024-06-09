@@ -48,14 +48,10 @@ class FishMortBySpecAcc(ttk.Frame):
         self.numDefined = 1
         self.numFieldss = 1
 
-        self.style = ttk.Style()
-        self.style.configure('FishMort.TFrame', borderwidth=10, relief='solid', labelmargins=20)
-        self.style.configure('FishMort.TFrame.Label', font=('courier', 10, 'bold'))
-
         scrollFrame = ScrollFrame(self) # add a new scrollable frame.
         
         # +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-        fishMortFrame = ttk.LabelFrame(scrollFrame.viewPort, text='Fishing Mort in Special Access', style='FishMort.TFrame', width=400, height=200)
+        fishMortFrame = ttk.LabelFrame(scrollFrame.viewPort, text='Fishing Mort in Special Access', style='SAMS.TFrame', width=400, height=200)
         # --------------------------------------------------------------------------------------------------------
         self.numDefinedLabel = ttk.Label(fishMortFrame, text='# Defined')
         self.numDefinedLabel.grid(row=0, column=0, sticky='w')
@@ -73,12 +69,10 @@ class FishMortBySpecAcc(ttk.Frame):
         self.numDefinedButton = ttk.Button(fishMortFrame, text='Update # Defined', command=self.NumDefinedUpdate)
         self.numDefinedButton.grid(row=1, column=0, sticky='w')
         # --------------------------------------------------------------------------------------------------------
-        self.style.configure("FishMort.TLabel", padding=6, relief='raised', background="#0F0")
-        self.style.configure("FishMortA.TLabel", padding=6, relief='raised', background="#0FF")
-        self.openFMFileButton = ttk.Button(fishMortFrame, text='Load Fishing Mort File', style="FishMort.TLabel", command=self.GetFMFile)
+        self.openFMFileButton = ttk.Button(fishMortFrame, text='Load Fishing Mort File', style="BtnGreen.TLabel", command=self.GetFMFile)
         self.openFMFileButton.grid(row=0, column=4, sticky='w')
         # --------------------------------------------------------------------------------------------------------
-        self.saveFMFileButton = ttk.Button(fishMortFrame, text='Save Fishing Mort File', style="FishMortA.TLabel", command=self.SaveFMFile)
+        self.saveFMFileButton = ttk.Button(fishMortFrame, text='Save Fishing Mort File', style="BtnBluGrn.TLabel", command=self.SaveFMFile)
         self.saveFMFileButton.grid(row=1, column=4, sticky='w')
         # --------------------------------------------------------------------------------------------------------
         self.yearEntry = [ttk.Entry(fishMortFrame, width=5) for _ in range(self.numDefinedMax)]
@@ -103,7 +97,6 @@ class FishMortBySpecAcc(ttk.Frame):
         # +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
         scrollFrame.grid(row=1, column=0, sticky='nsew')
         # +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-        self.style.configure("Help.TLabel", padding=6, relief="flat", foreground='white', background="#5783db")
         helpButton = ttk.Button(self, text= "Fishing Mort Help", style="Help.TLabel", command = self.pop_up)
         helpButton.grid(row=0, column=0)
 
@@ -127,7 +120,7 @@ class FishMortBySpecAcc(ttk.Frame):
         if n > self.numDefinedMax:
             messagebox.showerror("Number of Areas ", f'Max is {self.numDefinedMax}\nSetting to max')
             n = self.numDefinedMax
-            self.numDefinedEntry.delete(0,3)
+            self.numDefinedEntry.delete(0,tk.end)
             self.numDefinedEntry.insert(0, str(n))
         self.numDefined = n
         self.areaMgr.NumAreasUpdate(self.numDefined)
@@ -150,7 +143,7 @@ class FishMortBySpecAcc(ttk.Frame):
             year = []
         else:
             (self.numDefined, year) = self.areaMgr.ReadFields(self.fmFName)
-        self.numDefinedEntry.delete(0,3)
+        self.numDefinedEntry.delete(0,tk.END)
         self.numDefinedEntry.insert(0, str(self.numDefined))
         self.NumDefinedUpdate()
         self.areaMgr.UpdateWidgets()
@@ -163,7 +156,7 @@ class FishMortBySpecAcc(ttk.Frame):
         for i in range(len(year)):
             self.yearEntry[i].grid()
             self.yearLabel[i].grid()
-            self.yearEntry[i].delete(0,4)
+            self.yearEntry[i].delete(0,tk.END)
             self.yearEntry[i].insert(0, year[i])
 
     # --------------------------------------------------------------------------------------------------------
@@ -172,8 +165,7 @@ class FishMortBySpecAcc(ttk.Frame):
         self.fmFName = filedialog.askopenfilename(title="Open CSV File", filetypes=[("CSV files", "*.csv")], defaultextension='csv', initialdir=self.startDir)
         if self.fmFName:
             self.UpdateWidgets()
-            n = len(self.fishMortFile.myEntry.get())
-            self.fishMortFile.myEntry.delete(0,n)
+            self.fishMortFile.myEntry.delete(0,tk.END)
             f = self.fmFName.split('/')
             self.fishMortFile.myEntry.insert(0, f[-1])
     
@@ -183,8 +175,7 @@ class FishMortBySpecAcc(ttk.Frame):
         self.fmFName = filedialog.asksaveasfilename(title="Save CSV File", filetypes=[("CSV files", "*.csv")], defaultextension='csv', initialdir=self.startDir)
         if self.fmFName:
             self.areaMgr.SaveFishingMortData(self.fmFName, int(self.numDefinedEntry.get()), self.yearEntry)
-            n = len(self.fishMortFile.myEntry.get())
-            self.fishMortFile.myEntry.delete(0,n)
+            self.fishMortFile.myEntry.delete(0,tk.END)
             f = self.fmFName.split('/')
             self.fishMortFile.myEntry.insert(0, f[-1])
 

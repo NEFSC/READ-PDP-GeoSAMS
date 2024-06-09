@@ -68,8 +68,6 @@
 # 
 #======================================================================================================
 import tkinter as tk
-import csv
-import platform
 import os
 
 from tkinter import ttk
@@ -103,14 +101,11 @@ class UKInterpolation(ttk.Frame):
             self.nsf = 9
         else:
             self.nsf = 5
-        self.style = ttk.Style()
-        self.style.configure('UKInterpolation.TFrame', borderwidth=10, relief='solid', labelmargins=20)
-        self.style.configure('UKInterpolation.TFrame.Label', font=('courier', 10, 'bold'))
 
         # +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
         scrollFrame = ScrollFrame(self) # add a new scrollable frame.
         # +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-        funcFrame = ttk.LabelFrame(scrollFrame.viewPort, text='Spatial Functions', style='UKInterpolation.TFrame', width=400, height=200)
+        funcFrame = ttk.LabelFrame(scrollFrame.viewPort, text='Spatial Functions', style='SAMS.TFrame', width=400, height=200)
         # --------------------------------------------------------------------------------------------------------
         self.numFncsLabel = ttk.Label(funcFrame, text='# of Functions')
         self.numFncsLabel.grid(row=0, column=0, sticky='w')
@@ -148,7 +143,7 @@ class UKInterpolation(ttk.Frame):
         funcFrame.grid(row=0, column=1, rowspan=3, sticky='n')
         # +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
         # +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-        paramFrame= ttk.LabelFrame(scrollFrame.viewPort, text='Parameters', style='UKInterpolation.TFrame')
+        paramFrame= ttk.LabelFrame(scrollFrame.viewPort, text='Parameters', style='SAMS.TFrame')
         #DEPRECATE#self.highLimit   = SubFrameElement(self, paramFrame, 'High Limit Factor ', '1.5',  0, 0, 1)
 
         formComboList = ['spherical', 'exponential', 'gaussian', 'matern']
@@ -170,18 +165,16 @@ class UKInterpolation(ttk.Frame):
         # --------------------------------------------------------------------------------------------------------
         self.spatCfgFile  = SubFrameElement(self, paramFrame, 'Spatial Fcn Config File', 'SpatialFcns.cfg', 1, 0, 1, width=20)
         # --------------------------------------------------------------------------------------------------------
-        self.style.configure("Frame4.TLabel", padding=6, relief='raised', background="#0F0")
-        self.style.configure("Frame4A.TLabel", padding=6, relief='raised', background="#0FF")
-        self.openSpatFncConfigButton = ttk.Button(paramFrame, text='Load Spat Fcn File', style="Frame4.TLabel", command=self.GetSpatialFcnConfigFName)
+        self.openSpatFncConfigButton = ttk.Button(paramFrame, text='Load Spat Fcn File', style="BtnGreen.TLabel", command=self.GetSpatialFcnConfigFName)
         self.openSpatFncConfigButton.grid(row=2, column=0)
         # --------------------------------------------------------------------------------------------------------
-        self.saveSpatFncConfigButton = ttk.Button(paramFrame, text='Save Spat Fcn File', style="Frame4A.TLabel", command=self.SaveSpatialFcnConfigFName)
+        self.saveSpatFncConfigButton = ttk.Button(paramFrame, text='Save Spat Fcn File', style="BtnBluGrn.TLabel", command=self.SaveSpatialFcnConfigFName)
         self.saveSpatFncConfigButton.grid(row=2, column=1)
         # --------------------------------------------------------------------------------------------------------
         paramFrame.grid(row=0, column=0, sticky='n')
         # +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
         # +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-        self.paramMAFrame= ttk.LabelFrame(scrollFrame.viewPort, text='MA Parameters', style='UKInterpolation.TFrame')
+        self.paramMAFrame= ttk.LabelFrame(scrollFrame.viewPort, text='MA Parameters', style='SAMS.TFrame')
         # --------------------------------------------------------------------------------------------------------
         self.formMALabel = ttk.Label(self.paramMAFrame, text='MA Variogram Form')
         self.formMALabel.grid(row=0, column=0)
@@ -192,12 +185,10 @@ class UKInterpolation(ttk.Frame):
         # --------------------------------------------------------------------------------------------------------
         self.spatMACfgFile  = SubFrameElement(self, self.paramMAFrame, 'MA Spatial Fcn File', 'SpatialFcnsMA.cfg', 1, 0, 1, width=20)
         # --------------------------------------------------------------------------------------------------------
-        self.style.configure("Frame4.TLabel", padding=6, relief='raised', background="#0F0")
-        self.style.configure("Frame4A.TLabel", padding=6, relief='raised', background="#0FF")
-        self.openMASpatFncConfigButton = ttk.Button(self.paramMAFrame, text='Load MA Fcn File', style="Frame4.TLabel", command=self.GetMASpatialFcnConfigFName)
+        self.openMASpatFncConfigButton = ttk.Button(self.paramMAFrame, text='Load MA Fcn File', style="BtnGreen.TLabel", command=self.GetMASpatialFcnConfigFName)
         self.openMASpatFncConfigButton.grid(row=2, column=0)
         # --------------------------------------------------------------------------------------------------------
-        self.saveMASpatFncConfigButton = ttk.Button(self.paramMAFrame, text='Save MA Fcn File', style="Frame4A.TLabel", command=self.SaveMASpatialFcnConfigFName)
+        self.saveMASpatFncConfigButton = ttk.Button(self.paramMAFrame, text='Save MA Fcn File', style="BtnBluGrn.TLabel", command=self.SaveMASpatialFcnConfigFName)
         self.saveMASpatFncConfigButton.grid(row=2, column=1)
         # --------------------------------------------------------------------------------------------------------
         self.paramMAFrame.grid(row=1, column=0, sticky='n')
@@ -206,7 +197,7 @@ class UKInterpolation(ttk.Frame):
             self.paramMAFrame.grid_remove()
         # +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
         # +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-        self.paramGBFrame= ttk.LabelFrame(scrollFrame.viewPort, text='GB Parameters', style='UKInterpolation.TFrame')
+        self.paramGBFrame= ttk.LabelFrame(scrollFrame.viewPort, text='GB Parameters', style='SAMS.TFrame')
         # --------------------------------------------------------------------------------------------------------
         self.formGBLabel = ttk.Label(self.paramGBFrame, text='GB Variogram Form')
         self.formGBLabel.grid(row=0, column=0)
@@ -217,12 +208,10 @@ class UKInterpolation(ttk.Frame):
         # --------------------------------------------------------------------------------------------------------
         self.spatGBCfgFile  = SubFrameElement(self, self.paramGBFrame, 'GB Spatial Fcn File', 'SpatialFcnsGB.cfg', 1, 0, 1, width=20)
         # --------------------------------------------------------------------------------------------------------
-        self.style.configure("Frame4.TLabel", padding=6, relief='raised', background="#0F0")
-        self.style.configure("Frame4A.TLabel", padding=6, relief='raised', background="#0FF")
-        self.openGBSpatFncConfigButton = ttk.Button(self.paramGBFrame, text='Load GB Fcn File', style="Frame4.TLabel", command=self.GetGBSpatialFcnConfigFName)
+        self.openGBSpatFncConfigButton = ttk.Button(self.paramGBFrame, text='Load GB Fcn File', style="BtnGreen.TLabel", command=self.GetGBSpatialFcnConfigFName)
         self.openGBSpatFncConfigButton.grid(row=2, column=0)
         # --------------------------------------------------------------------------------------------------------
-        self.saveGBSpatFncConfigButton = ttk.Button(self.paramGBFrame, text='Save GB Fcn File', style="Frame4A.TLabel", command=self.SaveGBSpatialFcnConfigFName)
+        self.saveGBSpatFncConfigButton = ttk.Button(self.paramGBFrame, text='Save GB Fcn File', style="BtnBluGrn.TLabel", command=self.SaveGBSpatialFcnConfigFName)
         self.saveGBSpatFncConfigButton.grid(row=2, column=1)
         # --------------------------------------------------------------------------------------------------------
         self.paramGBFrame.grid(row=2, column=0, sticky='n')
@@ -233,7 +222,6 @@ class UKInterpolation(ttk.Frame):
         # +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
         scrollFrame.grid(row=2, column=0, sticky='nsew')
         # +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-        self.style.configure("Help.TLabel", padding=6, relief="flat", foreground='white', background="#5783db")
         helpButton = ttk.Button(self, text= "UK Interpolation Help", style="Help.TLabel", command = self.pop_up)
         helpButton.grid(row=0, column=0)
 
@@ -249,8 +237,7 @@ class UKInterpolation(ttk.Frame):
         file_path = filedialog.asksaveasfilename(title="Open Configuration File", filetypes=[("CFG files", "*.cfg")], defaultextension='cfg', initialdir=self.startDir)
         f = file_path.split('/')
         if file_path:
-            n = len(self.spatCfgFile.myEntry.get())
-            self.spatCfgFile.myEntry.delete(0,n)
+            self.spatCfgFile.myEntry.delete(0,tk.END)
             self.spatCfgFile.myEntry.insert(0,f[-1])
             self.parent.WriteSpatialFncsConfig()
 
@@ -258,8 +245,7 @@ class UKInterpolation(ttk.Frame):
         file_path = filedialog.asksaveasfilename(title="Open Configuration File", filetypes=[("CFG files", "*.cfg")], defaultextension='cfg', initialdir=self.startDir)
         f = file_path.split('/')
         if file_path:
-            n = len(self.spatMACfgFile.myEntry.get())
-            self.spatMACfgFile.myEntry.delete(0,n)
+            self.spatMACfgFile.myEntry.delete(0,tk.END)
             self.spatMACfgFile.myEntry.insert(0,f[-1])
             self.parent.WriteSpatialFncsConfig(file_path)
         
@@ -283,8 +269,7 @@ class UKInterpolation(ttk.Frame):
         file_path = filedialog.asksaveasfilename(title="Open Configuration File", filetypes=[("CFG files", "*.cfg")], defaultextension='cfg', initialdir=self.startDir)
         f = file_path.split('/')
         if file_path:
-            n = len(self.spatGBCfgFile.myEntry.get())
-            self.spatGBCfgFile.myEntry.delete(0,n)
+            self.spatGBCfgFile.myEntry.delete(0,tk.END)
             self.spatGBCfgFile.myEntry.insert(0,f[-1])
             self.parent.WriteSpatialFncsConfig(file_path)
         
@@ -313,8 +298,7 @@ class UKInterpolation(ttk.Frame):
         fName = filedialog.askopenfilename(title="Open Configuration File", filetypes=[("CFG files", "*.cfg")], defaultextension='cfg', initialdir=self.startDir)
         f = fName.split('/')
         if fName:
-            n = len(self.spatCfgFile.myEntry.get())
-            self.spatCfgFile.myEntry.delete(0,n)
+            self.spatCfgFile.myEntry.delete(0,tk.END)
             self.spatCfgFile.myEntry.insert(0,f[-1])
             self.ReadSpactialFunctionFile(fName)
 
@@ -322,8 +306,7 @@ class UKInterpolation(ttk.Frame):
         fName = filedialog.askopenfilename(title="Open Configuration File", filetypes=[("CFG files", "*.cfg")], defaultextension='cfg', initialdir=self.startDir)
         f = fName.split('/')
         if fName:
-            n = len(self.spatMACfgFile.myEntry.get())
-            self.spatMACfgFile.myEntry.delete(0,n)
+            self.spatMACfgFile.myEntry.delete(0,tk.END)
             self.spatMACfgFile.myEntry.insert(0,f[-1])
             self.ReadSpactialFunctionFile(fName)
 
@@ -331,8 +314,7 @@ class UKInterpolation(ttk.Frame):
         fName = filedialog.askopenfilename(title="Open Configuration File", filetypes=[("CFG files", "*.cfg")], defaultextension='cfg', initialdir=self.startDir)
         f = fName.split('/')
         if fName:
-            n = len(self.spatGBCfgFile.myEntry.get())
-            self.spatGBCfgFile.myEntry.delete(0,n)
+            self.spatGBCfgFile.myEntry.delete(0,tk.END)
             self.spatGBCfgFile.myEntry.insert(0,f[-1])
             self.ReadSpactialFunctionFile(fName)
     #--------------------------------------------------------------------------------------------------
@@ -423,7 +405,7 @@ class UKInterpolation(ttk.Frame):
             f.close()
 
         self.nsf = nsf
-        self.numFcnsEntry.delete(0,2)
+        self.numFcnsEntry.delete(0,tk.END)
         self.numFcnsEntry.insert(0, str(nsf))
         self.NumFuncsUpdate()
 
@@ -436,7 +418,7 @@ class UKInterpolation(ttk.Frame):
     def on_visibility(self, event):
         if self.okToRepaintFunctions:
             self.domainName = self.friend.domainNameCombo.get()
-            self.numFcnsEntry.delete(0,2)
+            self.numFcnsEntry.delete(0,tk.END)
             if self.domainName == 'AL':
                 self.nsf = 11
             elif self.domainName == 'MA':
@@ -479,7 +461,7 @@ class UKInterpolation(ttk.Frame):
         if n > self.nsfMax:
             messagebox.showerror("Number of Spatial functions", f'Max is {self.nsfMax}\nSetting to max')
             n = self.nsfMax
-            self.numFcnsEntry.delete(0,3)
+            self.numFcnsEntry.delete(0,tk.END)
             self.numFcnsEntry.insert(0, str(n))
         self.nsf = n
         # Now update desired funtion definitions

@@ -38,6 +38,13 @@ from AreaManager import *
 ##
 # This class is used to assist the user in defining areas of interest to assess accumulated parameters located
 # in these areas of interest
+#
+# @param friend is used to access Start and Stop year from the Main Frame
+# @param maxAreas defined at start up for the maximum allowed areas
+# @param maxCorners defined at start up for the maximum allowed corners or nodes
+# @param maxYears defined at start up for the maximum allowed year range
+# @param paramStr defined at start up for the desired outputs
+# 
 #===============================================================================================================
 class SortByArea(ttk.Frame):
     def __init__(self, container, friend, maxAreas, maxCorners, maxYears, paramStr):
@@ -61,14 +68,10 @@ class SortByArea(ttk.Frame):
         self.numYears = self.yearStop - self.yearStart + 1
         self.areaData = [Corner(self.numCornersMax) for _ in range(self.numAreasMax)]
 
-        self.style = ttk.Style()
-        self.style.configure('SortByArea.TFrame', borderwidth=10, relief='solid', labelmargins=20)
-        self.style.configure('SortByArea.TFrame.Label', font=('courier', 10, 'bold'))
-
         # +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
         self.scrollFrame = ScrollFrame(self) # add a new scrollable frame.
         # +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-        sortAreaFrame = ttk.LabelFrame(self.scrollFrame.viewPort, text='Sort By Area', style='SortByArea.TFrame', width=400, height=200)
+        sortAreaFrame = ttk.LabelFrame(self.scrollFrame.viewPort, text='Sort By Area', style='SAMS.TFrame', width=400, height=200)
         # --------------------------------------------------------------------------------------------------------
         self.numAreasLabel = ttk.Label(sortAreaFrame, text='# of Areas')
         self.numAreasLabel.grid(row=0, column=0, sticky='w')
@@ -90,12 +93,10 @@ class SortByArea(ttk.Frame):
         self.dataSortFileEntry.insert(0, 'AreasOfInterestDataSort.csv')
         self.dataSortFileEntry.grid(row=0, column=1, sticky='we', padx=5)
         # --------------------------------------------------------------------------------------------------------
-        self.style.configure("SortByArea.TLabel", padding=6, relief='raised', background="#0F0")
-        self.style.configure("Frame5a.TLabel", padding=6, relief='raised', background="#0FF")
-        self.openDataSortButton = ttk.Button(sortAreaFrame, text='Load Data Sort File', style="SortByArea.TLabel", command=self.GetDataSortFile)
+        self.openDataSortButton = ttk.Button(sortAreaFrame, text='Load Data Sort File', style="BtnGreen.TLabel", command=self.GetDataSortFile)
         self.openDataSortButton.grid(row=0, column=2, sticky='w')
         # --------------------------------------------------------------------------------------------------------
-        self.saveDataSortButton = ttk.Button(sortAreaFrame, text='Save Data Sort File', style="Frame5a.TLabel", command=self.SaveDataSortFile)
+        self.saveDataSortButton = ttk.Button(sortAreaFrame, text='Save Data Sort File', style="BtnBluGrn.TLabel", command=self.SaveDataSortFile)
         self.saveDataSortButton.grid(row=1, column=2, sticky='w')
         # --------------------------------------------------------------------------------------------------------
         self.numAreasButton = ttk.Button(sortAreaFrame, text='Update # Areas', command=self.NumAreasUpdate)
@@ -119,7 +120,6 @@ class SortByArea(ttk.Frame):
         # +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
         self.scrollFrame.grid(row=1, column=0, sticky='nsew')
         # +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-        self.style.configure("Help.TLabel", padding=6, relief="flat", foreground='white', background="#5783db")
         helpButton = ttk.Button(self, text= "Sort By Area Help", style="Help.TLabel", command = self.pop_up)
         helpButton.grid(row=0, column=0)
 
@@ -152,7 +152,7 @@ class SortByArea(ttk.Frame):
             self.yearStop = self.maxYears + self.yearStart - 1
             self.numYears = self.maxYears
             messagebox.showerror("Too many years", f'Setting Stop Year to {self.yearStop}')
-            self.friend.stopYr.myEntry.delete(0,4)
+            self.friend.stopYr.myEntry.delete(0,tk.END)
             self.friend.stopYr.myEntry.insert(0, self.yearStop)
         for i in range(self.numAreas):
             for j in range(self.numYears):
@@ -224,9 +224,7 @@ class SortByArea(ttk.Frame):
         # display results
         for i in range(self.numAreas):
             for j in range(self.numYears):
-                old = self.areas.areaSubFrame[i].results[j].myEntry.get()
-                n = len(old)
-                self.areas.areaSubFrame[i].results[j].myEntry.delete(0, n)
+                self.areas.areaSubFrame[i].results[j].myEntry.delete(0,tk.END)
                 # round to 4 decimal places
                 # round(x,4) can have unpredicable results, use simple math instead
                 r = 1e4
@@ -237,7 +235,7 @@ class SortByArea(ttk.Frame):
     #---------------------------------------------------------------------------------------------------------
     def UpdateWidgets(self):
         self.numAreas = self.areas.ReadAreaCorners(self.areaFName)
-        self.numAreasEntry.delete(0,3)
+        self.numAreasEntry.delete(0,tk.END)
         self.numAreasEntry.insert(0, str(self.numAreas))
         self.NumAreasUpdate()
         self.areas.UpdateWidgets()
@@ -249,8 +247,7 @@ class SortByArea(ttk.Frame):
         if file_path:
             self.areaFName = file_path
             self.UpdateWidgets()
-            n = len(self.dataSortFileEntry.get())
-            self.dataSortFileEntry.delete(0,n)
+            self.dataSortFileEntry.delete(0,tk.END)
             f = file_path.split('/')
             self.dataSortFileEntry.insert(0, f[-1])
     
@@ -272,8 +269,7 @@ class SortByArea(ttk.Frame):
                         f.write(self.areas.areaSubFrame[i].corners[j].latitude.myEntry.get()+',')
                     f.write(self.areas.areaSubFrame[i].corners[j+1].latitude.myEntry.get()+'\n')
             f.close()
-            n = len(self.dataSortFileEntry.get())
-            self.dataSortFileEntry.delete(0,n)
+            self.dataSortFileEntry.delete(0,tk.END)
             f = fName.split('/')
             self.dataSortFileEntry.insert(0, f[-1])
 
@@ -294,7 +290,7 @@ class SortByArea(ttk.Frame):
         if n > self.numAreasMax:
             messagebox.showerror("Number of Areas ", f'Max is {self.numAreasMax}\nSetting to max')
             n = self.numAreasMax
-            self.numAreasEntry.delete(0,3)
+            self.numAreasEntry.delete(0,tk.END)
             self.numAreasEntry.insert(0, str(n))
         self.numAreas = n
         self.areas.NumAreasUpdate(n)

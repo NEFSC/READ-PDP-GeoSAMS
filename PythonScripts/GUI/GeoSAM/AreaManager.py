@@ -21,7 +21,8 @@
 #
 # @subsubsection pAMp5p3p1 Number of Corners
 #
-# @subsubsection pAMp5p3p2 Corner Identifier by Longitude and Latitude
+# @subsubsection pAMp5p3p2 Corner Identifier by X data and Y data
+# Typically Longitude and Latitude but can be other types
 # 
 #======================================================================================================
 import os
@@ -63,15 +64,10 @@ class AreaManager(ttk.Frame):
                                          a+elementRow, elementCol, cornerRow, cornerColumn, labelArr,
                                          includeYears, numYearsMax, yearStart, yearStop) for a in range(self.numAreasMax)]
 
-
-        self.style = ttk.Style()
-        self.style.configure('SortByArea.TFrame', borderwidth=10, relief='solid', labelmargins=20)
-        self.style.configure('SortByArea.TFrame.Label', font=('courier', 10, 'bold'))
-
         self.scrollFrame = ScrollFrame(self) # add a new scrollable frame.
         
         # --------------------------------------------------------------------------------------------------------
-        self.sortAreaFrame = ttk.LabelFrame(self.scrollFrame.viewPort, text='Sort By Area', style='SortByArea.TFrame', width=400, height=200)
+        self.sortAreaFrame = ttk.LabelFrame(self.scrollFrame.viewPort, text='Sort By Area', style='SAMS.TFrame', width=400, height=200)
 
 
     #------------------------------------------------------------------------------------------------
@@ -224,16 +220,15 @@ class AreaManager(ttk.Frame):
     #------------------------------------------------------------------------------------------------
     def UpdateWidgets(self):
         for i in range(self.numAreas):
-            n = len(self.areaSubFrame[i].commentEntry.myEntry.get())
-            self.areaSubFrame[i].commentEntry.myEntry.delete(0,n)
+            self.areaSubFrame[i].commentEntry.myEntry.delete(0,tk.END)
             self.areaSubFrame[i].commentEntry.myEntry.insert(0,self.areaComment[i])
-            self.areaSubFrame[i].numCornersEntry.myEntry.delete(0,3)
+            self.areaSubFrame[i].numCornersEntry.myEntry.delete(0,tk.END)
             self.areaSubFrame[i].numCornersEntry.myEntry.insert(0, str(self.areaData[i].numCorners))
             self.areaSubFrame[i].NumCornersUpdate()
             for j in range(self.areaData[i].numCorners):
-                self.areaSubFrame[i].corners[j].longitude.myEntry.delete(0,10)
+                self.areaSubFrame[i].corners[j].longitude.myEntry.delete(0,tk.END)
                 self.areaSubFrame[i].corners[j].longitude.myEntry.insert(0, str(self.areaData[i].long[j]))
-                self.areaSubFrame[i].corners[j].latitude.myEntry.delete(0,10)
+                self.areaSubFrame[i].corners[j].latitude.myEntry.delete(0,tk.END)
                 self.areaSubFrame[i].corners[j].latitude.myEntry.insert(0, str(self.areaData[i].lat[j]))
 
     #------------------------------------------------------------------------------------------------
@@ -343,7 +338,7 @@ class AreaMgrSubFrame(tk.Frame):
         if n > self.numCornersMax:
             messagebox.showerror("Number of Corners", f'Max is {self.numCornersMax}\nSetting to max')
             n = self.numCornersMax
-            self.numCornersEntry.myEntry.delete(0,3)
+            self.numCornersEntry.myEntry.delete(0,tk.END)
             self.numCornersEntry.myEntry.insert(0, str(n))
         self.numCorners = n
         # Now update desired funtion definitions

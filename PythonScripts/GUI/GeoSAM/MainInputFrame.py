@@ -55,40 +55,36 @@ class MainInput(ttk.Frame):
         self.interpStartDir = os.path.join(self.root, 'Configuration', 'Interpolation')
         self.friend = friend
 
-        self.style = ttk.Style()
-        self.style.configure('MainInput.TFrame', borderwidth=10, relief='solid', labelmargins=20)
-        self.style.configure('MainInput.TFrame.Label', font=('courier', 10, 'bold'))
         # +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-        simFrame = ttk.LabelFrame(self, text='Simulation Configuration Files', style='MainInput.TFrame')
+        simFrame = ttk.LabelFrame(self, text='Simulation Configuration Files', style='SAMS.TFrame')
         self.mortCfgFile = SubFrameElement(self, simFrame, 'Growth Config File   ', 'Growth.cfg',  0, 0, 1, width=20)
         self.recrCfgFile = SubFrameElement(self, simFrame, 'Recruit Config File  ',      'Recruitment.cfg',1, 0, 1, width=20)
         self.gmCfgFile   = SubFrameElement(self, simFrame, 'Grid Mgr Config File ',     'GridManager.cfg',2, 0, 1, width=20)
         self.simCfgFile  = SubFrameElement(self, simFrame, 'Sim Config File      ',       'Scallop.cfg',    3, 0, 1, width=20)
 
-        self.style.configure("Frame1.TLabel", padding=6, relief='raised', background="#0FF")
-        self.openMortConfigtButton = ttk.Button(simFrame, text='Change/Save Growth File', style="Frame1.TLabel", command=self.GetMortConfigFName)
+        self.openMortConfigtButton = ttk.Button(simFrame, text='Change/Save Growth File', style="BtnBluGrn.TLabel", command=self.GetMortConfigFName)
         self.openMortConfigtButton.grid(row=0, column=3)
         #-------------------------------------------------------------------------------------------
-        self.openRecrConfigtButton = ttk.Button(simFrame, text='Change/Save Recr File', style="Frame1.TLabel", command=self.GetRecrConfigFName)
+        self.openRecrConfigtButton = ttk.Button(simFrame, text='Change/Save Recr File', style="BtnBluGrn.TLabel", command=self.GetRecrConfigFName)
         self.openRecrConfigtButton.grid(row=1, column=3)
         #-------------------------------------------------------------------------------------------
-        self.openGmgrConfigtButton = ttk.Button(simFrame, text='Change/Save GMgr File', style="Frame1.TLabel", command=self.GetGMgrConfigFName)
+        self.openGmgrConfigtButton = ttk.Button(simFrame, text='Change/Save GMgr File', style="BtnBluGrn.TLabel", command=self.GetGMgrConfigFName)
         self.openGmgrConfigtButton.grid(row=2, column=3)
         #-------------------------------------------------------------------------------------------
-        self.openSimConfigtButton = ttk.Button(simFrame, text='Change/Save Sim File', style="Frame1.TLabel", command=self.GetSimConfigFName)
+        self.openSimConfigtButton = ttk.Button(simFrame, text='Change/Save Sim File', style="BtnBluGrn.TLabel", command=self.GetSimConfigFName)
         self.openSimConfigtButton.grid(row=3, column=3)
         #-------------------------------------------------------------------------------------------
         simFrame.grid(row=1, column=0, padx=5, sticky='n')
         # +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
         # +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-        interpFrame = ttk.LabelFrame(self, text='Interpolation Configuration Files', style='MainInput.TFrame')
+        interpFrame = ttk.LabelFrame(self, text='Interpolation Configuration Files', style='SAMS.TFrame')
         self.ukCfgFile = SubFrameElement(self, interpFrame, 'UK Config File', 'UK.cfg', 0, 0, 1, width=20)
-        self.openUKConfigtButton = ttk.Button(interpFrame, text='Change/Save UK File', style="Frame1.TLabel", command=self.GetUKConfigFName)
+        self.openUKConfigtButton = ttk.Button(interpFrame, text='Change/Save UK File', style="BtnBluGrn.TLabel", command=self.GetUKConfigFName)
         self.openUKConfigtButton.grid(row=0, column=3)
         interpFrame.grid(row=2, column=0, padx=5, sticky='n')
         # +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
         # +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-        recruitFrame = ttk.LabelFrame(self, text='Recruitment', style='MainInput.TFrame')
+        recruitFrame = ttk.LabelFrame(self, text='Recruitment', style='SAMS.TFrame')
 
         self.monthsArr = ['JAN', 'FEB', 'MAR', 'APR', 'MAY', 'JUN', 'JUL', 'AUG', 'SEP', 'OCT', 'NOV', 'DEC']
         self.startDayLabel = ttk.Label(recruitFrame, text='Start Day')
@@ -116,7 +112,7 @@ class MainInput(ttk.Frame):
         recruitFrame.grid(row=2, column=1, padx=5, sticky='e')
         # +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
         # +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-        durationFrame = ttk.LabelFrame(self, text='Duration', style='MainInput.TFrame')
+        durationFrame = ttk.LabelFrame(self, text='Duration', style='SAMS.TFrame')
         self.startYr    = SubFrameElement(self, durationFrame, 'Start Year',       '2015',            0, 0, 1)
         #-------------------------------------------------------------------------------------------
         self.stopYr     = SubFrameElement(self, durationFrame, 'Stop Year ',       '2017',            1, 0, 1)
@@ -143,7 +139,7 @@ class MainInput(ttk.Frame):
         durationFrame.grid(row=2, column=1, padx=5, sticky='w')
         # +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
         # +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-        outputSelFrame = ttk.LabelFrame(self, text='Output Selection', style='MainInput.TFrame')
+        outputSelFrame = ttk.LabelFrame(self, text='Output Selection', style='SAMS.TFrame')
         #-------------------------------------------------------------------------------------------
         # Check Buttons
         self.lpueVar = tk.IntVar(value=(selectedOutputs   )&1)
@@ -177,7 +173,6 @@ class MainInput(ttk.Frame):
         outputSelFrame.grid(row=1, column=1, padx=5, sticky='n')
         # +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
         # +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-        self.style.configure("Help.TLabel", padding=6, relief="flat", foreground='white', background="#5783db")
         helpButton = ttk.Button(self, text= "Main Help", style="Help.TLabel", command = self.pop_up)
         helpButton.grid(row=0, column=1)
 
@@ -219,8 +214,7 @@ class MainInput(ttk.Frame):
         file_path = filedialog.asksaveasfilename(title="Open Configuration File", filetypes=[("CFG files", "*.cfg")], defaultextension='cfg', initialdir=self.simStartDir)
         f = file_path.split('/')
         if file_path:
-            n = len(self.mortCfgFile.myEntry.get())
-            self.mortCfgFile.myEntry.delete(0,n)
+            self.mortCfgFile.myEntry.delete(0,tk.END)
             self.mortCfgFile.myEntry.insert(0,f[-1])
             self.friend.WriteMortalityConfig()
 
@@ -234,8 +228,7 @@ class MainInput(ttk.Frame):
         file_path = filedialog.asksaveasfilename(title="Open Configuration File", filetypes=[("CFG files", "*.cfg")], defaultextension='cfg', initialdir=self.simStartDir)
         f = file_path.split('/')
         if file_path:
-            n = len(self.recrCfgFile.myEntry.get())
-            self.recrCfgFile.myEntry.delete(0,n)
+            self.recrCfgFile.myEntry.delete(0,tk.END)
             self.recrCfgFile.myEntry.insert(0,f[-1])
             self.friend.WriteRecruitmentConfig()
 
@@ -249,8 +242,7 @@ class MainInput(ttk.Frame):
         file_path = filedialog.asksaveasfilename(title="Open Configuration File", filetypes=[("CFG files", "*.cfg")], defaultextension='cfg', initialdir=self.simStartDir)
         f = file_path.split('/')
         if file_path:
-            n = len(self.gmCfgFile.myEntry.get())
-            self.gmCfgFile.myEntry.delete(0,n)
+            self.gmCfgFile.myEntry.delete(0,tk.END)
             self.gmCfgFile.myEntry.insert(0,f[-1])
             self.friend.WriteGridMgrConfig()
 
@@ -264,8 +256,7 @@ class MainInput(ttk.Frame):
         file_path = filedialog.asksaveasfilename(title="Open Configuration File", filetypes=[("CFG files", "*.cfg")], defaultextension='cfg', initialdir=self.simStartDir)
         f = file_path.split('/')
         if file_path:
-            n = len(self.simCfgFile.myEntry.get())
-            self.simCfgFile.myEntry.delete(0,n)
+            self.simCfgFile.myEntry.delete(0,tk.END)
             self.simCfgFile.myEntry.insert(0,f[-1])
             self.friend.WriteScallopConfig()
 
@@ -279,8 +270,7 @@ class MainInput(ttk.Frame):
         file_path = filedialog.asksaveasfilename(title="Open Configuration File", filetypes=[("CFG files", "*.cfg")], defaultextension='cfg', initialdir=self.interpStartDir)
         f = file_path.split('/')
         if file_path:
-            n = len(self.ukCfgFile.myEntry.get())
-            self.ukCfgFile.myEntry.delete(0,n)
+            self.ukCfgFile.myEntry.delete(0,tk.END)
             self.ukCfgFile.myEntry.insert(0,f[-1])
             self.friend.WriteUKConfig()
 

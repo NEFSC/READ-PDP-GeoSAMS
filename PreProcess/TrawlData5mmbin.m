@@ -14,15 +14,11 @@ isOctave = (exist('OCTAVE_VERSION', 'builtin') ~= 0);
 if isOctave
     % used if called by command line
     arg_list=argv();
-    if ~strcmp(arg_list(1), '--gui');
+    if ~strcmp(arg_list(1), '--gui')
 	    yrStart = str2num(cell2mat(arg_list(1)));
 	    yrEnd = str2num(cell2mat(arg_list(2)));
 	    src = str2num(cell2mat(arg_list(3)));
 	    domain = cell2mat(arg_list(4));
-    else
-	    yrStart = str2num(yrStart);
-	    yrEnd = str2num(yrEnd);
-	    src = str2num(src);
     end
 end
 srcText = src;
@@ -63,12 +59,14 @@ if isOctave
         % preallocate
         xx=lon;
         yy=lat;
-        for i = 1:size(lon,1)
+        n = size(lon,1);
+        for i = 1:n
             if lon(i)>-70.5
                 zone=19;
             else
                 zone=18;
             end
+            if mod(i,10000) == 0; fprintf('i : %d of %d\n', i, n); end
             [xx(i),yy(i)]=ll2utm(lat(i),lon(i),zone);
         end
     end
@@ -124,7 +122,7 @@ Detect=.4;
 
 %  standard tow length of 1 nautical mile by 8 ft, or 2.4384 m, wide dredge
 nautMile_m = 1852.;
-towArea_sqm = 4516.; % nautMile_m * 2.438;
+towArea_sqm = nautMile_m * 2.438;
 countPerSqm = 1. / (towArea_sqm * Detect);
 
 %for yr=1979:2017

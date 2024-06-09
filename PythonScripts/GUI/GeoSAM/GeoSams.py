@@ -49,7 +49,7 @@ import sys
 import os
 import sys
 import platform
-import re
+from collections import defaultdict
 
 from MainInputFrame import *
 from GrowthFrame import *
@@ -82,10 +82,24 @@ class MainApplication(tk.Tk):
         self.paramStr = []
         self.savedByStratum = False
 
+        # Sim settings
+        self.domainName = ''
+        self.yearStart=0
+        self.yearStop=0
+        self.simConfigFile=''
+        self.ukCfgFile=''
+
         # setup
         self.title(title)
         self.geometry('1020x725+10+10')
         self.style = ttk.Style()
+        # Inheritable frame, label defintions
+        self.style.configure('SAMS.TFrame', borderwidth=1, relief='solid', labelmargins=20)
+        self.style.configure('SAMS.TFrame.Label', font=('courier', 10, 'bold'))
+        self.style.configure("BtnGreen.TLabel", padding=6, relief='raised', background="#0F0")
+        self.style.configure("BtnBluGrn.TLabel", padding=6, relief='raised', background="#0FF")
+        self.style.configure("Help.TLabel", padding=6, relief='raised', foreground='blue', background="#42e6f5")
+
 
         # vscode will not set this variable, must be done via control panel
         # in command terminal on Windows, assuming user is in the install directory
@@ -93,7 +107,7 @@ class MainApplication(tk.Tk):
         #   > set ROOT=%CD%
         self.root = os.getcwd() #os.environ['ROOT']
         self.simConfigFile  = os.path.join(self.root,'Configuration', 'Simulation','Scallop.cfg')
-        (self.paramStr, self.paramVal) = self.ReadSimConfigFile()
+        self.ReadSimConfigFile()
         self.notebook = ttk.Notebook(self)
 
         self.frame1 = MainInput(self.notebook, self, self.tsPerYear, self.paramVal)
@@ -104,7 +118,7 @@ class MainApplication(tk.Tk):
         self.gmConfigFile   = os.path.join(self.root,'Configuration', 'Simulation', self.frame1.gmCfgFile.myEntry.get())
 
         # Read in configuration parameters
-        (self.paramStr, self.paramVal) = self.ReadSimConfigFile()
+        self.ReadSimConfigFile()
         #
         # NOTE: MA does not use stratum and forces it to false
         # 
@@ -131,11 +145,9 @@ class MainApplication(tk.Tk):
         self.notebook.add(self.frame4, text='UKInterpolation')
         self.notebook.pack()
 
-        self.style.configure("Custom.TLabel", padding=6, relief="flat", background="#0F0")
-        ttk.Button(self, text='SHOW Args',    style="Custom.TLabel", command=self.ShowArgs).place(relx=0, rely=1, anchor='sw')
-        ttk.Button(self, text='START Sim',    style="Custom.TLabel", command=self.Run_Sim).place(relx=.25, rely=1, anchor='s')
-        ttk.Button(self, text='SAVE ALL Configs', style="Custom.TLabel", command=self.SaveConfigFiles).place(relx=.5, rely=1, anchor='s')
-        self.style.configure("Help.TLabel", padding=6, relief="flat", foreground='white', background="#5783db")
+        ttk.Button(self, text='SHOW Args',    style="BtnGreen.TLabel", command=self.ShowArgs).place(relx=0, rely=1, anchor='sw')
+        ttk.Button(self, text='START Sim',    style="BtnGreen.TLabel", command=self.Run_Sim).place(relx=.25, rely=1, anchor='s')
+        ttk.Button(self, text='SAVE ALL Configs', style="BtnGreen.TLabel", command=self.SaveConfigFiles).place(relx=.5, rely=1, anchor='s')
         ttk.Button(self, text= "Help", style="Help.TLabel", command = self.pop_up).place(relx=.75, rely=1, anchor='s')
 
     #-------------------------------------------------------------------------------------
@@ -161,15 +173,16 @@ class MainApplication(tk.Tk):
         # OR
         # Create new files based on names given by user, or same if not changed
         self.SaveConfigFiles()
-        # 
-        # typical command line:
-        # > ./SRC/ScallopPopDensity.exe Scallop.cfg StartYear StopYear Domain
-        ex = os.path.join(self.root, 'SRC', 'ScallopPopDensity')
-        simCfgFile = self.frame1.simCfgFile.myEntry.get()
-        ukCfgFile = self.frame1.ukCfgFile.myEntry.get()
+        # exec to be called, ScallopPopDensity, prepends directory structure, ReadSimConfigFile does not
+        simConfigFile = self.frame1.simCfgFile.myEntry.get()
+        self.simConfigFile = os.path.join('Configuration', 'Simulation', simConfigFile)
+
+        # exec to be called, UK, prepends directory structure
+        self.ukCfgFile = self.frame1.ukCfgFile.myEntry.get()
+
         startYear = self.frame1.startYr.myEntry.get()
         stopYear = self.frame1.stopYr.myEntry.get()
-        dn = self.frame1.domainNameCombo.get()
+        self.domainName = self.frame1.domainNameCombo.get()
         # check range
         self.yearStart = int(startYear)
         self.yearStop = int(stopYear)
@@ -179,14 +192,14 @@ class MainApplication(tk.Tk):
             stopYear = str(self.yearStop)
             numYears = self.maxYears
             messagebox.showerror("Too many years", f'Setting Stop Year to {stopYear}')
-            self.frame1.stopYr.myEntry.delete(0,4)
+            self.frame1.stopYr.myEntry.delete(0,tk.END)
             self.frame1.stopYr.myEntry.insert(0, stopYear)
         
         # Ensure data is available, by first checking if data files have been created.
         # Typical data file name: Data/bin5mm2015AL.csv
         filesExist = True
         for yr in range(self.yearStart, self.yearStop+1):
-            dataFName = os.path.join(self.root, 'Data', 'bin5mm'+str(yr)+dn+'.csv')
+            dataFName = os.path.join(self.root, 'Data', 'bin5mm'+str(yr)+self.domainName+'.csv')
             if not os.path.isfile(dataFName): 
                 filesExist = False
                 break
@@ -194,9 +207,10 @@ class MainApplication(tk.Tk):
         if not filesExist: 
             # Create them
             if platform.system() == 'Windows':
-                cmd = [os.path.join(self.root, 'Unpack.bat'), startYear, stopYear, '0', dn]
+                cmd = [os.path.join(self.root, 'Unpack.bat'), startYear, stopYear, '0', self.domainName]
             else:
-                cmd = [os.path.join(self.root, 'Unpack.sh'), startYear, stopYear, '0', dn]
+                cmd = [os.path.join(self.root, 'Unpack.sh'), startYear, stopYear, '0', self.domainName]
+            messagebox.showinfo("Unpack", f'Starting Unpack.\nThis could take several minutes.\nPlease be patient.')
             result = subprocess.run(cmd)
             if result.returncode == 0:
                 messagebox.showinfo("Unpack", f'Completed Successfully\n{result.args}')
@@ -215,28 +229,254 @@ class MainApplication(tk.Tk):
             
         if filesExist:
             # Continue with starting the GeoSAMS simulation ----------------------------------------------------------------------
-            cmd = [ex, simCfgFile, startYear, stopYear, dn]
+            # 
+            # typical command line:
+            # > ./SRC/ScallopPopDensity.exe Scallop.cfg StartYear StopYear Domain
+            ex = os.path.join(self.root, 'SRC', 'ScallopPopDensity')
+            # ScallopPopDensity prepends directory structure to simConfigFile
+            cmd = [ex, simConfigFile, startYear, stopYear, self.domainName]
             print(cmd)
             messagebox.showinfo("GeoSAMS Sim", "Program Started")
             result = subprocess.run(cmd)
 
             if result.returncode == 0:
-                messagebox.showinfo("GeoSAM Sim", f'Completed Successfully\n{result.args}')
+                messagebox.showinfo("GeoSAM Sim", 
+                    f'Completed Successfully\n{result.args}\nStarting UK Interp\nIf all output selected this will run over an hour.\nPlease be patient.')
 
                 # Then Continue with Interpolation and Plotting Results -----------------------------------------------------------
-                #       python .\PythonScripts\ProcessResults.py dn startYear stopYear simCfgFile ukCfgFile
+                #       python .\PythonScripts\ProcessResults.py self.domainName startYear stopYear simCfgFile ukCfgFile
                 # e.g.: python .\PythonScripts\ProcessResults.py GB 2015 2017 Scallop.cfg UK_GB.cfg
-                ex = 'python'
-                script = os.path.join(self.root, 'PythonScripts', 'ProcessResults.py')
-                cmd = [ex, script, dn, startYear, stopYear, simCfgFile, ukCfgFile] 
-                print(cmd)
-                result = subprocess.run(cmd)
-                if result.returncode == 0:
-                    messagebox.showinfo("UK", f'Completed Successfully\n{result.args}')
+                # if platform.system() == 'Windows':
+                #     ex = 'python'
+                # else:
+                #     ex = 'python3' # need a way for MAC at least to recognize alias set in shell 
+                # script = os.path.join(self.root, 'PythonScripts', 'ProcessResults.py')
+                # cmd = [ex, script, self.domainName, startYear, stopYear, self.simConfigFile, self.ukCfgFile] 
+                # print(cmd)
+                # result = subprocess.run(cmd)
+                (returnCode, args, errStr,) = self.InterpAndPlotResults()
+                if returnCode == 0:
+                    messagebox.showinfo("GeoSAMS/UK/Plotting", f'ALL DONE\n{args}')
                 else:
-                    messagebox.showerror("UK", f'Failed\n{result.args}\nReturn Code = {result.returncode}')
+                    messagebox.showerror("UK", f'Failed\n{args}\nReturn Code = {returnCode}')
             else:
                 messagebox.showerror("GeoSAM Sim", f'Failed\n{result.args}\nReturn Code = {result.returncode}')
+
+    #-------------------------------------------------------------------------------------
+    ##
+    # Interpolates the survey data onto the regional grids and saves results to CSV files. 
+    # Concatenates CSV files into a single file. Then uses this file to plot the results
+    #
+    # Uses the following member variables
+    #    self.domainName
+    #    self.yearStart
+    #    self.yearStop
+    #    self.simConfigFile ( in call to ReadSimConfigFile)
+    #    self.ukCfgFile
+    #    self.savedByStratum 
+    #    self.paramStr
+    # 
+    # prefix for the concatenated files,  Output file name is in the form:
+    #      Lat_Lon_Grid_ABUN_AL_2015_2017
+    # Matlab/Octave will also place the it results in a similar file name
+    #      Lat_Lon_Grid_RECR_AL_2017_100_MA_North
+    #                    ^ Output parameter
+    #                        ^ Domain name
+    #                            ^ Year, yearStart to yearStop, e.g. 2014 initial data, 1 less than yearStart
+    #                                                                2015 growth in yearStart
+    #                                                                ...
+    #                                                                2017 growth in yearStop
+    #                                  ^ Multiplier to normalize data
+    #                                     ^ rgn
+    #                                        ^ MA is divided into North and South to better display the data
+    #
+    #-------------------------------------------------------------------------------------
+    def InterpAndPlotResults(self):
+        dataDir = 'Data'
+        years = range(self.yearStart, self.yearStop+1)
+
+        # set configuration file name for UK.exe
+        ukCfgFile = self.ukCfgFile  # This may be overwritten depending on domain
+
+        # Used while concatenating files
+        # number of colums in csv file, starting at 0
+        # lat, lon, initial data
+        ncols = self.yearStop - self.yearStart + 3
+        # number of years plus initial state
+        nyears = self.yearStop - self.yearStart + 2
+
+        self.ReadSimConfigFile()
+
+        # Determine which if any file suffixes are needed
+        if self.domainName=='MA': self.savedByStratum = False
+        if self.savedByStratum:
+            # Only GB and AL[L] use savedByStratum
+            if self.domainName=='GB':
+                rgn = ['_SW', '_N', '_S', '_W']
+            else:
+                # This would be AL
+                rgn = ['_SW', '_N', '_S', '_W', '_MA']
+        else:
+            # This would be just MA
+            rgn = ['']
+
+        # ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+        #  INTERPOLATE AND CONCATENATE REGIONS INTO SINGLE FILE
+        # ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++   
+        prefix = ['Results/Lat_Lon_Grid_'] #, 'Results/Lat_Lon_Grid_Trend-'] # DEPRECATED
+
+        for pStr in self.paramStr:
+
+            if (pStr == 'RECR_'):
+                zArg = '70.0'
+            else:
+                zArg = '0.0'
+
+            ex = os.path.join('UKsrc', 'UK')
+            # Process multiple GB region files
+            #                                                 | --- optional but need both -----|
+            #        ConfigFile Domain  ObservFile                GridFile            ZF0Max
+            # [ex,   ukCfgFile,   dn,     obsFile,                  gridFile,           value
+            # .\UKsrc\UK UK.cfg GB      X_Y_EBMS_GB2005_0_SW.csv  GBxyzLatLon_SW.csv   0.0 | 70.0
+            #  arg#        1     2              3                  4                   5
+            for r in rgn:
+                obsFile = 'X_Y_' + pStr + self.domainName + str(self.yearStart) + '_0' + r + '.csv'
+                if self.domainName == 'AL':
+                    # ALxyzLatLon_MA uses the same grid file as MA, 
+                    # and did not want to configuration manage multiple identical files
+                    #     'MA'+'xyzLatLon' + '' + '.csv'
+                    # ALxyzLatLon_SW to ALxyzLatLon_W use the same grid files as GB
+                    # and did not want to configuration manage multiple identical files
+                    # 'GBxyzLatLon' + r + '.csv'
+                    #
+                    # These data files also need to use separate spatial functions
+                    # Override command line argument
+                    if r == '_MA':
+                        gridFile = 'MAxyzLatLon.csv'
+                        ukCfgFile = 'UK_MA.cfg'
+                    else:
+                        gridFile = 'GBxyzLatLon' + r + '.csv'
+                        ukCfgFile = 'UK_GB.cfg'
+                else:
+                    gridFile = self.domainName+'xyzLatLon' + r + '.csv'
+                cmd = [ex, ukCfgFile, self.domainName, obsFile, gridFile, zArg]
+                result = subprocess.run(cmd)
+                if (result.returncode != 0):
+                    errorStr = '[31m' + ''.join(str(e)+' ' for e in cmd) + ' error: ' + hex(result.returncode) + '[0m'
+                    print(errorStr)
+                    return (result.returncode, result.args, errorStr)
+                print( 'Just Finished: ', cmd)
+                # Cleanup dataDir
+                os.remove(os.path.join(dataDir, obsFile))
+
+                for year in years:
+                    obsFile = 'X_Y_' + pStr + self.domainName + str(year) + r + '.csv'
+                    cmd = [ex, ukCfgFile, self.domainName, obsFile, gridFile, zArg]
+                    result = subprocess.run(cmd)
+                    if (result.returncode != 0):
+                        errorStr = '[31m' + ''.join(str(e)+' ' for e in cmd) + ' error: ' + hex(result.returncode) + '[0m'
+                        print(errorStr)
+                        return (result.returncode, result.args, errorStr)
+                    print( 'Just Finished: ', cmd)
+                    # Cleanup dataDir
+                    os.remove(os.path.join(dataDir, obsFile))
+
+                for pfix in prefix:
+                    ###########################################################################################
+                    # subprocess.run takes in Data/X_Y_* and creates both 
+                    #    Results/Lat_Lon_Grid* 
+                    #    Results/Lat_Lon_Grid_Trend* DEPRECATED
+                    # Concatenate individual year files into a single file
+                    ###########################################################################################
+                    col = [defaultdict(list) for _ in range(nyears)]
+                    k = 0
+                    
+                    flin = pfix + pStr + self.domainName + str(self.yearStart) + '_0' + r + '.csv'
+                    with open(flin) as f:
+                        reader = csv.reader(f)
+                        for row in reader:
+                            for (i,v) in enumerate(row):
+                                col[k][i].append(v)
+                        f.close()
+                    os.remove(flin)
+
+                    # append remaining years as additional columns to first data set
+                    for year in years:
+                        k  += 1
+                        flin = pfix + pStr + self.domainName + str(year) + r + '.csv'
+                        with open(flin) as f:
+                            reader = csv.reader(f)
+                            for row in reader:
+                                for (i,v) in enumerate(row):
+                                    col[k][i].append(v)
+                            f.close()
+                        os.remove(flin)
+
+                        for i in range (len(col[0][0])):    
+                            col[0][k + 2].append(col[k][2][i])
+
+                    # brute force write out results
+                    if self.savedByStratum:
+                        flout = open(pfix + pStr + self.domainName + r + '.csv', 'w')
+                    else:
+                        flout = open(pfix + pStr + self.domainName + '_' + str(self.yearStart) + '_' + str(self.yearStop) + '.csv', 'w')
+                    for row in range(len(col[0][0])):
+                        for c in range(ncols):
+                            flout.write(col[0][c][row])
+                            flout.write(',')
+                        flout.write(col[0][ncols][row])
+                        flout.write('\n')
+                    flout.close()
+                # end for pfix
+            # end for rgn
+
+            if self.savedByStratum:
+                # now combine all region files into one file
+                for pfix in prefix:
+                    flout = pfix + pStr + self.domainName + '_' + str(self.yearStart) + '_' + str(self.yearStop) + '.csv'
+                    wrFile = open(flout, 'w')
+                    for r in rgn:
+                        flin = pfix + pStr + self.domainName + r + '.csv'
+                        rdFile = open(flin, 'r')
+                        lines = rdFile.readlines()
+                        wrFile.writelines(lines)
+                        rdFile.close()
+                        os.remove(flin)
+                    wrFile.close()
+                    print('Files concatenated to: ',flout)
+                # end for pfix
+            else:
+                print('Files concatenated to: ',flout.name)
+
+            # end savedByStratum
+        # end for pStr
+
+        # ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++   
+        #  PLOTTING
+        # ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++   
+        # We have the needed output paramters so lets plot data and save to pdf files
+        messagebox.showinfo("Matlab/Octave", f'Plotting Results')
+
+        p = platform.platform()
+        for pStr in self.paramStr:
+            str1 = 'Results/Lat_Lon_Surv_' + pStr + self.domainName
+            str2 = 'Results/Lat_Lon_Grid_' + pStr + self.domainName+'_'+str(self.yearStart) + '_' + str(self.yearStop)
+
+            if p[0:3] == 'Win':
+                matlabStr = 'PlotLatLonGridSurvey(' + "'" + str1 + "','" + str2 + "', " + str(self.yearStart) + ',' +str(self.tsPerYear) + ", '" + self.domainName + "');exit"
+                cmd = ['matlab.exe', '-batch', matlabStr]
+            else:
+                octaveStr = 'mfiles/PlotLatLonGridSurvey.m', str1, str2, str(self.yearStart), str(self.tsPerYear), self.domainName
+                cmd = ['octave', octaveStr]
+
+            result = subprocess.run(cmd)
+            if (result.returncode != 0):
+                errorStr = '[31m' + ''.join(str(e)+' ' for e in cmd) + ' error: ' + hex(result.returncode) + '[0m'
+                print(errorStr)
+                return (result.returncode, result.args)
+
+        return (0, '', '')
+
 
     #-------------------------------------------------------------------------------------
     ##
@@ -505,44 +745,43 @@ class MainApplication(tk.Tk):
     #-------------------------------------------------------------------------------------
     def ReadSimConfigFile(self):
         # need to read Configuration/Simulation/Scallop.cfg to determine which parameters are output
-        paramStr = []
-        paramVal = 0
+        self.paramStr = []
+        self.paramVal = 0
         tags = self.ReadConfigFile(self.simConfigFile)
 
         for (tag, value) in tags:
             # Python 3.8 does not have match/case so using if elif
             if (tag == 'Select Abundance'):
-                paramStr.append('ABUN_')
-                paramVal += 8
+                self.paramStr.append('ABUN_')
+                self.paramVal += 8
             elif (tag == 'Select BMS'):
-                paramStr.append('BMMT_')
-                paramVal += 4
+                self.paramStr.append('BMMT_')
+                self.paramVal += 4
             elif (tag == 'Select Expl BMS'):
-                paramStr.append('EBMS_')
-                paramVal += 2
+                self.paramStr.append('EBMS_')
+                self.paramVal += 2
             elif (tag == 'Select Fishing Effort'):
-                paramStr.append('FEFF_')
-                paramVal += 64
+                self.paramStr.append('FEFF_')
+                self.paramVal += 64
             elif (tag == 'Select Fishing Mortality'):
-                paramStr.append('FMOR_')
-                paramVal += 128
+                self.paramStr.append('FMOR_')
+                self.paramVal += 128
             elif (tag == 'Select Landings by Number'):
-                paramStr.append('LAND_')
-                paramVal += 32
+                self.paramStr.append('LAND_')
+                self.paramVal += 32
             elif (tag == 'Select Landings by Weight'):
-                paramStr.append('LNDW_')
-                paramVal += 16
+                self.paramStr.append('LNDW_')
+                self.paramVal += 16
             elif (tag == 'Select LPUE'):
-                paramStr.append('LPUE_')
-                paramVal += 1
+                self.paramStr.append('LPUE_')
+                self.paramVal += 1
             elif (tag == 'Select RECR'):
-                paramStr.append('RECR_')
-                paramVal += 256
+                self.paramStr.append('RECR_')
+                self.paramVal += 256
             elif (tag == 'Time steps per Year'):
                 self.tsPerYear = int(value)
             elif (tag == 'Save By Stratum'):
                 self.savedByStratum = value[0] == 'T'
-        return (paramStr, paramVal)
 
     #-------------------------------------------------------------------------------------
     ## 
@@ -589,7 +828,6 @@ START Sim
 SAVE ALL Configs
     Same as the first step in START Sim
 '''
-        #about = re.sub("\n\s*", "\n", about) # remove leading whitespace from each line
         popup = tk.Toplevel()
         nrows = 31
         ncols = 80

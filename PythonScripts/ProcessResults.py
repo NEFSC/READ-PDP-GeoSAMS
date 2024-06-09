@@ -103,7 +103,7 @@ for pStr in paramStr:
             ###########################################################################################
             # subprocess.run takes in Data/X_Y_* and creates both 
             #    Results/Lat_Lon_Grid* 
-            #    Results/Lat_Lon_Grid_Trend*
+            #    Results/Lat_Lon_Grid_Trend* DEPRECATED
             # Concatenate individual year files into a single file
             ###########################################################################################
             col = []

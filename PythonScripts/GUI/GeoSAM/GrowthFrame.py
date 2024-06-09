@@ -89,13 +89,8 @@
 #
 #======================================================================================================
 import tkinter as tk
-import csv
-import platform
-import os
 
 from tkinter import ttk
-from tkinter import messagebox
-from tkinter import filedialog
 
 from Widgets import *
 from GeoSams import MainApplication
@@ -112,41 +107,39 @@ class Growth(ttk.Frame, MainApplication):
     def __init__(self, container, fName):
         super().__init__()
         # default values should file get corrupted
-        self.fmortStr = None
-        self.fishStr = None
-        self.alphStr = None
-        self.maCullStr = None
-        self.maDiscStr = None
-        self.gbCullStr = None
-        self.gbDiscStr = None
-        self.maFSelAStr = None
-        self.maFSelBStr = None
-        self.gbClFSelAStr = None
-        self.gbClFSelBStr = None
-        self.gbOpFSelAStr = None
-        self.gbOpFSelBStr = None
-        self.maAdultMortStr = None
-        self.gbAdultMortStr = None
-        self.maIncidStr = None
-        self.gbIncidStr = None
-        self.maLen0Str = None
-        self.gbLen0Str = None
+        self.fmortStr = '0.4'
+        self.alphStr = '1.0'
+        self.maCullStr = '90.0'
+        self.maDiscStr = '0.2'
+        self.gbCullStr = '100.0'
+        self.gbDiscStr = '0.2'
+        self.maFSelAStr = '20.5079'
+        self.maFSelBStr = '0.19845'
+        self.gbClFSelAStr = '17.72'
+        self.gbClFSelBStr = '0.15795'
+        self.gbOpFSelAStr = '21.7345'
+        self.gbOpFSelBStr = '0.2193'
+        self.maAdultMortStr = '0.25'
+        self.gbAdultMortStr = '0.2'
+        self.maIncidStr = '0.05'
+        self.gbIncidStr = '0.1'
+        self.maLen0Str = '65.0'
+        self.gbLen0Str = '70.0'
         self.fmorFileStr = None
-        self.lpueSlStr = None
-        self.lpueSl2Str = None
-        self.lpueIntcStr = None
-        self.maxPerDayStr = None
-        self.maxTimeStr = None
-        self.dredgeWdStr = None
-        self.towSpdStr = None
+        self.lpueSlStr = '0.6556'
+        self.lpueSl2Str = '2.3'
+        self.lpueIntcStr = '1094'
+        self.maxPerDayStr = '56000'
+        self.maxTimeStr = '19'
+        self.dredgeWdStr = '9.144'
+        self.towSpdStr = '4.8'
+
+        self.cfgFname = fName
 
         self.UpdateValues(fName)
 
-        self.style = ttk.Style()
-        self.style.configure('Growth.TFrame', borderwidth=10, relief='solid', labelmargins=20)
-        self.style.configure('Growth.TFrame.Label', font=('courier', 10, 'bold'))
         # ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-        fishingFrame= ttk.LabelFrame(self, text='Mortality', style='Growth.TFrame')
+        fishingFrame= ttk.LabelFrame(self, text='Mortality', style='SAMS.TFrame')
         self.fishMort   = SubFrameElement(self, fishingFrame, 'Fishing Mortality', self.fmortStr,       0, 0, 1)
         #-------------------------------------------------------------------------------------------
         self.alphaMort  = SubFrameElement(self, fishingFrame, 'Alpha Mortality',self.alphStr,           1, 0, 1)
@@ -179,7 +172,7 @@ class Growth(ttk.Frame, MainApplication):
         selectivityFrame.grid(row=1, column=1, padx=10, sticky='n')
         # ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
         # ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-        lpueFrame   = ttk.LabelFrame(self, text='LPUE', style='Growth.TFrame')
+        lpueFrame   = ttk.LabelFrame(self, text='LPUE', style='SAMS.TFrame')
         #-------------------------------------------------------------------------------------------
         self.lpueSlope   = SubFrameElement(self, lpueFrame, 'LPUE Slope', self.lpueSlStr,       0, 0, 1, width=10)
         #-------------------------------------------------------------------------------------------
@@ -198,7 +191,7 @@ class Growth(ttk.Frame, MainApplication):
         lpueFrame.grid(row=1, column=2, padx=10, sticky='n')
         # ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
         # ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-        incidentalFrame = ttk.LabelFrame(self, text='Incidental', style='Growth.TFrame')
+        incidentalFrame = ttk.LabelFrame(self, text='Incidental', style='SAMS.TFrame')
         #-------------------------------------------------------------------------------------------
         self.maIncident = SubFrameElement(self, incidentalFrame, 'MA Incidental', self.maIncidStr, 0, 0, 1)
         #-------------------------------------------------------------------------------------------
@@ -207,7 +200,7 @@ class Growth(ttk.Frame, MainApplication):
         incidentalFrame.grid(row=2, column=0, padx=10)
         # ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
         # ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-        discardFrame   = ttk.LabelFrame(self, text='Discard', style='Growth.TFrame')
+        discardFrame   = ttk.LabelFrame(self, text='Discard', style='SAMS.TFrame')
         self.maCullSize = SubFrameElement(self, discardFrame, 'MA Cull Size', self.maCullStr, 0, 0, 1)
         #-------------------------------------------------------------------------------------------
         self.maDiscard  = SubFrameElement(self, discardFrame, 'MA Discard',   self.maDiscStr, 1, 0, 1)
@@ -219,9 +212,96 @@ class Growth(ttk.Frame, MainApplication):
         discardFrame.grid(row=2, column=1, columnspan=2, padx=10)
         # ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
         # ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-        self.style.configure("Help.TLabel", padding=6, relief="flat", foreground='white', background="#5783db")
         helpButton = ttk.Button(self, text= "Growth Help", style="Help.TLabel", command = self.pop_up)
         helpButton.grid(row=0, column=1)
+
+        self.bind("<Visibility>", self.on_visibility)
+
+    #---------------------------------------------------------------------------------------------------------
+    #---------------------------------------------------------------------------------------------------------
+    def on_visibility(self, event):
+        self.UpdateValues(self.cfgFname)
+        self.UpdateWidgets()
+
+    #---------------------------------------------------------------------------------------------------------
+    #---------------------------------------------------------------------------------------------------------
+    def UpdateWidgets(self):
+        # restore entries
+        self.fishMort.myEntry.delete(0,tk.END)
+        self.fishMort.myEntry.insert(0, self.fmortStr)
+
+        self.alphaMort.myEntry.delete(0,tk.END)  
+        self.alphaMort.myEntry.insert(0, self.alphStr)
+
+        self.maAdultMort.myEntry.delete(0,tk.END)
+        self.maAdultMort.myEntry.insert(0, self.maAdultMortStr)
+
+        self.gbAdultMort.myEntry.delete(0,tk.END)
+        self.gbAdultMort.myEntry.insert(0, self.gbAdultMortStr)
+
+        self.maLength0.myEntry.delete(0,tk.END)
+        self.maLength0.myEntry.insert(0, self.maLen0Str)
+
+        self.gbLength0.myEntry.delete(0,tk.END)
+        self.gbLength0.myEntry.insert(0, self.gbLen0Str)
+
+        self.maFSelectA.myEntry.delete(0,tk.END)
+        self.maFSelectA.myEntry.insert(0, self.maFSelAStr)
+
+        self.maFSelectB.myEntry.delete(0,tk.END)
+        self.maFSelectB.myEntry.insert(0, self.maFSelBStr)
+
+        self.gbClosedFSelectA.myEntry.delete(0,tk.END)
+        self.gbClosedFSelectA.myEntry.insert(0, self.gbClFSelAStr)
+
+        self.gbClosedFSelectB.myEntry.delete(0,tk.END)
+        self.gbClosedFSelectB.myEntry.insert(0, self.gbClFSelBStr)
+
+        self.gbOpenFSelectA.myEntry.delete(0,tk.END)
+        self.gbOpenFSelectA.myEntry.insert(0, self.gbOpFSelAStr)
+
+        self.gbOpenFSelectB.myEntry.delete(0,tk.END)
+        self.gbOpenFSelectB.myEntry.insert(0, self.gbOpFSelBStr)
+
+        self.lpueSlope.myEntry.delete(0,tk.END)
+        self.lpueSlope.myEntry.insert(0, self.lpueSlStr)
+
+        self.lpueSlope2.myEntry.delete(0,tk.END)
+        self.lpueSlope2.myEntry.insert(0, self.lpueSl2Str)
+
+        self.lpueIntcept.myEntry.delete(0,tk.END)
+        self.lpueIntcept.myEntry.insert(0, self.lpueIntcStr)
+
+        self.maxPerDay.myEntry.delete(0,tk.END)
+        self.maxPerDay.myEntry.insert(0, self.maxPerDayStr)
+
+        self.maxTime.myEntry.delete(0,tk.END)
+        self.maxTime.myEntry.insert(0, self.maxTimeStr)
+
+        self.dredgeWth.myEntry.delete(0,tk.END)
+        self.dredgeWth.myEntry.insert(0, self.dredgeWdStr)
+
+        self.towSpeed.myEntry.delete(0,tk.END)
+        self.towSpeed.myEntry.insert(0, self.towSpdStr)
+
+        self.maIncident.myEntry.delete(0,tk.END)
+        self.maIncident.myEntry.insert(0, self.maIncidStr)
+
+        self.gbIncident.myEntry.delete(0,tk.END)
+        self.gbIncident.myEntry.insert(0, self.gbIncidStr)
+
+        self.maCullSize.myEntry.delete(0,tk.END)
+        self.maCullSize.myEntry.insert(0, self.maCullStr)
+
+        self.maDiscard.myEntry.delete(0,tk.END)
+        self.maDiscard.myEntry.insert(0, self.maDiscStr)
+
+        self.gbCullSize.myEntry.delete(0,tk.END)
+        self.gbCullSize.myEntry.insert(0, self.gbCullStr)
+
+        self.gbDiscard.myEntry.delete(0,tk.END)
+        self.gbDiscard.myEntry.insert(0, self.gbDiscStr)
+
 
     #--------------------------------------------------------------------------------------------------
     ##
@@ -234,7 +314,6 @@ class Growth(ttk.Frame, MainApplication):
         for (tag, value) in tags:
             # Python 3.8 does not have match/case so using if elif
             if   tag == 'Fishing Mortality': self.fmortStr = value
-            elif tag == 'Fishing' :          self.fishStr = value
             elif tag == 'Alpha Mortality':   self.alphStr = value
             elif tag == 'MA Cull size':      self.maCullStr = value
             elif tag == 'MA Discard':        self.maDiscStr = value
