@@ -89,7 +89,7 @@ class AreaManager(ttk.Frame):
     #------------------------------------------------------------------------------------------------
     #------------------------------------------------------------------------------------------------
     def ReadAreaCorners(self, fName):
-        """Reads an Area file and returns the number of areas defined"""
+        """Reads an Area file and returns the number of nodes defined"""
         areaIndex = 0
         if os.path.isfile(fName):
             with open(fName, 'r') as f:
@@ -159,7 +159,9 @@ class AreaManager(ttk.Frame):
     #------------------------------------------------------------------------------------------------
     #------------------------------------------------------------------------------------------------
     def ReadFields(self, fName):
-        """Reads an Area file and returns the number of areas defined"""
+        """Reads an Area file and returns the number of fields. 
+        
+        Fields have a Special Area number for the x value with a Mortality setting for the y value."""
         year = []
         definedIndex = 0
         if os.path.isfile(fName):

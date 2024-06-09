@@ -11,12 +11,11 @@
 #   - Sort By Statum: Used when processing Georges-Bank to break the region into quadrants due to its unique shape
 #  
 # @section p2p2 Recuitment
-# Recruitment is only applied at a certain time of the year. These values determine this period.
+# Recruitment is only applied at a certain time of the year. These values determine this period. Combo boxes
+# are used to format the formatting of the month and day. 
 #
 #   - Start Day, calendar day of the year when recruitment influence begins. 
-#     Formatted as any of '01/1', '1/01', 'Jan 1', 'JAN 1', 'January 1', or 'JANUARY 1'
 #   - Stop Day, calendar day of the year when reruitment influence ends
-#     Same formatting accepted as for Start Day
 #
 # @section p2p3 Configuration Files
 # Files used by the sim to set up parameters. The GUI can use the default values or change the names before
@@ -92,10 +91,12 @@ class MainInput(ttk.Frame):
         #-------------------------------------------------------------------------------------------
         self.startDayComboMonth = ttk.Combobox(recruitFrame, width=4, values=self.monthsArr)
         self.startDayComboMonth.current(0)
+        self.startDayComboMonth.bind('<<ComboboxSelected>>', self.CheckStartDay)
         self.startDayComboMonth.grid(row=0, column=1, padx=5, sticky='w')
         #-------------------------------------------------------------------------------------------
         self.startDayComboDay = ttk.Combobox(recruitFrame, width=2, values=[str(i) for i in range(1,32)])
         self.startDayComboDay.current(0)
+        self.startDayComboDay.bind('<<ComboboxSelected>>', self.CheckStartDay)
         self.startDayComboDay.grid(row=0, column=2, padx=5, sticky='e')
         #-------------------------------------------------------------------------------------------
         self.stopDayLabel = ttk.Label(recruitFrame, text='Stop Day')
@@ -103,10 +104,12 @@ class MainInput(ttk.Frame):
         #-------------------------------------------------------------------------------------------
         self.stopDayComboMonth = ttk.Combobox(recruitFrame, width=4, values=self.monthsArr)
         self.stopDayComboMonth.current(3)
+        self.stopDayComboMonth.bind('<<ComboboxSelected>>', self.CheckStopDay)
         self.stopDayComboMonth.grid(row=1, column=1, padx=5, sticky='w')
         #-------------------------------------------------------------------------------------------
         self.stopDayComboDay = ttk.Combobox(recruitFrame, width=2, values=[str(i) for i in range(1,32)])
         self.stopDayComboDay.current(10)
+        self.stopDayComboDay.bind('<<ComboboxSelected>>', self.CheckStopDay)
         self.stopDayComboDay.grid(row=1, column=2, padx=5, sticky='e')
         #-------------------------------------------------------------------------------------------
         recruitFrame.grid(row=2, column=1, padx=5, sticky='e')
@@ -176,6 +179,33 @@ class MainInput(ttk.Frame):
         helpButton = ttk.Button(self, text= "Main Help", style="Help.TLabel", command = self.pop_up)
         helpButton.grid(row=0, column=1)
 
+    #--------------------------------------------------------------------------------------------------
+    ## 
+    #  @brief Checks start day to validate date is appropriate for month. Does not consider if leap year
+    #
+    #--------------------------------------------------------------------------------------------------
+    def CheckStartDay(self, event):
+        periodMonthStr = self.startDayComboMonth.get()
+        periodDayStr = self.startDayComboDay.get()
+
+        if periodMonthStr in ['SEP', 'APR', 'JUN', 'NOV'] and int(periodDayStr) > 30:
+            self.startDayComboDay.current(29)
+        if periodMonthStr == 'FEB' and int(periodDayStr) > 28:
+            self.startDayComboDay.current(27)
+
+    #--------------------------------------------------------------------------------------------------
+    ## 
+    #  @brief Checks stop day to validate date is appropriate for month. Does not consider if leap year
+    #
+    #--------------------------------------------------------------------------------------------------
+    def CheckStopDay(self, event):
+        periodMonthStr = self.stopDayComboMonth.get()
+        periodDayStr = self.stopDayComboDay.get()
+
+        if periodMonthStr in ['SEP', 'APR', 'JUN', 'NOV'] and int(periodDayStr) > 30:
+            self.stopDayComboDay.current(29)
+        if periodMonthStr == 'FEB' and int(periodDayStr) > 28:
+            self.stopDayComboDay.current(27)
 
     #--------------------------------------------------------------------------------------------------
     ## 

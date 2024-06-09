@@ -558,24 +558,12 @@ class MainApplication(tk.Tk):
 
         periodMonthStr = self.frame1.startDayComboMonth.get()
         periodDayStr = self.frame1.startDayComboDay.get()
-        if periodMonthStr in ['SEP', 'APR', 'JUN', 'NOV'] and int(periodDayStr) > 30:
-            periodDayStr = '30'
-            self.frame1.startDayComboDay.current(29)
-        if periodMonthStr == 'FEB' and int(periodDayStr) > 28:
-            periodDayStr = '28'
-            self.frame1.startDayComboDay.current(27)
         periodStr = periodMonthStr+' '+periodDayStr
         startPeriod = self.ConvertMonthDayToDayOfYr(periodStr)
         startMonIndx = self.frame1.monthsArr.index(periodMonthStr)
 
         periodMonthStr = self.frame1.stopDayComboMonth.get()
         periodDayStr = self.frame1.stopDayComboDay.get()
-        if periodMonthStr in ['SEP', 'APR', 'JUN', 'NOV'] and int(periodDayStr) > 30:
-            periodDayStr = '30'
-            self.frame1.stopDayComboDay.current(29)
-        if periodMonthStr == 'FEB' and int(periodDayStr) > 28:
-            periodDayStr = '28'
-            self.frame1.startDayComboDay.current(27)
         periodStr = periodMonthStr+' '+periodDayStr
         stopPeriod = self.ConvertMonthDayToDayOfYr(periodStr)
         stopMonIndx = self.frame1.monthsArr.index(periodMonthStr)
