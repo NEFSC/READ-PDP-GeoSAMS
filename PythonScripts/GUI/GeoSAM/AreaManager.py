@@ -1,29 +1,4 @@
 #======================================================================================================
-## @page AreaMgr Sort By Area Frame
-# Assists the user in defining areas of interest to assess accumulated parameters located
-# in these areas of interest.
-#
-# @section pAMp1 Number of Areas
-#
-# @section pAMp2 Output Parameters
-#
-# @section pAMp3 Load and Save Data Sort Files
-#
-# @section pAMp4 Run Sort
-#
-# @section pAMp5 Area SubFrames
-#
-# @subsection pAMp5p1 Years Simulated
-#
-# @subsection pAMp5p2 Accumulated Values for Given Output Parameter
-#
-# @subsection pAMp5p3 Corners
-#
-# @subsubsection pAMp5p3p1 Number of Corners
-#
-# @subsubsection pAMp5p3p2 Corner Identifier by X data and Y data
-# Typically Longitude and Latitude but can be other types
-# 
 #======================================================================================================
 import os
 

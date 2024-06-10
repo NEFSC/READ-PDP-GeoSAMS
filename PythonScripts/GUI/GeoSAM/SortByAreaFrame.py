@@ -1,28 +1,53 @@
 #======================================================================================================
-## @page page5 Sort By Area Frame
+## @page Sort Sort By Area Frame
 # Assists the user in defining areas of interest to assess accumulated parameters located
 # in these areas of interest.
 #
-# @section p6p1 Number of Areas
+# @section Sortp1 Number of Areas
 #
-# @section p6p2 Output Parameters
+# The number of defined areas. This is limited by Max Areas of Interest. See SHOW Args button
+# The # of Areas is limited by default to 25. See SHOW Args for current values.
+# The user can modify this on the command line:
+# > python .\PythonScripts\GUI\GeoSAM\GeoSams.py #Areas #Nodes #Years
 #
-# @section p6p3 Load and Save Data Sort Files
+# Default (same as started with no arguments):\n
+# > python .\PythonScripts\GUI\GeoSAM\GeoSams.py 25 8 5
 #
-# @section p6p4 Run Sort
+# @section Sortp2 Output Parameters
+# This is a dropbox of the selected output parameters on the main tab. After 
+# a simulation and interpolation have been run, the user would select one of
+# these output, click Run Sort, and the amount of that output in each of the
+# defined areas is accumulated by year to the left of each area.
 #
-# @section p6p5 Area SubFrames
+# @section Sortp3 Load and Save Data Sort Files
+# These buttons allow the user to load a predefined set of areas or to save
+# the current set to the named file.
 #
-# @subsection p6p5p1 Years Simulated
+# @section Sortp4 Run Sort
+# This will start the program to check if a region grid value for a given 
+# year is within one of the specified area and if so accumulate the year
+# sum with that value.
 #
-# @subsection p6p5p2 Accumulated Values for Given Output Parameter
+# @section Sortp5 Area SubFrames
+# @subsection Sortp5p1 YYYY
+# For each year, from Start Year to Stop Year as given in the Main tab
+# an entry box is provided to store the accumulated parameter for that year.
+# These are not populated until after the Run Sort button has been clicked.
 #
-# @subsection p6p5p3 Corners
+# @subsection Sortp5p2 Comment
+# Optional. Enter a comment to describe the area being specfied.
 #
-# @subsubsection p6p5p3p1 Number of Corners
+# @subsection Sortp5p3 # Corners
+#  Also called nodes or sides. This is limited by Max Nodes in Area. 
+# See SHOW Args for current values. This can be changed on the command line. See above
 #
-# @subsubsection p6p5p3p2 Corner Identifier by Longitude and Latitude
-# 
+# @subsection Sortp5p4 Update # Corners
+# Use Enter Key or click this button to populate the corner entries for the given number
+#
+# @subsection Sortp5p5 Corner N
+# These are the coordinates of the area vertices. Enter the Longitude and Latitude of the 
+# vertices for the area. It is up to the user to ensure that a closed shape is defined.
+#
 #======================================================================================================
 import os
 
@@ -89,9 +114,11 @@ class SortByArea(ttk.Frame):
         self.comboParameter = ttk.Combobox(sortAreaFrame, values=paramStr)
         self.comboParameter.grid(row=1, column=0, sticky='ns')
         # --------------------------------------------------------------------------------------------------------
+        self.dataSortFileLabel = ttk.Label(sortAreaFrame, text='Areas of Interest File Name')
+        self.dataSortFileLabel.grid(row=0, column=1, sticky='w')
         self.dataSortFileEntry = self.myEntry=ttk.Entry(sortAreaFrame, width=25)
         self.dataSortFileEntry.insert(0, 'AreasOfInterestDataSort.csv')
-        self.dataSortFileEntry.grid(row=0, column=1, sticky='we', padx=5)
+        self.dataSortFileEntry.grid(row=1, column=1, sticky='we', padx=5)
         # --------------------------------------------------------------------------------------------------------
         self.openDataSortButton = ttk.Button(sortAreaFrame, text='Load Data Sort File', style="BtnGreen.TLabel", command=self.GetDataSortFile)
         self.openDataSortButton.grid(row=0, column=2, sticky='w')
@@ -308,47 +335,58 @@ class SortByArea(ttk.Frame):
     2) For each area
        a) Enter the number of corners
 
-# Defined
-    The number of defined areas as determined by the user. This is limited by 
+# of Areas
+    The number of areas as determined by the user. This is limited by 
     Max Areas of Interest. See SHOW Args button
 
-    The # Defined is limited by default to 25. See SHOW Args for current values.
+    The # of Areas is limited by default to 25. See SHOW Args for current values.
     The user can modify this on the command line:
     > python .\PythonScripts\GUI\GeoSAM\GeoSams.py #Areas #Nodes #Years
     Default:
     > python .\PythonScripts\GUI\GeoSAM\GeoSams.py 25 8 5
 
-Update # Defined
+Update # of Areas
     Use Enter Key or click this button after entering a value in # Defined to 
     populate/show the Area N defintions.
 
-Fishing Mort File
-    The name of the file used to hold this information. The user can load the 
-    default file 'FishingMortality.csv' or save their own configuration.
+Output Parameters
+    This is a dropbox of the selected output parameters on the main tab. After 
+    a simulation and interpolation have been run, the user would select one of
+    these output, click Run Sort, and the amount of that output in each of the
+    defined areas is accumulated by year to the left of each area.
 
-    If this feature is not desired then enter NONE in the window
+Areas of Interest File Name
+    The name of the file whose data is currently loaded. There is a default
+    file included with the installed files
 
-    Use Load Fishing Mort File to load a predefined set of data
+Load and Save Data Sort Files
+    These buttons allow the user to load a predefined set of areas or to 
+    save the current set to the named file.
 
-    Use Save Fishing Mort File to save the currently displayed setting
-
-Year
-    The year for which Area N is valid
+Run Sort
+    This will start the program to check if a region grid value for a given 
+    year is within one of the specified area and if so accumulate the year
+    sum with that value.
 
 Area N
+    YYYY: For each year, from Start Year to Stop Year as given in the Main tab
+    an entry box is provided to store the accumulated parameter for that year.
+    These are not populated until after the Run Sort button has been clicked.
+
     Comment: Optional. Enter a comment to describe the area being specfied.
 
-    # Corners: Specifically, the number of Fields for the year given. 
+    # Corners: Also called nodes or sides. 
         This is limited by Max Nodes in Area. See SHOW Args for current values.
         This can be changed on the command line. See above
-
+               
     Update # Corners
-        Use Enter Key or click this button to populate the field entries for 
+        Use Enter Key or click this button to populate the corner entries for 
         the given number
 
-    Field N
-        These are the area numbers as determined in Special Access Frame. Enter
-        the area number and its Mortality.
+    Corner N
+        These are the coordinates of the area vertices. Enter the Longitude and
+        Latitude of the vertices for the area. It is up to the user to ensure 
+        that a closed shape is defined.
 '''
         #about = re.sub("\n\s*", "\n", about) # remove leading whitespace from each line
         popup = tk.Toplevel()
