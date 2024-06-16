@@ -239,7 +239,7 @@ class UKInterpolation(ttk.Frame):
         if file_path:
             self.spatCfgFile.myEntry.delete(0,tk.END)
             self.spatCfgFile.myEntry.insert(0,f[-1])
-            self.parent.WriteSpatialFncsConfig()
+            self.parent.WriteSpatialFncsConfig(file_path)
 
     def SaveMASpatialFcnConfigFName(self):
         file_path = filedialog.asksaveasfilename(title="Open Configuration File", filetypes=[("CFG files", "*.cfg")], defaultextension='cfg', initialdir=self.startDir)
@@ -251,19 +251,7 @@ class UKInterpolation(ttk.Frame):
         
         # Save MA Unique UK Config file
         cfgFile  = os.path.join(self.root,'Configuration', 'Interpolation', 'UK_MA.cfg')
-        with open(cfgFile, 'w') as f:
-            f.write('# Set inputs for universal kriging\n')
-            f.write('Kriging variogram form = '+self.formMACombo.get()+'\n')
-            f.write('#\n')
-            f.write('# Configuration files are expected to be in the Configuration directory\n')
-            f.write('#\n')
-            f.write('NLS Spatial Fcn File Name = '+self.spatMACfgFile.myEntry.get()+'\n')
-            f.write('#\n')
-            f.write('# Save interim data by writing out supporting data files\n')
-            f.write('#\n')
-            f.write('Save Data = F\n')
-            f.close()
-
+        self.parent.CloseUKConfig(cfgFile, self.formMACombo.get(), self.spatMACfgFile.myEntry.get())
 
     def SaveGBSpatialFcnConfigFName(self):
         file_path = filedialog.asksaveasfilename(title="Open Configuration File", filetypes=[("CFG files", "*.cfg")], defaultextension='cfg', initialdir=self.startDir)
@@ -275,18 +263,7 @@ class UKInterpolation(ttk.Frame):
         
         # Save GB Unique UK Config file
         cfgFile  = os.path.join(self.root,'Configuration', 'Interpolation', 'UK_GB.cfg')
-        with open(cfgFile, 'w') as f:
-            f.write('# Set inputs for universal kriging\n')
-            f.write('Kriging variogram form = '+self.formGBCombo.get()+'\n')
-            f.write('#\n')
-            f.write('# Configuration files are expected to be in the Configuration directory\n')
-            f.write('#\n')
-            f.write('NLS Spatial Fcn File Name = '+self.spatGBCfgFile.myEntry.get()+'\n')
-            f.write('#\n')
-            f.write('# Save interim data by writing out supporting data files\n')
-            f.write('#\n')
-            f.write('Save Data = F\n')
-            f.close()
+        self.parent.CloseUKConfig(cfgFile, self.formGBCombo.get(), self.spatGBCfgFile.myEntry.get())
 
     #--------------------------------------------------------------------------------------------------
     ## 
@@ -514,19 +491,21 @@ Spatial Fcn Config File:
     This is the name of the file used to hold the spatial function definitions.
     It is saved in the UK Configuration file.
 
-    SPECIAL NOTE: When processing AL domain, two additional boxes will appear
+    SPECIAL NOTE: When processing AL domain, two additional boxes will appear.
+    Load, save these files to also setup UK_MA and UK_MB to desired UK settings
+
 
     MA Parameters:
         MA Spatial Fcn: 'SpatialFcnsMA.cfg' 
         Is used to interpolate data points within the MA region.
         The user can load this file, change the setting, and then save to a
-        different file to preserve installed file.
+        different file to preserve installed file, keep it the same.
 
     GB Parameters:
         GB Spatial Fcn: 'SpatialFcnsGB.cfg' 
         Is used to interpolate data points within the GB region.
         The user can load this file, change the setting, and then save to a
-        different file to preserve installed file.
+        different file to preserve installed file, keep it the same.
 
     UK_MA.cfg, UK_GB.cfg:
         These file names are not configurable. The GUI will save the config

@@ -50,6 +50,7 @@
 #
 #======================================================================================================
 import os
+import shutil
 
 from tkinter import ttk
 from tkinter import messagebox
@@ -78,6 +79,7 @@ class SortByArea(ttk.Frame):
         labelArr = ['Corner', 'Long', 'Lat ', '0.0', '0.0']
         self.root = os.getcwd() #os.environ['ROOT']
         self.startDir = os.path.join(self.root, 'DataSort')
+        self.exportFileName = ''
         self.friend = friend
         self.areaFName = None
 
@@ -99,13 +101,13 @@ class SortByArea(ttk.Frame):
         sortAreaFrame = ttk.LabelFrame(self.scrollFrame.viewPort, text='Sort By Area', style='SAMS.TFrame', width=400, height=200)
         # --------------------------------------------------------------------------------------------------------
         self.numAreasLabel = ttk.Label(sortAreaFrame, text='# of Areas')
-        self.numAreasLabel.grid(row=0, column=0, sticky='w')
+        self.numAreasLabel.grid(row=0, column=0, sticky='w', padx=5)
         # --------------------------------------------------------------------------------------------------------
         self.numAreasEntry=ttk.Entry(sortAreaFrame,validatecommand=numbersCallback, width=5)
         self.numAreasEntry.insert(0, str(self.numAreas))
         reg=self.numAreasEntry.register(numbersCallback)
         self.numAreasEntry.configure(validate='key', validatecommand=(reg, '%P'))
-        self.numAreasEntry.grid(row=1, column=0, sticky='w')
+        self.numAreasEntry.grid(row=1, column=0, sticky='w', padx=5)
         self.numAreasEntry.focus()
         self.numAreasEntry.bind('<Return>', self.EnterKeyClicked)
         # --------------------------------------------------------------------------------------------------------
@@ -129,11 +131,33 @@ class SortByArea(ttk.Frame):
         self.numAreasButton = ttk.Button(sortAreaFrame, text='Update # Areas', command=self.NumAreasUpdate)
         self.numAreasButton.grid(row=2, column=0, sticky='w')
         # --------------------------------------------------------------------------------------------------------
-        self.saveDataSortButton = ttk.Button(sortAreaFrame, text='Run Sort', command=self.RunSort)
-        self.saveDataSortButton.grid(row=2, column=2, sticky='w')
+        self.runSortButton = ttk.Button(sortAreaFrame, text='Run Sort', command=self.RunSort)
+        self.runSortButton.grid(row=2, column=2, sticky='e')
+        # --------------------------------------------------------------------------------------------------------
+        # +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+        exportFrame = ttk.LabelFrame(sortAreaFrame, text='Export Results', style='SAMS.TFrame')
+        # --------------------------------------------------------------------------------------------------------
+        self.exportThisSortButton = ttk.Button(exportFrame, text='Export\nThis', style='BtnLime.TLabel', command=self.ExportThis)
+        self.exportThisSortButton.grid(row=0, column=0)
+        self.exportAllSortButton = ttk.Button(exportFrame, text='Export\nAll', style='BtnLime.TLabel', command=self.ExportAll)
+        self.exportAllSortButton.grid(row=0, column=1)
+        # --------------------------------------------------------------------------------------------------------
+        self.exportFileLabel = ttk.Label(exportFrame, text='Export File Name')
+        self.exportFileLabel.grid(row=0, column=2, sticky='n')
+        # --------------------------------------------------------------------------------------------------------
+        self.exportFileEntry = self.myEntry=ttk.Entry(exportFrame, width=25)
+        self.exportFileEntry.insert(0, self.exportFileName)
+        self.exportFileEntry.grid(row=0, column=2, sticky='s', padx=5)
+        # --------------------------------------------------------------------------------------------------------
+        self.browseExportButton = ttk.Button(exportFrame, text='Browse For Export File', style="BtnGreen.TLabel", command=self.BrowseExportFile)
+        self.browseExportButton.grid(row=0, column=3, sticky='w')
+        # --------------------------------------------------------------------------------------------------------
+
+        exportFrame.grid(row=3, column=0, columnspan=3, sticky='w')
+        # +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
         # --------------------------------------------------------------------------------------------------------
         self.areas = AreaManager(self, sortAreaFrame, self.numAreasMax, self.numCornersMax,
-                                   elementRow=3, elementCol=0, cornerRow=0, cornerColumn=0, labelArr=labelArr,
+                                   elementRow=4, elementCol=0, cornerRow=0, cornerColumn=0, labelArr=labelArr,
                                    includeYears=True, numYearsMax=self.maxYears, yearStart=self.yearStart, yearStop=self.yearStop)
 
         # now hide
@@ -191,12 +215,14 @@ class SortByArea(ttk.Frame):
     #---------------------------------------------------------------------------------------------------------
     #---------------------------------------------------------------------------------------------------------
     def RunSort(self):
+        runSortErrors = 0
         paramData = [0.0 for _ in range(self.numYears)] # data read in from file
         rows = self.numAreas
         cols = self.numYears
         accumParamData = [[0.0 for _ in range(cols)] for _ in range(rows)] # accumulated data if in region
         desiredParam = self.comboParameter.get()
         # typical name: Lat_Lon_Grid_EBMS_MA_2015_2017
+        #               Lat_Lon_Grid_ABUN_AL_2015_2017
         paramFName = os.path.join(self.root, 'Results', 'Lat_Lon_Grid_' + 
              desiredParam + self.domainName + '_' + str(self.yearStart) + '_' + str(self.yearStop) + '.csv')
         
@@ -209,9 +235,8 @@ class SortByArea(ttk.Frame):
                 self.areaData[i].long[j] = float(self.areas.areaSubFrame[i].corners[j].longitude.myEntry.get())
                 self.areaData[i].lat[j] = float(self.areas.areaSubFrame[i].corners[j].latitude.myEntry.get())
 
-        of = open('temp.txt', 'w')
-
         if os.path.isfile(paramFName):
+            ####of = open('temp.txt', 'w')
             grid = 1
             with open(paramFName, 'r') as f:
                 while True:
@@ -242,21 +267,25 @@ class SortByArea(ttk.Frame):
                             # if so accumulate parameter data
                             for j in range(self.numYears):
                                 accumParamData[i][j] += paramData[j]
-                            of.write('Grid #{} found in area{}\n'.format(grid,i+1))
+                            ####of.write('Grid #{} found in area{}\n'.format(grid,i+1))
                     grid += 1
+            ####of.close()
+
+            # display results
+            for i in range(self.numAreas):
+                for j in range(self.numYears):
+                    self.areas.areaSubFrame[i].results[j].myEntry.delete(0,tk.END)
+                    # round to 4 decimal places
+                    # round(x,4) can have unpredicable results, use simple math instead
+                    r = 1e4
+                    y = int(accumParamData[i][j] * r + 0.5) / r
+                    self.areas.areaSubFrame[i].results[j].myEntry.insert(0, str(y))
 
         else:
             messagebox.showerror("Reading Parameter File", f'No data for '+desiredParam+'\nHas Simulation been run?\nAre years correct?')
+            runSortErrors = 1
 
-        # display results
-        for i in range(self.numAreas):
-            for j in range(self.numYears):
-                self.areas.areaSubFrame[i].results[j].myEntry.delete(0,tk.END)
-                # round to 4 decimal places
-                # round(x,4) can have unpredicable results, use simple math instead
-                r = 1e4
-                y = int(accumParamData[i][j] * r + 0.5) / r
-                self.areas.areaSubFrame[i].results[j].myEntry.insert(0, str(y))
+        return runSortErrors
 
     #---------------------------------------------------------------------------------------------------------
     #---------------------------------------------------------------------------------------------------------
@@ -264,6 +293,12 @@ class SortByArea(ttk.Frame):
         self.numAreas = self.areas.ReadAreaCorners(self.areaFName)
         self.numAreasEntry.delete(0,tk.END)
         self.numAreasEntry.insert(0, str(self.numAreas))
+
+        self.exportFileEntry.delete(0,tk.END)
+        f = self.exportFileName.split('/')
+        self.exportFileEntry.delete(0,tk.END)
+        self.exportFileEntry.insert(0, f[-1])
+
         self.NumAreasUpdate()
         self.areas.UpdateWidgets()
 
@@ -299,6 +334,101 @@ class SortByArea(ttk.Frame):
             self.dataSortFileEntry.delete(0,tk.END)
             f = fName.split('/')
             self.dataSortFileEntry.insert(0, f[-1])
+
+    #---------------------------------------------------------------------------------------------------------
+    #---------------------------------------------------------------------------------------------------------
+    def BrowseExportFile(self):
+        file_path = filedialog.asksaveasfilename(title="Open CSV File", filetypes=[("CSV files", "*.csv")], defaultextension='csv', initialdir=self.startDir)
+        if file_path:
+            f = file_path.split('/')
+            self.exportFileEntry.delete(0,tk.END)
+            self.exportFileEntry.insert(0, f[-1])
+            self.exportFileName = file_path
+
+    #---------------------------------------------------------------------------------------------------------
+    ## This method exports the current page of data, just a single output parameter
+    #
+    # First row :
+    #  AREA     YEAR        PARAMETER
+    #   1       StartYear     
+    #   1       ...
+    #   1       StopYear
+    #  ...      ...
+    #   N       StartYear     
+    #   N       ...
+    #   N       StopYear     
+    #---------------------------------------------------------------------------------------------------------
+    def ExportThis(self, nomsg=False):
+        if self.exportFileName != '':
+            # Ensure data is up to date
+            err = self.RunSort()
+
+            if err == 0:
+                # get current parameter
+                outStr = self.comboParameter.get()
+                with open(self.exportFileName, 'w') as f:
+                    f.write('AREA,YEAR,'+outStr+'\n')
+
+                    for a in range(self.numAreas):
+                        for yr in range(self.numYears):
+                            f.write(str(a+1) + ',' + str(yr+self.yearStart) + ',' + self.areas.areaSubFrame[a].results[yr].myEntry.get() + '\n')
+
+                    f.close()
+                if not nomsg: messagebox.showinfo('Export This', f'FILE SAVED: {self.exportFileName}')
+        else:
+            messagebox.showerror('Export This', 'File Name has not been defined.')
+
+    #---------------------------------------------------------------------------------------------------------
+    ## Export all select parameters
+    #
+    # For each parameter
+    # - Verify data file exists, Lat_Lon_Grid_ + ABUN_ + AL + _ 2015_2017
+    #---------------------------------------------------------------------------------------------------------
+    def ExportAll(self):
+        if self.exportFileName != '':
+            # Check that data files are present
+            filesExist = True
+            n = len(self.paramStr)
+            for i in range(n):
+                dataFileName = 'Lat_Lon_Grid_' + self.paramStr[i] + self.domainName + '_' + str(self.yearStart) + '_' + str(self.yearStop ) + '.csv'
+                if not os.path.isfile(os.path.join('Results', dataFileName)):
+                    filesExist = False
+                    break
+
+            if filesExist:
+                # Create Initial File
+                self.comboParameter.current(0)
+                self.RunSort()
+                self.ExportThis(True)
+
+                # now append remaining outputs
+                scratchFName = os.path.join('Results', 'TEMP.TXT')
+                for i in range(1,n):
+                    of = open(scratchFName, 'w')
+                    with open(self.exportFileName, 'r') as f:
+                        self.comboParameter.current(i)
+                        self.RunSort()
+                        # read header
+                        line = f.readline()
+                        line = line.strip()+','+self.paramStr[i]+'\n'
+                        of.write(line)
+
+                        for a in range(self.numAreas):
+                            for yr in range(self.numYears):
+                                line = f.readline()
+                                line = line.strip()+','+self.areas.areaSubFrame[a].results[yr].myEntry.get()+'\n'
+                                of.write(line)
+                    of.close()
+                    f.close()
+                    shutil.copy(scratchFName, self.exportFileName)
+                
+                messagebox.showinfo('Export This', f'FILE SAVED: {self.exportFileName}')
+
+            else: # data files have not yet been generated.
+                 messagebox.showerror('Export All', 'Data Files do not exist. START Sim')
+
+        else:
+            messagebox.showerror('Export All', 'File Name has not been defined.')
 
     # --------------------------------------------------------------------------------------------------------
     # --------------------------------------------------------------------------------------------------------
@@ -367,6 +497,33 @@ Run Sort
     This will start the program to check if a region grid value for a given 
     year is within one of the specified area and if so accumulate the year
     sum with that value.
+
+Export Results
+    These buttons will export the data to a CSV file using the following format
+
+            AREA  YEAR       LPUE_  ... 
+            1     StartYear  xxxx
+            1     ...
+            1     StopYear   xxxx
+            ...
+            N     StartYear  xxxx
+            N     ...
+            N     StopYear   xxxx
+
+    Export This
+        This button will export the data set to the file name in Export File.
+        It will first call the RunSort method to enure the data is up to date.
+        There will only be one column of data as given by the current combo box
+        setting.
+
+    Export All
+        This button will step through each of the Output Parameters given in 
+        the combo box, call RunSort for that parameter, and then export the
+        parameter data as columns in a CSV file.
+
+    Browse For Export File
+        Allows user to select an existing file name or enter their own. The
+        file is not saved until one of the Export buttons is clicked.
 
 Area N
     YYYY: For each year, from Start Year to Stop Year as given in the Main tab

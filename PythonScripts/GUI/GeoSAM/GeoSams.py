@@ -49,6 +49,7 @@ import sys
 import os
 import sys
 import platform
+import csv
 from collections import defaultdict
 
 from MainInputFrame import *
@@ -97,7 +98,9 @@ class MainApplication(tk.Tk):
         self.style.configure('SAMS.TFrame', borderwidth=1, relief='solid', labelmargins=20)
         self.style.configure('SAMS.TFrame.Label', font=('courier', 10, 'bold'))
         self.style.configure("BtnGreen.TLabel", padding=6, relief='raised', background="#0F0")
+        self.style.configure("BtnLime.TLabel", padding=6, relief='raised', background="#d3eb00")
         self.style.configure("BtnBluGrn.TLabel", padding=6, relief='raised', background="#0FF")
+        self.style.configure("BtnMaize.TLabel", padding=6, relief='raised', background="#cf34eb")
         self.style.configure("Help.TLabel", padding=6, relief='raised', foreground='blue', background="#42e6f5")
 
 
@@ -455,8 +458,6 @@ class MainApplication(tk.Tk):
         #  PLOTTING
         # ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++   
         # We have the needed output paramters so lets plot data and save to pdf files
-        messagebox.showinfo("Matlab/Octave", f'Plotting Results')
-
         p = platform.platform()
         for pStr in self.paramStr:
             str1 = 'Results/Lat_Lon_Surv_' + pStr + self.domainName
@@ -473,7 +474,7 @@ class MainApplication(tk.Tk):
             if (result.returncode != 0):
                 errorStr = '[31m' + ''.join(str(e)+' ' for e in cmd) + ' error: ' + hex(result.returncode) + '[0m'
                 print(errorStr)
-                return (result.returncode, result.args)
+                return (result.returncode, result.args, errorStr)
 
         return (0, '', '')
 
@@ -489,8 +490,8 @@ class MainApplication(tk.Tk):
         self.WriteGrowthConfig()
         self.WriteGridMgrConfig()
         self.WriteUKConfig()
-        cfgFile  = os.path.join(self.root,'Configuration', 'Interpolation', self.frame4.spatCfgFile.myEntry.get())
-        self.WriteSpatialFncsConfig(cfgFile)
+        # cfgFile  = os.path.join(self.root,'Configuration', 'Interpolation', self.frame4.spatCfgFile.myEntry.get())
+        # self.WriteSpatialFncsConfig(cfgFile)
         messagebox.showinfo("Save Files", "Configuration Files Saved")
 
     #-------------------------------------------------------------------------------------
@@ -644,31 +645,33 @@ class MainApplication(tk.Tk):
     #-------------------------------------------------------------------------------------
     def WriteUKConfig(self):
         cfgFile  = os.path.join(self.root,'Configuration', 'Interpolation', self.frame1.ukCfgFile.myEntry.get())
+        self.CloseUKConfig(cfgFile, self.frame4.formCombo.get(), self.frame4.spatCfgFile.myEntry.get()),
+    
+    def CloseUKConfig(self, cfgFile, combo, fName):
         with open(cfgFile, 'w') as f:
             f.write('# Set inputs for universal kriging\n')
-            #DEPRECATE#f.write('# Observation files are expecting in the Data subdirectory\n')
-            #DEPRECATE#f.write('#\n')
-            #DEPRECATE#f.write('#(max interp field < hlf*max(obs))\n')
-            #DEPRECATE#f.write('High Limit Factor = '+self.frame4.highLimit.myEntry.get()+'\n')
-            f.write('Kriging variogram form = '+self.frame4.formCombo.get()+'\n')
+            f.write('Kriging variogram form = '+combo+'\n')
             f.write('#\n')
-            #DEPRECATE#f.write('# Keep this line before "Power Transform Parameter"\n')
-            #DEPRECATE#f.write('#\n')
-            #DEPRECATE#f.write('Log Transform = '+self.frame4.useLogTransCombo.get()+'\n')
-            #DEPRECATE#f.write('#\n')
-            #DEPRECATE#f.write('# Power transform interpolates f(x)^alpha \n')
-            #DEPRECATE#f.write('# generally 0< alpha < 1 but this has not been tested \n')
-            #DEPRECATE#f.write('# not used if "Log Transform = T"\n')
-            #DEPRECATE#f.write('#\n')
-            #DEPRECATE#f.write('Power Transform Parameter = '+self.frame4.powerTrans.myEntry.get()+'\n')
-            #DEPRECATE#f.write('#\n')
             f.write('# Configuration files are expected to be in the Configuration directory\n')
             f.write('#\n')
-            f.write('NLS Spatial Fcn File Name = '+self.frame4.spatCfgFile.myEntry.get()+'\n')
+            f.write('NLS Spatial Fcn File Name = '+fName+'\n')
             f.write('#\n')
             f.write('# Save interim data by writing out supporting data files\n')
             f.write('#\n')
             f.write('Save Data = F\n')
+            f.write('#\n')
+            f.write('# Interpolation can sometimes create excessively large values.\n')
+            f.write('# To bypass, Use Saturate can be T or F, but set a larger threshold, i.e. 1E309 (Infinity).\n')
+            f.write('# The user can choose to saturate to the threshold, (T), or \n')
+            f.write('# reset the value to 0.0 when exceeded, (F).\n')
+            f.write('#\n')
+            f.write('Use Saturate = '+ self.frame1.useSaturateCombo.get()+'\n')
+            f.write('#\n')
+            f.write('# Threshold value to use\n')
+            f.write('# Use Saturate = T, if field > Threshold then field = Threshold\n')
+            f.write('# Use Saturate = F, if field > Threshold then field = 0.0\n')
+            f.write('#\n')
+            f.write('Overflow Threshold = '+ self.frame1.saturateThresh.myEntry.get() +'\n')
             f.close()
 
     #-------------------------------------------------------------------------------------

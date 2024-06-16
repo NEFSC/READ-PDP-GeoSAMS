@@ -92,6 +92,9 @@ type(NLSF_Class), allocatable ::nlsf(:)
 real(dp) alpha_obs
 logical save_data
 real(dp) f0_max
+real(dp) overflow_thresh
+logical use_saturate
+
 real e, etime, t(2)
 e = etime(t)         !  Startup etime - do not use result
 
@@ -103,7 +106,7 @@ write (*,*) term_grn, "PROGRAM STARTING  ", &
 & 'elapsed:', term_yel, e, term_grn, ', user:', term_yel, t(1), term_grn, ', sys:', term_yel, t(2), term_blk
 
 ! DEPRECATE !call Read_Startup_Config(domain_name, IsLogT, IsHiLimit, fmax_multiplier, par, alpha, save_data, f0_max)
-call Read_Startup_Config(domain_name, par, alpha_obs, save_data, f0_max)
+call Read_Startup_Config(domain_name, par, alpha_obs, save_data, f0_max, overflow_thresh, use_saturate)
 
 call random_seed( )
 
@@ -126,12 +129,12 @@ nsf = NLSF_Count_Defined_Functions()
 allocate(nlsf(1:nsf))
 nsf = NLSF_Define_Functions(nlsf, grid, f0_max)
 
-write (*,*) term_blu,"Reading ", domain_name
-write(*,*) 'Observation file:  ', trim(GridMgr_Get_Obs_Data_File_Name())
+write (*,*) term_blu,"Reading ", term_blk, domain_name
+write(*,*) term_blu, 'Observation file:  ', term_blk, trim(GridMgr_Get_Obs_Data_File_Name())
 ! write(*,*) 'Logtransorm:       ', IsLogT
 ! write(*,*) 'Using High Limit:  ', IsHiLimit
 ! write(*,'(A,F10.4)') ' High limit fmax:   ', fmax
-write(*,*) 'Form of variagram: ', par%form
+write(*,*) term_blu, 'Form of variagram: ', term_blk, par%form
 if (save_data) then
     write(*,*) 'All data is saved'
 else
@@ -142,17 +145,19 @@ if (NLSF_Get_Use_Orig_Data()) then
 else
     write(*,*) 'Force 1D fit to residual data'
 endif 
-write(*,*) term_blk
-write(*,*)'num_obs_points=', num_obs_points, 'nsf limit=', NLSF_Get_NSF_Limit(), ' alpha = ', alpha_obs
-write(*,*)'num_grid_points=', num_points
-write(*,'(A,L2)') 'Is Truncate Range: ', NLSF_Get_Is_Truncate_Range()
-write(*,'(A,L2)') 'Using Greedy Fit:  ', NLSF_Get_Use_Greedy_Fit()
+write(*,*) 
+write(*,*) term_blu, 'num_obs_points=', term_blk, num_obs_points, term_blu, 'nsf limit=', term_blk, NLSF_Get_NSF_Limit(), &
+&          term_blu, ' alpha = ', term_blk, alpha_obs
+write(*,*) term_blu, 'num_grid_points=', term_blk, num_points, term_blu
+write(*,'(A,A,A, L2)') term_blu, 'Is Truncate Range: ', term_blk, NLSF_Get_Is_Truncate_Range()
 f0_max = NLSF_Get_Z_F0_Max()
 if (f0_max > 0._dp) then
-    write(*,*) 'Using f0_max setting:', f0_max, term_blk
+    write(*,*) term_blu, ' Using f0_max setting: ', term_blk, f0_max
 else
-    write(*,*) 'Using f0_max setting: Determined by algorithm', term_blk
+    write(*,*) term_blu, ' Using f0_max setting: ', term_blk, 'Determined by algorithm'
 endif
+write(*,'(A,A,A,1PE11.2)') term_blu, ' Overflow Threshold: ', term_blk, overflow_thresh
+write(*,*) term_blu, 'Using Saturate Overflow: ', term_blk, use_saturate
    
 !if(IsLogT) then
     SF = Compute_MEAN(obs%field(1:num_obs_points), num_obs_points) / 5.D0
@@ -225,7 +230,7 @@ if (save_data) then
 else
     !DEPRECATE trend!call OutputEstimates(num_points, num_spat_fcns, grid, Ceps, IsLogT, IsHiLimit, fmax, SF, domain_name, alpha)
     !DEPRECATE LogT HiLimit!call OutputEstimates(num_points, grid, Ceps, IsLogT, IsHiLimit, fmax, SF, alpha)
-    call OutputEstimates(num_points, grid, Ceps, SF, alpha_obs)
+    call OutputEstimates(num_points, grid, Ceps, SF, alpha_obs, overflow_thresh, use_saturate)
 endif
 
 write(*,*)'num_points, num_survey', num_points, num_obs_points
@@ -263,7 +268,7 @@ endprogram
 ! Keston Smith, Tom Callaghan (IBSS) 2024
 !--------------------------------------------------------------------------------------------------
 !DEPRECATE!subroutine Read_Startup_Config(domain_name, IsLogT, IsHiLimit, fmax_multiplier, par, alpha, save_data, f0_max)
-subroutine Read_Startup_Config(domain_name, par, alpha_obs, save_data, f0_max)
+subroutine Read_Startup_Config(domain_name, par, alpha_obs, save_data, f0_max, overflow_thresh, use_saturate)
 use globals
 use Krig_Mod
 use NLSF_Mod, only : NLS_Set_Config_File_Name => Set_Config_File_Name
@@ -278,8 +283,10 @@ character(tag_len) tag
 character(value_len) value
 !DEPRECATE!real(dp),intent(out)::  fmax_multiplier
 real(dp), intent(out) :: alpha_obs
-logical, intent(out) :: save_data
+logical, intent(out)  :: save_data
 real(dp), intent(out) :: f0_max
+real(dp), intent(out) :: overflow_thresh
+logical, intent(out)  :: use_saturate
 
 integer ncla
 character(fname_len) cfg_file_name
@@ -293,6 +300,9 @@ logical exists
 alpha_obs=1.D0
 save_data = .false.
 f0_max = 0._dp
+use_saturate = .false.
+overflow_thresh = 1.D308
+
 !DEPRECATE!fmax_multiplier = 1.5
 
 ! Check what was entered on command line
@@ -384,6 +394,12 @@ do
 
         case('Save Data')
             read(value,*) save_data
+
+        case('Use Saturate')
+            read(value,*) use_saturate
+
+        case('Overflow Threshold')
+            read(value,*) overflow_thresh
 
         case default
             write(*,*) term_red, 'ReadInput: Unrecognized line in UK.cfg'
@@ -513,7 +529,7 @@ endsubroutine OutputUK
 !> That is moving from survey data locations to MA/GB grid locations
 !---------------------------------------------------------------------------------------------------
 !DEPRECATE trend!subroutine OutputEstimates(num_points, num_spat_fcns, grid, Ceps, IsLogT, IsHiLimit, fmax, SF, domain_name, nlsf, alpha, beta)
-subroutine OutputEstimates(num_points, grid, Ceps, SF, alpha_obs)
+subroutine OutputEstimates(num_points, grid, Ceps, SF, alpha_obs, overflow_thresh, use_saturate)
 use globals
 use Grid_Manager_Mod
 use NLSF_Mod
@@ -531,6 +547,8 @@ real(dp), intent(in) :: SF !,fmax
 !DEPRECATE trend!type(NLSF_Class), intent(in)::nlsf(*)
 real(dp), intent(in) :: alpha_obs
 !DEPRECATE trend!real(dp), intent(in) :: beta(*)
+real(dp), intent(in) :: overflow_thresh
+logical, intent(in)  :: use_saturate
 
 integer n
 real(dp) V(num_points)
@@ -563,6 +581,14 @@ write(*,*) 'Writing ouput to: ', trim(fout)
 ! Save results along with location information
 open(63,file=trim(fout))
 do n=1, num_points
+    ! Overflow results
+    if (grid%field(n) > overflow_thresh) then
+        if (use_saturate) then
+            grid%field = overflow_thresh
+        else
+            grid%field(n) = 0.D0
+        endif
+    endif
     write(63, fmtstr) grid%lat(n), grid%lon(n), grid%field(n)
 enddo
 close(63)

@@ -708,7 +708,7 @@ if (plot_data_sel%plot_EBMS) call Write_Lat_Lon_Preamble(num_grids, grid, output
 if (plot_data_sel%plot_FEFF) call Write_Lat_Lon_Preamble(num_grids, grid, output_dir//'Lat_Lon_Surv_FEFF_'//domain_name//'.csv')
 if (plot_data_sel%plot_FMOR) call Write_Lat_Lon_Preamble(num_grids, grid, output_dir//'Lat_Lon_Surv_FMOR_'//domain_name//'.csv')
 if (plot_data_sel%plot_LAND) call Write_Lat_Lon_Preamble(num_grids, grid, output_dir//'Lat_Lon_Surv_LAND_'//domain_name//'.csv')
-if (plot_data_sel%plot_LPUE) call Write_Lat_Lon_Preamble(num_grids, grid, output_dir//'Lat_Lon_Surv_LNDW_'//domain_name//'.csv')
+if (plot_data_sel%plot_LNDW) call Write_Lat_Lon_Preamble(num_grids, grid, output_dir//'Lat_Lon_Surv_LNDW_'//domain_name//'.csv')
 if (plot_data_sel%plot_LPUE) call Write_Lat_Lon_Preamble(num_grids, grid, output_dir//'Lat_Lon_Surv_LPUE_'//domain_name//'.csv')
 if (plot_data_sel%plot_RECR) call Write_Lat_Lon_Preamble(num_grids, grid, output_dir//'Lat_Lon_Surv_RECR_'//domain_name//'.csv')
 
