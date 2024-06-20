@@ -94,6 +94,8 @@ class UKInterpolation(ttk.Frame):
         self.okToRepaintFunctions = True
         self.nsfMax = 20
         self.functions = [None for _ in range(self.nsfMax)]
+        self.maFunctions = [None for _ in range(self.nsfMax)]
+        self.gbFunctions = [None for _ in range(self.nsfMax)]
         self.domainName = self.friend.domainNameCombo.get()
         if self.domainName == 'AL':
             self.nsf = 11
@@ -101,24 +103,26 @@ class UKInterpolation(ttk.Frame):
             self.nsf = 9
         else:
             self.nsf = 5
+        self.maNsf = 0
+        self.gbNsf = 0
 
         # +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
         scrollFrame = ScrollFrame(self) # add a new scrollable frame.
         # +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-        funcFrame = ttk.LabelFrame(scrollFrame.viewPort, text='Spatial Functions', style='SAMS.TFrame', width=400, height=200)
+        self.funcFrame = ttk.LabelFrame(scrollFrame.viewPort, text='Generic Spatial Functions', style='SAMS.TFrame', width=400, height=200)
         # --------------------------------------------------------------------------------------------------------
-        self.numFncsLabel = ttk.Label(funcFrame, text='# of Functions')
+        self.numFncsLabel = ttk.Label(self.funcFrame, text='# of Functions')
         self.numFncsLabel.grid(row=0, column=0, sticky='w')
         # --------------------------------------------------------------------------------------------------------
-        self.numFcnsEntry=ttk.Entry(funcFrame, validatecommand=numbersCallback, width=5)
-        self.numFcnsEntry.insert(0, str(self.nsf))
-        self.numFcnsEntry.grid(row=0, column=0, sticky='e')
-        reg=self.numFcnsEntry.register(numbersCallback)
-        self.numFcnsEntry.configure(validate='key', validatecommand=(reg, '%P'))
-        self.numFcnsEntry.focus()
-        self.numFcnsEntry.bind('<Return>', self.EnterKeyClicked)
+        self.numFncsEntry=ttk.Entry(self.funcFrame, validatecommand=numbersCallback, width=5)
+        self.numFncsEntry.insert(0, str(self.nsf))
+        self.numFncsEntry.grid(row=0, column=0, sticky='e')
+        reg=self.numFncsEntry.register(numbersCallback)
+        self.numFncsEntry.configure(validate='key', validatecommand=(reg, '%P'))
+        self.numFncsEntry.focus()
+        self.numFncsEntry.bind('<Return>', self.EnterKeyClicked)
         # --------------------------------------------------------------------------------------------------------
-        self.numFncsButton = ttk.Button(funcFrame, text='Update', command=self.NumFuncsUpdate)
+        self.numFncsButton = ttk.Button(self.funcFrame, text='Update', command=self.NumFuncsUpdate)
         self.numFncsButton.grid(row=0, column=1)
         # --------------------------------------------------------------------------------------------------------
         # The tkinter grid manager keep all widgets once defined. We are just going to decide which are shown
@@ -130,48 +134,134 @@ class UKInterpolation(ttk.Frame):
                 row = 1
                 precon = 0
                 initShape = ['Logistic', 'Gaussian', 'SinExp']
-                self.functions[i] = SubFrameInterpFunction(self, funcFrame, str(i+1), 'z', initShape[i], precon, row, i%3)
+                self.functions[i] = SubFrameInterpFunction(self, self.funcFrame, str(i+1), 'z', initShape[i], precon, row, i%3)
             else:
                 row = ((i-3) // desNumCol) + 2
                 col = (i-3) % desNumCol
                 precon = row - 2
-                self.functions[i] = SubFrameInterpFunction(self, funcFrame, str(i+1), chr(120+col), 'Logistic', precon, row, col)
+                self.functions[i] = SubFrameInterpFunction(self, self.funcFrame, str(i+1), chr(120+col), 'Logistic', precon, row, col)
         # Now hide undesired funtion definitions
         for i in range(self.nsf, self.nsfMax):
             self.functions[i].funcFrame.grid_remove()
 
-        funcFrame.grid(row=0, column=1, rowspan=3, sticky='n')
+        self.funcFrame.grid(row=0, column=1, rowspan=3, sticky='n')
         # +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
         # +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-        paramFrame= ttk.LabelFrame(scrollFrame.viewPort, text='Parameters', style='SAMS.TFrame')
-        #DEPRECATE#self.highLimit   = SubFrameElement(self, paramFrame, 'High Limit Factor ', '1.5',  0, 0, 1)
+        self.maFuncFrame = ttk.LabelFrame(scrollFrame.viewPort, text='MA Spatial Functions', style='SAMS.TFrame', width=400, height=200)
+        # --------------------------------------------------------------------------------------------------------
+        self.maNumFncsLabel = ttk.Label(self.maFuncFrame, text='# of Functions')
+        self.maNumFncsLabel.grid(row=0, column=0, sticky='w')
+        # --------------------------------------------------------------------------------------------------------
+        self.maNumFncsEntry=ttk.Entry(self.maFuncFrame, validatecommand=numbersCallback, width=5)
+        self.maNumFncsEntry.insert(0, str(self.nsf))
+        self.maNumFncsEntry.grid(row=0, column=0, sticky='e')
+        reg=self.maNumFncsEntry.register(numbersCallback)
+        self.maNumFncsEntry.configure(validate='key', validatecommand=(reg, '%P'))
+        self.maNumFncsEntry.focus()
+        self.maNumFncsEntry.bind('<Return>', self.EnterKeyClicked)
+        # --------------------------------------------------------------------------------------------------------
+        self.maNumFncsButton = ttk.Button(self.maFuncFrame, text='Update', command=self.NumFuncsUpdate)
+        self.maNumFncsButton.grid(row=0, column=1)
+        # --------------------------------------------------------------------------------------------------------
+        # The tkinter grid manager keep all widgets once defined. We are just going to decide which are shown
+        # paint first row to show x, y, and z
+        # remaining rows are just x, y
+        desNumCol = 2
+        for i in range(self.nsfMax):
+            if i < 3:
+                row = 1
+                precon = 0
+                initShape = ['Logistic', 'Gaussian', 'SinExp']
+                self.maFunctions[i] = SubFrameInterpFunction(self, self.maFuncFrame, str(i+1), 'z', initShape[i], precon, row, i%3)
+            else:
+                row = ((i-3) // desNumCol) + 2
+                col = (i-3) % desNumCol
+                precon = row - 2
+                self.maFunctions[i] = SubFrameInterpFunction(self, self.maFuncFrame, str(i+1), chr(120+col), 'Logistic', precon, row, col)
+        # Now hide undesired funtion definitions
+        for i in range(self.nsf, self.nsfMax):
+            self.maFunctions[i].funcFrame.grid_remove()
 
-        formComboList = ['spherical', 'exponential', 'gaussian', 'matern']
-        self.formLabel = ttk.Label(paramFrame, text='Variogram Form')
+        self.maFuncFrame.grid(row=0, column=1, rowspan=3, sticky='n')
+        # +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+
+        # +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+        self.gbFuncFrame = ttk.LabelFrame(scrollFrame.viewPort, text='GBSpatial Functions', style='SAMS.TFrame', width=400, height=200)
+        # --------------------------------------------------------------------------------------------------------
+        self.gbNumFncsLabel = ttk.Label(self.gbFuncFrame, text='# of Functions')
+        self.gbNumFncsLabel.grid(row=0, column=0, sticky='w')
+        # --------------------------------------------------------------------------------------------------------
+        self.gbNumFncsEntry=ttk.Entry(self.gbFuncFrame, validatecommand=numbersCallback, width=5)
+        self.gbNumFncsEntry.insert(0, str(self.nsf))
+        self.gbNumFncsEntry.grid(row=0, column=0, sticky='e')
+        reg=self.gbNumFncsEntry.register(numbersCallback)
+        self.gbNumFncsEntry.configure(validate='key', validatecommand=(reg, '%P'))
+        self.gbNumFncsEntry.focus()
+        self.gbNumFncsEntry.bind('<Return>', self.EnterKeyClicked)
+        # --------------------------------------------------------------------------------------------------------
+        self.gbNumFncsButton = ttk.Button(self.gbFuncFrame, text='Update', command=self.NumFuncsUpdate)
+        self.gbNumFncsButton.grid(row=0, column=1)
+        # --------------------------------------------------------------------------------------------------------
+        # The tkinter grid manager keep all widgets once defined. We are just going to decide which are shown
+        # paint first row to show x, y, and z
+        # remaining rows are just x, y
+        desNumCol = 2
+        for i in range(self.nsfMax):
+            if i < 3:
+                row = 1
+                precon = 0
+                initShape = ['Logistic', 'Gaussian', 'SinExp']
+                self.gbFunctions[i] = SubFrameInterpFunction(self, self.gbFuncFrame, str(i+1), 'z', initShape[i], precon, row, i%3)
+            else:
+                row = ((i-3) // desNumCol) + 2
+                col = (i-3) % desNumCol
+                precon = row - 2
+                self.gbFunctions[i] = SubFrameInterpFunction(self, self.gbFuncFrame, str(i+1), chr(120+col), 'Logistic', precon, row, col)
+        # Now hide undesired funtion definitions
+        for i in range(self.nsf, self.nsfMax):
+            self.gbFunctions[i].funcFrame.grid_remove()
+
+        self.gbFuncFrame.grid(row=4, column=1, rowspan=3, sticky='n')
+        # +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+        # +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+        self.paramFrame= ttk.LabelFrame(scrollFrame.viewPort, text='Parameters', style='SAMS.TFrame')
+        #DEPRECATE#self.highLimit   = SubFrameElement(self, self.paramFrame, 'High Limit Factor ', '1.5',  0, 0, 1)
+
+        self.formComboList = ['spherical', 'exponential', 'gaussian', 'matern']
+        self.formLabel = ttk.Label(self.paramFrame, text='Variogram Form')
         self.formLabel.grid(row=0, column=0)
         # --------------------------------------------------------------------------------------------------------
-        self.formCombo = ttk.Combobox(paramFrame, values=formComboList, width=14)
+        self.formCombo = ttk.Combobox(self.paramFrame, values=self.formComboList, width=14)
         self.formCombo.current(0)
         self.formCombo.grid(row=0, column=1, pady=5)
         # --------------------------------------------------------------------------------------------------------
-        #DEPRECATE#self.useLogTransLabel = ttk.Label(paramFrame, text='Use Log Transfrom)')
+        #DEPRECATE#self.useLogTransLabel = ttk.Label(self.paramFrame, text='Use Log Transfrom)')
         #DEPRECATE#self.useLogTransLabel.grid(row=2, column=0)
         # --------------------------------------------------------------------------------------------------------
-        #DEPRECATE#self.useLogTransCombo = ttk.Combobox(paramFrame, width=3, values=['T', 'F'])
+        #DEPRECATE#self.useLogTransCombo = ttk.Combobox(self.paramFrame, width=3, values=['T', 'F'])
         #DEPRECATE#self.useLogTransCombo.current(0)
         #DEPRECATE#self.useLogTransCombo.grid(row=2, column=1, pady=5)
         # --------------------------------------------------------------------------------------------------------
-        #DEPRECATE#self.powerTrans  = SubFrameElement(self, paramFrame, 'Power Tranform\n(Not used if Log = T)', '1.0', 3, 0, 1)
+        #DEPRECATE#self.powerTrans  = SubFrameElement(self, self.paramFrame, 'Power Tranform\n(Not used if Log = T)', '1.0', 3, 0, 1)
+        #-------------------------------------------------------------------------------------------
+        self.useSaturateLabel = ttk.Label(self.paramFrame, text='Use Saturate')
+        self.useSaturateLabel.grid(row=1, column=0)
+        #-------------------------------------------------------------------------------------------
+        self.useSaturateCombo = ttk.Combobox(self.paramFrame, width=3, values=['T', 'F'])
+        self.useSaturateCombo.current(1)
+        self.useSaturateCombo.grid(row=1, column=1)
+        #-------------------------------------------------------------------------------------------
+        self.saturateThresh = SubFrameElement(self, self.paramFrame, 'Saturate\nThreshold', '1E309', 2, 0, 1, width=10)
         # --------------------------------------------------------------------------------------------------------
-        self.spatCfgFile  = SubFrameElement(self, paramFrame, 'Spatial Fcn Config File', 'SpatialFcns.cfg', 1, 0, 1, width=20)
+        self.spatCfgFile  = SubFrameElement(self, self.paramFrame, 'Spatial Fcn Config File', 'SpatialFcns.cfg', 3, 0, 1, width=20)
         # --------------------------------------------------------------------------------------------------------
-        self.openSpatFncConfigButton = ttk.Button(paramFrame, text='Load Spat Fcn File', style="BtnGreen.TLabel", command=self.GetSpatialFcnConfigFName)
-        self.openSpatFncConfigButton.grid(row=2, column=0)
+        self.openSpatFncConfigButton = ttk.Button(self.paramFrame, text='Load Spat Fcn File', style="BtnGreen.TLabel", command=self.GetSpatialFcnConfigFName)
+        self.openSpatFncConfigButton.grid(row=4, column=0)
         # --------------------------------------------------------------------------------------------------------
-        self.saveSpatFncConfigButton = ttk.Button(paramFrame, text='Save Spat Fcn File', style="BtnBluGrn.TLabel", command=self.SaveSpatialFcnConfigFName)
-        self.saveSpatFncConfigButton.grid(row=2, column=1)
+        self.saveSpatFncConfigButton = ttk.Button(self.paramFrame, text='Save Spat Fcn File', style="BtnBluGrn.TLabel", command=self.SaveSpatialFcnConfigFName)
+        self.saveSpatFncConfigButton.grid(row=4, column=1)
         # --------------------------------------------------------------------------------------------------------
-        paramFrame.grid(row=0, column=0, sticky='n')
+        self.paramFrame.grid(row=0, column=0, sticky='n')
         # +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
         # +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
         self.paramMAFrame= ttk.LabelFrame(scrollFrame.viewPort, text='MA Parameters', style='SAMS.TFrame')
@@ -179,19 +269,28 @@ class UKInterpolation(ttk.Frame):
         self.formMALabel = ttk.Label(self.paramMAFrame, text='MA Variogram Form')
         self.formMALabel.grid(row=0, column=0)
         # --------------------------------------------------------------------------------------------------------
-        self.formMACombo = ttk.Combobox(self.paramMAFrame, values=formComboList, width=14)
+        self.formMACombo = ttk.Combobox(self.paramMAFrame, values=self.formComboList, width=14)
         self.formMACombo.current(0)
         self.formMACombo.grid(row=0, column=1, pady=5)
         # --------------------------------------------------------------------------------------------------------
-        self.spatMACfgFile  = SubFrameElement(self, self.paramMAFrame, 'MA Spatial Fcn File', 'SpatialFcnsMA.cfg', 1, 0, 1, width=20)
+        self.useMASaturateLabel = ttk.Label(self.paramMAFrame, text='Use Saturate')
+        self.useMASaturateLabel.grid(row=1, column=0)
+        #-------------------------------------------------------------------------------------------
+        self.useMASaturateCombo = ttk.Combobox(self.paramMAFrame, width=3, values=['T', 'F'])
+        self.useMASaturateCombo.current(1)
+        self.useMASaturateCombo.grid(row=1, column=1)
+        #-------------------------------------------------------------------------------------------
+        self.saturateMAThresh = SubFrameElement(self, self.paramMAFrame, 'Saturate\nThreshold', '1E309', 2, 0, 1, width=10)
+        # --------------------------------------------------------------------------------------------------------
+        self.spatMACfgFile  = SubFrameElement(self, self.paramMAFrame, 'MA Spatial Fcn File', 'SpatialFcnsMA.cfg', 3, 0, 1, width=20)
         # --------------------------------------------------------------------------------------------------------
         self.openMASpatFncConfigButton = ttk.Button(self.paramMAFrame, text='Load MA Fcn File', style="BtnGreen.TLabel", command=self.GetMASpatialFcnConfigFName)
-        self.openMASpatFncConfigButton.grid(row=2, column=0)
+        self.openMASpatFncConfigButton.grid(row=4, column=0)
         # --------------------------------------------------------------------------------------------------------
         self.saveMASpatFncConfigButton = ttk.Button(self.paramMAFrame, text='Save MA Fcn File', style="BtnBluGrn.TLabel", command=self.SaveMASpatialFcnConfigFName)
-        self.saveMASpatFncConfigButton.grid(row=2, column=1)
+        self.saveMASpatFncConfigButton.grid(row=4, column=1)
         # --------------------------------------------------------------------------------------------------------
-        self.paramMAFrame.grid(row=1, column=0, sticky='n')
+        self.paramMAFrame.grid(row=0, column=0, sticky='n')
         # This window is only needed with domain AL
         if not self.parent.frame1.domainNameCombo.get() == 'AL':
             self.paramMAFrame.grid_remove()
@@ -202,19 +301,28 @@ class UKInterpolation(ttk.Frame):
         self.formGBLabel = ttk.Label(self.paramGBFrame, text='GB Variogram Form')
         self.formGBLabel.grid(row=0, column=0)
         # --------------------------------------------------------------------------------------------------------
-        self.formGBCombo = ttk.Combobox(self.paramGBFrame, values=formComboList, width=14)
+        self.formGBCombo = ttk.Combobox(self.paramGBFrame, values=self.formComboList, width=14)
         self.formGBCombo.current(0)
         self.formGBCombo.grid(row=0, column=1, pady=5)
         # --------------------------------------------------------------------------------------------------------
-        self.spatGBCfgFile  = SubFrameElement(self, self.paramGBFrame, 'GB Spatial Fcn File', 'SpatialFcnsGB.cfg', 1, 0, 1, width=20)
+        self.useGBSaturateLabel = ttk.Label(self.paramGBFrame, text='Use Saturate')
+        self.useGBSaturateLabel.grid(row=1, column=0)
+        #-------------------------------------------------------------------------------------------
+        self.useGBSaturateCombo = ttk.Combobox(self.paramGBFrame, width=3, values=['T', 'F'])
+        self.useGBSaturateCombo.current(1)
+        self.useGBSaturateCombo.grid(row=1, column=1)
+        #-------------------------------------------------------------------------------------------
+        self.saturateGBThresh = SubFrameElement(self, self.paramGBFrame, 'Saturate\nThreshold', '1E309', 2, 0, 1, width=10)
+        # --------------------------------------------------------------------------------------------------------
+        self.spatGBCfgFile  = SubFrameElement(self, self.paramGBFrame, 'GB Spatial Fcn File', 'SpatialFcnsGB.cfg', 3, 0, 1, width=20)
         # --------------------------------------------------------------------------------------------------------
         self.openGBSpatFncConfigButton = ttk.Button(self.paramGBFrame, text='Load GB Fcn File', style="BtnGreen.TLabel", command=self.GetGBSpatialFcnConfigFName)
-        self.openGBSpatFncConfigButton.grid(row=2, column=0)
+        self.openGBSpatFncConfigButton.grid(row=4, column=0)
         # --------------------------------------------------------------------------------------------------------
         self.saveGBSpatFncConfigButton = ttk.Button(self.paramGBFrame, text='Save GB Fcn File', style="BtnBluGrn.TLabel", command=self.SaveGBSpatialFcnConfigFName)
-        self.saveGBSpatFncConfigButton.grid(row=2, column=1)
+        self.saveGBSpatFncConfigButton.grid(row=4, column=1)
         # --------------------------------------------------------------------------------------------------------
-        self.paramGBFrame.grid(row=2, column=0, sticky='n')
+        self.paramGBFrame.grid(row=4, column=0, sticky='n')
         # +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
         # This window is only needed with domain AL
         if not self.parent.frame1.domainNameCombo.get() == 'AL':
@@ -226,6 +334,78 @@ class UKInterpolation(ttk.Frame):
         helpButton.grid(row=0, column=0)
 
         self.bind("<Visibility>", self.on_visibility)
+    
+    #--------------------------------------------------------------------------------------------------
+    ## 
+    #--------------------------------------------------------------------------------------------------
+    def UpdateUKParameters(self, tags):
+        for (tag, value) in tags:
+            if (tag == 'Kriging variogram form'):
+                str = value.strip()
+                if (str in self.formComboList):
+                    i = self.formComboList.index(str)
+                    self.formCombo.current(i)
+                else:
+                    messagebox.showerror('READING UK CONFIG FILE',f'Unknown variogram form{str}')
+            elif (tag == 'Use Saturate'):
+                if value[0] == 'T':
+                    self.useSaturateCombo.current(0)
+                else:
+                    self.useSaturateCombo.current(1)
+            elif (tag == 'Overflow Threshold'):
+                self.saturateThresh.myEntry.delete(0,tk.END)
+                self.saturateThresh.myEntry.insert(0,value)
+            elif (tag == 'NLS Spatial Fcn File Name'):
+                self.spatCfgFile.myEntry.delete(0,tk.END)
+                self.spatCfgFile.myEntry.insert(0,value.strip())
+
+    #--------------------------------------------------------------------------------------------------
+    ## 
+    #--------------------------------------------------------------------------------------------------
+    def UpdateMAParameters(self, tags):
+        for (tag, value) in tags:
+            if (tag == 'Kriging variogram form'):
+                str = value.strip()
+                if (str in self.formComboList):
+                    i = self.formComboList.index(str)
+                    self.formMACombo.current(i)
+                else:
+                    messagebox.showerror('READING UK CONFIG FILE',f'Unknown MA variogram form{str}')
+            elif (tag == 'Use Saturate'):
+                if value[0] == 'T':
+                    self.useMASaturateCombo.current(0)
+                else:
+                    self.useMASaturateCombo.current(1)
+            elif (tag == 'Overflow Threshold'):
+                self.saturateMAThresh.myEntry.delete(0,tk.END)
+                self.saturateMAThresh.myEntry.insert(0,value)
+            elif (tag == 'NLS Spatial Fcn File Name'):
+                self.spatMACfgFile.myEntry.delete(0,tk.END)
+                self.spatMACfgFile.myEntry.insert(0,value.strip())
+
+    #--------------------------------------------------------------------------------------------------
+    ## 
+    #--------------------------------------------------------------------------------------------------
+    def UpdateGBParameters(self,tags):
+        for (tag, value) in tags:
+            if (tag == 'Kriging variogram form'):
+                str = value.strip()
+                if (str in self.formComboList):
+                    i = self.formComboList.index(str)
+                    self.formGBCombo.current(i)
+                else:
+                    messagebox.showerror('READING UK CONFIG FILE',f'Unknown MA variogram form{str}')
+            elif (tag == 'Use Saturate'):
+                if value[0] == 'T':
+                    self.useGBSaturateCombo.current(0)
+                else:
+                    self.useGBSaturateCombo.current(1)
+            elif (tag == 'Overflow Threshold'):
+                self.saturateMAThresh.myEntry.delete(0,tk.END)
+                self.saturateMAThresh.myEntry.insert(0,value)
+            elif (tag == 'NLS Spatial Fcn File Name'):
+                self.spatGBCfgFile.myEntry.delete(0,tk.END)
+                self.spatGBCfgFile.myEntry.insert(0,value.strip())
 
     #--------------------------------------------------------------------------------------------------
     ## 
@@ -239,7 +419,7 @@ class UKInterpolation(ttk.Frame):
         if file_path:
             self.spatCfgFile.myEntry.delete(0,tk.END)
             self.spatCfgFile.myEntry.insert(0,f[-1])
-            self.parent.WriteSpatialFncsConfig(file_path)
+            self.parent.WriteSpatialFncsConfig(file_path, self.functions, self.numFncsEntry)
 
     def SaveMASpatialFcnConfigFName(self):
         file_path = filedialog.asksaveasfilename(title="Open Configuration File", filetypes=[("CFG files", "*.cfg")], defaultextension='cfg', initialdir=self.startDir)
@@ -247,11 +427,15 @@ class UKInterpolation(ttk.Frame):
         if file_path:
             self.spatMACfgFile.myEntry.delete(0,tk.END)
             self.spatMACfgFile.myEntry.insert(0,f[-1])
-            self.parent.WriteSpatialFncsConfig(file_path)
+            self.parent.WriteSpatialFncsConfig(file_path, self.maFunctions, self.maNumFncsEntry)
         
         # Save MA Unique UK Config file
         cfgFile  = os.path.join(self.root,'Configuration', 'Interpolation', 'UK_MA.cfg')
-        self.parent.CloseUKConfig(cfgFile, self.formMACombo.get(), self.spatMACfgFile.myEntry.get())
+        self.parent.CloseUKConfig(cfgFile, 
+                                  self.formMACombo.get(),
+                                  self.useMASaturateCombo.get(),
+                                  self.saturateMAThresh.myEntry.get(),
+                                  self.spatMACfgFile.myEntry.get())
 
     def SaveGBSpatialFcnConfigFName(self):
         file_path = filedialog.asksaveasfilename(title="Open Configuration File", filetypes=[("CFG files", "*.cfg")], defaultextension='cfg', initialdir=self.startDir)
@@ -259,11 +443,15 @@ class UKInterpolation(ttk.Frame):
         if file_path:
             self.spatGBCfgFile.myEntry.delete(0,tk.END)
             self.spatGBCfgFile.myEntry.insert(0,f[-1])
-            self.parent.WriteSpatialFncsConfig(file_path)
+            self.parent.WriteSpatialFncsConfig(file_path, self.gbFunctions, self.gbNumFncsEntry)
         
         # Save GB Unique UK Config file
         cfgFile  = os.path.join(self.root,'Configuration', 'Interpolation', 'UK_GB.cfg')
-        self.parent.CloseUKConfig(cfgFile, self.formGBCombo.get(), self.spatGBCfgFile.myEntry.get())
+        self.parent.CloseUKConfig(cfgFile,
+                                  self.formGBCombo.get(),
+                                  self.useGBSaturateCombo.get(),
+                                  self.saturateGBThresh.myEntry.get(),
+                                  self.spatGBCfgFile.myEntry.get())
 
     #--------------------------------------------------------------------------------------------------
     ## 
@@ -277,7 +465,7 @@ class UKInterpolation(ttk.Frame):
         if fName:
             self.spatCfgFile.myEntry.delete(0,tk.END)
             self.spatCfgFile.myEntry.insert(0,f[-1])
-            self.ReadSpactialFunctionFile(fName)
+            self.nsf = self.ReadSpactialFunctionFile(fName, self.functions, self.numFncsEntry)
 
     def GetMASpatialFcnConfigFName(self):
         fName = filedialog.askopenfilename(title="Open Configuration File", filetypes=[("CFG files", "*.cfg")], defaultextension='cfg', initialdir=self.startDir)
@@ -285,7 +473,7 @@ class UKInterpolation(ttk.Frame):
         if fName:
             self.spatMACfgFile.myEntry.delete(0,tk.END)
             self.spatMACfgFile.myEntry.insert(0,f[-1])
-            self.ReadSpactialFunctionFile(fName)
+            self.maNsf = self.ReadSpactialFunctionFile(fName, self.maFunctions, self.maNumFncsEntry)
 
     def GetGBSpatialFcnConfigFName(self):
         fName = filedialog.askopenfilename(title="Open Configuration File", filetypes=[("CFG files", "*.cfg")], defaultextension='cfg', initialdir=self.startDir)
@@ -293,7 +481,8 @@ class UKInterpolation(ttk.Frame):
         if fName:
             self.spatGBCfgFile.myEntry.delete(0,tk.END)
             self.spatGBCfgFile.myEntry.insert(0,f[-1])
-            self.ReadSpactialFunctionFile(fName)
+            self.gbNsf = self.ReadSpactialFunctionFile(fName, self.gbFunctions, self.gbNumFncsEntry)
+
     #--------------------------------------------------------------------------------------------------
     ## 
     # Read in the Spactial Function File. 
@@ -301,7 +490,7 @@ class UKInterpolation(ttk.Frame):
     # It then writes parameters to the widgets.
     #
     #--------------------------------------------------------------------------------------------------
-    def ReadSpactialFunctionFile(self, fName):
+    def ReadSpactialFunctionFile(self, fName, functions, numFncsEntry):
         correctDimStr =['x', 'y', 'z']
         correctShapeStr = ['Gaussian', 'Logistic', 'SinExp', 'CosExp']
         nsf = 0
@@ -334,7 +523,7 @@ class UKInterpolation(ttk.Frame):
                                                     f'Unknown string for dim value {val}\nSkipping Function Defintion')
                             continue
                         else:
-                            self.functions[nsf].dimVal.set(val)
+                            functions[nsf].dimVal.set(val)
                     else:
                         messagebox.showerror("Reading Spatial Function File", 
                                                 f'Unexpected string for dim tag {tag}\nSkipping Function Defintion')
@@ -351,7 +540,7 @@ class UKInterpolation(ttk.Frame):
                                                     f'Unknown string for shape value {val}\nSkipping Function Defintion')
                             continue
                         else:
-                            self.functions[nsf].shapeVal.set(val)
+                            functions[nsf].shapeVal.set(val)
                     else:
                         messagebox.showerror("Reading Spatial Function File", 
                                                 f'Unexpected string for shape tag {tag}\nSkipping Function Defintion')
@@ -371,8 +560,8 @@ class UKInterpolation(ttk.Frame):
                                                     f'Unknown string for precon value {val}\nSkipping Function Defintion')
                             continue
                         else:
-                            self.functions[nsf].preconEntry.delete(0,3)
-                            self.functions[nsf].preconEntry.insert(0, val)
+                            functions[nsf].preconEntry.delete(0,3)
+                            functions[nsf].preconEntry.insert(0, val)
                     else:
                         messagebox.showerror("Reading Spatial Function File", 
                                                 f'Unexpected string for precon tag {tag}\nSkipping Function Defintion')
@@ -381,10 +570,10 @@ class UKInterpolation(ttk.Frame):
                     nsf += 1
             f.close()
 
-        self.nsf = nsf
-        self.numFcnsEntry.delete(0,tk.END)
-        self.numFcnsEntry.insert(0, str(nsf))
-        self.NumFuncsUpdate()
+        numFncsEntry.delete(0,tk.END)
+        numFncsEntry.insert(0, str(nsf))
+        nsf = self.NumFuncsUpdate(functions, numFncsEntry)
+        return nsf
 
 
     #--------------------------------------------------------------------------------------------------
@@ -393,30 +582,41 @@ class UKInterpolation(ttk.Frame):
     #
     #--------------------------------------------------------------------------------------------------
     def on_visibility(self, event):
-        if self.okToRepaintFunctions:
-            self.domainName = self.friend.domainNameCombo.get()
-            self.numFcnsEntry.delete(0,tk.END)
-            if self.domainName == 'AL':
-                self.nsf = 11
-            elif self.domainName == 'MA':
-                self.nsf = 9
-            else:
-                self.nsf = 5
-            self.numFcnsEntry.insert(0, str(self.nsf))
-
-            # Now update desired funtion definitions
-            for i in range(self.nsfMax):
-                self.functions[i].funcFrame.grid_remove()
-            for i in range(self.nsf):
-                self.functions[i].funcFrame.grid()
-
         # This window is only needed with domain AL
-        if not self.parent.frame1.domainNameCombo.get() == 'AL':
-            self.paramMAFrame.grid_remove()
-            self.paramGBFrame.grid_remove()
-        else:
+        if self.parent.frame1.domainNameCombo.get() == 'AL':
+            self.paramFrame.grid_remove()
             self.paramMAFrame.grid()
             self.paramGBFrame.grid()
+
+            self.maFuncFrame.grid()
+            self.gbFuncFrame.grid()
+            self.funcFrame.grid_remove()
+        else:
+            self.paramMAFrame.grid_remove()
+            self.paramGBFrame.grid_remove()
+            self.paramFrame.grid()
+
+            self.maFuncFrame.grid_remove()
+            self.gbFuncFrame.grid_remove()
+            self.funcFrame.grid()
+
+            if self.okToRepaintFunctions:
+                self.domainName = self.friend.domainNameCombo.get()
+                self.numFncsEntry.delete(0,tk.END)
+                if self.domainName == 'AL':
+                    self.nsf = 11
+                elif self.domainName == 'MA':
+                    self.nsf = 9
+                else:
+                    self.nsf = 5
+                self.numFncsEntry.insert(0, str(self.nsf))
+
+                # Now update desired funtion definitions
+                for i in range(self.nsfMax):
+                    self.functions[i].funcFrame.grid_remove()
+                for i in range(self.nsf):
+                    self.functions[i].funcFrame.grid()
+
 
     # --------------------------------------------------------------------------------------------------------
     # --------------------------------------------------------------------------------------------------------
@@ -428,24 +628,25 @@ class UKInterpolation(ttk.Frame):
     # This method updates the number of spatial functions. Overrides default value for MA and GB
     #
     #--------------------------------------------------------------------------------------------------
-    def NumFuncsUpdate(self):
+    def NumFuncsUpdate(self, functions, numFncsEntry):
         # Once a new value is manually enterred, prevent changing tabs from repainting spatial fucntions
         self.okToRepaintFunctions = False            
         for i in range(self.nsfMax):
-            self.functions[i].funcFrame.grid_remove()
+            functions[i].funcFrame.grid_remove()
 
-        n = int(self.numFcnsEntry.get())
+        n = int(numFncsEntry.get())
+
         if n > self.nsfMax:
             messagebox.showerror("Number of Spatial functions", f'Max is {self.nsfMax}\nSetting to max')
             n = self.nsfMax
-            self.numFcnsEntry.delete(0,tk.END)
-            self.numFcnsEntry.insert(0, str(n))
-        self.nsf = n
+            numFncsEntry.delete(0,tk.END)
+            numFncsEntry.insert(0, str(n))
         # Now update desired funtion definitions
         for i in range(self.nsfMax):
-            self.functions[i].funcFrame.grid_remove()
-        for i in range(self.nsf):
-            self.functions[i].funcFrame.grid()
+            functions[i].funcFrame.grid_remove()
+        for i in range(n):
+            functions[i].funcFrame.grid()
+        return n
 
     #-------------------------------------------------------------------------------------
     ## Help Window for Sort By Area

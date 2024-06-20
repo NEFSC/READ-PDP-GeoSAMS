@@ -23,9 +23,9 @@ class SubFrameElement(tk.Frame):
             self.myEntry.bind('<Return>', enterCmd)
 
         self.myEntry.insert(0, value)
-        self.myEntry.grid(row=elementRow, column=entryCol, sticky='n', padx=5, pady=10)
+        self.myEntry.grid(row=elementRow, column=entryCol, sticky='n', padx=5, pady=5)
         self.myLabel = ttk.Label(parent, text=label, wraplength=200, anchor='n', justify='right')
-        self.myLabel.grid(row=elementRow, column=labelCol, sticky='n', padx=5, pady=10)
+        self.myLabel.grid(row=elementRow, column=labelCol, sticky='n', padx=5, pady=5)
 
 # *************************************************************************************************
 # *************************************************************************************************
@@ -39,7 +39,7 @@ class SubFrameInterpFunction(tk.Frame):
         self.myDimRBx = ttk.Radiobutton(dimFrame, text='x', value='x', variable=self.dimVal).pack()
         self.myDimRBy = ttk.Radiobutton(dimFrame, text='y', value='y', variable=self.dimVal).pack()
         self.myDimRBz = ttk.Radiobutton(dimFrame, text='z', value='z', variable=self.dimVal).pack()
-        dimFrame.grid(row=elementRow, column=0, rowspan=3, sticky='nsew', padx=5, pady=10)
+        dimFrame.grid(row=elementRow, column=0, rowspan=3, sticky='nsew', padx=5, pady=5)
 
         shapeFrame = ttk.LabelFrame(self.funcFrame, text='shape')
         self.shapeVal = tk.StringVar(shapeFrame, shape)
@@ -47,12 +47,12 @@ class SubFrameInterpFunction(tk.Frame):
         self.myShapeL = ttk.Radiobutton(shapeFrame, text='Logistic', value='Logistic', variable=self.shapeVal).pack()
         self.myShapeS = ttk.Radiobutton(shapeFrame, text='SinExp',   value='SinExp',   variable=self.shapeVal).pack()
         self.myShapeC = ttk.Radiobutton(shapeFrame, text='CosExp',   value='CosExp',   variable=self.shapeVal).pack()
-        shapeFrame.grid(row=elementRow, column=1, rowspan=3, sticky='nsew', padx=5, pady=10)
+        shapeFrame.grid(row=elementRow, column=1, rowspan=3, sticky='nsew', padx=5, pady=5)
 
         self.preconLabel = ttk.Label(self.funcFrame, text='precon')
-        self.preconLabel.grid (row=elementRow, column=2, columnspan=1, sticky='n', padx=5, pady=10)
+        self.preconLabel.grid (row=elementRow, column=2, columnspan=1, sticky='n', padx=5, pady=5)
         self.preconEntry=ttk.Entry(self.funcFrame, width=5)
-        self.preconEntry.grid(row=elementRow, column=2, columnspan=1, sticky='s', padx=5, pady=10)
+        self.preconEntry.grid(row=elementRow, column=2, columnspan=1, sticky='s', padx=5, pady=5)
         self.preconEntry.insert(0, preconNum)
 
         self.funcFrame.grid(row=elementRow, column=elementCol)

@@ -81,15 +81,6 @@ class MainInput(ttk.Frame):
         self.openUKConfigButton = ttk.Button(interpFrame, text='Change/Save UK File', style="BtnBluGrn.TLabel", command=self.GetUKConfigFName)
         self.openUKConfigButton.grid(row=0, column=3)
         #-------------------------------------------------------------------------------------------
-        self.useSaturateLabel = ttk.Label(interpFrame, text='Use Saturate')
-        self.useSaturateLabel.grid(row=1, column=0)
-        #-------------------------------------------------------------------------------------------
-        self.useSaturateCombo = ttk.Combobox(interpFrame, width=3, values=['T', 'F'])
-        self.useSaturateCombo.current(1)
-        self.useSaturateCombo.grid(row=1, column=1, sticky='n')
-        #-------------------------------------------------------------------------------------------
-        self.saturateThresh = SubFrameElement(self, interpFrame, 'Saturate\nThreshold', '1E309', 2, 0, 1, width=10)
-        #-------------------------------------------------------------------------------------------
         interpFrame.grid(row=2, column=0, padx=5, sticky='n')
 
         # +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
@@ -257,7 +248,7 @@ class MainInput(ttk.Frame):
         if file_path:
             self.mortCfgFile.myEntry.delete(0,tk.END)
             self.mortCfgFile.myEntry.insert(0,f[-1])
-            self.friend.WriteMortalityConfig()
+            self.friend.WriteGrowthConfig()
 
     #--------------------------------------------------------------------------------------------------
     ## 

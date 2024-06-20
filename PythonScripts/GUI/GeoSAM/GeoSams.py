@@ -119,6 +119,7 @@ class MainApplication(tk.Tk):
         self.mortConfigFile = os.path.join(self.root,'Configuration', 'Simulation', self.frame1.mortCfgFile.myEntry.get())
         self.recrConfigFile = os.path.join(self.root,'Configuration', 'Simulation', self.frame1.recrCfgFile.myEntry.get())
         self.gmConfigFile   = os.path.join(self.root,'Configuration', 'Simulation', self.frame1.gmCfgFile.myEntry.get())
+        self.ukConfigFile   = os.path.join(self.root,'Configuration', 'Interpolation', self.frame1.ukCfgFile.myEntry.get())
 
         # Read in configuration parameters
         self.ReadSimConfigFile()
@@ -131,6 +132,7 @@ class MainApplication(tk.Tk):
         self.frame5 = SortByArea(self.notebook, self.frame1, self.maxAreas, self.maxCorners, self.maxYears, self.paramStr)
         self.frame6 = SpecialArea(self.notebook, self.maxAreas, self.maxCorners)
         self.frame7 = FishMortBySpecAcc(self.notebook, self.maxAreas, self.maxCorners)
+        self.ReadUKConfigFile()
 
         # Update strings based on given configuration files
         # Frame 3 reads in Mortality config file
@@ -645,16 +647,20 @@ class MainApplication(tk.Tk):
     #-------------------------------------------------------------------------------------
     def WriteUKConfig(self):
         cfgFile  = os.path.join(self.root,'Configuration', 'Interpolation', self.frame1.ukCfgFile.myEntry.get())
-        self.CloseUKConfig(cfgFile, self.frame4.formCombo.get(), self.frame4.spatCfgFile.myEntry.get()),
+        self.CloseUKConfig(cfgFile, 
+                           self.frame4.formCombo.get(),
+                           self.frame4.useSaturateCombo.get(),
+                           self.frame4.saturateThresh.myEntry.get(),
+                           self.frame4.spatCfgFile.myEntry.get())
     
-    def CloseUKConfig(self, cfgFile, combo, fName):
+    def CloseUKConfig(self, cfgFile, combo, useSaturate, threshold, fName):
         with open(cfgFile, 'w') as f:
             f.write('# Set inputs for universal kriging\n')
-            f.write('Kriging variogram form = '+combo+'\n')
+            f.write('Kriging variogram form = ' + combo + '\n')
             f.write('#\n')
             f.write('# Configuration files are expected to be in the Configuration directory\n')
             f.write('#\n')
-            f.write('NLS Spatial Fcn File Name = '+fName+'\n')
+            f.write('NLS Spatial Fcn File Name = ' + fName + '\n')
             f.write('#\n')
             f.write('# Save interim data by writing out supporting data files\n')
             f.write('#\n')
@@ -665,13 +671,13 @@ class MainApplication(tk.Tk):
             f.write('# The user can choose to saturate to the threshold, (T), or \n')
             f.write('# reset the value to 0.0 when exceeded, (F).\n')
             f.write('#\n')
-            f.write('Use Saturate = '+ self.frame1.useSaturateCombo.get()+'\n')
+            f.write('Use Saturate = ' + useSaturate + '\n')
             f.write('#\n')
             f.write('# Threshold value to use\n')
             f.write('# Use Saturate = T, if field > Threshold then field = Threshold\n')
             f.write('# Use Saturate = F, if field > Threshold then field = 0.0\n')
             f.write('#\n')
-            f.write('Overflow Threshold = '+ self.frame1.saturateThresh.myEntry.get() +'\n')
+            f.write('Overflow Threshold = ' + threshold + '\n')
             f.close()
 
     #-------------------------------------------------------------------------------------
@@ -679,7 +685,7 @@ class MainApplication(tk.Tk):
     # Saves spatial function parameters to a configuration file.
     #
     #-------------------------------------------------------------------------------------
-    def WriteSpatialFncsConfig(self, cfgFile):
+    def WriteSpatialFncsConfig(self, cfgFile, functions, numFncsEntry):
         with open(cfgFile, 'w') as f:
             f.write('# Define non linear spatial functions(NLSF) and paramater search range.\n')
             f.write('#\n')
@@ -694,10 +700,10 @@ class MainApplication(tk.Tk):
             f.write('# indicates that the third function is multiplied by the first function.\n')
             f.write('# This is true for fitting the nonlinear parameters of function 3 hence \n')
             f.write('# the parameters of function 1 must be fit before the parameters of function 3.\n')
-            for i in range(int(self.frame4.numFcnsEntry.get())):
-               f.write('Function, dim='+self.frame4.functions[i].dimVal.get())
-               f.write(', shape='+self.frame4.functions[i].shapeVal.get())
-               f.write(', precon='+self.frame4.functions[i].preconEntry.get()+'\n')
+            for i in range(int(numFncsEntry.get())):
+               f.write('Function, dim=' + functions[i].dimVal.get())
+               f.write(', shape=' + functions[i].shapeVal.get())
+               f.write(', precon=' + functions[i].preconEntry.get()+'\n')
             f.close()
 
     #-------------------------------------------------------------------------------------
@@ -776,6 +782,24 @@ class MainApplication(tk.Tk):
 
     #-------------------------------------------------------------------------------------
     ## 
+    # Read in the (tag, value) parameters from the UK configuration file.
+    #
+    #-------------------------------------------------------------------------------------
+    def ReadUKConfigFile(self):
+        tags = self.ReadConfigFile(self.ukConfigFile)
+        self.frame4.UpdateUKParameters(tags)
+
+        # MA and GB UK Config Files Names are hardcoded
+        cfgFile  = os.path.join(self.root,'Configuration', 'Interpolation', 'UK_MA.cfg')
+        tags = self.ReadConfigFile(cfgFile)
+        self.frame4.UpdateMAParameters(tags)
+
+        cfgFile  = os.path.join(self.root,'Configuration', 'Interpolation', 'UK_GB.cfg')
+        tags = self.ReadConfigFile(cfgFile)
+        self.frame4.UpdateGBParameters(tags)
+
+    #-------------------------------------------------------------------------------------
+    ## 
     # Read in the (tag, value) parameters from the grid manager configuration file.
     #
     #-------------------------------------------------------------------------------------
@@ -789,8 +813,8 @@ class MainApplication(tk.Tk):
     ## 
     #-------------------------------------------------------------------------------------
     def pop_up(self):
-        about = '''SHOW Args
-    Shows the limits for Number of Areas, Nodes in each Area, Year range
+        about = '''
+    Shows the limitSHOW Argss for Number of Areas, Nodes in each Area, Year range
 	To Change, restart with 
     > python .\PythonScripts\GUI\GeoSAM\GeoSams.py Areas Nodes Years
 	

@@ -22,6 +22,7 @@ end
   
 fl0=strcat('Data/Recruits',int2str(yrStart),domain,'.csv');
 fl2=strcat('RecruitEstimates/RecruitEstimate',domain,int2str(yrStart),'.txt');
+fl2Rand=strcat('RecruitEstimates/RecruitEstimateRand',domain,int2str(yrStart),'.txt');
 if isOctave
     D=csvreadK(fl0);
     dyr0=D(:,1);
@@ -30,8 +31,14 @@ if isOctave
     z0=D(:,4);
     recs0=D(:,5);
     fprintf('Writing to %s\n', fl2)
-    fid=fopen(fl2,'w');
+    r = RandomizeOutput(recs0, yrStart);
+    % swapped original and random
+    fid=fopen(fl2Rand,'w');
     dlmwrite(fid, recs0);
+    fclose(fid);
+
+    fid=fopen(fl2,'w');
+    dlmwrite(fid, r);
     fclose(fid);
 else
     warning('OFF', 'MATLAB:table:ModifiedAndSavedVarnames')
@@ -42,7 +49,11 @@ else
     z0=table2array(D(:,4));
     recs0=table2array(D(:,5));
     fprintf('Writing to %s\n', fl2)
-    writematrix(recs0,fl2)
+    r = RandomizeOutput(recs0, yrStart);
+    % swapped original and random
+    writematrix(recs0,fl2Rand)
+    writematrix(r, fl2)
+
 end
 
 ngp=length(x0);
@@ -68,12 +79,36 @@ for yr=yrStart+1:yrEnd
         recs05(k)=recs(j);
     end
     fl2=strcat('RecruitEstimates/RecruitEstimate',domain,int2str(yr),'.txt');
+    fl2Rand=strcat('RecruitEstimates/RecruitEstimateRand',domain,int2str(yr),'.txt');
     fprintf('Writing to %s\n', fl2)
+    r = RandomizeOutput(recs05, yr);
     if isOctave
+        % swapped original and random
+        fid=fopen(fl2Rand,'w');
+        dlmwrite(fid, recs05);
+        fclose(fid);
+
         fid=fopen(fl2,'w');
-        dlmwrite(fid, recs0);
+        dlmwrite(fid, r);
         fclose(fid);
     else
-        writematrix(recs05,fl2)
+        % swapped original and random
+        writematrix(recs05,fl2Rand)
+        writematrix(r, fl2)
     end
+
+
+end
+
+end
+
+function x = RandomizeOutput(M, yr)
+    mu = 0.0;
+    sigma = 0.5;
+    r = random('norm',mu,sigma,size(M));
+    x = exp(log(M) + r) * exp(-sigma^2/2.0);
+
+    fprintf( 'Before: Stats for Year: %d   Mean: %f   STD: %f  Min: %f Max: %f\n', yr, mean(M), std(M), min(M), max(M))
+    fprintf( 'Rand:   Stats for Year: %d   Mean: %f   STD: %f  Min: %f Max: %f\n', yr, mean(r), std(r), min(r), max(r))
+    fprintf( 'After:  Stats for Year: %d   Mean: %f   STD: %f  Min: %f Max: %f\n', yr, mean(x), std(x), min(x), max(x))
 end
