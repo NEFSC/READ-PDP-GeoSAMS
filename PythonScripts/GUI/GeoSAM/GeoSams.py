@@ -58,6 +58,7 @@ from InterpolationFrame import *
 from SortByAreaFrame import *
 from SpecialAreaFrame import *
 from FishMortBySpecAcc import *
+from Globals import *
 
 #======================================================================================================
 ##
@@ -109,17 +110,17 @@ class MainApplication(tk.Tk):
         # Now using cwd assuming python is started from there.
         #   > set ROOT=%CD%
         self.root = os.getcwd() #os.environ['ROOT']
-        self.simConfigFile  = os.path.join(self.root,'Configuration', 'Simulation','Scallop.cfg')
+        self.simConfigFile  = os.path.join(self.root,configDir, simCfgDir,'Scallop.cfg')
         self.ReadSimConfigFile()
         self.notebook = ttk.Notebook(self)
 
         self.frame1 = MainInput(self.notebook, self, self.tsPerYear, self.paramVal)
         # NOTE: These will still be default values as the user would not as yet entered anything!!
-        self.simConfigFile  = os.path.join(self.root,'Configuration', 'Simulation', self.frame1.simCfgFile.myEntry.get())
-        self.mortConfigFile = os.path.join(self.root,'Configuration', 'Simulation', self.frame1.mortCfgFile.myEntry.get())
-        self.recrConfigFile = os.path.join(self.root,'Configuration', 'Simulation', self.frame1.recrCfgFile.myEntry.get())
-        self.gmConfigFile   = os.path.join(self.root,'Configuration', 'Simulation', self.frame1.gmCfgFile.myEntry.get())
-        self.ukConfigFile   = os.path.join(self.root,'Configuration', 'Interpolation', self.frame1.ukCfgFile.myEntry.get())
+        self.simConfigFile  = os.path.join(self.root,configDir, simCfgDir, self.frame1.simCfgFile.myEntry.get())
+        self.mortConfigFile = os.path.join(self.root,configDir, simCfgDir, self.frame1.mortCfgFile.myEntry.get())
+        self.recrConfigFile = os.path.join(self.root,configDir, simCfgDir, self.frame1.recrCfgFile.myEntry.get())
+        self.gmConfigFile   = os.path.join(self.root,configDir, simCfgDir, self.frame1.gmCfgFile.myEntry.get())
+        self.ukConfigFile   = os.path.join(self.root,configDir, interCfgDir, self.frame1.ukCfgFile.myEntry.get())
 
         # Read in configuration parameters
         self.ReadSimConfigFile()
@@ -180,7 +181,7 @@ class MainApplication(tk.Tk):
         self.SaveConfigFiles()
         # exec to be called, ScallopPopDensity, prepends directory structure, ReadSimConfigFile does not
         simConfigFile = self.frame1.simCfgFile.myEntry.get()
-        self.simConfigFile = os.path.join('Configuration', 'Simulation', simConfigFile)
+        self.simConfigFile = os.path.join(configDir, simCfgDir, simConfigFile)
 
         # exec to be called, UK, prepends directory structure
         self.ukCfgFile = self.frame1.ukCfgFile.myEntry.get()
@@ -492,7 +493,7 @@ class MainApplication(tk.Tk):
         self.WriteGrowthConfig()
         self.WriteGridMgrConfig()
         self.WriteUKConfig()
-        # cfgFile  = os.path.join(self.root,'Configuration', 'Interpolation', self.frame4.spatCfgFile.myEntry.get())
+        # cfgFile  = os.path.join(self.root,configDir, interCfgDir, self.frame4.spatCfgFile.myEntry.get())
         # self.WriteSpatialFncsConfig(cfgFile)
         messagebox.showinfo("Save Files", "Configuration Files Saved")
 
@@ -503,7 +504,7 @@ class MainApplication(tk.Tk):
     #
     #-------------------------------------------------------------------------------------
     def WriteScallopConfig(self):
-        simCfgFile  = os.path.join(self.root,'Configuration', 'Simulation', self.frame1.simCfgFile.myEntry.get())
+        simCfgFile  = os.path.join(self.root,configDir, simCfgDir, self.frame1.simCfgFile.myEntry.get())
         with open(simCfgFile, 'w') as f:
             f.write('# input file for Scallops \n')
             f.write('Time steps per Year = ' + str(self.frame1.tsPerYear.myEntry.get())+'\n')
@@ -557,7 +558,7 @@ class MainApplication(tk.Tk):
     #
     #-------------------------------------------------------------------------------------
     def WriteRecruitmentConfig(self):
-        cfgFile  = os.path.join(self.root,'Configuration', 'Simulation', self.frame1.recrCfgFile.myEntry.get())
+        cfgFile  = os.path.join(self.root,configDir, simCfgDir, self.frame1.recrCfgFile.myEntry.get())
 
         periodMonthStr = self.frame1.startDayComboMonth.get()
         periodDayStr = self.frame1.startDayComboDay.get()
@@ -586,7 +587,7 @@ class MainApplication(tk.Tk):
     #
     #-------------------------------------------------------------------------------------
     def WriteGrowthConfig(self):
-        simCfgFile  = os.path.join(self.root,'Configuration', 'Simulation', self.frame1.mortCfgFile.myEntry.get())
+        simCfgFile  = os.path.join(self.root,configDir, simCfgDir, self.frame1.mortCfgFile.myEntry.get())
         with open(simCfgFile, 'w') as f:
             f.write('# Was configuration file for mortality\n')
             f.write('# Actually contains parameters that define both Growth and Mortality\n')
@@ -630,7 +631,7 @@ class MainApplication(tk.Tk):
     #
     #-------------------------------------------------------------------------------------
     def WriteGridMgrConfig(self):
-        cfgFile  = os.path.join(self.root,'Configuration', 'Simulation', self.frame1.gmCfgFile.myEntry.get())
+        cfgFile  = os.path.join(self.root,configDir, simCfgDir, self.frame1.gmCfgFile.myEntry.get())
         with open(cfgFile, 'w') as f:
             f.write('# configuration file for GridManager\n')
             f.write('# The following is the file name with corner coordinates associated with Special Access Areas.\n')
@@ -646,7 +647,7 @@ class MainApplication(tk.Tk):
     #
     #-------------------------------------------------------------------------------------
     def WriteUKConfig(self):
-        cfgFile  = os.path.join(self.root,'Configuration', 'Interpolation', self.frame1.ukCfgFile.myEntry.get())
+        cfgFile  = os.path.join(self.root,configDir, interCfgDir, self.frame1.ukCfgFile.myEntry.get())
         self.CloseUKConfig(cfgFile, 
                            self.frame4.formCombo.get(),
                            self.frame4.useSaturateCombo.get(),
@@ -790,11 +791,11 @@ class MainApplication(tk.Tk):
         self.frame4.UpdateUKParameters(tags)
 
         # MA and GB UK Config Files Names are hardcoded
-        cfgFile  = os.path.join(self.root,'Configuration', 'Interpolation', 'UK_MA.cfg')
+        cfgFile  = os.path.join(self.root,configDir, interCfgDir, 'UK_MA.cfg')
         tags = self.ReadConfigFile(cfgFile)
         self.frame4.UpdateMAParameters(tags)
 
-        cfgFile  = os.path.join(self.root,'Configuration', 'Interpolation', 'UK_GB.cfg')
+        cfgFile  = os.path.join(self.root,configDir, interCfgDir, 'UK_GB.cfg')
         tags = self.ReadConfigFile(cfgFile)
         self.frame4.UpdateGBParameters(tags)
 

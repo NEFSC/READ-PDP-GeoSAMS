@@ -32,6 +32,7 @@ from tkinter import filedialog
 
 from Widgets import *
 from AreaManager import *
+from Globals import *
 
 #===============================================================================================================
 ##
@@ -44,7 +45,7 @@ class SpecialArea(ttk.Frame):
         
         labelArr = ['Corner', 'Long', 'Lat ', '0.0', '0.0']
         self.root = os.getcwd() #os.environ['ROOT']
-        self.startDir = os.path.join(self.root, 'Configuration', 'SpecialAccess')
+        self.startDir = os.path.join(self.root, configDir, specAccCfgDir)
         self.areaFName = None
 
         self.numAreasMax = maxAreas

@@ -38,6 +38,7 @@ import tkinter as tk
 from tkinter import ttk
 from tkinter import filedialog
 from Widgets import *
+from Globals import *
 
 #======================================================================================================
 ##
@@ -50,8 +51,8 @@ class MainInput(ttk.Frame):
     def __init__(self, container, friend, tsPerYear, selectedOutputs):
         super().__init__()
         self.root = os.getcwd() #os.environ['ROOT']
-        self.simStartDir = os.path.join(self.root, 'Configuration', 'Simulation')
-        self.interpStartDir = os.path.join(self.root, 'Configuration', 'Interpolation')
+        self.simStartDir = os.path.join(self.root, configDir, simCfgDir)
+        self.interpStartDir = os.path.join(self.root, configDir, interCfgDir)
         self.friend = friend
 
         # +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
@@ -134,8 +135,8 @@ class MainInput(ttk.Frame):
         self.useStratumLabel = ttk.Label(durationFrame, text='Use Stratum\n(Not Used by MA)')
         self.useStratumLabel.grid(row=4, column=0)
         #-------------------------------------------------------------------------------------------
-        self.useStratumCombo = ttk.Combobox(durationFrame, width=3, values=['T', 'F'])
-        self.useStratumCombo.current(0)
+        self.useStratumCombo = ttk.Combobox(durationFrame, width=3, values=comboTFStr)
+        self.useStratumCombo.current(comboTFStr.index('T'))
         self.useStratumCombo.grid(row=4, column=1, sticky='w')
         # Not user configurable at this time        
         self.useStratumLabel.grid_remove()

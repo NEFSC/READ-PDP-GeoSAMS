@@ -75,6 +75,7 @@ from tkinter import messagebox
 from tkinter import filedialog
 
 from Widgets import *
+from Globals import *
 
 #======================================================================================================
 ##
@@ -89,7 +90,7 @@ class UKInterpolation(ttk.Frame):
         super().__init__()
         self.parent = parent
         self.root = os.getcwd() #os.environ['ROOT']
-        self.startDir = os.path.join(self.root, 'Configuration', 'Interpolation')
+        self.startDir = os.path.join(self.root, configDir, interCfgDir)
         self.friend = friend
         self.okToRepaintFunctions = True
         self.nsfMax = 20
@@ -184,7 +185,6 @@ class UKInterpolation(ttk.Frame):
 
         self.maFuncFrame.grid(row=0, column=1, rowspan=3, sticky='n')
         # +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-
         # +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
         self.gbFuncFrame = ttk.LabelFrame(scrollFrame.viewPort, text='GBSpatial Functions', style='SAMS.TFrame', width=400, height=200)
         # --------------------------------------------------------------------------------------------------------
@@ -247,8 +247,8 @@ class UKInterpolation(ttk.Frame):
         self.useSaturateLabel = ttk.Label(self.paramFrame, text='Use Saturate')
         self.useSaturateLabel.grid(row=1, column=0)
         #-------------------------------------------------------------------------------------------
-        self.useSaturateCombo = ttk.Combobox(self.paramFrame, width=3, values=['T', 'F'])
-        self.useSaturateCombo.current(1)
+        self.useSaturateCombo = ttk.Combobox(self.paramFrame, width=3, values=comboTFStr)
+        self.useSaturateCombo.current(comboTFStr.index('F'))
         self.useSaturateCombo.grid(row=1, column=1)
         #-------------------------------------------------------------------------------------------
         self.saturateThresh = SubFrameElement(self, self.paramFrame, 'Saturate\nThreshold', '1E309', 2, 0, 1, width=10)
@@ -276,8 +276,8 @@ class UKInterpolation(ttk.Frame):
         self.useMASaturateLabel = ttk.Label(self.paramMAFrame, text='Use Saturate')
         self.useMASaturateLabel.grid(row=1, column=0)
         #-------------------------------------------------------------------------------------------
-        self.useMASaturateCombo = ttk.Combobox(self.paramMAFrame, width=3, values=['T', 'F'])
-        self.useMASaturateCombo.current(1)
+        self.useMASaturateCombo = ttk.Combobox(self.paramMAFrame, width=3, values=comboTFStr)
+        self.useMASaturateCombo.current(comboTFStr.index('F'))
         self.useMASaturateCombo.grid(row=1, column=1)
         #-------------------------------------------------------------------------------------------
         self.saturateMAThresh = SubFrameElement(self, self.paramMAFrame, 'Saturate\nThreshold', '1E309', 2, 0, 1, width=10)
@@ -308,8 +308,8 @@ class UKInterpolation(ttk.Frame):
         self.useGBSaturateLabel = ttk.Label(self.paramGBFrame, text='Use Saturate')
         self.useGBSaturateLabel.grid(row=1, column=0)
         #-------------------------------------------------------------------------------------------
-        self.useGBSaturateCombo = ttk.Combobox(self.paramGBFrame, width=3, values=['T', 'F'])
-        self.useGBSaturateCombo.current(1)
+        self.useGBSaturateCombo = ttk.Combobox(self.paramGBFrame, width=3, values=comboTFStr)
+        self.useGBSaturateCombo.current(comboTFStr.index('F'))
         self.useGBSaturateCombo.grid(row=1, column=1)
         #-------------------------------------------------------------------------------------------
         self.saturateGBThresh = SubFrameElement(self, self.paramGBFrame, 'Saturate\nThreshold', '1E309', 2, 0, 1, width=10)
@@ -372,10 +372,7 @@ class UKInterpolation(ttk.Frame):
                 else:
                     messagebox.showerror('READING UK CONFIG FILE',f'Unknown MA variogram form{str}')
             elif (tag == 'Use Saturate'):
-                if value[0] == 'T':
-                    self.useMASaturateCombo.current(0)
-                else:
-                    self.useMASaturateCombo.current(1)
+                self.useMASaturateCombo.current(comboTFStr.index(value[0]))
             elif (tag == 'Overflow Threshold'):
                 self.saturateMAThresh.myEntry.delete(0,tk.END)
                 self.saturateMAThresh.myEntry.insert(0,value)
@@ -396,13 +393,10 @@ class UKInterpolation(ttk.Frame):
                 else:
                     messagebox.showerror('READING UK CONFIG FILE',f'Unknown MA variogram form{str}')
             elif (tag == 'Use Saturate'):
-                if value[0] == 'T':
-                    self.useGBSaturateCombo.current(0)
-                else:
-                    self.useGBSaturateCombo.current(1)
+                self.useGBSaturateCombo.current(comboTFStr.index(value[0]))
             elif (tag == 'Overflow Threshold'):
-                self.saturateMAThresh.myEntry.delete(0,tk.END)
-                self.saturateMAThresh.myEntry.insert(0,value)
+                self.saturateGBThresh.myEntry.delete(0,tk.END)
+                self.saturateGBThresh.myEntry.insert(0,value)
             elif (tag == 'NLS Spatial Fcn File Name'):
                 self.spatGBCfgFile.myEntry.delete(0,tk.END)
                 self.spatGBCfgFile.myEntry.insert(0,value.strip())
@@ -430,7 +424,7 @@ class UKInterpolation(ttk.Frame):
             self.parent.WriteSpatialFncsConfig(file_path, self.maFunctions, self.maNumFncsEntry)
         
         # Save MA Unique UK Config file
-        cfgFile  = os.path.join(self.root,'Configuration', 'Interpolation', 'UK_MA.cfg')
+        cfgFile  = os.path.join(self.root,configDir, interCfgDir, 'UK_MA.cfg')
         self.parent.CloseUKConfig(cfgFile, 
                                   self.formMACombo.get(),
                                   self.useMASaturateCombo.get(),
@@ -446,7 +440,7 @@ class UKInterpolation(ttk.Frame):
             self.parent.WriteSpatialFncsConfig(file_path, self.gbFunctions, self.gbNumFncsEntry)
         
         # Save GB Unique UK Config file
-        cfgFile  = os.path.join(self.root,'Configuration', 'Interpolation', 'UK_GB.cfg')
+        cfgFile  = os.path.join(self.root,configDir, interCfgDir, 'UK_GB.cfg')
         self.parent.CloseUKConfig(cfgFile,
                                   self.formGBCombo.get(),
                                   self.useGBSaturateCombo.get(),
@@ -591,6 +585,16 @@ class UKInterpolation(ttk.Frame):
             self.maFuncFrame.grid()
             self.gbFuncFrame.grid()
             self.funcFrame.grid_remove()
+
+            # Update MA/GB functions
+            fname = self.spatMACfgFile.myEntry.get()
+            filePath = os.path.join(configDir, interCfgDir, fname)
+            self.maNsf = self.ReadSpactialFunctionFile(filePath, self.maFunctions, self.maNumFncsEntry)
+
+            fname = self.spatGBCfgFile.myEntry.get()
+            filePath = os.path.join(configDir, interCfgDir, fname)
+            self.maNsf = self.ReadSpactialFunctionFile(filePath, self.gbFunctions, self.gbNumFncsEntry)
+
         else:
             self.paramMAFrame.grid_remove()
             self.paramGBFrame.grid_remove()

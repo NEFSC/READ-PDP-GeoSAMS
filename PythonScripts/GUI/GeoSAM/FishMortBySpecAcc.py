@@ -28,6 +28,7 @@ from tkinter import filedialog
 
 from Widgets import *
 from AreaManager import *
+from Globals import *
 
 #===============================================================================================================
 ##
@@ -40,7 +41,7 @@ class FishMortBySpecAcc(ttk.Frame):
         
         labelArr = ['Field', 'SpecArea', 'Mortality', '0', '0.4']
         self.root = os.getcwd() #os.environ['ROOT']
-        self.startDir = os.path.join(self.root, 'Configuration', 'SpecialAccess')
+        self.startDir = os.path.join(self.root, configDir, specAccCfgDir)
         self.fmFName = None
 
         self.numDefinedMax = maxAreas
