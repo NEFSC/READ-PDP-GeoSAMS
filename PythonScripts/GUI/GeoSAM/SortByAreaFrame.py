@@ -8,10 +8,10 @@
 # The number of defined areas. This is limited by Max Areas of Interest. See SHOW Args button
 # The # of Areas is limited by default to 25. See SHOW Args for current values.
 # The user can modify this on the command line:
-# > python .\PythonScripts\GUI\GeoSAM\GeoSams.py #Areas #Nodes #Years
+# > python .\\PythonScripts\\GUI\\GeoSAM\\GeoSams.py #Areas #Nodes #Years
 #
 # Default (same as started with no arguments):\n
-# > python .\PythonScripts\GUI\GeoSAM\GeoSams.py 25 8 5
+# > python .\\PythonScripts\\GUI\\GeoSAM\\GeoSams.py 25 8 5
 #
 # @section Sortp2 Output Parameters
 # This is a dropbox of the selected output parameters on the main tab. After 
@@ -112,23 +112,23 @@ class SortByArea(ttk.Frame):
         self.numAreasEntry.bind('<Return>', self.EnterKeyClicked)
         # --------------------------------------------------------------------------------------------------------
         self.outputParmLabel = ttk.Label(sortAreaFrame, text='Output Parameters')
-        self.outputParmLabel.grid(row=0, column=0, sticky='ns')
-        self.comboParameter = ttk.Combobox(sortAreaFrame, values=paramStr)
-        self.comboParameter.grid(row=1, column=0, sticky='ns')
+        self.outputParmLabel.grid(row=0, column=0, sticky='e')
+        self.comboParameter = ttk.Combobox(sortAreaFrame, values=paramStr, width=8)
+        self.comboParameter.grid(row=1, column=0, sticky='e')
         # --------------------------------------------------------------------------------------------------------
         self.dataSortFileLabel = ttk.Label(sortAreaFrame, text='Areas of Interest File Name')
         self.dataSortFileLabel.grid(row=0, column=1, sticky='w')
         self.dataSortFileEntry = self.myEntry=ttk.Entry(sortAreaFrame, width=25)
         self.dataSortFileEntry.insert(0, 'AreasOfInterestDataSort.csv')
-        self.dataSortFileEntry.grid(row=1, column=1, sticky='we', padx=5)
+        self.dataSortFileEntry.grid(row=1, column=1, sticky='w', padx=5)
         # --------------------------------------------------------------------------------------------------------
         self.openDataSortButton = ttk.Button(sortAreaFrame, text='Load Data Sort File', style="BtnGreen.TLabel", command=self.GetDataSortFile)
-        self.openDataSortButton.grid(row=0, column=2, sticky='w')
+        self.openDataSortButton.grid(row=0, column=2, sticky='e')
         # --------------------------------------------------------------------------------------------------------
         self.saveDataSortButton = ttk.Button(sortAreaFrame, text='Save Data Sort File', style="BtnBluGrn.TLabel", command=self.SaveDataSortFile)
-        self.saveDataSortButton.grid(row=1, column=2, sticky='w')
+        self.saveDataSortButton.grid(row=1, column=2, sticky='e')
         # --------------------------------------------------------------------------------------------------------
-        self.numAreasButton = ttk.Button(sortAreaFrame, text='Update # Areas', command=self.NumAreasUpdate)
+        self.numAreasButton = ttk.Button(sortAreaFrame, text='Update\n# Areas', command=self.NumAreasUpdate)
         self.numAreasButton.grid(row=2, column=0, sticky='w')
         # --------------------------------------------------------------------------------------------------------
         self.runSortButton = ttk.Button(sortAreaFrame, text='Run Sort', command=self.RunSort)
@@ -153,7 +153,7 @@ class SortByArea(ttk.Frame):
         self.browseExportButton.grid(row=0, column=3, sticky='w')
         # --------------------------------------------------------------------------------------------------------
 
-        exportFrame.grid(row=3, column=0, columnspan=3, sticky='w')
+        exportFrame.grid(row=3, column=0, columnspan=3, sticky='we')
         # +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
         # --------------------------------------------------------------------------------------------------------
         self.areas = AreaManager(self, sortAreaFrame, self.numAreasMax, self.numCornersMax,
@@ -471,9 +471,9 @@ class SortByArea(ttk.Frame):
 
     The # of Areas is limited by default to 25. See SHOW Args for current values.
     The user can modify this on the command line:
-    > python .\PythonScripts\GUI\GeoSAM\GeoSams.py #Areas #Nodes #Years
+    > python .\\PythonScripts\\GUI\\GeoSAM\\GeoSams.py #Areas #Nodes #Years
     Default:
-    > python .\PythonScripts\GUI\GeoSAM\GeoSams.py 25 8 5
+    > python .\\PythonScripts\\GUI\\GeoSAM\\GeoSams.py 25 8 5
 
 Update # of Areas
     Use Enter Key or click this button after entering a value in # Defined to 

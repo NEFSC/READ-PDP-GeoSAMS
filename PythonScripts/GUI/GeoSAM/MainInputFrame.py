@@ -321,9 +321,19 @@ class MainInput(ttk.Frame):
         fName = os.path.join('Results', 'Lat_Lon_Grid_*.pdf')
         fileList = glob.glob(fName)
         if fileList:
-            fName = filedialog.askopenfilename(title="Open PDF File", filetypes=[("PDF files", "Lat_Lon_Grid_*.pdf")], defaultextension='pdf', initialdir='Results')
+            fName = filedialog.askopenfilename(title="Open PDF File", filetypes=[("PDF files", "*.pdf")], defaultextension='pdf', initialdir='Results')
             if fName:
-                webbrowser.open_new(fName)
+                if platform.system() == 'Windows':
+                    # Opens file in default pdf view, i.e. Acrobat
+                    webbrowser.open_new(fName)
+                elif platform.system() == 'Darwin':
+                    # Opens file in default pdf view, i.e. Preview
+                    c = webbrowser.get('macosx')
+                    c.open_new_tab('file://'+fName)
+                else:
+                    # Opens file in the default browser
+                    c = webbrowser.get('chrome')
+                    c.open_new_tab('file://'+fName)
         else:
             messagebox.showerror("Open PDF File", 'There are no PDF files to open. START Sim to create files.')
 
@@ -383,9 +393,9 @@ Duration
 
     The year range is limited by default to 5 years, e.g. 2015 to 2019.
     See SHOW Args. The user can modify this on the command line:
-    > python .\PythonScripts\GUI\GeoSAM\GeoSams.py #Areas #Nodes #Years
+    > python .\\PythonScripts\\GUI\\GeoSAM\\GeoSams.py #Areas #Nodes #Years
     Default:
-    > python .\PythonScripts\GUI\GeoSAM\GeoSams.py 25 8 5
+    > python .\\PythonScripts\\GUI\\GeoSAM\\GeoSams.py 25 8 5
 
     The domain name shows the region where the growth takes place, Georges Bank
     or Mid-Atlantic, GB or MA, respectively. AL covers both regions. 

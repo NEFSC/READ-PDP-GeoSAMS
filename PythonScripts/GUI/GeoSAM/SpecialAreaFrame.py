@@ -172,9 +172,9 @@ Update # Areas
 
     The # of Areas is limited by default to 25. See SHOW Args. 
     The user can modify this on the command line:
-    > python .\PythonScripts\GUI\GeoSAM\GeoSams.py #Areas #Nodes #Years
+    > python .\\PythonScripts\\GUI\\GeoSAM\\GeoSams.py #Areas #Nodes #Years
     Default:
-    > python .\PythonScripts\GUI\GeoSAM\GeoSams.py 25 8 5
+    > python .\\PythonScripts\\GUI\\GeoSAM\\GeoSams.py 25 8 5
 
 
 Special Access File

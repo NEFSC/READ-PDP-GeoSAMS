@@ -93,7 +93,10 @@ class MainApplication(tk.Tk):
 
         # setup
         self.title(title)
-        self.geometry('1020x725+10+10')
+        if platform.system() == 'Windows':
+            self.geometry('1020x725+10+10')
+        else:
+            self.geometry('1200x725+10+10')
         self.style = ttk.Style()
         # Inheritable frame, label defintions
         self.style.configure('SAMS.TFrame', borderwidth=1, relief='solid', labelmargins=20)
@@ -216,7 +219,8 @@ class MainApplication(tk.Tk):
                 cmd = [os.path.join(self.root, 'Unpack.bat'), startYear, stopYear, '0', self.domainName]
             else:
                 cmd = [os.path.join(self.root, 'Unpack.sh'), startYear, stopYear, '0', self.domainName]
-            messagebox.showinfo("Unpack", f'Starting Unpack.\nThis could take several minutes.\nPlease be patient.')
+                subprocess.run(['chmod','744','Unpack.sh'])
+            messagebox.showinfo("Unpack", f'Starting Unpack.\nThis could take several minutes, longer if using Octave.\nPlease be patient.')
             result = subprocess.run(cmd)
             if result.returncode == 0:
                 messagebox.showinfo("Unpack", f'Completed Successfully\n{result.args}')
@@ -250,17 +254,7 @@ class MainApplication(tk.Tk):
                     f'Completed Successfully\n{result.args}\nStarting UK Interp\nIf all output selected this will run over an hour.\nPlease be patient.')
 
                 # Then Continue with Interpolation and Plotting Results -----------------------------------------------------------
-                #       python .\PythonScripts\ProcessResults.py self.domainName startYear stopYear simCfgFile ukCfgFile
-                # e.g.: python .\PythonScripts\ProcessResults.py GB 2015 2017 Scallop.cfg UK_GB.cfg
-                # if platform.system() == 'Windows':
-                #     ex = 'python'
-                # else:
-                #     ex = 'python3' # need a way for MAC at least to recognize alias set in shell 
-                # script = os.path.join(self.root, 'PythonScripts', 'ProcessResults.py')
-                # cmd = [ex, script, self.domainName, startYear, stopYear, self.simConfigFile, self.ukCfgFile] 
-                # print(cmd)
-                # result = subprocess.run(cmd)
-                (returnCode, args, errStr,) = self.InterpAndPlotResults()
+                (returnCode, args) = self.InterpAndPlotResults()
                 if returnCode == 0:
                     messagebox.showinfo("GeoSAMS/UK/Plotting", f'ALL DONE\n{args}')
                 else:
@@ -370,7 +364,7 @@ class MainApplication(tk.Tk):
                 if (result.returncode != 0):
                     errorStr = '[31m' + ''.join(str(e)+' ' for e in cmd) + ' error: ' + hex(result.returncode) + '[0m'
                     print(errorStr)
-                    return (result.returncode, result.args, errorStr)
+                    return (result.returncode, result.args)
                 print( 'Just Finished: ', cmd)
                 # Cleanup dataDir
                 os.remove(os.path.join(dataDir, obsFile))
@@ -382,7 +376,7 @@ class MainApplication(tk.Tk):
                     if (result.returncode != 0):
                         errorStr = '[31m' + ''.join(str(e)+' ' for e in cmd) + ' error: ' + hex(result.returncode) + '[0m'
                         print(errorStr)
-                        return (result.returncode, result.args, errorStr)
+                        return (result.returncode, result.args)
                     print( 'Just Finished: ', cmd)
                     # Cleanup dataDir
                     os.remove(os.path.join(dataDir, obsFile))
@@ -470,16 +464,15 @@ class MainApplication(tk.Tk):
                 matlabStr = 'PlotLatLonGridSurvey(' + "'" + str1 + "','" + str2 + "', " + str(self.yearStart) + ',' +str(self.tsPerYear) + ", '" + self.domainName + "');exit"
                 cmd = ['matlab.exe', '-batch', matlabStr]
             else:
-                octaveStr = 'mfiles/PlotLatLonGridSurvey.m', str1, str2, str(self.yearStart), str(self.tsPerYear), self.domainName
-                cmd = ['octave', octaveStr]
+                cmd = ['octave', 'mfiles/PlotLatLonGridSurvey.m', str1, str2, str(self.yearStart), str(self.tsPerYear), self.domainName]
 
             result = subprocess.run(cmd)
             if (result.returncode != 0):
                 errorStr = '[31m' + ''.join(str(e)+' ' for e in cmd) + ' error: ' + hex(result.returncode) + '[0m'
                 print(errorStr)
-                return (result.returncode, result.args, errorStr)
+                return (result.returncode, result.args)
 
-        return (0, '', '')
+        return (0, '')
 
 
     #-------------------------------------------------------------------------------------
@@ -817,7 +810,7 @@ class MainApplication(tk.Tk):
         about = '''
     Shows the limitSHOW Argss for Number of Areas, Nodes in each Area, Year range
 	To Change, restart with 
-    > python .\PythonScripts\GUI\GeoSAM\GeoSams.py Areas Nodes Years
+    > python .\\PythonScripts\\GUI\\GeoSAM\\GeoSams.py Areas Nodes Years
 	
 START Sim
     Will run the GeoSAMS simulation base on the parameters given by the GUI. 
