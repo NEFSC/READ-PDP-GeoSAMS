@@ -34,7 +34,10 @@
 #
 #--------------------------------------------------------------------------------------------------
 import os
+import webbrowser
+import glob
 import tkinter as tk
+from tkinter import messagebox
 from tkinter import ttk
 from tkinter import filedialog
 from Widgets import *
@@ -82,8 +85,14 @@ class MainInput(ttk.Frame):
         self.openUKConfigButton = ttk.Button(interpFrame, text='Change/Save UK File', style="BtnBluGrn.TLabel", command=self.GetUKConfigFName)
         self.openUKConfigButton.grid(row=0, column=3)
         #-------------------------------------------------------------------------------------------
-        interpFrame.grid(row=2, column=0, padx=5, sticky='n')
-
+        interpFrame.grid(row=2, column=0, padx=5, sticky='nw')
+        # +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+        showResultsFrame = ttk.LabelFrame(self, text='View PDF Plots', style='SAMS.TFrame')
+        # --------------------------------------------------------------------------------------------------------
+        self.openPDFButton = ttk.Button(showResultsFrame, text='Open PDF File', style="BtnGreen.TLabel", command=self.OpenPDF)
+        self.openPDFButton.grid(row=0, column=0, sticky='we')
+        #-------------------------------------------------------------------------------------------
+        showResultsFrame.grid(row=2, column=0, padx=5, sticky='sw')
         # +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
         # +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
         recruitFrame = ttk.LabelFrame(self, text='Recruitment', style='SAMS.TFrame')
@@ -126,11 +135,11 @@ class MainInput(ttk.Frame):
         self.tsPerYear  = SubFrameElement(self, durationFrame, 'Time Steps / Year', str(tsPerYear),   2, 0, 1)
         #-------------------------------------------------------------------------------------------
         self.domainNameLabel = ttk.Label(durationFrame, text='Domain Name')
-        self.domainNameLabel.grid(row=3, column=0)
+        self.domainNameLabel.grid(row=3, column=0, pady=5)
         #-------------------------------------------------------------------------------------------
         self.domainNameCombo = ttk.Combobox(durationFrame, width=3, values=['MA', 'GB', 'AL'])
         self.domainNameCombo.current(2)
-        self.domainNameCombo.grid(row=3, column=1, sticky='w')
+        self.domainNameCombo.grid(row=3, column=1, sticky='w', pady=5)
         #-------------------------------------------------------------------------------------------
         self.useStratumLabel = ttk.Label(durationFrame, text='Use Stratum\n(Not Used by MA)')
         self.useStratumLabel.grid(row=4, column=0)
@@ -307,12 +316,23 @@ class MainInput(ttk.Frame):
             self.ukCfgFile.myEntry.insert(0,f[-1])
             self.friend.WriteUKConfig()
 
+    def OpenPDF(self):
+        # Checking to see if processing has been run
+        fName = os.path.join('Results', 'Lat_Lon_Grid_*.pdf')
+        fileList = glob.glob(fName)
+        if fileList:
+            fName = filedialog.askopenfilename(title="Open PDF File", filetypes=[("PDF files", "Lat_Lon_Grid_*.pdf")], defaultextension='pdf', initialdir='Results')
+            if fName:
+                webbrowser.open_new(fName)
+        else:
+            messagebox.showerror("Open PDF File", 'There are no PDF files to open. START Sim to create files.')
+
     #-------------------------------------------------------------------------------------
     ## 
     #-------------------------------------------------------------------------------------
     def pop_up(self):
-        about = '''Simulation Configuration Files
-    (This frame is scrollable, use mouse wheel)
+        about = '''(This frame is scrollable, use mouse wheel)
+Simulation Configuration Files
     These are the names for the configuration files. The user can change the 
     names in order to prevent overwriting the installed configuration files.
 
@@ -372,6 +392,10 @@ Duration
 
 Recruitment
     Defines the period in which recruitment is used in the growth calculations.
+
+View PDF Plots
+    Once START Sim has been executed one can use this button to open and view
+    PDF documents showing plots of the Output selections by lat/lon location.
 '''
         #about = re.sub("\n\s*", "\n", about) # remove leading whitespace from each line
         popup = tk.Toplevel()
