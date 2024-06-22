@@ -110,7 +110,7 @@ class UKInterpolation(ttk.Frame):
         # +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
         scrollFrame = ScrollFrame(self) # add a new scrollable frame.
         # +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-        self.funcFrame = ttk.LabelFrame(scrollFrame.viewPort, text='Generic Spatial Functions', style='SAMS.TFrame', width=400, height=200)
+        self.funcFrame = ttk.LabelFrame(scrollFrame.viewPort, text='Generic Spatial Functions', style='SAMS.TFrame', width=frameWidth, height=frameHeight)
         # --------------------------------------------------------------------------------------------------------
         self.numFncsLabel = ttk.Label(self.funcFrame, text='# of Functions')
         self.numFncsLabel.grid(row=0, column=0, sticky='w')
@@ -148,7 +148,7 @@ class UKInterpolation(ttk.Frame):
         self.funcFrame.grid(row=0, column=1, rowspan=3, sticky='n')
         # +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
         # +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-        self.maFuncFrame = ttk.LabelFrame(scrollFrame.viewPort, text='MA Spatial Functions', style='SAMS.TFrame', width=400, height=200)
+        self.maFuncFrame = ttk.LabelFrame(scrollFrame.viewPort, text='MA Spatial Functions', style='SAMS.TFrame', width=frameWidth, height=frameHeight)
         # --------------------------------------------------------------------------------------------------------
         self.maNumFncsLabel = ttk.Label(self.maFuncFrame, text='# of Functions')
         self.maNumFncsLabel.grid(row=0, column=0, sticky='w')
@@ -186,7 +186,7 @@ class UKInterpolation(ttk.Frame):
         self.maFuncFrame.grid(row=0, column=1, rowspan=3, sticky='n')
         # +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
         # +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-        self.gbFuncFrame = ttk.LabelFrame(scrollFrame.viewPort, text='GBSpatial Functions', style='SAMS.TFrame', width=400, height=200)
+        self.gbFuncFrame = ttk.LabelFrame(scrollFrame.viewPort, text='GBSpatial Functions', style='SAMS.TFrame', width=frameWidth, height=frameHeight)
         # --------------------------------------------------------------------------------------------------------
         self.gbNumFncsLabel = ttk.Label(self.gbFuncFrame, text='# of Functions')
         self.gbNumFncsLabel.grid(row=0, column=0, sticky='w')

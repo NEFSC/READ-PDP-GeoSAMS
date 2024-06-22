@@ -93,10 +93,7 @@ class MainApplication(tk.Tk):
 
         # setup
         self.title(title)
-        if platform.system() == 'Windows':
-            self.geometry('1020x725+10+10')
-        else:
-            self.geometry('1200x725+10+10')
+        self.geometry(geometryStr)
         self.style = ttk.Style()
         # Inheritable frame, label defintions
         self.style.configure('SAMS.TFrame', borderwidth=1, relief='solid', labelmargins=20)

@@ -59,6 +59,7 @@ from tkinter import filedialog
 from Widgets import *
 from PointInPolygon import *
 from AreaManager import *
+from Globals import *
 
 #===============================================================================================================
 ##
@@ -76,7 +77,6 @@ class SortByArea(ttk.Frame):
     def __init__(self, container, friend, maxAreas, maxCorners, maxYears, paramStr):
         super().__init__()
         
-        labelArr = ['Corner', 'Long', 'Lat ', '0.0', '0.0']
         self.root = os.getcwd() #os.environ['ROOT']
         self.startDir = os.path.join(self.root, 'DataSort')
         self.exportFileName = ''
@@ -98,7 +98,7 @@ class SortByArea(ttk.Frame):
         # +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
         self.scrollFrame = ScrollFrame(self) # add a new scrollable frame.
         # +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-        sortAreaFrame = ttk.LabelFrame(self.scrollFrame.viewPort, text='Sort By Area', style='SAMS.TFrame', width=400, height=200)
+        sortAreaFrame = ttk.LabelFrame(self.scrollFrame.viewPort, text='Sort By Area', style='SAMS.TFrame', width=frameWidth, height=frameHeight)
         # --------------------------------------------------------------------------------------------------------
         self.numAreasLabel = ttk.Label(sortAreaFrame, text='# of Areas')
         self.numAreasLabel.grid(row=0, column=0, sticky='w', padx=5)
@@ -164,7 +164,7 @@ class SortByArea(ttk.Frame):
         for a in range(self.numAreas, self.numAreasMax):
             self.areas.areaSubFrame[a].areaFrame.grid_remove()
 
-        sortAreaFrame.grid(row=4, column=0, columnspan=10)
+        sortAreaFrame.grid(row=4, column=0, columnspan=10, padx=5)
         sortAreaFrame.grid_columnconfigure(0,weight=2)
         sortAreaFrame.grid_columnconfigure(1,weight=1)
         # +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++

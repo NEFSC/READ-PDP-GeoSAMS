@@ -52,7 +52,7 @@ class FishMortBySpecAcc(ttk.Frame):
         scrollFrame = ScrollFrame(self) # add a new scrollable frame.
         
         # +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-        fishMortFrame = ttk.LabelFrame(scrollFrame.viewPort, text='Fishing Mort in Special Access', style='SAMS.TFrame', width=400, height=200)
+        fishMortFrame = ttk.LabelFrame(scrollFrame.viewPort, text='Fishing Mort in Special Access', style='SAMS.TFrame', width=frameWidth, height=frameHeight)
         # --------------------------------------------------------------------------------------------------------
         self.numDefinedLabel = ttk.Label(fishMortFrame, text='# Defined')
         self.numDefinedLabel.grid(row=0, column=0, sticky='w')

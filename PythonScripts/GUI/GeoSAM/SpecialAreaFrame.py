@@ -43,7 +43,6 @@ class SpecialArea(ttk.Frame):
     def __init__(self, container, maxAreas, maxCorners):
         super().__init__()
         
-        labelArr = ['Corner', 'Long', 'Lat ', '0.0', '0.0']
         self.root = os.getcwd() #os.environ['ROOT']
         self.startDir = os.path.join(self.root, configDir, specAccCfgDir)
         self.areaFName = None
@@ -56,15 +55,15 @@ class SpecialArea(ttk.Frame):
         # +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
         scrollFrame = ScrollFrame(self) # add a new scrollable frame.
         # +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-        specialAreaFrame = ttk.LabelFrame(scrollFrame.viewPort, text='Special Area', style='SAMS.TFrame', width=400, height=200)
+        specialAreaFrame = ttk.LabelFrame(scrollFrame.viewPort, text='Special Area', style='SAMS.TFrame', width=frameWidth, height=frameHeight)
         # --------------------------------------------------------------------------------------------------------
         self.numAreasLabel = ttk.Label(specialAreaFrame, text='# of Areas')
-        self.numAreasLabel.grid(row=0, column=0, sticky='w')
+        self.numAreasLabel.grid(row=0, column=0, sticky='w', padx=5)
         self.numAreasEntry=ttk.Entry(specialAreaFrame,validatecommand=numbersCallback, width=5)
         self.numAreasEntry.insert(0, str(self.numAreas))
         reg=self.numAreasEntry.register(numbersCallback)
         self.numAreasEntry.configure(validate='key', validatecommand=(reg, '%P'))
-        self.numAreasEntry.grid(row=0, column=1, sticky='w')
+        self.numAreasEntry.grid(row=0, column=1, sticky='w', padx=5)
         self.numAreasEntry.focus()
         self.numAreasEntry.bind('<Return>', self.EnterKeyClicked)
         # --------------------------------------------------------------------------------------------------------
@@ -86,7 +85,7 @@ class SpecialArea(ttk.Frame):
         for a in range(self.numAreas, self.numAreasMax):
             self.areaMgr.areaSubFrame[a].areaFrame.grid_remove()
         # --------------------------------------------------------------------------------------------------------
-        specialAreaFrame.grid(row=4, column=0, columnspan=10)
+        specialAreaFrame.grid(row=4, column=0, columnspan=10, padx=5)
         specialAreaFrame.grid_columnconfigure(0,weight=2)
         specialAreaFrame.grid_columnconfigure(1,weight=1)
         # +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++

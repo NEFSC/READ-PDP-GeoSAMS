@@ -7,6 +7,7 @@ from tkinter import messagebox
 
 from Widgets import *
 from PointInPolygon import *
+from Globals import *
 
 #======================================================================================================
 ##
@@ -42,7 +43,7 @@ class AreaManager(ttk.Frame):
         self.scrollFrame = ScrollFrame(self) # add a new scrollable frame.
         
         # --------------------------------------------------------------------------------------------------------
-        self.sortAreaFrame = ttk.LabelFrame(self.scrollFrame.viewPort, text='Sort By Area', style='SAMS.TFrame', width=400, height=200)
+        self.sortAreaFrame = ttk.LabelFrame(self.scrollFrame.viewPort, text='Sort By Area', style='SAMS.TFrame', width=frameWidth, height=frameHeight)
 
 
     #------------------------------------------------------------------------------------------------

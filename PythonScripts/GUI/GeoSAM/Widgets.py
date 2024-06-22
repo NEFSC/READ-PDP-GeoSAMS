@@ -1,5 +1,6 @@
 import tkinter as tk
 import platform
+from Globals import *
 from tkinter import ttk
 
 # *************************************************************************************************
@@ -88,8 +89,8 @@ class ScrollFrame(tk.Frame):
         self.canvas = tk.Canvas(self, borderwidth=0, background="#ffffff")          #place canvas on self
         self.viewPort = tk.Frame(self.canvas, background="#ffffff")                    #place a frame on the canvas, this frame will hold the child widgets 
         vsb = tk.Scrollbar(self, orient="vertical", command=self.canvas.yview) #place a scrollbar on self 
-        hsb = tk.Scrollbar(self, orient="horizontal", command=self.canvas.xview) #place a scrollbar on self 
-        self.canvas.config(width=1000, height=600, xscrollcommand=hsb.set, yscrollcommand=vsb.set)  #attach scrollbar action to scroll of canvas
+        hsb = tk.Scrollbar(self, orient="horizontal", command=self.canvas.xview) #place a scrollbar on self
+        self.canvas.config(width=scrollFrameWidth, height=scrollFrameHeight, xscrollcommand=hsb.set, yscrollcommand=vsb.set)  #attach scrollbar action to scroll of canvas
 
         vsb.grid(row=0, rowspan=20, column=6, sticky='ns')
         hsb.grid(row=10, column=0, sticky='ew')
