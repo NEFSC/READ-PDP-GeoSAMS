@@ -1,7 +1,7 @@
 addpath mfiles/
 addpath mfiles/latlonutm/
 addpath PreProcess/
+addpath /Users/tomcallaghan/.local/share/octave/api-v58/packages/io-2.6.4/
 addpath /Users/tomcallaghan/.local/share/octave/api-v58/packages/geometry-4.0.0
 addpath /Users/tomcallaghan/.local/share/octave/api-v58/packages/mapping-1.4.2/
-addpath /Users/tomcallaghan/.local/share/octave/api-v58/packages/io-2.6.4/
 addpath /Users/tomcallaghan/.local/share/octave/api-v58/packages/statistics-1.6.6

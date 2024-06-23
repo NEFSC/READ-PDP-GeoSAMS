@@ -8,6 +8,8 @@ labelArr = ['Corner', 'Long', 'Lat ', '0.0', '0.0']
 frameWidth = 400
 frameHeight= 200
 scrollFrameHeight = 600
+helpXoffset = 700
+helpYoffset = 50
 
 if platform.system() == 'Windows':
     scrollFrameWidth = 900

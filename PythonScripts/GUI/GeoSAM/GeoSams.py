@@ -58,6 +58,7 @@ from InterpolationFrame import *
 from SortByAreaFrame import *
 from SpecialAreaFrame import *
 from FishMortBySpecAcc import *
+from EditMathSetupFrame import *
 from Globals import *
 
 #======================================================================================================
@@ -127,12 +128,12 @@ class MainApplication(tk.Tk):
         #
         # NOTE: MA does not use stratum and forces it to false
         # 
-        #self.frame2 = SpecialAccess(self.notebook)
         self.frame3 = Growth(self.notebook, self.mortConfigFile)
         self.frame4 = UKInterpolation(self.notebook, self, self.frame1)
         self.frame5 = SortByArea(self.notebook, self.frame1, self.maxAreas, self.maxCorners, self.maxYears, self.paramStr)
         self.frame6 = SpecialArea(self.notebook, self.maxAreas, self.maxCorners)
         self.frame7 = FishMortBySpecAcc(self.notebook, self.maxAreas, self.maxCorners)
+        self.frame2 = EditMathSetup(self.notebook)
         self.ReadUKConfigFile()
 
         # Update strings based on given configuration files
@@ -149,6 +150,7 @@ class MainApplication(tk.Tk):
         self.notebook.add(self.frame7, text='Fishing Mort in\n Special Access')
         self.notebook.add(self.frame5, text='SortByArea')
         self.notebook.add(self.frame4, text='UKInterpolation')
+        self.notebook.add(self.frame2, text='Math Setup')
         self.notebook.pack()
 
         ttk.Button(self, text='SHOW Args',    style="BtnGreen.TLabel", command=self.ShowArgs).place(relx=0, rely=1, anchor='sw')
@@ -837,7 +839,7 @@ SAVE ALL Configs
         popup = tk.Toplevel()
         nrows = 31
         ncols = 80
-        parentPosn = '+'+str(self.winfo_rootx()+700)+'+'+str(self.winfo_rooty()+50)
+        parentPosn = '+'+str(self.winfo_rootx()+helpXoffset)+'+'+str(self.winfo_rooty()+helpYoffset)
         popup.geometry(str(int(ncols*8.5))+"x"+str(nrows*18)+parentPosn)
         T = tk.Text(popup, width=ncols, height=nrows, padx=10)
         T.insert('end', about)

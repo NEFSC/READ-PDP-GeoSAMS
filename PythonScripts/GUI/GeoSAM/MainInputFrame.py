@@ -79,7 +79,6 @@ class MainInput(ttk.Frame):
         #-------------------------------------------------------------------------------------------
         simFrame.grid(row=1, column=0, padx=5, sticky='n')
         # +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-        # +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
         interpFrame = ttk.LabelFrame(self, text='Interpolation Configuration Files', style='SAMS.TFrame')
         self.ukCfgFile = SubFrameElement(self, interpFrame, 'UK Config File', 'UK.cfg', 0, 0, 1, width=20)
         self.openUKConfigButton = ttk.Button(interpFrame, text='Change/Save UK File', style="BtnBluGrn.TLabel", command=self.GetUKConfigFName)
@@ -93,7 +92,6 @@ class MainInput(ttk.Frame):
         self.openPDFButton.grid(row=0, column=0, sticky='we')
         #-------------------------------------------------------------------------------------------
         showResultsFrame.grid(row=2, column=0, padx=5, sticky='sw')
-        # +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
         # +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
         recruitFrame = ttk.LabelFrame(self, text='Recruitment', style='SAMS.TFrame')
 
@@ -126,7 +124,6 @@ class MainInput(ttk.Frame):
         #-------------------------------------------------------------------------------------------
         recruitFrame.grid(row=2, column=1, padx=5, sticky='e')
         # +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-        # +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
         durationFrame = ttk.LabelFrame(self, text='Duration', style='SAMS.TFrame')
         self.startYr    = SubFrameElement(self, durationFrame, 'Start Year',       '2015',            0, 0, 1)
         #-------------------------------------------------------------------------------------------
@@ -152,7 +149,6 @@ class MainInput(ttk.Frame):
         self.useStratumCombo.grid_remove()
         #-------------------------------------------------------------------------------------------
         durationFrame.grid(row=2, column=1, padx=5, sticky='w')
-        # +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
         # +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
         outputSelFrame = ttk.LabelFrame(self, text='Output Selection', style='SAMS.TFrame')
         #-------------------------------------------------------------------------------------------
@@ -411,7 +407,7 @@ View PDF Plots
         popup = tk.Toplevel()
         nrows = 35
         ncols = 80
-        parentPosn = '+'+str(self.winfo_rootx()+700)+'+'+str(self.winfo_rooty()+50)
+        parentPosn = '+'+str(self.winfo_rootx()+helpXoffset)+'+'+str(self.winfo_rooty()+helpYoffset)
         popup.geometry(str(int(ncols*8.5))+"x"+str(nrows*18)+parentPosn)
         T = tk.Text(popup, width=ncols, height=nrows, padx=10)
         T.insert('end', about)
@@ -419,5 +415,3 @@ View PDF Plots
         T.grid()
         btn = tk.Button(popup, text ="Close", command= popup.destroy)
         btn.grid(row =1)
-
-            
