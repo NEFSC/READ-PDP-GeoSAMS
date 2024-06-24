@@ -215,7 +215,10 @@ class MainApplication(tk.Tk):
         if not filesExist: 
             # Create them
             if platform.system() == 'Windows':
-                cmd = [os.path.join(self.root, 'Unpack.bat'), startYear, stopYear, '0', self.domainName]
+                if self.frame2.usingMatlab.get():
+                    cmd = [os.path.join(self.root, 'Unpack.bat'), startYear, stopYear, '0', self.domainName, 'M']
+                else:
+                    cmd = [os.path.join(self.root, 'Unpack.bat'), startYear, stopYear, '0', self.domainName, 'O']
             else:
                 cmd = [os.path.join(self.root, 'Unpack.sh'), startYear, stopYear, '0', self.domainName]
                 subprocess.run(['chmod','744','Unpack.sh'])
@@ -454,12 +457,11 @@ class MainApplication(tk.Tk):
         #  PLOTTING
         # ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++   
         # We have the needed output paramters so lets plot data and save to pdf files
-        p = platform.platform()
         for pStr in self.paramStr:
             str1 = 'Results/Lat_Lon_Surv_' + pStr + self.domainName
             str2 = 'Results/Lat_Lon_Grid_' + pStr + self.domainName+'_'+str(self.yearStart) + '_' + str(self.yearStop)
 
-            if p[0:3] == 'Win':
+            if self.frame2.usingMatlab.get():
                 matlabStr = 'PlotLatLonGridSurvey(' + "'" + str1 + "','" + str2 + "', " + str(self.yearStart) + ',' +str(self.tsPerYear) + ", '" + self.domainName + "');exit"
                 cmd = ['matlab.exe', '-batch', matlabStr]
             else:

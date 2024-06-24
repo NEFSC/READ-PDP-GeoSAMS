@@ -27,42 +27,67 @@ for %%x in (%*) do (
    set "argVec[!argCount!]=%%~x"
 )
 
-if %argCount% NEQ 4 goto args_count_wrong
+if %argCount% NEQ 5 goto args_count_wrong
 goto args_count_ok
 
 :args_count_wrong
     @echo [31mMissing arguments[0m
-    @echo "Expecting: GeoSamSetup.bat YYYYstart YYYYend DataSource# Domain"
+    @echo "Expecting: GeoSamSetup.bat YYYYstart YYYYend DataSource# Domain [M|O]"
     @echo "Data Source"
-    @echo "    NMFS_ALB ==> 1111"
-    @echo "    CANADIAN ==> 2222"
-    @echo "    F/V_TRAD ==> 3333"
-    @echo "    VIMSRSA  ==> 4444"
-    @echo "    NMFSSHRP ==> 5555"
-    @echo "    ALL      ==> 0"
+    @echo "    NMFS_ALB EQU> 1111"
+    @echo "    CANADIAN EQU> 2222"
+    @echo "    F/V_TRAD EQU> 3333"
+    @echo "    VIMSRSA  EQU> 4444"
+    @echo "    NMFSSHRP EQU> 5555"
+    @echo "    ALL      EQU> 0"
     @echo "Domain"
     @echo "    MA"
     @echo "    GB"
     @echo "    ALL, both MA and GB"
-    exit /b
+    @echo "[M|O]"
+    @echo "    M: Use Matlab for numerical processing"
+    @echo "    O: Use Octave for numerical processing"
+    exit /b 11
 
 :args_count_ok
-if "%3" == "1111" goto continue
-if "%3" == "2222" goto continue
-if "%3" == "3333" goto continue
-if "%3" == "4444" goto continue
-if "%3" == "5555" goto continue
-if "%3" == "0" goto continue
-
+@REM batch does not support AND, OR statements in IF
+if "%3" EQU "1111" goto check_domain_arg
+if "%3" EQU "2222" goto check_domain_arg
+if "%3" EQU "3333" goto check_domain_arg
+if "%3" EQU "4444" goto check_domain_arg
+if "%3" EQU "5555" goto check_domain_arg
+if "%3" EQU "0" goto check_domain_arg
     @echo [31mInvalid SRC: [0m "%3"
     @echo "Data Source"
-    @echo "    NMFS_ALB ==> 1111"
-    @echo "    CANADIAN ==> 2222"
-    @echo "    F/V_TRAD ==> 3333"
-    @echo "    VIMSRSA  ==> 4444"
-    @echo "    NMFSSHRP ==> 5555"
-    @echo "    ALL      ==> 0"
-    exit /b
+    @echo "    NMFS_ALB EQU> 1111"
+    @echo "    CANADIAN EQU> 2222"
+    @echo "    F/V_TRAD EQU> 3333"
+    @echo "    VIMSRSA  EQU> 4444"
+    @echo "    NMFSSHRP EQU> 5555"
+    @echo "    ALL      EQU> 0"
+    exit /b 12
+
+:check_domain_arg
+if "%4" EQU "MA" goto check_math_arg
+if "%4" EQU "GB" goto check_math_arg
+if "%4" EQU "AL" goto check_math_arg
+:domain_wrong
+    @echo [31mInvalid Domain Arg: [0m %4
+    @echo "Domain"
+    @echo "    MA"
+    @echo "    GB"
+    @echo "    AL, both MA and GB"
+    exit /b 13
+
+:check_math_arg
+if "%5" EQU "M" goto continue
+if "%5" EQU "O" goto continue
+:math_arg_wrong
+    @echo [31mInvalid Math Arg: [0m %5
+    @echo "Math Arg"
+    @echo "    M EQU> Use Matlab"
+    @echo "    O EQU> Use Octave"
+    exit /b 14
 
 :continue
 @REM unzip dredge data
@@ -129,22 +154,26 @@ cd ..
 @REM However, vscode does not see it. Either cut&paste here or enter via notepad and cut & paste to here.
 @REM https://stackoverflow.com/questions/2048509/how-to-echo-with-different-colors-in-the-windows-command-line
 @REM https://gist.githubusercontent.com/mlocati/fdabcaeb8071d5c75a2d51712db24011/raw/b710612d6320df7e146508094e84b92b34c77d48/win10colors.cmd
-matlab.exe -batch "TrawlData5mmbin(%1, %2, %3, '%4'); exit;"
+if "%5" EQU "M" matlab.exe -batch "TrawlData5mmbin(%1, %2, %3, '%4'); exit;"
+if "%5" EQU "O" octave PreProcess/TrawlData5mmbin.m $1 $2 $3 $4
 IF ERRORLEVEL 1 (
     @echo [31mError in MATLAB TrawlData5mmbin. Stopping[0m
     exit 1/b
 )
-matlab.exe -batch "PullOutRecruitData(%3); exit;"
+if "%5" EQU "M" matlab.exe -batch "PullOutRecruitData(%3); exit;"
+if "%5" EQU "O" octave PreProcess/PullOutRecruitData.m $3
 IF ERRORLEVEL 1 (
     @echo [31mError in MATLAB PullOutRecruitData. Stopping[0m
     exit 2/b
 )
-matlab.exe -batch "ProcessRecruitData(%1, %2, '%4'); exit;"
+if "%5" EQU "M" matlab.exe -batch "ProcessRecruitData(%1, %2, '%4'); exit;"
+if "%5" EQU Ooctave PreProcess/ProcessRecruitData.m $1 $2 $4
 IF ERRORLEVEL 1 (
     @echo [31mError in MATLAB ProcessRecruitData. Stopping[0m
     exit 3/b
 )
-matlab.exe -batch "NearestNeighborRecInterp(%1, %2, '%4'); exit;"
+if "%5" EQU "M" matlab.exe -batch "NearestNeighborRecInterp(%1, %2, '%4'); exit;"
+if "%5" EQU "O" octave mfiles/NearestNeighborRecInterp.m $1 $2 $4
 IF ERRORLEVEL 1 (
     @echo [31mError in MATLAB NearestNeighborRecInterp. Stopping[0m
     exit 4/b
