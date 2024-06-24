@@ -420,7 +420,7 @@ class SortByArea(ttk.Frame):
                                 of.write(line)
                     of.close()
                     f.close()
-                    shutil.copy(scratchFName, self.exportFileName)
+                    shutil.move(scratchFName, self.exportFileName)
                 
                 messagebox.showinfo('Export This', f'FILE SAVED: {self.exportFileName}')
 

@@ -73,7 +73,7 @@ type DataForPlots
     logical plot_FMOR ! Fishing Mortality
     logical plot_LAND ! Landings by number of scallops
     logical plot_LNDW ! Landings by weight in grams
-    logical plot_LPUE ! Landing Per Unit Effor, (per day)
+    logical plot_LPUE ! Landing Per Unit Effort, (per day)
     logical plot_RECR ! Recruitment
 endtype DataForPlots
 

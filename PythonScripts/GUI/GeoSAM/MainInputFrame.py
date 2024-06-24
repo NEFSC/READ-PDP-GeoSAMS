@@ -374,18 +374,28 @@ Output Selection
     This is used to save processing time rather than processing everything. 
     Especially true during interpolation as it would take over an hour to do 
     the interpolation. For example for MA with 11631 grid locations.
-      - Approx 2 minutes per interpolation
-      - Given 3 years worth of data, plus initial conditions
-      - 9 listed outputs
+    •	Approx 2 minutes per interpolation
+    •	Given 3 years worth of data, plus initial conditions
+    •	9 listed outputs
     Thus 9 x 4 x 2 or 72 minutes. 
     GB is proportionately shorter with only 6802 grid locations.
 
+    •	ABUN: abundance in scallops per square meter
+    •	BMMT: biomass in metric tons
+    •	EBMS: exploitable biomass in metric tons
+    •	FEFF: Fishing Effort
+    •	FMOR: Fishing Mortality
+    •	LAND: Landings by number of scallops
+    •	LNDW: Landings by weight in grams
+    •	LPUE: Landing Per Unit Effort, (per day)
+    •	RECR: Recruitment in scallops per square meter
+    
 Duration
     This defines the start and stop years over which the simulation will 
     forecast growth at time intervals specified by time steps per year.
     For example, for the default value of 13
-    - 1/13 = 0.077 years
-    - 0.077 * 365 = 28.077 days or roughly every 4 weeks
+    •	1/13 = 0.077 years
+    •	0.077 * 365 = 28.077 days or roughly every 4 weeks
 
     The year range is limited by default to 5 years, e.g. 2015 to 2019.
     See SHOW Args. The user can modify this on the command line:
