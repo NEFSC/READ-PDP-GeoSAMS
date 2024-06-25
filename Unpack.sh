@@ -22,10 +22,10 @@
 #       same as above shows the original data plotted at the survey locations.
 
 
-if [ $# -ne 4 ] 
+if [ $# -ne 5 ] 
 then
     echo [31mMissing arguments[0m
-    echo Expecting: GeoSamSetup.sh YYYYstart YYYYend DataSource# Domain
+    echo Expecting: GeoSamSetup.sh YYYYstart YYYYend DataSource# Domain "M|O"
     echo Data Source
     echo "    NMFS_ALB ==> 1111"
     echo "    CANADIAN ==> 2222"
@@ -37,6 +37,9 @@ then
     echo "    MA"
     echo "    GB"
     echo "    ALL, both MA and GB"
+    echo "Math Args"
+    echo "    M: use Matlab"
+    echo "    O: use Octave"
     exit
 fi
 
@@ -60,6 +63,15 @@ then
     echo "    'MA'"
     echo "    'GB'"
     echo "    'AL', both MA and GB"
+    exit
+fi
+
+if [[ "$5" != "M" && "$5" != "O" ]] 
+then
+    echo [31mInvalid Math Arg: [0m "$5"
+    echo Math Arg
+    echo "    M: Use Matlab"
+    echo "    O: Use Octave"
     exit
 fi
 
@@ -123,25 +135,29 @@ make
 # finish with preprocessing
 cd ..
 
-octave PreProcess/TrawlData5mmbin.m $1 $2 $3 $4
+if [ "$5" == "M" ]; then matlab.exe -batch "TrawlData5mmbin(%1, %2, %3, '%4'); exit;"; fi
+if [ "$5" == "O" ]; then octave PreProcess/TrawlData5mmbin.m $1 $2 $3 $4; fi
 if [ $? != 0 ]; then
     echo [31mError in octave TrawlData5mmbin. Stopping[0m
     exit 1
 fi
 
-octave PreProcess/PullOutRecruitData.m $3
+if [ "$5" == "M" ]; then matlab.exe -batch "PullOutRecruitData(%3); exit;"; fi
+if [ "$5" == "O" ]; then octave PreProcess/PullOutRecruitData.m $3; fi
 if [ $? != 0 ]; then
     echo [31mError in octave PullOutRecruitData. Stopping[0m
     exit 2
 fi
 
-octave PreProcess/ProcessRecruitData.m $1 $2 $4
+if [ "$5" == "M" ]; then matlab.exe -batch "ProcessRecruitData(%1, %2, '%4'); exit;"; fi
+if [ "$5" == "O" ]; then octave PreProcess/ProcessRecruitData.m $1 $2 $4; fi
 if [ $? != 0 ]; then
     echo [31mError in octave ProcessRecruitData. Stopping[0m
     exit 3
 fi
 
-octave mfiles/NearestNeighborRecInterp.m $1 $2 $4
+if [ "$5" == "M" ]; then matlab.exe -batch "NearestNeighborRecInterp(%1, %2, '%4'); exit;"; fi
+if [ "$5" == "O" ]; then octave mfiles/NearestNeighborRecInterp.m $1 $2 $4; fi
 if [ $? != 0 ]; then
     echo [31mError in octave NearestNeighborRecInterp. Stopping[0m
     exit 4

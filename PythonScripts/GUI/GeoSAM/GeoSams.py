@@ -214,14 +214,15 @@ class MainApplication(tk.Tk):
         
         if not filesExist: 
             # Create them
-            if platform.system() == 'Windows':
-                if self.frame2.usingMatlab.get():
-                    cmd = [os.path.join(self.root, 'Unpack.bat'), startYear, stopYear, '0', self.domainName, 'M']
-                else:
-                    cmd = [os.path.join(self.root, 'Unpack.bat'), startYear, stopYear, '0', self.domainName, 'O']
+            if self.frame2.usingMatlab.get():
+                mArg = 'M'
             else:
-                cmd = [os.path.join(self.root, 'Unpack.sh'), startYear, stopYear, '0', self.domainName]
-                subprocess.run(['chmod','744','Unpack.sh'])
+                mArg = 'O'
+            if platform.system() == 'Windows':
+                cmd = [os.path.join(self.root, 'Unpack.bat'), startYear, stopYear, '0', self.domainName, mArg]
+            else:
+                cmd = [os.path.join(self.root, 'Unpack.sh'), startYear, stopYear, '0', self.domainName, mArg]
+                subprocess.run(['chmod','744','Unpack.sh']) # make file executable
             messagebox.showinfo("Unpack", f'Starting Unpack.\nThis could take several minutes, longer if using Octave.\nPlease be patient.')
             result = subprocess.run(cmd)
             if result.returncode == 0:
