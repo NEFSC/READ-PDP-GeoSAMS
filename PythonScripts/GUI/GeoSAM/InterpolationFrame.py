@@ -225,8 +225,6 @@ class UKInterpolation(ttk.Frame):
         # +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
         # +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
         self.paramFrame= ttk.LabelFrame(scrollFrame.viewPort, text='Parameters', style='SAMS.TFrame')
-        #DEPRECATE#self.highLimit   = SubFrameElement(self, self.paramFrame, 'High Limit Factor ', '1.5',  0, 0, 1)
-
         self.formComboList = ['spherical', 'exponential', 'gaussian', 'matern']
         self.formLabel = ttk.Label(self.paramFrame, text='Variogram Form')
         self.formLabel.grid(row=0, column=0)
@@ -235,15 +233,6 @@ class UKInterpolation(ttk.Frame):
         self.formCombo.current(0)
         self.formCombo.grid(row=0, column=1, pady=5)
         # --------------------------------------------------------------------------------------------------------
-        #DEPRECATE#self.useLogTransLabel = ttk.Label(self.paramFrame, text='Use Log Transfrom)')
-        #DEPRECATE#self.useLogTransLabel.grid(row=2, column=0)
-        # --------------------------------------------------------------------------------------------------------
-        #DEPRECATE#self.useLogTransCombo = ttk.Combobox(self.paramFrame, width=3, values=['T', 'F'])
-        #DEPRECATE#self.useLogTransCombo.current(0)
-        #DEPRECATE#self.useLogTransCombo.grid(row=2, column=1, pady=5)
-        # --------------------------------------------------------------------------------------------------------
-        #DEPRECATE#self.powerTrans  = SubFrameElement(self, self.paramFrame, 'Power Tranform\n(Not used if Log = T)', '1.0', 3, 0, 1)
-        #-------------------------------------------------------------------------------------------
         self.useSaturateLabel = ttk.Label(self.paramFrame, text='Use Saturate')
         self.useSaturateLabel.grid(row=1, column=0)
         #-------------------------------------------------------------------------------------------
@@ -391,7 +380,7 @@ class UKInterpolation(ttk.Frame):
                     i = self.formComboList.index(str)
                     self.formGBCombo.current(i)
                 else:
-                    messagebox.showerror('READING UK CONFIG FILE',f'Unknown MA variogram form{str}')
+                    messagebox.showerror('READING UK CONFIG FILE',f'Unknown GB variogram form{str}')
             elif (tag == 'Use Saturate'):
                 self.useGBSaturateCombo.current(comboTFStr.index(value[0]))
             elif (tag == 'Overflow Threshold'):
@@ -662,35 +651,43 @@ class UKInterpolation(ttk.Frame):
 
 Parameters
 
-Variogram Form: 
-    This defines the shape of the variogram models. The kriging refernces 
-    identify a typical variogram shape. It is a positive sloped function with a
-    y intercept defined as nugget. The assymptote is defined as the sill. The 
-    inflection point at the sill is defined as the range. Four shapes are 
-    implemented for UK interpolation
-    •	spherical
-    •	exponential
-    •	gaussian
-    •	matern
+    Variogram Form: 
+        This defines the shape of the variogram models. The kriging refernces 
+        identify a typical variogram shape. It is a positive sloped function 
+        with a y intercept defined as nugget. The assymptote is defined as the
+        sill. The inflection point at the sill is defined as the range. Four
+        shapes are implemented for UK interpolation
+        •	spherical
+        •	exponential
+        •	gaussian
+        •	matern
 
-    spherical:   
-    γ(h) = nugget + sill * (3h/2 * range) - 0.5 * (h/range)^3   0 < h <= range
-         = nugget + sill                                        h > range
-         = 0                                                    h = 0
+        spherical:   
+        γ(h) = nugget + sill * (3h/2 * range) - 0.5*(h/range)^3  0 < h <= range
+            = nugget + sill                                      h > range
+            = 0                                                  h = 0
 
-    exponential:
-    γ(h) = nugget + sill * (1 - exp(-h/range))                  h > 0
-         = 0                                                    , & h = 0
+        exponential:
+        γ(h) = nugget + sill * (1 - exp(-h/range))               h > 0
+            = 0                                                  h = 0
 
-    gaussian
-    γ(h) = nugget + sill * (1 - exp(-(h/range)^2))              h > 0
-         = 0                                                    h = 0 
+        gaussian
+        γ(h) = nugget + sill * (1 - exp(-(h/range)^2))           h > 0
+            = 0                                                  h = 0 
+        
+        matern
+        γ(h) = nugget + sill 
+            * (1 - {sqrt(2)/Γ(0.5)} * Jn(2, h/range) * sqrt(h/range))  h > 0
+            = 0                                                        h = 0
+        where Jn is the Bessel function of the first kind
     
-    matern
-    γ(h) = nugget + sill 
-         * (1 - {sqrt(2)/Γ(0.5)} * Jn(2, h/range) * sqrt(h/range))  h > 0
-         = 0                                                        h = 0
-    where Jn is the Bessel function of the first kind
+    Use Saturate, Saturate Threshold
+        During the interpolation computations some values may overflow
+        resulting in unrealistic values, greater the 1e12. These values allow
+        the user to either saturate the value or clear it.
+
+        Use Saturate = T, if field > Threshold then field = Threshold
+        Use Saturate = F, if field > Threshold then field = 0.0
 
 Spatial Fcn Config File:
     This is the name of the file used to hold the spatial function definitions.
@@ -700,22 +697,22 @@ Spatial Fcn Config File:
     Load, save these files to also setup UK_MA and UK_MB to desired UK settings
 
 
-    MA Parameters:
-        MA Spatial Fcn: 'SpatialFcnsMA.cfg' 
-        Is used to interpolate data points within the MA region.
-        The user can load this file, change the setting, and then save to a
-        different file to preserve installed file, keep it the same.
+MA Parameters:
+    MA Spatial Fcn: 'SpatialFcnsMA.cfg' 
+    Is used to interpolate data points within the MA region.
+    The user can load this file, change the setting, and then save to a
+    different file to preserve installed file, or keep it the same.
 
-    GB Parameters:
-        GB Spatial Fcn: 'SpatialFcnsGB.cfg' 
-        Is used to interpolate data points within the GB region.
-        The user can load this file, change the setting, and then save to a
-        different file to preserve installed file, keep it the same.
+GB Parameters:
+    GB Spatial Fcn: 'SpatialFcnsGB.cfg' 
+    Is used to interpolate data points within the GB region.
+    The user can load this file, change the setting, and then save to a
+    different file to preserve installed file, keep it the same.
 
-    UK_MA.cfg, UK_GB.cfg:
-        These file names are not configurable. The GUI will save the config
-        parameters for MA and GB to these files, respectively. 
-        The interpolation scripts will then use these files when processing AL.
+UK_MA.cfg, UK_GB.cfg:
+    These file names are not configurable. The GUI will save the config
+    parameters for MA and GB to these files, respectively. 
+    The interpolation scripts will then use these files when processing AL.
 
 Load/Save Spat Fcn File:
     Used to load predefined spatial functions and save user defined spatial
