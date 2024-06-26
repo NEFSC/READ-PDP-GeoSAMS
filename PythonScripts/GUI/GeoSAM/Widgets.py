@@ -22,6 +22,7 @@ class SubFrameElement(tk.Frame):
         if not enterCmd == None:
             self.myEntry.focus()
             self.myEntry.bind('<Return>', enterCmd)
+            self.myEntry.bind('<FocusOut>', enterCmd)
 
         self.myEntry.insert(0, value)
         self.myEntry.grid(row=elementRow, column=entryCol, sticky='n', padx=5, pady=5)

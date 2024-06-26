@@ -8,10 +8,10 @@
 # The number of defined areas. This is limited by Max Areas of Interest. See SHOW Args button
 # The # of Areas is limited by default to 25. See SHOW Args for current values.
 # The user can modify this on the command line:
-# > python .\\PythonScripts\\GUI\\GeoSAM\\GeoSams.py #Areas #Nodes #Years
+# > python .\\PythonScripts\\GUI\\GeoSAM\\GeoSams.py #Areas #Nodes
 #
 # Default (same as started with no arguments):\n
-# > python .\\PythonScripts\\GUI\\GeoSAM\\GeoSams.py 25 8 5
+# > python .\\PythonScripts\\GUI\\GeoSAM\\GeoSams.py 25 8
 #
 # @section Sortp2 Output Parameters
 # This is a dropbox of the selected output parameters on the main tab. After 
@@ -199,18 +199,22 @@ class SortByArea(ttk.Frame):
         self.yearStop = int(self.friend.stopYr.myEntry.get())
         self.domainName = self.friend.domainNameCombo.get()
         self.numYears = self.yearStop - self.yearStart + 1
-        if self.numYears > self.maxYears:
-            self.yearStop = self.maxYears + self.yearStart - 1
-            self.numYears = self.maxYears
-            messagebox.showerror("Too many years", f'Setting Stop Year to {self.yearStop}')
-            self.friend.stopYr.myEntry.delete(0,tk.END)
-            self.friend.stopYr.myEntry.insert(0, self.yearStop)
-        for i in range(self.numAreas):
+        for i in range(self.numAreasMax):
             for j in range(self.numYears):
                 self.areas.areaSubFrame[i].results[j].myEntry.grid()
                 self.areas.areaSubFrame[i].results[j].myLabel.grid()
                 self.areas.areaSubFrame[i].results[j].myLabel.config(text = str(self.yearStart+j))
+            for j in range(self.numYears, self.maxYears):
+                self.areas.areaSubFrame[i].results[j].myEntry.grid_remove()
+                self.areas.areaSubFrame[i].results[j].myLabel.grid_remove()
         self.UpdateWidgets()
+
+    #---------------------------------------------------------------------------------------------------------
+    #---------------------------------------------------------------------------------------------------------
+    def AppendYears(self, addYears):
+        for i in range(self.numAreasMax):
+            self.areas.areaSubFrame[i].AppendResults(addYears)
+        self.maxYears = self.maxYears+addYears
 
     #---------------------------------------------------------------------------------------------------------
     #---------------------------------------------------------------------------------------------------------
@@ -471,9 +475,9 @@ class SortByArea(ttk.Frame):
 
     The # of Areas is limited by default to 25. See SHOW Args for current values.
     The user can modify this on the command line:
-    > python .\\PythonScripts\\GUI\\GeoSAM\\GeoSams.py #Areas #Nodes #Years
+    > python .\\PythonScripts\\GUI\\GeoSAM\\GeoSams.py #Areas #Nodes
     Default:
-    > python .\\PythonScripts\\GUI\\GeoSAM\\GeoSams.py 25 8 5
+    > python .\\PythonScripts\\GUI\\GeoSAM\\GeoSams.py 25 8
 
 Update # of Areas
     Use Enter Key or click this button after entering a value in # Defined to 

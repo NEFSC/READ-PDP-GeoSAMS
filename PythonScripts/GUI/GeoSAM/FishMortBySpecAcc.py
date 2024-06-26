@@ -201,9 +201,9 @@ class FishMortBySpecAcc(ttk.Frame):
 
     The # Defined is limited by default to 25. See SHOW Args for current values.
     The user can modify this on the command line:
-    > python .\\PythonScripts\\GUI\\GeoSAM\\GeoSams.py #Areas #Nodes #Years
+    > python .\\PythonScripts\\GUI\\GeoSAM\\GeoSams.py #Areas #Nodes
     Default:
-    > python .\\PythonScripts\\GUI\\GeoSAM\\GeoSams.py 25 8 5
+    > python .\\PythonScripts\\GUI\\GeoSAM\\GeoSams.py 25 8
 
 Update # Defined
     Use Enter Key or click this button after entering a value in # Defined to

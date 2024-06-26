@@ -639,10 +639,18 @@ elseif (stratum < 6730) then
 elseif (stratum < 6740) then
     Get_Region = region_none
 elseif (stratum < 6960) then
-    if (lat > 41.5_dp) then
-        Get_Region = region_N
-    else 
-        Get_Region = region_S
+    if (stratum .EQ. 6740) then
+        if (lat > 41.5_dp) then
+            if (lon < -67.14) then
+                Get_Region = region_none
+            else
+                Get_Region = region_N
+            endif
+        else 
+            Get_Region = region_S
+        endif
+    else
+        Get_Region = region_none
     endif
 else
     Get_Region = region_none

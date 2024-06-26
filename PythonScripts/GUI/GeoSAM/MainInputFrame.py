@@ -51,12 +51,13 @@ from Globals import *
 #======================================================================================================
 class MainInput(ttk.Frame):
 
-    def __init__(self, container, friend, tsPerYear, selectedOutputs):
+    def __init__(self, container, friend, tsPerYear, selectedOutputs, maxYears):
         super().__init__()
         self.root = os.getcwd() #os.environ['ROOT']
         self.simStartDir = os.path.join(self.root, configDir, simCfgDir)
         self.interpStartDir = os.path.join(self.root, configDir, interCfgDir)
         self.friend = friend
+        self.maxYears = maxYears
 
         # +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
         simFrame = ttk.LabelFrame(self, text='Simulation Configuration Files', style='SAMS.TFrame')
@@ -125,9 +126,11 @@ class MainInput(ttk.Frame):
         recruitFrame.grid(row=2, column=1, padx=5, sticky='e')
         # +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
         durationFrame = ttk.LabelFrame(self, text='Duration', style='SAMS.TFrame')
-        self.startYr    = SubFrameElement(self, durationFrame, 'Start Year',       '2015',            0, 0, 1)
+        self.startYr    = SubFrameElement(self, durationFrame, 'Start Year',       '2015',            0, 0, 1,
+                                          enterCmd=self.EnterKeyClicked, valCmd=numbersCallback)
         #-------------------------------------------------------------------------------------------
-        self.stopYr     = SubFrameElement(self, durationFrame, 'Stop Year ',       '2017',            1, 0, 1)
+        self.stopYr     = SubFrameElement(self, durationFrame, 'Stop Year ',       '2017',            1, 0, 1,
+                                          enterCmd=self.EnterKeyClicked, valCmd=numbersCallback)
         #-------------------------------------------------------------------------------------------
         self.tsPerYear  = SubFrameElement(self, durationFrame, 'Time Steps / Year', str(tsPerYear),   2, 0, 1)
         #-------------------------------------------------------------------------------------------
@@ -186,6 +189,18 @@ class MainInput(ttk.Frame):
         # +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
         helpButton = ttk.Button(self, text= "Main Help", style="Help.TLabel", command = self.pop_up)
         helpButton.grid(row=0, column=1)
+
+    #---------------------------------------------------------------------------------------------------
+    ## This method is called on both Enter Key clicked and goes out of focus
+    #---------------------------------------------------------------------------------------------------
+    def EnterKeyClicked(self, event):
+        startYear = int(self.startYr.myEntry.get())
+        stopYear = int(self.stopYr.myEntry.get())
+        numYears = stopYear - startYear + 1
+        if numYears > self.maxYears:
+            addYears = numYears - self.maxYears
+            self.friend.frame5.AppendYears(addYears)
+            self.maxYears = numYears
 
     #--------------------------------------------------------------------------------------------------
     ## 
@@ -399,9 +414,9 @@ Duration
 
     The year range is limited by default to 5 years, e.g. 2015 to 2019.
     See SHOW Args. The user can modify this on the command line:
-    > python .\\PythonScripts\\GUI\\GeoSAM\\GeoSams.py #Areas #Nodes #Years
+    > python .\\PythonScripts\\GUI\\GeoSAM\\GeoSams.py #Areas #Nodes
     Default:
-    > python .\\PythonScripts\\GUI\\GeoSAM\\GeoSams.py 25 8 5
+    > python .\\PythonScripts\\GUI\\GeoSAM\\GeoSams.py 25 8
 
     The domain name shows the region where the growth takes place, Georges Bank
     or Mid-Atlantic, GB or MA, respectively. AL covers both regions. 

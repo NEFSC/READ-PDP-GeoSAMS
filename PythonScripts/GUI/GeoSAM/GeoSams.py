@@ -12,7 +12,7 @@
 # -# Sort By Area: Parameters that are used to sort output data and associate with areas of interest
 #
 # The program is started by entering the following command in the root directory of the workspace
-# $ python .\\PythonScripts\\GUI\\GeoSAM\\GeoSams.py [10 8 10]
+# $ python .\\PythonScripts\\GUI\\GeoSAM\\GeoSams.py [10 8]
 #
 # Where the last three number are optional and used to set limits on:
 # - The maximum number of areas of interest that can be defined.
@@ -115,7 +115,7 @@ class MainApplication(tk.Tk):
         self.ReadSimConfigFile()
         self.notebook = ttk.Notebook(self)
 
-        self.frame1 = MainInput(self.notebook, self, self.tsPerYear, self.paramVal)
+        self.frame1 = MainInput(self.notebook, self, self.tsPerYear, self.paramVal, self.maxYears)
         # NOTE: These will still be default values as the user would not as yet entered anything!!
         self.simConfigFile  = os.path.join(self.root,configDir, simCfgDir, self.frame1.simCfgFile.myEntry.get())
         self.mortConfigFile = os.path.join(self.root,configDir, simCfgDir, self.frame1.mortCfgFile.myEntry.get())
@@ -167,8 +167,7 @@ class MainApplication(tk.Tk):
     def ShowArgs(self):
         messagebox.showinfo("GeoSAMS",f'Using these parameters\n\
         Max Areas of Interest: {self.maxAreas}\n\
-        Max Nodes in Areas: {self.maxCorners}\n\
-        Max Year Range: {self.maxYears}')
+        Max Nodes in Areas: {self.maxCorners}')
 
     #-------------------------------------------------------------------------------------
     ## 
@@ -194,14 +193,6 @@ class MainApplication(tk.Tk):
         # check range
         self.yearStart = int(startYear)
         self.yearStop = int(stopYear)
-        numYears = self.yearStop - self.yearStart + 1
-        if numYears > self.maxYears:
-            self.yearStop = self.maxYears + self.yearStart - 1
-            stopYear = str(self.yearStop)
-            numYears = self.maxYears
-            messagebox.showerror("Too many years", f'Setting Stop Year to {stopYear}')
-            self.frame1.stopYr.myEntry.delete(0,tk.END)
-            self.frame1.stopYr.myEntry.insert(0, stopYear)
         
         # Ensure data is available, by first checking if data files have been created.
         # Typical data file name: Data/bin5mm2015AL.csv
@@ -809,10 +800,10 @@ class MainApplication(tk.Tk):
     ## 
     #-------------------------------------------------------------------------------------
     def pop_up(self):
-        about = '''
-    Shows the limitSHOW Argss for Number of Areas, Nodes in each Area, Year range
+        about = '''SHOW Args
+    Shows the limit Number of Areas, Nodes in each Area
 	To Change, restart with 
-    > python .\\PythonScripts\\GUI\\GeoSAM\\GeoSams.py Areas Nodes Years
+    > python .\\PythonScripts\\GUI\\GeoSAM\\GeoSams.py Areas Nodes
 	
 START Sim
     Will run the GeoSAMS simulation base on the parameters given by the GUI. 
@@ -855,21 +846,19 @@ SAVE ALL Configs
 #======================================================================================================
 def main():
     nargs = len(sys.argv)
+    maxYears = 5 # this can change as user enters a greater range, start year to stop year
     if (nargs != 4):
         maxAreas = 25
         maxCorners = 8
-        maxYears = 5
         print ("Missing command line arguments. Expecting: ")
         print ("  $ GeoSams.py MaxNumAreas MaxNumCorners MaxNumYears")
         print ("  Proceeding with default values:")
         print ("  Maximum areas of interest: {}".format(maxAreas))
         print ("  Maximum nodes for area of interest: {}".format(maxCorners))
-        print ("  Maximum years range for simulation: {}".format(maxYears))
         print()
     else:
         maxAreas = int(sys.argv[1])
         maxCorners = int(sys.argv[2])
-        maxYears = int(sys.argv[3])
 
     title = 'GeoSAMS'
     r = MainApplication(title, maxAreas, maxCorners, maxYears)

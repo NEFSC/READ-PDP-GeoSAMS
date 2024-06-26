@@ -272,29 +272,34 @@ class AreaMgrSubFrame(tk.Frame):
                  includeYears=False, numYearsMax=0, yearStart=0, yearStop=0):
         super().__init__()
         self.numCornersMax = numCornersMax
-        startingCol = 0
+        self.startincCol = 0
+        self.yearStart = yearStart
+        self.yearStop = yearStop
+        self.numYearsMax = numYearsMax
 
         self.areaFrame = ttk.LabelFrame(parent, text='Area '+str(areaNum+1))
         # +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
         if includeYears:
-            startingCol += 2
             numYears = yearStop - yearStart + 1
-            self.results = [SubFrameElement(self, self.areaFrame, str(yearStart+i), '0', i, 0, 1, width=15) for i in range(numYearsMax)]
+            self.numYrCols = 3
+            self.results = [SubFrameElement(self, self.areaFrame, str(yearStart+i), '0', i//self.numYrCols+3,
+                                             (i%self.numYrCols)*2, (i%self.numYrCols)*2+1, width=15) for i in range(numYearsMax)]
             # Now hide unused
             for i in range(numYears, numYearsMax):
                 self.results[i].myEntry.grid_remove()
                 self.results[i].myLabel.grid_remove()
-        # +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-        self.commentEntry = SubFrameElement(self, self.areaFrame, 'Comment',  '',  cornerRow, startingCol+cornerCol, startingCol+cornerCol+1, width=25)
-        # +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+        # --------------------------------------------------------------------------------------------------------
+        self.commentEntry = SubFrameElement(self, self.areaFrame, 'Comment',  '',  cornerRow, self.startincCol+cornerCol, self.startincCol+cornerCol+1, width=25)
+        # --------------------------------------------------------------------------------------------------------
         self.numCornersEntry = SubFrameElement(self, self.areaFrame, '# corners',  numCorners, 
-                                cornerRow+1, startingCol+cornerCol, startingCol+cornerCol+1,
+                                cornerRow+1, self.startincCol+cornerCol, self.startincCol+cornerCol+1,
                                 valCmd=numbersCallback, enterCmd=self.EnterKeyClicked)
-        # +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+        # --------------------------------------------------------------------------------------------------------
         self.numCornersButton = ttk.Button(self.areaFrame, text='Update # Corners', command=self.NumCornersUpdate)
-        self.numCornersButton.grid(row=cornerRow+1, column=startingCol+cornerCol+2)
-        # +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-        self.corners = [SubFrameXY(self, self.areaFrame, str(i+1), 2, i+startingCol+cornerCol, labelArr)  for i in range(numCornersMax)]
+        self.numCornersButton.grid(row=cornerRow+1, column=self.startincCol+cornerCol+2)
+        # --------------------------------------------------------------------------------------------------------
+        areaRow = 2
+        self.corners = [SubFrameXY(self, self.areaFrame, str(i+1), areaRow, i+self.startincCol+cornerCol, labelArr)  for i in range(numCornersMax)]
         # now hide unwanted corners
         for i in range(numCorners, numCornersMax):
             self.corners[i].cornerFrame.grid_remove()
@@ -324,3 +329,22 @@ class AreaMgrSubFrame(tk.Frame):
             self.corners[i].cornerFrame.grid_remove()
         for i in range(self.numCorners):
             self.corners[i].cornerFrame.grid()
+
+    # ----------------------------------------------------------------------------------------------
+    ## This method is used to add results when the original maximum number of years is exceeded
+    # ----------------------------------------------------------------------------------------------
+    def AppendResults(self, addYears):
+        for i in range(addYears):
+            # The label will get repainted as the data is displayed, so we use '0' here
+            self.results.append(SubFrameElement(self, self.areaFrame, '0', '0', self.numYearsMax+i, 0, 1, width=15))
+            self.results[i+self.numYearsMax].myLabel.cget('text')
+        self.numYearsMax += addYears
+        # Now show all
+        for i in range(self.numYearsMax):
+            elementRow = i // self.numYrCols + 3
+            labelCol = (i % self.numYrCols) * 2
+            entryCol = (i % self.numYrCols) * 2 + 1
+            self.results[i].myEntry.grid(row=elementRow, column=entryCol, sticky='n', padx=5, pady=5)
+            self.results[i].myLabel.grid(row=elementRow, column=labelCol, sticky='n', padx=5, pady=5)
+            self.results[i].myEntry.grid()
+            self.results[i].myLabel.grid()
