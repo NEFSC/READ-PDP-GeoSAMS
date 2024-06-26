@@ -861,7 +861,7 @@ def main():
         maxCorners = int(sys.argv[2])
 
     title = 'GeoSAMS'
-    os.system('color') # Enable ANSI sequences for color monitor
+    if platform.system()=='Windows': os.system('color') # Enable ANSI sequences for color monitor
     r = MainApplication(title, maxAreas, maxCorners, maxYears)
     r.mainloop()
 
