@@ -170,10 +170,33 @@ class FishMortBySpecAcc(ttk.Frame):
     def SaveFMFile(self):
         self.fmFName = filedialog.asksaveasfilename(title="Save CSV File", filetypes=[("CSV files", "*.csv")], defaultextension='csv', initialdir=self.startDir)
         if self.fmFName:
-            self.areaMgr.SaveFishingMortData(self.fmFName, int(self.numDefinedEntry.get()), self.yearEntry)
             self.fishMortFile.myEntry.delete(0,tk.END)
             f = self.fmFName.split('/')
             self.fishMortFile.myEntry.insert(0, f[-1])
+            numAreas = int(self.numDefinedEntry.get())
+
+            with open(self.fmFName, 'w') as f:
+                for i in range(numAreas):
+                    # write comment
+                    comment = self.areaMgr.areaSubFrame[i].commentEntry.myEntry.get()
+                    f.write('# '+comment+'\n')
+
+                    # save year
+                    f.write(self.yearEntry[i].get()+',')
+
+                    # save number of entries
+                    n = int(self.areaMgr.areaSubFrame[i].numCornersEntry.myEntry.get())
+                    f.write(str(n)+',')
+
+                    # write area values
+                    for j in range(n):
+                        f.write(self.areaMgr.areaSubFrame[i].corners[j].longitude.myEntry.get()+',')
+                
+                    # write mort values
+                    for j in range(n - 1):
+                        f.write(self.areaMgr.areaSubFrame[i].corners[j].latitude.myEntry.get()+',')
+                    f.write(self.areaMgr.areaSubFrame[i].corners[j+1].latitude.myEntry.get()+'\n')
+                f.close()
 
     #-------------------------------------------------------------------------------------
     ## Help Window for Fishing Mortatlity in Special Access Area

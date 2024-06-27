@@ -19,7 +19,7 @@ from Globals import *
 #    Node 1 .... Node N
 #    X data .... X data
 #    Y data .... Y data
-
+#
 #======================================================================================================
 class AreaManager(ttk.Frame):
     
@@ -35,7 +35,6 @@ class AreaManager(ttk.Frame):
         # row and column where the AreaManger should paint corner information
         self.cornerRow = cornerRow 
         self.areaData = [Corner(self.numCornersMax) for _ in range(self.numAreasMax)]
-        self.areaComment = ['' for _ in range(self.numAreasMax)]
         self.areaSubFrame = [AreaMgrSubFrame(self, parent, a, self.numCorners, self.numCornersMax,  
                                          a+elementRow, elementCol, cornerRow, cornerColumn, labelArr,
                                          includeYears, numYearsMax, yearStart, yearStop) for a in range(self.numAreasMax)]
@@ -86,7 +85,7 @@ class AreaManager(ttk.Frame):
                         # remove any trailing commas
                         while inputStr[n] == ',':
                             n -= 1
-                        self.areaComment[areaIndex] = inputStr[1:n+1]
+                        self.areaSubFrame[areaIndex].comment = inputStr[1:n+1]
                         continue
                     inputArr = [s.strip() for s in inputStr.split(',')]
 
@@ -159,7 +158,7 @@ class AreaManager(ttk.Frame):
                         # remove any trailing commas
                         while inputStr[n] == ',':
                             n -= 1
-                        self.areaComment[definedIndex] = inputStr[1:n+1]
+                        self.areaSubFrame[definedIndex].comment = inputStr[1:n+1]
                         continue
                     inputArr = [s.strip() for s in inputStr.split(',')]
                     # remove trailing commas
@@ -199,7 +198,7 @@ class AreaManager(ttk.Frame):
     def UpdateWidgets(self):
         for i in range(self.numAreas):
             self.areaSubFrame[i].commentEntry.myEntry.delete(0,tk.END)
-            self.areaSubFrame[i].commentEntry.myEntry.insert(0,self.areaComment[i])
+            self.areaSubFrame[i].commentEntry.myEntry.insert(0,self.areaSubFrame[i].comment)
             self.areaSubFrame[i].numCornersEntry.myEntry.delete(0,tk.END)
             self.areaSubFrame[i].numCornersEntry.myEntry.insert(0, str(self.areaData[i].numCorners))
             self.areaSubFrame[i].NumCornersUpdate()
@@ -215,7 +214,7 @@ class AreaManager(ttk.Frame):
         with open(fname, 'w') as f:
             for i in range(numAreas):
                 # write comment
-                f.write('# '+self.areaComment[i]+'\n')
+                f.write('# '+self.areaSubFrame[i].comment+'\n')
 
                 # write longitude values
                 for j in range(int(self.areaSubFrame[i].numCornersEntry.myEntry.get()) - 1):
@@ -228,31 +227,6 @@ class AreaManager(ttk.Frame):
                 f.write(self.areaSubFrame[i].corners[j+1].latitude.myEntry.get()+'\n')
         f.close()
 
-
-    #------------------------------------------------------------------------------------------------
-    #------------------------------------------------------------------------------------------------
-    def SaveFishingMortData(self, fname, numAreas, yearEntry):
-        with open(fname, 'w') as f:
-            for i in range(numAreas):
-                # write comment
-                f.write('# '+self.areaComment[i]+'\n')
-
-                # save year
-                f.write(yearEntry[i].get()+',')
-
-                # save number of entries
-                n = int(self.areaSubFrame[i].numCornersEntry.myEntry.get())
-                f.write(str(n)+',')
-
-                # write area values
-                for j in range(n):
-                    f.write(self.areaSubFrame[i].corners[j].longitude.myEntry.get()+',')
-            
-                # write mort values
-                for j in range(n - 1):
-                    f.write(self.areaSubFrame[i].corners[j].latitude.myEntry.get()+',')
-                f.write(self.areaSubFrame[i].corners[j+1].latitude.myEntry.get()+'\n')
-        f.close()
 
 #======================================================================================================
 ## Defines floating point data for corner defintions
@@ -276,6 +250,7 @@ class AreaMgrSubFrame(tk.Frame):
         self.yearStart = yearStart
         self.yearStop = yearStop
         self.numYearsMax = numYearsMax
+        self.comment = ''
 
         self.areaFrame = ttk.LabelFrame(parent, text='Area '+str(areaNum+1))
         # +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
@@ -289,7 +264,9 @@ class AreaMgrSubFrame(tk.Frame):
                 self.results[i].myEntry.grid_remove()
                 self.results[i].myLabel.grid_remove()
         # --------------------------------------------------------------------------------------------------------
-        self.commentEntry = SubFrameElement(self, self.areaFrame, 'Comment',  '',  cornerRow, self.startincCol+cornerCol, self.startincCol+cornerCol+1, width=25)
+        self.commentEntry = SubFrameElement(self, self.areaFrame, 'Comment',  '',  cornerRow, self.startincCol+cornerCol,
+                                            self.startincCol+cornerCol+1, width=25,
+                                            enterCmd=self.SaveField)
         # --------------------------------------------------------------------------------------------------------
         self.numCornersEntry = SubFrameElement(self, self.areaFrame, '# corners',  numCorners, 
                                 cornerRow+1, self.startincCol+cornerCol, self.startincCol+cornerCol+1,
@@ -302,6 +279,11 @@ class AreaMgrSubFrame(tk.Frame):
             self.corners[i].cornerFrame.grid_remove()
         # +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
         self.areaFrame.grid(row=elementRow, column=elementCol, columnspan=10, sticky='ew')
+
+    # ----------------------------------------------------------------------------
+    # ----------------------------------------------------------------------------
+    def SaveField(self, event):
+        self.comment = self.commentEntry.myEntry.get()
 
     # ----------------------------------------------------------------------------
     # ----------------------------------------------------------------------------

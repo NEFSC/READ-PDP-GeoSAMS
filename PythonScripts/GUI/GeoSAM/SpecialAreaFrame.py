@@ -131,7 +131,8 @@ class SpecialArea(ttk.Frame):
         self.areaMgr.UpdateWidgets()
 
     def GetAreaFile(self):
-        self.areaFName = filedialog.askopenfilename(title="Open CSV File", filetypes=[("CSV files", "*.csv")], defaultextension='csv', initialdir=self.startDir)
+        self.areaFName = filedialog.askopenfilename(title="Open CSV File", filetypes=[("CSV files", "*.csv")],
+                                                    defaultextension='csv', initialdir=self.startDir)
         if self.areaFName:
             self.UpdateWidgets()
             self.specAccFile.myEntry.delete(0,tk.END)
@@ -139,7 +140,8 @@ class SpecialArea(ttk.Frame):
             self.specAccFile.myEntry.insert(0, f[-1])
     
     def SaveAreaFile(self):
-        self.areaFName = filedialog.asksaveasfilename(title="Save CSV File", filetypes=[("CSV files", "*.csv")], defaultextension='csv', initialdir=self.startDir)
+        self.areaFName = filedialog.asksaveasfilename(title="Save CSV File", filetypes=[("CSV files", "*.csv")],
+                                                      defaultextension='csv', initialdir=self.startDir)
         if self.areaFName:
             self.areaMgr.SaveSpecialAreaData(self.areaFName, int(self.numAreasEntry.get()))
             self.specAccFile.myEntry.delete(0,tk.END)
