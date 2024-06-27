@@ -295,9 +295,6 @@ class AreaMgrSubFrame(tk.Frame):
                                 cornerRow+1, self.startincCol+cornerCol, self.startincCol+cornerCol+1,
                                 valCmd=numbersCallback, enterCmd=self.EnterKeyClicked)
         # --------------------------------------------------------------------------------------------------------
-        self.numCornersButton = ttk.Button(self.areaFrame, text='Update # Corners', command=self.NumCornersUpdate)
-        self.numCornersButton.grid(row=cornerRow+1, column=self.startincCol+cornerCol+2)
-        # --------------------------------------------------------------------------------------------------------
         areaRow = 2
         self.corners = [SubFrameXY(self, self.areaFrame, str(i+1), areaRow, i+self.startincCol+cornerCol, labelArr)  for i in range(numCornersMax)]
         # now hide unwanted corners

@@ -58,25 +58,25 @@ class SpecialArea(ttk.Frame):
         specialAreaFrame = ttk.LabelFrame(scrollFrame.viewPort, text='Special Area', style='SAMS.TFrame', width=frameWidth, height=frameHeight)
         # --------------------------------------------------------------------------------------------------------
         self.numAreasLabel = ttk.Label(specialAreaFrame, text='# of Areas')
-        self.numAreasLabel.grid(row=0, column=0, sticky='w', padx=5)
+        self.numAreasLabel.grid(row=0, column=0, sticky='s', padx=5)
+        # --------------------------------------------------------------------------------------------------------
         self.numAreasEntry=ttk.Entry(specialAreaFrame,validatecommand=numbersCallback, width=5)
         self.numAreasEntry.insert(0, str(self.numAreas))
         reg=self.numAreasEntry.register(numbersCallback)
         self.numAreasEntry.configure(validate='key', validatecommand=(reg, '%P'))
-        self.numAreasEntry.grid(row=0, column=1, sticky='w', padx=5)
-        self.numAreasEntry.focus()
+        self.numAreasEntry.grid(row=1, column=0, sticky='n', padx=5)
         self.numAreasEntry.bind('<Return>', self.EnterKeyClicked)
+        self.numAreasEntry.bind('<FocusOut>', self.EnterKeyClicked)
         # --------------------------------------------------------------------------------------------------------
-        self.specAccFile  = SubFrameElement(self, specialAreaFrame, 'Special Access File\nSet to NONE if not used\nAlso blocks Fish Mort File', '', 0, 2, 3, width=20)
-        # --------------------------------------------------------------------------------------------------------
-        self.numAreasButton = ttk.Button(specialAreaFrame, text='Update # Areas', command=self.NumAreasUpdate)
-        self.numAreasButton.grid(row=1, column=0, sticky='w')
+        self.specAccFile  = SubFrameElement(self, specialAreaFrame, 'Special Access File', '', 0, 1, 2, width=20)
+        self.specAccFileLabel  = ttk.Label(specialAreaFrame, text='Set to NONE if not used\nAlso blocks Fish Mort File')
+        self.specAccFileLabel.grid(row=1, column=2)
         # --------------------------------------------------------------------------------------------------------
         self.openAreaFileButton = ttk.Button(specialAreaFrame, text='Load Special Area File', style="BtnGreen.TLabel", command=self.GetAreaFile)
-        self.openAreaFileButton.grid(row=0, column=4, sticky='w')
+        self.openAreaFileButton.grid(row=0, column=3)
         # --------------------------------------------------------------------------------------------------------
         self.saveAreaFileButton = ttk.Button(specialAreaFrame, text='Save Special Area File', style="BtnBluGrn.TLabel", command=self.SaveAreaFile)
-        self.saveAreaFileButton.grid(row=1, column=4, sticky='w')
+        self.saveAreaFileButton.grid(row=1, column=3)
         # --------------------------------------------------------------------------------------------------------
         self.areaMgr = AreaManager(self, specialAreaFrame, self.numAreasMax, self.numCornersMax,
                                    elementRow=2, elementCol=0, cornerRow=0, cornerColumn=0, labelArr=labelArr)
@@ -165,10 +165,6 @@ class SpecialArea(ttk.Frame):
     The number of areas the user wishes to define. This is limited by Max Areas
     of Interest. See SHOW Args button
 
-Update # Areas
-    Use Enter Key or click this button after entering a value in # of Areas to 
-    populate/show the Area N defintions
-
     The # of Areas is limited by default to 25. See SHOW Args. 
     The user can modify this on the command line:
     > python .\\PythonScripts\\GUI\\GeoSAM\\GeoSams.py #Areas #Nodes
@@ -193,10 +189,6 @@ Area N
         This is limited by Max Nodes in Area. See SHOW Args for current values.
         This can be changed on the command line. See above
                
-    Update # Corners
-        Use Enter Key or click this button to populate the corner entries for 
-        the given number
-
     Corner N
         These are the coordinates of the area vertices. Enter the Longitude and
         Latitude of the vertices for the area. It is up to the user to ensure 

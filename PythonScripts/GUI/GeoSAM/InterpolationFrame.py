@@ -120,11 +120,8 @@ class UKInterpolation(ttk.Frame):
         self.numFncsEntry.grid(row=0, column=0, sticky='e')
         reg=self.numFncsEntry.register(numbersCallback)
         self.numFncsEntry.configure(validate='key', validatecommand=(reg, '%P'))
-        self.numFncsEntry.focus()
         self.numFncsEntry.bind('<Return>', self.EnterKeyClicked)
-        # --------------------------------------------------------------------------------------------------------
-        self.numFncsButton = ttk.Button(self.funcFrame, text='Update', command=self.NumFuncsUpdate)
-        self.numFncsButton.grid(row=0, column=1)
+        self.numFncsEntry.bind('<FocusOut>', self.EnterKeyClicked)
         # --------------------------------------------------------------------------------------------------------
         # The tkinter grid manager keep all widgets once defined. We are just going to decide which are shown
         # paint first row to show x, y, and z
@@ -158,11 +155,8 @@ class UKInterpolation(ttk.Frame):
         self.maNumFncsEntry.grid(row=0, column=0, sticky='e')
         reg=self.maNumFncsEntry.register(numbersCallback)
         self.maNumFncsEntry.configure(validate='key', validatecommand=(reg, '%P'))
-        self.maNumFncsEntry.focus()
-        self.maNumFncsEntry.bind('<Return>', self.EnterKeyClicked)
-        # --------------------------------------------------------------------------------------------------------
-        self.maNumFncsButton = ttk.Button(self.maFuncFrame, text='Update', command=self.NumFuncsUpdate)
-        self.maNumFncsButton.grid(row=0, column=1)
+        self.maNumFncsEntry.bind('<Return>', self.MAEnterKeyClicked)
+        self.maNumFncsEntry.bind('<FocusOut>', self.MAEnterKeyClicked)
         # --------------------------------------------------------------------------------------------------------
         # The tkinter grid manager keep all widgets once defined. We are just going to decide which are shown
         # paint first row to show x, y, and z
@@ -196,11 +190,8 @@ class UKInterpolation(ttk.Frame):
         self.gbNumFncsEntry.grid(row=0, column=0, sticky='e')
         reg=self.gbNumFncsEntry.register(numbersCallback)
         self.gbNumFncsEntry.configure(validate='key', validatecommand=(reg, '%P'))
-        self.gbNumFncsEntry.focus()
-        self.gbNumFncsEntry.bind('<Return>', self.EnterKeyClicked)
-        # --------------------------------------------------------------------------------------------------------
-        self.gbNumFncsButton = ttk.Button(self.gbFuncFrame, text='Update', command=self.NumFuncsUpdate)
-        self.gbNumFncsButton.grid(row=0, column=1)
+        self.gbNumFncsEntry.bind('<Return>', self.GBEnterKeyClicked)
+        self.gbNumFncsEntry.bind('<FocusOut>', self.GBEnterKeyClicked)
         # --------------------------------------------------------------------------------------------------------
         # The tkinter grid manager keep all widgets once defined. We are just going to decide which are shown
         # paint first row to show x, y, and z
@@ -555,7 +546,7 @@ class UKInterpolation(ttk.Frame):
 
         numFncsEntry.delete(0,tk.END)
         numFncsEntry.insert(0, str(nsf))
-        nsf = self.NumFuncsUpdate(functions, numFncsEntry)
+        nsf = self.UpdateFunctions(functions, numFncsEntry)
         return nsf
 
 
@@ -610,18 +601,32 @@ class UKInterpolation(ttk.Frame):
                 for i in range(self.nsf):
                     self.functions[i].funcFrame.grid()
 
-
     # --------------------------------------------------------------------------------------------------------
     # --------------------------------------------------------------------------------------------------------
     def EnterKeyClicked(self, event):
-        self.NumFuncsUpdate()
+        self.UpdateFunctions(self.functions, self.numFncsEntry)
+
+    def MAEnterKeyClicked(self, event):
+        self.UpdateFunctions(self.maFunctions, self.maNumFncsEntry)
+
+    def GBEnterKeyClicked(self, event):
+        self.UpdateFunctions(self.gbFunctions, self.gbNumFncsEntry)
 
     #--------------------------------------------------------------------------------------------------
     ##
     # This method updates the number of spatial functions. Overrides default value for MA and GB
     #
     #--------------------------------------------------------------------------------------------------
-    def NumFuncsUpdate(self, functions, numFncsEntry):
+    def NumFuncsUpdate(self):
+        self.UpdateFunctions(self.functions, self.numFncsEntry)
+        
+    def MANumFuncsUpdate(self):
+        self.UpdateFunctions(self.maFunctions, self.maNumFncsEntry)
+
+    def GBNumFuncsUpdate(self):
+        self.UpdateFunctions(self.gbFunctions, self.gbNumFncsEntry)
+
+    def UpdateFunctions(self, functions, numFncsEntry):
         # Once a new value is manually enterred, prevent changing tabs from repainting spatial fucntions
         self.okToRepaintFunctions = False            
         for i in range(self.nsfMax):

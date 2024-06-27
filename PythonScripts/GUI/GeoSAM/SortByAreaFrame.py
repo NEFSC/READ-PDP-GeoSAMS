@@ -41,9 +41,6 @@
 #  Also called nodes or sides. This is limited by Max Nodes in Area. 
 # See SHOW Args for current values. This can be changed on the command line. See above
 #
-# @subsection Sortp5p4 Update # Corners
-# Use Enter Key or click this button to populate the corner entries for the given number
-#
 # @subsection Sortp5p5 Corner N
 # These are the coordinates of the area vertices. Enter the Longitude and Latitude of the 
 # vertices for the area. It is up to the user to ensure that a closed shape is defined.
@@ -108,8 +105,8 @@ class SortByArea(ttk.Frame):
         reg=self.numAreasEntry.register(numbersCallback)
         self.numAreasEntry.configure(validate='key', validatecommand=(reg, '%P'))
         self.numAreasEntry.grid(row=1, column=0, sticky='w', padx=5)
-        self.numAreasEntry.focus()
         self.numAreasEntry.bind('<Return>', self.EnterKeyClicked)
+        self.numAreasEntry.bind('<FocusOut>', self.EnterKeyClicked)
         # --------------------------------------------------------------------------------------------------------
         self.outputParmLabel = ttk.Label(sortAreaFrame, text='Output Parameters')
         self.outputParmLabel.grid(row=0, column=0, sticky='e')
@@ -127,9 +124,6 @@ class SortByArea(ttk.Frame):
         # --------------------------------------------------------------------------------------------------------
         self.saveDataSortButton = ttk.Button(sortAreaFrame, text='Save Data Sort File', style="BtnBluGrn.TLabel", command=self.SaveDataSortFile)
         self.saveDataSortButton.grid(row=1, column=2, sticky='e')
-        # --------------------------------------------------------------------------------------------------------
-        self.numAreasButton = ttk.Button(sortAreaFrame, text='Update\n# Areas', command=self.NumAreasUpdate)
-        self.numAreasButton.grid(row=2, column=0, sticky='w')
         # --------------------------------------------------------------------------------------------------------
         self.runSortButton = ttk.Button(sortAreaFrame, text='Run Sort', command=self.RunSort)
         self.runSortButton.grid(row=2, column=2, sticky='e')
@@ -479,10 +473,6 @@ class SortByArea(ttk.Frame):
     Default:
     > python .\\PythonScripts\\GUI\\GeoSAM\\GeoSams.py 25 8
 
-Update # of Areas
-    Use Enter Key or click this button after entering a value in # Defined to 
-    populate/show the Area N defintions.
-
 Output Parameters
     This is a dropbox of the selected output parameters on the main tab. After 
     a simulation and interpolation have been run, the user would select one of
@@ -540,10 +530,6 @@ Area N
         This is limited by Max Nodes in Area. See SHOW Args for current values.
         This can be changed on the command line. See above
                
-    Update # Corners
-        Use Enter Key or click this button to populate the corner entries for 
-        the given number
-
     Corner N
         These are the coordinates of the area vertices. Enter the Longitude and
         Latitude of the vertices for the area. It is up to the user to ensure 

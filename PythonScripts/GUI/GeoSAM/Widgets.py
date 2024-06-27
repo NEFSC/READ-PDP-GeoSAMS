@@ -20,7 +20,6 @@ class SubFrameElement(tk.Frame):
             self.myEntry.configure(validate='key', validatecommand=(reg, '%P'))
         
         if not enterCmd == None:
-            self.myEntry.focus()
             self.myEntry.bind('<Return>', enterCmd)
             self.myEntry.bind('<FocusOut>', enterCmd)
 

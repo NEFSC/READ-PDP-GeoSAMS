@@ -55,32 +55,32 @@ class FishMortBySpecAcc(ttk.Frame):
         fishMortFrame = ttk.LabelFrame(scrollFrame.viewPort, text='Fishing Mort in Special Access', style='SAMS.TFrame', width=frameWidth, height=frameHeight)
         # --------------------------------------------------------------------------------------------------------
         self.numDefinedLabel = ttk.Label(fishMortFrame, text='# Defined')
-        self.numDefinedLabel.grid(row=0, column=0, sticky='w')
+        self.numDefinedLabel.grid(row=0, column=1, sticky='s', padx=5)
         # --------------------------------------------------------------------------------------------------------
-        self.numDefinedEntry=ttk.Entry(fishMortFrame,validatecommand=numbersCallback, width=5)
+        self.numDefinedEntry=ttk.Entry(fishMortFrame, validatecommand=numbersCallback, width=5)
         self.numDefinedEntry.insert(0, str(self.numDefined))
         reg=self.numDefinedEntry.register(numbersCallback)
         self.numDefinedEntry.configure(validate='key', validatecommand=(reg, '%P'))
-        self.numDefinedEntry.grid(row=0, column=1, sticky='w')
-        self.numDefinedEntry.focus()
+        self.numDefinedEntry.grid(row=1, column=1, sticky='n')
         self.numDefinedEntry.bind('<Return>', self.EnterKeyClicked)
+        self.numDefinedEntry.bind('<FocusOut>', self.EnterKeyClicked)
         # --------------------------------------------------------------------------------------------------------
-        self.fishMortFile  = SubFrameElement(self, fishMortFrame, 'Fishing Mort File\nSet to NONE if not used', '', 0, 2, 3, width=20)
+        self.fishMortFile  = SubFrameElement(self, fishMortFrame, 'Fishing Mort File', '', 0, 2, 3, width=20)
+        self.fishMortFileLabel  = ttk.Label(fishMortFrame, text='Set to NONE if not used')
+        self.fishMortFileLabel.grid(row=1, column=3)
         # --------------------------------------------------------------------------------------------------------
-        self.numDefinedButton = ttk.Button(fishMortFrame, text='Update # Defined', command=self.NumDefinedUpdate)
-        self.numDefinedButton.grid(row=1, column=0, sticky='w')
+        labelYear = ttk.Label(fishMortFrame, text='Year', width=4, justify='right')
+        labelYear.grid(row=1, column=0, padx=5)
         # --------------------------------------------------------------------------------------------------------
         self.openFMFileButton = ttk.Button(fishMortFrame, text='Load Fishing Mort File', style="BtnGreen.TLabel", command=self.GetFMFile)
-        self.openFMFileButton.grid(row=0, column=4, sticky='w')
+        self.openFMFileButton.grid(row=0, column=4)
         # --------------------------------------------------------------------------------------------------------
         self.saveFMFileButton = ttk.Button(fishMortFrame, text='Save Fishing Mort File', style="BtnBluGrn.TLabel", command=self.SaveFMFile)
-        self.saveFMFileButton.grid(row=1, column=4, sticky='w')
+        self.saveFMFileButton.grid(row=1, column=4)
         # --------------------------------------------------------------------------------------------------------
         self.yearEntry = [ttk.Entry(fishMortFrame, width=5) for _ in range(self.numDefinedMax)]
-        self.yearLabel = [ttk.Label(fishMortFrame, text='Year', width=4, justify='right') for _ in range(self.numDefinedMax)]
         for i in range(self.numDefinedMax):
-            self.yearEntry[i].grid(row=2+i, column=0, sticky='ne')
-            self.yearLabel[i].grid(row=2+i, column=0, sticky='nw', padx=5)
+            self.yearEntry[i].grid(row=2+i, column=0, sticky='ns', padx=5)
         # --------------------------------------------------------------------------------------------------------
         self.areaMgr = AreaManager(self, fishMortFrame, self.numDefinedMax, self.numFieldsMax, 
                                    elementRow=2, elementCol=1, cornerRow=0, cornerColumn=0, labelArr=labelArr)
@@ -89,7 +89,6 @@ class FishMortBySpecAcc(ttk.Frame):
         for a in range(self.numDefined, self.numDefinedMax):
             self.areaMgr.areaSubFrame[a].areaFrame.grid_remove()
             self.yearEntry[a].grid_remove()
-            self.yearLabel[a].grid_remove()
         # --------------------------------------------------------------------------------------------------------
         # +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
         fishMortFrame.grid(row=4, column=0, columnspan=10)
@@ -129,11 +128,9 @@ class FishMortBySpecAcc(ttk.Frame):
         # First hide everything
         for n in range(self.numDefinedMax):
             self.yearEntry[n].grid_remove()
-            self.yearLabel[n].grid_remove()
         # then show desired number
         for n in range(self.numDefined):
             self.yearEntry[n].grid()
-            self.yearLabel[n].grid()
 
     # --------------------------------------------------------------------------------------------------------
     # --------------------------------------------------------------------------------------------------------
@@ -152,11 +149,9 @@ class FishMortBySpecAcc(ttk.Frame):
         # remove all
         for i in range(self.numDefinedMax):
             self.yearEntry[i].grid_remove()
-            self.yearLabel[i].grid_remove()
 
         for i in range(len(year)):
             self.yearEntry[i].grid()
-            self.yearLabel[i].grid()
             self.yearEntry[i].delete(0,tk.END)
             self.yearEntry[i].insert(0, year[i])
 
@@ -205,10 +200,6 @@ class FishMortBySpecAcc(ttk.Frame):
     Default:
     > python .\\PythonScripts\\GUI\\GeoSAM\\GeoSams.py 25 8
 
-Update # Defined
-    Use Enter Key or click this button after entering a value in # Defined to
-    populate/show the Area N defintions.
-
 Fishing Mort File
     The name of the file used to hold this information. The user can load the 
     default file 'FishingMortality.csv' or save their own configuration.
@@ -228,10 +219,6 @@ Area N
     # Corners: Specifically, the number of Fields for the year given. 
         This is limited by Max Nodes in Area. See SHOW Args for current values.
         This can be changed on the command line. See above
-
-    Update # Corners
-        Use Enter Key or click this button to populate the field entries for 
-        the given number
 
     Field N
         These are the area numbers as determined in Special Access Frame. Enter
