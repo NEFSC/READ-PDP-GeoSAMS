@@ -52,7 +52,7 @@ if isOctave
         lat=table2array(M(:,18));
         lon=-table2array(M(:,19));
         [xx,yy]=ll2utm(lat,lon,zone);
-        
+
     else % working with AL
         lat=M(:,18);
         lon=-M(:,19);
@@ -140,7 +140,7 @@ for yr=yrStart:yrEnd
         fprintf( 'Skipping %s Year %d\n',  domain, yr);
         msg = sprintf( 'No Data for %s Year %d',  domain, yr);
         errorStruct.message = msg;
-        errorStruct.identifier = 'myComponent:inputError';        
+        errorStruct.identifier = 'myComponent:inputError';
         error(errorStruct)
     else
         fprintf( 'Working on %s Year %d\n',  domain, yr);
@@ -185,7 +185,7 @@ for yr=yrStart:yrEnd
             %               n(k) - n(k+23)
             % accumulate 15 to 18
             % sum n(k+24) - n(k+30) into k=25
-            region = Get_Region(lat_t(k,:), lon_t(k,:), stratum_t(k,:));
+            region = Get_Region(isOctave, lat_t(k,:), lon_t(k,:), stratum_t(k,:));
             if region>0
                 if isOctave
                     k25 = sum((M(n(k)+24:n(k)+30,30)));
@@ -210,7 +210,7 @@ for yr=yrStart:yrEnd
 end  % for yr=yrStart:yrEnd
 end
 
-function x = Get_Region(lat_t, lon_t, stratum_t)
+function x = Get_Region(isOctave, lat_t, lon_t, stratum_t)
 region_none=0;
 region_N=1;
 region_S=2;
@@ -218,9 +218,15 @@ region_SW=3;
 region_W=4;
 region_MA=5;
 
-lat = table2array(lat_t);
-lon = table2array(lon_t);
-stratum = table2array(stratum_t);
+if (isOctave)
+    lat = lat_t;
+    lon = lon_t;
+    stratum = lon_t;
+else
+    lat = table2array(lat_t);
+    lon = table2array(lon_t);
+    stratum = table2array(stratum_t);
+end
 
 if (stratum < 6400)
     x = region_MA;
@@ -258,7 +264,7 @@ elseif (stratum < 6960)
             else
                 x = region_N;
             end
-        else 
+        else
             x = region_S;
         end
     else
