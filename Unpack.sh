@@ -135,29 +135,41 @@ make
 # finish with preprocessing
 cd ..
 
-if [ "$5" == "M" ]; then matlab.exe -batch "TrawlData5mmbin(%1, %2, %3, '%4'); exit;"; fi
-if [ "$5" == "O" ]; then octave PreProcess/TrawlData5mmbin.m $1 $2 $3 $4; fi
+if [ "$5" == "M" ]; then 
+matlab.exe -batch "TrawlData5mmbin(%1, %2, %3, '%4'); exit;"
+else
+octave PreProcess/TrawlData5mmbin.m $1 $2 $3 $4
+fi
 if [ $? != 0 ]; then
     echo [31mError in octave TrawlData5mmbin. Stopping[0m
     exit 1
 fi
 
-if [ "$5" == "M" ]; then matlab.exe -batch "PullOutRecruitData(%3); exit;"; fi
-if [ "$5" == "O" ]; then octave PreProcess/PullOutRecruitData.m $3; fi
+if [ "$5" == "M" ]; then
+matlab.exe -batch "PullOutRecruitData(%3); exit;"
+else
+octave PreProcess/PullOutRecruitData.m $3
+fi
 if [ $? != 0 ]; then
     echo [31mError in octave PullOutRecruitData. Stopping[0m
     exit 2
 fi
 
-if [ "$5" == "M" ]; then matlab.exe -batch "ProcessRecruitData(%1, %2, '%4'); exit;"; fi
-if [ "$5" == "O" ]; then octave PreProcess/ProcessRecruitData.m $1 $2 $4; fi
+if [ "$5" == "M" ]; then
+matlab.exe -batch "ProcessRecruitData(%1, %2, '%4'); exit;"
+else
+octave PreProcess/ProcessRecruitData.m $1 $2 $4
+fi
 if [ $? != 0 ]; then
     echo [31mError in octave ProcessRecruitData. Stopping[0m
     exit 3
 fi
 
-if [ "$5" == "M" ]; then matlab.exe -batch "NearestNeighborRecInterp(%1, %2, '%4'); exit;"; fi
-if [ "$5" == "O" ]; then octave mfiles/NearestNeighborRecInterp.m $1 $2 $4; fi
+if [ "$5" == "M" ]; then 
+matlab.exe -batch "NearestNeighborRecInterp(%1, %2, '%4'); exit;"
+else
+octave mfiles/NearestNeighborRecInterp.m $1 $2 $4
+fi
 if [ $? != 0 ]; then
     echo [31mError in octave NearestNeighborRecInterp. Stopping[0m
     exit 4
