@@ -73,8 +73,8 @@ class SubFrameXY(tk.Frame):
         yVal = lableArr[4]
 
         self.cornerFrame = ttk.LabelFrame(parent, text=fieldText+str(fieldNum))
-        self.longitude  = SubFrameElement(self, self.cornerFrame, xText, xVal,  0, 0, 1, width=10)
-        self.latitude   = SubFrameElement(self, self.cornerFrame, yText, yVal,   1, 0, 1, width=10)
+        self.longitude  = SubFrameElement(self, self.cornerFrame, xText, xVal,  0, 0, 1, width=10, valCmd=floatCallback)
+        self.latitude   = SubFrameElement(self, self.cornerFrame, yText, yVal,   1, 0, 1, width=10, valCmd=floatCallback)
         self.cornerFrame.grid(row=elementRow, column=elementCol, padx=5)
 
 
@@ -148,24 +148,25 @@ class ScrollFrame(tk.Frame):
             self.canvas.unbind_all("<MouseWheel>")
 
 # *************************************************************************************************
+## Allows only correctly formed positive integers, ignores non-numeric characters
 # *************************************************************************************************
 def numbersCallback(input):
     """Only allows numeric for input """
     if input.isdigit(): return True  
-    elif input == ".": return True
-    elif input == "": return True
+    elif input == "": return True # allows backspace
     else: return False
 
 # *************************************************************************************************
+## Allows only correctly formed +- floats, ignores non-numeric characters
 # *************************************************************************************************
-def floatCallback(inp):
+def floatCallback(input):
     if input.isdigit(): return True  
     elif input == ".": return True
-    elif input == "": return True
+    elif input == "": return True # allows backspace
+    elif input == "-": return True
     else:
         try:
-            float(inp)
+            float(input)
         except:
             return False
         return True
-

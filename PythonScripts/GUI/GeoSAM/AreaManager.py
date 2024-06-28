@@ -296,7 +296,11 @@ class AreaMgrSubFrame(tk.Frame):
         for i in range(self.numCornersMax):
             self.corners[i].cornerFrame.grid_remove()
 
-        n = int(self.numCornersEntry.myEntry.get())
+        if self.numCornersEntry.myEntry.get() == '':
+            n=1
+            self.numCornersEntry.myEntry.insert(0,'1')
+        else:
+            n = int(self.numCornersEntry.myEntry.get())
         if n > self.numCornersMax:
             messagebox.showerror("Number of Corners", f'Max is {self.numCornersMax}\nSetting to max')
             n = self.numCornersMax

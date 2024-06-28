@@ -116,7 +116,11 @@ class FishMortBySpecAcc(ttk.Frame):
     # --------------------------------------------------------------------------------------------------------
     # --------------------------------------------------------------------------------------------------------
     def NumDefinedUpdate(self):
-        n = int(self.numDefinedEntry.get())
+        if self.numDefinedEntry.get() == '':
+            n=1
+            self.numDefinedEntry.insert(0,'1')
+        else:
+            n = int(self.numDefinedEntry.get())
         if n > self.numDefinedMax:
             messagebox.showerror("Number of Areas ", f'Max is {self.numDefinedMax}\nSetting to max')
             n = self.numDefinedMax

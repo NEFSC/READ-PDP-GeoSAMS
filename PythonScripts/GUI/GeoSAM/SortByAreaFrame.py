@@ -151,7 +151,7 @@ class SortByArea(ttk.Frame):
         # +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
         # --------------------------------------------------------------------------------------------------------
         self.areas = AreaManager(self, sortAreaFrame, self.numAreasMax, self.numCornersMax,
-                                   elementRow=4, elementCol=0, cornerRow=0, cornerColumn=0, labelArr=labelArr,
+                                   elementRow=4, elementCol=0, cornerRow=0, cornerColumn=0, labelArr=cornerLabelArr,
                                    includeYears=True, numYearsMax=self.maxYears, yearStart=self.yearStart, yearStop=self.yearStop)
 
         # now hide
@@ -437,11 +437,14 @@ class SortByArea(ttk.Frame):
     #---------------------------------------------------------------------------------------------------------
     def NumAreasUpdate(self):
         """ Updates the number of areas functions. """
-
         for i in range(self.numAreasMax):
             self.areas.areaSubFrame[i].areaFrame.grid_remove()
 
-        n = int(self.numAreasEntry.get())
+        if self.numAreasEntry.get() == '':
+            n=1
+            self.numAreasEntry.insert(0,'1')
+        else:
+            n = int(self.numAreasEntry.get())
         if n > self.numAreasMax:
             messagebox.showerror("Number of Areas ", f'Max is {self.numAreasMax}\nSetting to max')
             n = self.numAreasMax

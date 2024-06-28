@@ -632,7 +632,11 @@ class UKInterpolation(ttk.Frame):
         for i in range(self.nsfMax):
             functions[i].funcFrame.grid_remove()
 
-        n = int(numFncsEntry.get())
+        if numFncsEntry.get() == '':
+            n=1
+            numFncsEntry.insert(0,'1')
+        else:
+            n = int(numFncsEntry.get())
 
         if n > self.nsfMax:
             messagebox.showerror("Number of Spatial functions", f'Max is {self.nsfMax}\nSetting to max')

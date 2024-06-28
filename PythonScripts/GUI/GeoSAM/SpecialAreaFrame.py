@@ -79,7 +79,7 @@ class SpecialArea(ttk.Frame):
         self.saveAreaFileButton.grid(row=1, column=3)
         # --------------------------------------------------------------------------------------------------------
         self.areaMgr = AreaManager(self, specialAreaFrame, self.numAreasMax, self.numCornersMax,
-                                   elementRow=2, elementCol=0, cornerRow=0, cornerColumn=0, labelArr=labelArr)
+                                   elementRow=2, elementCol=0, cornerRow=0, cornerColumn=0, labelArr=cornerLabelArr)
 
         # now hide
         for a in range(self.numAreas, self.numAreasMax):
@@ -110,7 +110,11 @@ class SpecialArea(ttk.Frame):
     # --------------------------------------------------------------------------------------------------------
     # --------------------------------------------------------------------------------------------------------
     def NumAreasUpdate(self):
-        n = int(self.numAreasEntry.get())
+        if self.numAreasEntry.get() == '':
+            n=1
+            self.numAreasEntry.insert(0,'1')
+        else:
+            n = int(self.numAreasEntry.get())
         if n > self.numAreasMax:
             messagebox.showerror("Number of Areas ", f'Max is {self.numAreasMax}\nSetting to max')
             n = self.numAreasMax

@@ -194,8 +194,18 @@ class MainInput(ttk.Frame):
     ## This method is called on both Enter Key clicked and goes out of focus
     #---------------------------------------------------------------------------------------------------
     def EnterKeyClicked(self, event):
+        # Check for unintended null values
+        if self.startYr.myEntry.get() == '':
+            self.startYr.myEntry.insert(0,'2000')
+        if self.stopYr.myEntry.get() == '':
+            self.stopYr.myEntry.insert(0,'2000')
         startYear = int(self.startYr.myEntry.get())
         stopYear = int(self.stopYr.myEntry.get())
+        if stopYear < startYear:
+            stopYear = startYear
+            self.stopYr.myEntry.delete(0,tk.END)
+            self.stopYr.myEntry.insert(0,str(stopYear))
+            messagebox.showerror('YEAR RANGE','Stop Year is before Start Year\nSetting them equal')
         numYears = stopYear - startYear + 1
         if numYears > self.maxYears:
             addYears = numYears - self.maxYears
