@@ -138,9 +138,9 @@ endfunction Set_Num_Grids
 !> Initializes growth for startup
 !>
 !==================================================================================================================
-subroutine Set_Grid_Manager(state, grid, ngrids, dom_name)
+subroutine Set_Grid_Manager(state_mat, grid, ngrids, dom_name)
 integer, intent(inout) :: ngrids
-real(dp), intent(out):: state(1:ngrids, 1:num_size_classes)
+real(dp), intent(out):: state_mat(1:ngrids, 1:num_size_classes)
 type(Grid_Data_Class), intent(out) :: grid(*)
 character(domain_len), intent(in) :: dom_name
 
@@ -163,7 +163,7 @@ call Read_Configuration()
 num_grids = ngrids
 ! Load Grid. 
 ! read in grid and state from file_name
-ngrids = Load_Grid_State(grid, state)
+ngrids = Load_Grid_State(grid, state_mat)
 
 if (num_grids .NE. ngrids) then
     PRINT *, term_red, 'OOPS something went wrong', term_blk, num_grids, term_red, ' does not match ', term_blk, ngrids
@@ -345,9 +345,9 @@ end subroutine Read_Configuration
 !> @param[in] file_name CSV name to be read in
 !>
 !==================================================================================================================
-integer function Load_Grid_State(grid, state)
+integer function Load_Grid_State(grid, state_mat)
     type(Grid_Data_Class), intent(out) :: grid(*)
-    real(dp), intent(out):: state(1:num_grids, 1:num_size_classes)
+    real(dp), intent(out):: state_mat(1:num_grids, 1:num_size_classes)
 
     character(csv_line_len) input_str
     integer n, io, is_closed, region
@@ -368,7 +368,7 @@ integer function Load_Grid_State(grid, state)
         if (trim(input_str) .EQ. '') exit
         n=n+1
         read(input_str,*) grid(n)%year, grid(n)%x, grid(n)%y, grid(n)%lat, grid(n)%lon, grid(n)%z, &
-        &               is_closed, grid(n)%stratum, state(n,1:num_size_classes)
+        &               is_closed, grid(n)%stratum, state_mat(n,1:num_size_classes)
 
         ! if region is GB, determine if survey data is in GB region
         if (grid(n)%lon > ma_gb_border) then

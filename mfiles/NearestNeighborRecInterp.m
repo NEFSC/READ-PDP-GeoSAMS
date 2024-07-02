@@ -30,7 +30,6 @@ if isOctave
     y0=D(:,3);
     z0=D(:,4);
     recs0=D(:,5);
-    fprintf('Writing to %s\n', fl2)
     r = RandomizeOutput(recs0, yrStart);
     % swapped original and random
     fid=fopen(fl2Rand,'w');
@@ -48,15 +47,15 @@ else
     y0=table2array(D(:,3));
     z0=table2array(D(:,4));
     recs0=table2array(D(:,5));
-    fprintf('Writing to %s\n', fl2)
     r = RandomizeOutput(recs0, yrStart);
     % swapped original and random
     writematrix(recs0,fl2Rand)
     writematrix(r, fl2)
-
 end
+fprintf('Writing to %s. Number of records %d\n', fl2, size(r,1))
 
 ngp=length(x0);
+
 for yr=yrStart+1:yrEnd
     fl=strcat('Data/Recruits',int2str(yr),domain,'.csv');
     if isOctave
@@ -79,9 +78,9 @@ for yr=yrStart+1:yrEnd
         recs05(k)=recs(j);
     end
     fl2=strcat('RecruitEstimates/RecruitEstimate',domain,int2str(yr),'.txt');
-    fl2Rand=strcat('RecruitEstimates/RecruitEstimateRand',domain,int2str(yr),'.txt');
-    fprintf('Writing to %s\n', fl2)
+    fl2Rand=strcat('RecruitEstimates/RecruitEstimateNotRand',domain,int2str(yr),'.txt');
     r = RandomizeOutput(recs05, yr);
+    fprintf('Writing to %s. Number of records %d\n', fl2, size(r,1))
     if isOctave
         % swapped original and random
         fid=fopen(fl2Rand,'w');

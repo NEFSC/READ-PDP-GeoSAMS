@@ -195,7 +195,13 @@ subroutine Set_Recruitment(recruit, n_grids, dom_name, dom_area, L_inf_mu, K_mu,
             PRINT *, term_red, trim(fname), ' NOT FOUND', term_blk
             stop 1
         endif
-        call Read_Scalar_Field(fname, tmp, num_grids)
+        n=num_grids
+        call Read_Scalar_Field(fname, tmp, n)
+        if (n .NE. num_grids) then
+            PRINT *, term_red, 'OOPS something went wrong reading recruits', &
+            & term_blk, n, term_red, ' in file does not match expected', term_blk, num_grids
+            STOP 1
+        endif
         do j = 1,num_grids
             recruit(j)%recruitment(year_index) = tmp(j)
             recruit(j)%year(year_index) = year

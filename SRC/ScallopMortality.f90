@@ -401,10 +401,10 @@ endfunction Ring_Size_Selectivity
 !> @param[in] mortality vector(num_grids)
 !> @results fishing mortality
 !==================================================================================================================
-function Set_Fishing_Effort(year, ts, state, weight_grams, mortality, grid)
+function Set_Fishing_Effort(year, ts, state_mat, weight_grams, mortality, grid)
     implicit none
     integer, intent(in):: year, ts
-    real(dp), intent(in):: state(num_grids, num_size_classes), weight_grams(num_grids, num_size_classes )
+    real(dp), intent(in):: state_mat(1:num_grids, 1:num_size_classes), weight_grams(1:num_grids, 1:num_size_classes )
     type(Mortality_Class), intent(in):: mortality(*)
     type(Grid_Data_Class), intent(in) :: grid(*)
     real(dp) :: Set_Fishing_Effort(num_grids)
@@ -418,13 +418,13 @@ function Set_Fishing_Effort(year, ts, state, weight_grams, mortality, grid)
     do loc = 1,num_grids
         ! dot_product(selectivity, state)
         expl_scallops_psqm(loc) = & 
-        &    dot_product(mortality(loc)%selectivity(1:num_size_classes), state(loc,1:num_size_classes))
+        &    dot_product(mortality(loc)%selectivity(1:num_size_classes), state_mat(loc,1:num_size_classes))
 
         ! dot_product(selectivity, state) * grid_area_sqm
         expl_num(loc) = expl_scallops_psqm(loc) * grid_area_sqm
 
         ! selectivity * state - at this location
-        expl_scallops_psqm_at_size(1:num_size_classes) = mortality(loc)%selectivity(:) * state(loc, :) 
+        expl_scallops_psqm_at_size(1:num_size_classes) = mortality(loc)%selectivity(:) * state_mat(loc,1:num_size_classes) 
         ! dot_product(selectivity * state, weight)
         expl_biomass_gpsqm(loc) = dot_product(expl_scallops_psqm_at_size(1:num_size_classes), &
         &                                      weight_grams(loc,1:num_size_classes))
@@ -454,13 +454,13 @@ function Set_Fishing_Effort(year, ts, state, weight_grams, mortality, grid)
 
         ! (1._dp - exp(-F * delta_time)) * state * grid_area_sqm  * selectivity
         landings_at_size(:) = (1._dp - exp(-F_mort(loc) * delta_time)) &
-        &    * state(loc, 1:num_size_classes) * grid_area_sqm&
+        &    * state_mat(loc, 1:num_size_classes) * grid_area_sqm&
         &    * mortality(loc)%selectivity(1:num_size_classes)
         landings_at_size_open(:) = (1._dp - exp(-F_mort(loc)  * delta_time)) &
-        &    * state(loc, 1:num_size_classes) * grid_area_sqm&
+        &    * state_mat(loc, 1:num_size_classes) * grid_area_sqm&
         &    * mortality(loc)%selectivity_open(1:num_size_classes)
         landings_at_size_closed(:) = (1._dp - exp(-F_mort(loc)  * delta_time)) &
-        &    * state(loc, 1:num_size_classes) * grid_area_sqm&
+        &    * state_mat(loc, 1:num_size_classes) * grid_area_sqm&
         &    * mortality(loc)%selectivity_closed(1:num_size_classes)
     
         ! (1._dp - exp(-F * delta_time))
@@ -473,7 +473,7 @@ function Set_Fishing_Effort(year, ts, state, weight_grams, mortality, grid)
         &    dot_product(landings_at_size_closed(:), weight_grams(loc,1:num_size_classes))
     
         ! (1._dp - exp(-F * delta_time)) * selectivity * state * grid_area_sqm
-        landings_by_num(loc)    = sum(landings_at_size(:))
+        landings_by_num(loc) = sum(landings_at_size(:))
     enddo
 
     !=============================================================
@@ -483,7 +483,7 @@ function Set_Fishing_Effort(year, ts, state, weight_grams, mortality, grid)
 
 
     ! Report current timestep results
-    call Mortality_Write_At_Timestep(year, ts, state, weight_grams, mortality, grid)
+    call Mortality_Write_At_Timestep(year, ts, state_mat, weight_grams, mortality, grid)
 
     do loc = 1, num_grids
         tmp = 0._dp
@@ -647,15 +647,15 @@ endsubroutine Scallops_To_Counts
 !> 
 !> @param[in] recruit
 !> @param[in,out] mortality
-!> @param[in] state  Current state of scallop population in scallops/m^2
+!> @param[in] state_vector  Current state_vector of scallop population in scallops/m^2
 !> @returns natural_mortality and juvenile mortality
 !>
 !==================================================================================================================------------------------------
-function Compute_Natural_Mortality(max_rec_ind, mortality, state, longitude)
+function Compute_Natural_Mortality(max_rec_ind, mortality, state_vector, longitude)
     implicit none
     integer, INTENT(IN):: max_rec_ind
     type(Mortality_Class), INTENT(INOUT):: mortality
-    real(dp), intent(in) :: state(*)
+    real(dp), intent(in) :: state_vector(*)
     real(dp), intent(in) :: longitude
     real(dp) Compute_Natural_Mortality(1:num_size_classes)
     real(dp) recruits
@@ -663,7 +663,7 @@ function Compute_Natural_Mortality(max_rec_ind, mortality, state, longitude)
     ! Find the total sum of scallops per sq meter time region area yields total estimate of scallops, 
     ! recruits is the number of scallops in millions
 
-    recruits = sum(state(1:max_rec_ind)) * domain_area_sqm/(10.**6)
+    recruits = sum(state_vector(1:max_rec_ind)) * domain_area_sqm/(10.**6)
     if (longitude > ma_gb_border) then ! GB
         mortality%natural_mort_juv = max( mortality%natural_mort_adult , exp(1.226_dp * log(recruits) - 10.49_dp ))
     else
@@ -903,12 +903,11 @@ end subroutine Read_Configuration
 !> Initializes growth for startup
 !>
 !==================================================================================================================
-subroutine Mortality_Write_At_Timestep(year, ts, state, weight_grams, mortality, grid)
+subroutine Mortality_Write_At_Timestep(year, ts, state_mat, weight_grams, mortality, grid)
 integer, intent(in) :: year, ts
-! state is allocated before the number of grids is known
-real(dp), intent(in) :: state(num_grids, num_size_classes)
+real(dp), intent(in) :: state_mat(1:num_grids, 1:num_size_classes)
 ! weight_grams is allocated once the number of grids is known
-real(dp), intent(in) :: weight_grams(num_grids, num_size_classes)
+real(dp), intent(in) :: weight_grams(1:num_grids, 1:num_size_classes)
 type(Mortality_Class), intent(in):: mortality(*)
 type(Grid_Data_Class), intent(in) :: grid(*)
 
@@ -929,8 +928,8 @@ do loc = 1, num_grids
     & + fishing_effort(loc) * ( mortality(loc)%selectivity(1:num_size_classes) &
     & + mortality(loc)%incidental + mortality(loc)%discard(1:num_size_classes) )
 
-    abundance(loc) = sum(state(loc,1:num_size_classes)) ! scallops per sq meter
-    bms(loc) = dot_product(state(loc,1:num_size_classes), weight_grams(loc,1:num_size_classes) / grams_per_metric_ton) ! metric tons per sq meter
+    abundance(loc) = sum(state_mat(loc,1:num_size_classes)) ! scallops per sq meter
+    bms(loc) = dot_product(state_mat(loc,1:num_size_classes), weight_grams(loc,1:num_size_classes) / grams_per_metric_ton) ! metric tons per sq meter
 enddo
 
 

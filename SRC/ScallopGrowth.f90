@@ -3,7 +3,7 @@
 !>
 !> @section Gsec1 Growth Class
 !>
-!> The scallop state at each node in the domain is a vector of length @f$N_{sc} = (150 - 30) / 5 + 1 = 25@f$ 
+!> The scallop state_vector at each node in the domain is a vector of length @f$N_{sc} = (150 - 30) / 5 + 1 = 25@f$ 
 !> representing the abundance of scallops in size classes @f$[30-35mm, 35-40mm, ...145-150mm, 150mm+]@f$.  
 !> Size class transition matrices are generated for each node based on the work of  Millar and Nottingham 2018 
 !> Appendix C, henceforth MN18 \ref mn "[1]", although other methods are present in the code including direct Monte Carlo simulation.
@@ -40,7 +40,7 @@
 !> in units of years, typically one year with delta_time as a decimal year, e.g. one day = 1/365 = 0.00274
 !>
 !> For each time step, @f$\delta_t@f$
-!>  - Computes mortality based on current state.
+!>  - Computes mortality based on current state_vector.
 !>  - Computes increase in population due to recruitment, @f$\vec{R}@f$,if within recruitment months, i.e. Jan to April 10th
 !> @f[
 !> \vec{S} = \vec{S} + \delta_t\frac{\vec{R}}{RecruitDuration}
@@ -55,7 +55,7 @@
 !> \vec{M} = \vec{M}_{nat} + Fishing * \left( \vec{M}_{selectivity} + \vec{M}_{incidental} + \vec{M}_{discard} \right)
 !> @f]
 !>
-!>  - Compute new state
+!>  - Compute new state_vector
 !> @f[
 !> \vec{S_{t+1}} = \vec{S_t} * \left(1- \delta_t * \vec{M}\right)
 !> @f]
@@ -179,7 +179,7 @@ CONTAINS
 !> @param[in,out] weight_grams Computed combined scallop weight
 !> 
 !==================================================================================================================
-subroutine Set_Growth(growth, grid, shell_lengths, num_ts, ts_per_year, dom_name, dom_area, state, weight_grams, ngrids)
+subroutine Set_Growth(growth, grid, shell_lengths, num_ts, ts_per_year, dom_name, dom_area, state_mat, weight_grams, ngrids)
     type(Growth_Class), intent(inout) :: growth(*)
     type(Grid_Data_Class), intent(in) :: grid(*)
     real(dp), intent(inout) :: shell_lengths(*)
@@ -190,7 +190,7 @@ subroutine Set_Growth(growth, grid, shell_lengths, num_ts, ts_per_year, dom_name
     ! need allocated first dimension. Recall that fortran stores by column first.
     ! second dimension provided for clarity, as this is constant
     integer, intent(in) :: ngrids
-    real(dp), intent(inout):: state(1:ngrids, 1:num_size_classes)
+    real(dp), intent(inout):: state_mat(1:ngrids, 1:num_size_classes)
     real(dp), intent(inout) :: weight_grams(1:ngrids, 1:num_size_classes)
 
     integer n, j
@@ -247,10 +247,10 @@ subroutine Set_Growth(growth, grid, shell_lengths, num_ts, ts_per_year, dom_name
     ! truncate state larger size classes based on L_inf_mu
     do n=1,num_grids
         do j=num_size_classes,2,-1
-            if( (shell_lengths(j) .gt. growth(n)%L_inf_mu) .and. (state(n,j) .gt. 0.D0) )then
+            if( (shell_lengths(j) .gt. growth(n)%L_inf_mu) .and. (state_mat(n,j) .gt. 0.D0) )then
                 ! lump scallops into smaller class
-                state(n,j-1) = state(n,j-1) + state(n,j)
-                state(n,j) = 0.D0
+                state_mat(n,j-1) = state_mat(n,j-1) + state_mat(n,j)
+                state_mat(n,j) = 0.D0
             endif
         enddo
     enddo
@@ -740,7 +740,7 @@ end subroutine enforce_non_negative_growth
 !> @param[out] state_time_steps State at each time step
 !> @param[in] start_year under considration
 !==================================================================================================================
-function Time_To_Grow(ts, growth, mortality, recruit, state, fishing_effort, year, longitude)
+function Time_To_Grow(ts, growth, mortality, recruit, state_vector, fishing_effort, year, longitude)
 
     use Mortality_Mod, only : Mortality_Class, Compute_Natural_Mortality
     use Recruit_Mod, only : Recruitment_Class
@@ -751,7 +751,7 @@ function Time_To_Grow(ts, growth, mortality, recruit, state, fishing_effort, yea
     type(Mortality_Class), INTENT(INOUT):: mortality
     type(Recruitment_Class), INTENT(INOUT):: recruit
     integer, intent(in) :: year
-    real(dp),intent(inout) :: state(*)
+    real(dp),intent(inout) :: state_vector(*)
     real(dp) :: Time_To_Grow(num_size_classes)
     real(dp), intent(in) :: fishing_effort, longitude
     real(dp) t
@@ -759,32 +759,30 @@ function Time_To_Grow(ts, growth, mortality, recruit, state, fishing_effort, yea
     real(dp), allocatable :: M(:), Rec(:)
 
     real(dp) recr_steps
-        
+
     allocate(M(1:num_size_classes), Rec(1:num_size_classes))
 
-    ! find location of current year
-    Rindx = minloc( abs(recruit%year(1:recruit%n_year) - year), 1)
-    Rec(1:num_size_classes) = 0.D0
-    ! TODO can recruitment take on negative values????
-    !!!!Rec(1:recruit%max_rec_ind) = recruit%recruitment(Rindx)/float(recruit%max_rec_ind)
-    !!!!Rec(1:recruit%max_rec_ind) = abs(recruit%recruitment(Rindx)/float(recruit%max_rec_ind))
-    Rec(1:recruit%max_rec_ind) = recruit%recruitment(Rindx)
+    ! Compute natural mortality based on current state_vector
+    mortality%natural_mortality(1:num_size_classes) = &
+    &   Compute_Natural_Mortality(recruit%max_rec_ind, mortality, state_vector, longitude)
 
-    ! Compute natural mortality based on current state
-    mortality%natural_mortality(1:num_size_classes) = Compute_Natural_Mortality(recruit%max_rec_ind, mortality, state, longitude)
+    ! adjust population state_vector based on von Bertalanffy growth
+    state_vector(1:num_size_classes) = matmul(growth%G(1:num_size_classes, 1:num_size_classes), state_vector(1:num_size_classes))
 
-    ! adjust population state based on von Bertalanffy growth
-    state(1:num_size_classes) = matmul(growth%G(1:num_size_classes, 1:num_size_classes), state(1:num_size_classes))
-
-    ! adjust population state based on recruitment
+    ! adjust population state_vector based on recruitment
     ! we want 100% of the recruitment added over the recruitment period
     recr_steps = floor((recruit%rec_stop - recruit%rec_start) / delta_time) ! number of time steps in recruitment period
     ! no recruitment in the first year
-    if (ts * delta_time > recruit%rec_stop) then
+    if (ts .GE. time_steps_year) then
         t = dfloat(mod(ts-1,time_steps_year)) * delta_time
         ! Compute increase due to recruitment
+        ! find location of current year
+        Rindx = minloc( abs(recruit%year(1:recruit%n_year) - year), 1)
+        Rec(1:num_size_classes) = 0.D0
+        Rec(1:recruit%max_rec_ind) = recruit%recruitment(Rindx)
+    
         if ( ( t .gt. recruit%rec_start ) .and. ( t .le. recruit%rec_stop) ) then
-            state(1:num_size_classes) = state(1:num_size_classes) +  Rec(1:num_size_classes) / recr_steps
+            state_vector(1:num_size_classes) = state_vector(1:num_size_classes) +  Rec(1:num_size_classes) / recr_steps
         endif
     endif
 
@@ -793,8 +791,8 @@ function Time_To_Grow(ts, growth, mortality, recruit, state, fishing_effort, yea
     & + fishing_effort * ( mortality%selectivity(1:num_size_classes) &
     & + mortality%incidental + mortality%discard(1:num_size_classes) )
 
-    ! Apply mortality and compute new state
-    Time_To_Grow(1:num_size_classes) = state(1:num_size_classes) * (1.D0- delta_time * M(1:num_size_classes))
+    ! Apply mortality and compute new state_vector
+    Time_To_Grow(1:num_size_classes) = state_vector(1:num_size_classes) * (1.D0- delta_time * M(1:num_size_classes))
 
     deallocate(M, Rec)
     

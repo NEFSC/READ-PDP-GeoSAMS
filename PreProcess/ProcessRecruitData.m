@@ -242,11 +242,10 @@ if yrStart >= yearMin && yrEnd <= yearMax
         else
             M=table2array(F(j,:));
         end
-        G = LumpDataDx (M,1000.);
         flnm=['Data/Recruits',int2str(yr),domain,'.csv'];
         header='"decmal year", "x utm", "y utm", "bottom depth(m)","recruits per sq m"';
-        writecsv(G,flnm,'%g, %f, %f, %f, %e',header);
-        fprintf('Writing to %s\n', flnm)
+        writecsv(M,flnm,'%g, %f, %f, %f, %e',header);
+        fprintf('Writing to %s. Number of records %d\n', flnm, size(M,1))
     end
 else
     fprintf('INPUT YEARS OUT OF RANGE: %i to %i : actual %i to %i\n', yearMin, yearMax, yrStart, yrEnd )

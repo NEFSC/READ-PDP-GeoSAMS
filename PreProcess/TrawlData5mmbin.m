@@ -201,6 +201,7 @@ for yr=yrStart:yrEnd
             end
         end
         flnm=strcat('Data/bin5mm',int2str(yr),domain,'.csv');
+        fprintf('Size of grid %d\n', size(X,1))
         if isOctave
             csvwrite(flnm,X);
         else

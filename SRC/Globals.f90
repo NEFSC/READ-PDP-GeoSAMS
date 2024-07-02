@@ -109,8 +109,27 @@ real(dp) function Compute_RMS(x, n)
     implicit none
     integer, intent(in) :: n
     real(dp), intent(in) :: x(:)
-    Compute_RMS = sqrt(sum(x(1:n)**2) / float(n))
+    real(dp) result 
+
+    result = sqrt(sum(x(1:n)**2) / float(n))
+    if (is_nan(result)) then
+        write(*,*) term_red, 'Compute_RMS FAILED; NaN', term_blk
+        STOP 99
+    endif
+    Compute_RMS = result
 endfunction Compute_RMS
+
+!---------------------------------------------------------------------------------------------------
+!> isnan does not work nor does (x/=x)
+!>
+!---------------------------------------------------------------------------------------------------
+logical function is_nan(x)
+    real(dp), intent(in) :: x
+    character(10) buf
+
+    write(buf,'(F10.6)') x
+    is_nan = (buf(8:10) .EQ. 'NaN')
+endfunction is_nan
 
 !---------------------------------------------------------------------------------------------------
 !> Purpose: Computes Artithmetic Mean

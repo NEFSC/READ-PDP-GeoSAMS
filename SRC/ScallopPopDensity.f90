@@ -643,6 +643,10 @@ if (append) then
         offset = Get_Region(lat(k), lon(k), stratum(k))
         if (offset > 0) then
             read(appd_dev+offset,'(A)',iostat=io) input_str
+            if (f(k) < 0.0) then
+                write(*,'(A,A,A,A,A,A,A,I5,A)') term_yel, 'WARNING: Negative value in: ', term_blk, &
+                &  file_name//trim(rgn(offset))//'.csv', term_yel, ' line: ', term_blk, k
+            endif
             write(output_str,'(A,A,(ES14.7 : ))') trim(input_str),',',f(k)
             write(temp_dev+offset, '(A)'//NEW_LINE(cr)) trim(output_str)
         endif
