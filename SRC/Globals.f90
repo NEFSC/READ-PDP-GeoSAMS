@@ -42,6 +42,9 @@ integer, parameter :: domain_len = 2
 integer, parameter :: read_dev = 69
 integer, parameter :: write_dev = 63
 
+! arbritrary value chosen as smallest with 2 digit exponent
+real(dp), parameter :: zero_thresh = 1.0D-99 
+
 ! ASIN incorrectly produces error
 ! Error: Fortran 2003: Elemental function as initialization expression with non-integer/non-character arguments
 real(dp), parameter :: pi = 3.14159265358979311599796346854D0 ! 2._dp * ASIN(1._dp)

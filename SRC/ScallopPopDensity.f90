@@ -647,7 +647,13 @@ if (append) then
                 write(*,'(A,A,A,A,A,A,A,I5,A)') term_yel, 'WARNING: Negative value in: ', term_blk, &
                 &  file_name//trim(rgn(offset))//'.csv', term_yel, ' line: ', term_blk, k
             endif
-            write(output_str,'(A,A,(ES14.7 : ))') trim(input_str),',',f(k)
+            ! sometimes f(k) takes on the value of E-311, which can not be read back in
+            ! seems the minimum value is E-300, even with using format ES15.7E3 
+            if ((f(k) > 0.D0) .AND. (f(k) < zero_thresh)) then
+                write(output_str,'(A,A,(ES14.7 : ))') trim(input_str),',',0.D0
+            else
+                write(output_str,'(A,A,(ES14.7 : ))') trim(input_str),',',f(k)
+            endif
             write(temp_dev+offset, '(A)'//NEW_LINE(cr)) trim(output_str)
         endif
     enddo
