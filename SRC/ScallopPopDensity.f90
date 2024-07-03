@@ -460,22 +460,6 @@ subroutine Read_Startup_Config(time_steps_per_year, save_by_stratum, start_year,
             value =  trim(adjustl(input_string(j+1:k-1)))
 
             select case (tag)
-            ! DEPRECATE --------------------------------------------------------------------------------
-            ! Now read via command line to assist batch processing
-            ! case('Domain Name')
-            !     domain_name = trim(adjustl(value))
-            !     if (.not. ( any ((/ domain_name.eq.'MA', domain_name.eq.'GB'/)) )) then
-            !         write(*,*) term_red, ' **** INVALID DOMAIN NAME: ', domain_name, term_blk
-            !         stop 1
-            !     endif
-
-            ! case('Beginning Year')
-            !     read(value,*) start_year
-
-            ! case('Ending Year')
-            !     read(value,*) stop_year
-            ! ------------------------------------------------------------------------------------------
-
             case('Time steps per Year')
                 read(value,*) time_steps_per_year
 

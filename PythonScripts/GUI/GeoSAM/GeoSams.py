@@ -317,7 +317,7 @@ class MainApplication(tk.Tk):
         # ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
         #  INTERPOLATE AND CONCATENATE REGIONS INTO SINGLE FILE
         # ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++   
-        prefix = ['Results/Lat_Lon_Grid_'] #, 'Results/Lat_Lon_Grid_Trend-'] # DEPRECATED
+        prefix = ['Results/Lat_Lon_Grid_']
 
         for pStr in self.paramStr:
 
@@ -377,9 +377,8 @@ class MainApplication(tk.Tk):
 
                 for pfix in prefix:
                     ###########################################################################################
-                    # subprocess.run takes in Data/X_Y_* and creates both 
+                    # subprocess.run takes in Data/X_Y_* and creates
                     #    Results/Lat_Lon_Grid* 
-                    #    Results/Lat_Lon_Grid_Trend* DEPRECATED
                     # Concatenate individual year files into a single file
                     ###########################################################################################
                     col = [defaultdict(list) for _ in range(nyears)]

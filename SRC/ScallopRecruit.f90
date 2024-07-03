@@ -289,17 +289,6 @@ subroutine Read_Configuration()
             value =  trim(adjustl(input_string(j+1:k-1)))
 
             select case (tag)
-            ! DEPRECATE --------------------------------------------------------------------------------
-            ! case('Start Year')
-            !     read(value, *) recr_start_year
-
-            ! case('Stop Year')
-            !     read(value, *)recr_stop_year
-
-            ! case('All Random Stop Year')
-            !     read(value, *)recr_all_rand_stop
-            ! ------------------------------------------------------------------------------------------
-
             case('Start Period')
                 read(value, *) recr_period_start
                 recr_period_start = recr_period_start / 365._dp

@@ -101,9 +101,8 @@ for pStr in paramStr:
 
         for pfix in prefix:
             ###########################################################################################
-            # subprocess.run takes in Data/X_Y_* and creates both 
+            # subprocess.run takes in Data/X_Y_* and creates
             #    Results/Lat_Lon_Grid* 
-            #    Results/Lat_Lon_Grid_Trend* DEPRECATED
             # Concatenate individual year files into a single file
             ###########################################################################################
             col = []

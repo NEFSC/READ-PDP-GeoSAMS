@@ -11,10 +11,6 @@
 !>
 !> The following configuration items are defined.
 !> * Function String
-!> * Greedy nonlinear parameter fit (not used)
-!> * IsTruncateRange
-!> * ZF0Max [optional]
-!> * Use Original Data [optional]
 !>
 !> @section m3p1 Function String
 !>
@@ -48,10 +44,6 @@
 !> * 'SinExp': @f$sin(\vec{A}/\lambda ) * exp(-(\vec{A}/\lambda )^2)@f$
 !> * 'CosExp': @f$cos(\vec{A}/\lambda ) * exp(-(\vec{A}/(2\lambda) )^2)@f$
 !>
-!> @section m3p2 Greedy Fit
-!>
-!> Takes longer to execute, not truly used or verified.
-!>
 !> @section m3p3 IsTruncateRange
 !> * Set to F to extrapolate beyond observation range
 !> * Set to T to restrict within observation range
@@ -81,7 +73,6 @@ type NLSF_Class
     real(dp) rms
     character(12) form
     character(3) axis
-    !integer nsf, precon, IsTruncateRange, UseGreedyFit, nsflim
     integer precon
 end type NLSF_Class
 
@@ -89,7 +80,6 @@ character(fname_len), PRIVATE :: config_file_name
 integer, PRIVATE :: nsf
 integer, PRIVATE :: nsflim
 logical, PRIVATE :: is_truncate_range
-logical, PRIVATE :: use_greedy_fit
 logical, PRIVATE :: use_orig_data
 real(dp), PRIVATE :: z_f0_max
 
@@ -98,10 +88,6 @@ CONTAINS
 !-----------------------------------------------------------------------------------------------
 !> Getter functions
 !-----------------------------------------------------------------------------------------------
-logical function NLSF_Get_Use_Greedy_Fit()
-    NLSF_Get_Use_Greedy_Fit = use_greedy_fit
-endfunction NLSF_Get_Use_Greedy_Fit
-
 logical function NLSF_Get_Is_Truncate_Range()
     NLSF_Get_Is_Truncate_Range = is_truncate_range
 endfunction NLSF_Get_Is_Truncate_Range
@@ -121,27 +107,6 @@ endfunction NLSF_Get_NSF
 real(dp) function NLSF_Get_Z_F0_Max()
 NLSF_Get_Z_F0_Max = z_f0_max
 endfunction NLSF_Get_Z_F0_Max
-
-!-----------------------------------------------------------------------------------------------
-!> Determines which function to call to do a brute force least squares fit of nonlinear spatial 
-!> function parameters to data points in obs.
-!>
-!> NOTE: Greedy function takes significantly longer to run
-!-----------------------------------------------------------------------------------------------
-subroutine NLSF_Select_Fit(obs, nlsf, save_data)
-type(Grid_Data_Class):: obs
-type(NLSF_Class)::nlsf(*)
-logical, intent(in) :: save_data
-
-! check private member variable to determine which least squares fit to use
-if (use_greedy_fit) then
-    call NLSF_Greedy_Least_Sq_Fit(obs, nlsf, save_data)
-else
-    call NLSF_Least_Sq_Fit(obs, nlsf, save_data)
-endif
-
-endsubroutine NLSF_Select_Fit
-    
 
 !-----------------------------------------------------------------------------------------------
 !> Used during instantiation to set the name of the file to read to for configuration parameters
@@ -220,7 +185,6 @@ character(input_str_len) :: input_string
 
 is_truncate_range = .true. !default
 use_orig_data = .true.
-use_greedy_fit = .false.
 z_f0_max = f0_max ! either default to 0.0 or read in on command line
 
 open(69,file=config_file_name)
@@ -254,10 +218,6 @@ do
         end select
         j = index(input_string,"precon=",back=.true.)
         read( input_string(j+7:),* )nlsf(n)%precon
-
-    case ('G')
-        j = index(input_string,"=",back=.true.)
-        read( input_string(j+1:),* ) use_greedy_fit
 
     case ('I')
         j = index(input_string,"=",back=.true.)
@@ -628,101 +588,5 @@ NLSF_Fit_Function(1:num_points) = y(1:num_points) - lpr(1:num_points)
 deallocate(s, p, x0, lambda, lpr)
 
 endfunction NLSF_Fit_Function
-
-!--------------------------------------------------------------------------------------------------
-!> Purpose: Performs a brute force least squares fit of nonlinear spatial function parameters to 
-!> data points in obs.  Functions are fit based on which function has the lowest rms misfit when fit.
-!> Functions are (nescerailly) fit to the remaining residual after fitting the preceeding functions.
-!>
-!> inputs:
-!> - obs: Grid_Manager_Mod(see UniversalKriging.f90) Defines observations to be fit. 
-!>
-!> inputs/output:
-!> - nlsf: Nonlinear spatial function(see UniversalKriging.f90). Defines a vector of nonlinear 
-!>         spatial functions. On return nlsf(1:nsf)%f0 and nlsf(1:nsf)%lambda are specified.
-!>
-!> outputs: 
-!> - f: p%num_points length vector of values of nlsf at points defined in p.
-!>
-!> @author keston Smith (IBSS corp) 2022
-!--------------------------------------------------------------------------------------------------
-subroutine NLSF_Greedy_Least_Sq_Fit(obs, nlsf, save_data)
-type(Grid_Data_Class), intent(in):: obs
-type(NLSF_Class), intent(inout) ::nlsf(*)
-logical, intent(in) :: save_data
-
-integer j, num_obs_points, num_points, k, jBest, notyet, nfi
-real(dp) rmsMin
-real(dp), allocatable :: residual_vect(:), field_precond(:), residuals(:, :), rms(:), res(:)
-integer, allocatable :: isfit(:), RankIndx(:)
-type(NLSF_Class), allocatable :: nlsfTmp(:)
-
-num_obs_points = obs%num_points
-write(*,*)'FNLSF', num_obs_points, num_points, nsf
-allocate(residual_vect(1:num_obs_points), res(1:num_obs_points), field_precond(1:num_obs_points))
-allocate(residuals(1:num_obs_points, 1:nsf), rms(1:nsf), isfit(1:nsf))
-allocate(nlsfTmp(1:nsf), RankIndx(1:nsf))
-residual_vect(1:num_obs_points) = obs%field(1:num_obs_points)
-write(*,*)'res0:', Compute_RMS(residual_vect(:), num_obs_points)
-isfit(1:nsf) = 0
-nfi = 0
-do while(sum(isfit(1:nsf)).lt.nsflim)
-    do j = 1, nsf
-        notyet = 0
-        if (isfit(j).eq.0)then
-            if (nlsf(j)%precon.eq.0)then
-                !no preconditioning
-                field_precond(1:num_obs_points) = 1.D0
-            else
-                k = nlsf(j)%precon
-                if(isfit(k).eq.1)then
-                    field_precond(:) = NLSF_Eval_Semivariance(obs, nlsf(k))
-                else
-                ! dont fit function if preconditioning function not set
-                    rms(j) = huge(1.D0)
-                    notyet = 1
-                endif
-            endif
-            if(notyet.eq.0)then
-                res = NLSF_Fit_Function(obs, nlsf(j), residual_vect, field_precond)
-                nlsf(j)%rms = Compute_RMS(res(:), num_obs_points)
-                residuals(1:num_obs_points, j) = res(1:num_obs_points)
-                rms(j) = Compute_RMS(res(:), num_obs_points)
-            endif
-        else
-            rms(j) = huge(1.D0)
-        endif
-    enddo
-
-    rmsMin = huge(1.D0)
-    do j = 1, nsf
-     if (rms(j).lt.rmsMin)then
-      Jbest = j
-      rmsMin = rms(j)
-     endif
-    enddo
-    isfit(Jbest) = 1
-    
-    res = NLSF_Fit_Function(obs, nlsf(Jbest), residual_vect, field_precond)
-    nfi = nfi+1
-    RankIndx(nfi) = Jbest
-    residual_vect(1:num_obs_points) = res(1:num_obs_points)
-    write(*,*)'Fit function number', Jbest, float(sum(isfit(1:nsf))) / float(nsf), &
-             'Remaining RMS=', Compute_RMS(residual_vect(:), num_obs_points)
-enddo
-
-if (save_data) then
-    call Write_CSV(num_obs_points, nsf, residuals, 'residuals.csv', num_obs_points, .false.)
-    open(63, file = 'NLSF_Class.csv')
-    do j = 1, nsf
-        write(63,*)nlsf(j)%axis, ', ', trim(nlsf(j)%form), ', ', nlsf(j)%f0, ', ', nlsf(j)%lambda
-    enddo
-    close(63)
-endif
-write(*,*)'function rank:', RankIndx(1:nsf)
-nlsf(1:nsf) = nlsf(RankIndx(1:nsf))
-deallocate(residual_vect, field_precond, residuals, rms, res, nlsfTmp, RankIndx)
-
-endsubroutine
 
 endmodule

@@ -26,10 +26,6 @@
 !> Used with logical IsHighLimit. IsHighLimit is the inverse of Log Transform. Typically runs as false. 
 !> Not fully tested.
 !>
-!> @subsubsection m0p1p1p2 Number of Random Fields
-!>
-!> This configuration item sets the number of random fields, NRand. DEPRECATED
-!>
 !> @subsubsection m0p1p1p3 Kriging variogram form
 !> * 'spherical'
 !> * 'exponential'
@@ -40,12 +36,6 @@
 !>
 !> @subsubsection m0p1p1p4 Log Transform
 !> If set to true, interpolation uses the log of the input data instead of linear transform.
-!>
-!> @subsubsection m0p1p1p5 Power Transform Parameter
-!>
-!> DEPRECATED
-!> Power transform interpolates f(x)^alpha, generally 0< alpha < 1 but this has not been tested .
-!> Not used if "Log Transform = T"
 !>
 !> @subsubsection m0p1p1p6 NLS Spatial Fcn File Name
 !> The name of the file that defines the spatial functions. 
@@ -79,11 +69,9 @@ real(dp), allocatable :: beta(:), Cbeta(:,:), eps(:), Ceps(:,:), residual_cov(:,
 real(dp), allocatable :: spatial_fcn(:,:), residual(:), trndOBS(:), resOBS(:)
 real(dp), allocatable :: dist(:,:)
 integer num_points, num_spat_fcns, num_obs_points, j
-! DEPRECATE !real(dp)  fmax, SF, fmax_multiplier
 real(dp)  SF
 ! variables for nonlinear fitting
 integer nsf
-! DEPRECATE !logical IsHiLimit, IsLogT
 character(domain_len) domain_name
 type(Grid_Data_Class):: grid
 type(Grid_Data_Class):: obs
@@ -105,7 +93,6 @@ par = Krig_Class(0.0, 0.0, 0.0, 'spherical')
 write (*,*) term_grn, "PROGRAM STARTING  ", &
 & 'elapsed:', term_yel, e, term_grn, ', user:', term_yel, t(1), term_grn, ', sys:', term_yel, t(2), term_blk
 
-! DEPRECATE !call Read_Startup_Config(domain_name, IsLogT, IsHiLimit, fmax_multiplier, par, alpha, save_data, f0_max)
 call Read_Startup_Config(domain_name, par, alpha_obs, save_data, f0_max, overflow_thresh, use_saturate)
 
 call random_seed( )
@@ -169,7 +156,7 @@ if (sum(obs%field(1:num_obs_points)) .GE. zero_thresh) then
     !-----------------------------------------------------------------------------------------------------
     ! Performs a brute force least squares fit of nonlinear spatial function parameters to data points in obs.
     !-----------------------------------------------------------------------------------------------------
-    call NLSF_Select_Fit(obs, nlsf, save_data)
+    call NLSF_Least_Sq_Fit(obs, nlsf, save_data)
     ! nsf may have been modified during NLSF_Select_Fit
     nsf = NLSF_Get_NSF()
     if (nsf>0) then
@@ -233,7 +220,7 @@ else
     ! THEREFORE, ALL INTERPOLATED DATA WOULD BE 0.0
     num_points = grid%num_points
     grid%field(1:num_points) = 0.0_dp
-    write(*,*)'Obsevation data is all 0, interp is therefore all 0'
+    write(*,*) term_yel, 'Obsevation data is all 0, therefore interpolated data is will be all 0', term_blk
 endif
 if (save_data) then
     call OutputUK(num_points, num_spat_fcns, grid, nlsf, beta, eps, Ceps, Cbeta, SF, alpha_obs)
@@ -275,7 +262,6 @@ endprogram
 !--------------------------------------------------------------------------------------------------
 ! Keston Smith, Tom Callaghan (IBSS) 2024
 !--------------------------------------------------------------------------------------------------
-!DEPRECATE!subroutine Read_Startup_Config(domain_name, IsLogT, IsHiLimit, fmax_multiplier, par, alpha, save_data, f0_max)
 subroutine Read_Startup_Config(domain_name, par, alpha_obs, save_data, f0_max, overflow_thresh, use_saturate)
 use globals
 use Krig_Mod
@@ -285,11 +271,9 @@ character(2),intent(out):: domain_name
 type(Krig_Class), intent(out):: par
 integer j, k, io
 
-!DEPRECATE!logical IsLogT,IsHiLimit
 character(72) :: input_string
 character(tag_len) tag
 character(value_len) value
-!DEPRECATE!real(dp),intent(out)::  fmax_multiplier
 real(dp), intent(out) :: alpha_obs
 logical, intent(out)  :: save_data
 real(dp), intent(out) :: f0_max
@@ -303,15 +287,11 @@ character(form_len) form
 logical exists
 
 ! set default values for parameters not in file
-!DEPRECATE!IsLogT=.true.
-!DEPRECATE!IsHiLimit=.false.
 alpha_obs=1.D0
 save_data = .false.
 f0_max = 0._dp
 use_saturate = .false.
 overflow_thresh = 1.D308
-
-!DEPRECATE!fmax_multiplier = 1.5
 
 ! Check what was entered on command line
 ncla=command_argument_count()
@@ -484,7 +464,6 @@ type(NLSF_Class), intent(in)::nlsf(*)
 integer, intent(in) :: num_points, num_spat_fcns
 real(dp), intent(in) :: eps(*), beta(*), Cbeta(num_spat_fcns,*), SF, alpha_obs! , fmax
 real(dp), intent(inout) :: Ceps(num_points,*)
-!DEPRECATE)logical, intent(in) ::IsLogT, IsHiLimit
 integer n 
 real(dp) trend(num_points), V(num_points), Fg(num_points, num_spat_fcns)
 real(dp) logf(num_points)
@@ -536,7 +515,6 @@ endsubroutine OutputUK
 !>
 !> That is moving from survey data locations to MA/GB grid locations
 !---------------------------------------------------------------------------------------------------
-!DEPRECATE trend!subroutine OutputEstimates(num_points, num_spat_fcns, grid, Ceps, IsLogT, IsHiLimit, fmax, SF, domain_name, nlsf, alpha, beta)
 subroutine OutputEstimates(num_points, grid, Ceps, SF, alpha_obs, overflow_thresh, use_saturate)
 use globals
 use Grid_Manager_Mod
@@ -546,15 +524,12 @@ use Krig_Mod
 
 implicit none
 
-integer, intent(in) :: num_points!DEPRECATE trend!, num_spat_fcns
+integer, intent(in) :: num_points
 type(Grid_Data_Class), intent(inout) :: grid
 real(dp), intent(in) :: Ceps(num_points,*)
-!DEPRECATE!logical, intent(in) ::IsLogT, IsHiLimit
 real(dp), intent(in) :: SF !,fmax
 
-!DEPRECATE trend!type(NLSF_Class), intent(in)::nlsf(*)
 real(dp), intent(in) :: alpha_obs
-!DEPRECATE trend!real(dp), intent(in) :: beta(*)
 real(dp), intent(in) :: overflow_thresh
 logical, intent(in)  :: use_saturate
 
@@ -597,17 +572,4 @@ do n=1, num_points
 enddo
 close(63)
 
-! DEPRECATE trend --------------------------------------------------------------------------
-! ! Now let's save the trend information in the same manner
-! Fg = Krig_Eval_Spatial_Function(grid, num_spat_fcns, num_points, nlsf, .false.)
-! trend(1:num_points) = matmul( Fg(1:num_points, 1:num_spat_fcns), beta(1:num_spat_fcns)) 
-
-! if(IsLogT) trend(1:num_points) = SF*exp(trend(1:num_points))-one_scallop_per_tow
-! !call Write_Vector_Scalar_Field(num_points, trend, 'SpatialTrend.txt')
-! open(63,file=trim(ftrend))
-! do n=1, num_points
-!     write(63, fmtstr) grid%lat(n), grid%lon(n), trend(n)
-! enddo
-! close(63)
-! ------------------------------------------------------------------------------------
 endsubroutine OutputEstimates
