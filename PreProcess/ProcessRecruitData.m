@@ -214,8 +214,8 @@ else
             zone=18;
         end
         [xx(i),yy(i)]=ll2utm(lat(i),lon(i),zone);
-        M=[DecYr, xx, yy, Depth, rec];
     end
+    M=[DecYr, xx, yy, Depth, rec];
 end
 
 flnm=['Data/Recruits', domain, '.csv'];
