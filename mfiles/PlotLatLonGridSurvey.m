@@ -337,24 +337,26 @@ colorbar;
 end % function
 
 function PlotGrid(domain, thisTitle, isOctave, surveyLon, surveyLat, surveyData, gridLon, gridLat, gridData)
+gridPtSize = 3;
+survPtSize = 12;
 f = figure('Name', thisTitle);
 if isOctave
     pSurvey = scatter(surveyLon, surveyLat, surveyData, surveyData, "filled");
-    set(pSurvey, 'sizedata', 10); % size of dots
+    set(pSurvey, 'sizedata', survPtSize); % size of dots
     hold on
 
     pGrid = scatter(gridLon, gridLat, gridData, gridData, "filled");
-    set(pGrid, 'sizedata', 3); % size of dots
+    set(pGrid, 'sizedata', gridPtSize); % size of dots
 
     % enlarge figure
     figure(f,"position",get(0,"screensize"))
 else
     pSurvey = geoscatter(surveyLat, surveyLon, surveyData, surveyData, "filled");
-    pSurvey.SizeData = 10; % size of dots
+    pSurvey.SizeData = survPtSize; % size of dots
     hold on
 
     pGrid = geoscatter(gridLat, gridLon, gridData, gridData, "filled");
-    pGrid.SizeData = 3; % size of dots
+    pGrid.SizeData = gridPtSize; % size of dots
 	% enlarge figure
     if strcmp(domain, 'GB')
     	f.OuterPosition = [1963.4 -221.4 1500 1087.2];

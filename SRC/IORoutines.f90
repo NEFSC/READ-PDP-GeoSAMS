@@ -264,7 +264,13 @@ if (append) then
     write(write_dev, '(A)'//NEW_LINE(cr)) trim(output_str)
     do k=1,n
         read(read_dev,'(A)',iostat=io) input_str
-        write(output_str,'(A,A,(ES14.7 : ))') trim(input_str),',',f(k)
+        ! sometimes f(k) takes on the value of E-311, which can not be read back in
+        ! seems the minimum value is E-300, even with using format ES15.7E3 
+        if (((f(k) > 0.D0) .AND. (f(k) < zero_threshold)) .OR. (f(k) .GT. 1.D0/zero_threshold)) then
+            write(output_str,'(A,A,(ES14.7 : ))') trim(input_str),',',0.D0
+        else
+            write(output_str,'(A,A,(ES14.7 : ))') trim(input_str),',',f(k)
+        endif
         write(write_dev, '(A)'//NEW_LINE(cr)) trim(output_str)
     enddo
     close(write_dev)
@@ -284,7 +290,13 @@ else
     open(write_dev,file=file_name)
     write(write_dev, '(A)') header
     do k=1,n
-        write(write_dev,fmtstr) f(k)
+        ! sometimes f(k) takes on the value of E-311, which can not be read back in
+        ! seems the minimum value is E-300, even with using format ES15.7E3 
+        if (((f(k) > 0.D0) .AND. (f(k) < zero_threshold)) .OR. (f(k) .GT. 1.D0/zero_threshold)) then
+            write(write_dev,fmtstr) 0.D0
+        else
+            write(write_dev,fmtstr) f(k)
+        endif
     enddo
     close(write_dev)
 endif

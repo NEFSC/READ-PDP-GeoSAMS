@@ -148,8 +148,7 @@ write(*,*) term_blu, 'Using Saturate Overflow: ', term_blk, use_saturate
    
 
 !SPECIAL CASE, ALL OBSERVED DATA POINTS ARE 0.0
-
-if (sum(obs%field(1:num_obs_points)) .GE. zero_thresh) then
+if (sum(obs%field(1:num_obs_points)) .GE. zero_threshold) then
     SF = Compute_MEAN(obs%field(1:num_obs_points), num_obs_points) / 5.D0
     obs%field(1:num_obs_points) = log((one_scallop_per_tow + obs%field(1:num_obs_points)) / SF)
 

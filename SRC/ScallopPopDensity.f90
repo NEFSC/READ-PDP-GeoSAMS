@@ -610,8 +610,11 @@ character(5000) input_str
 character(5000) output_str
 integer, parameter :: temp_dev = 70
 integer, parameter :: appd_dev = 80
-integer offset
-character(3) :: rgn(num_regions) = (/ '_N ', '_S ', '_SW', '_W ', '_MA'/)
+integer, parameter :: num_regions = 2
+!character(3) :: rgn(num_regions) = (/ '_N ', '_S ', '_SW', '_W ', '_MA'/)
+character(3) :: rgn(num_regions) = (/ '_GB', '_MA'/)
+integer offset, region
+
 if (append) then
     ! read existing files by region0
     ! create a temp file by region to write output then move temp to existing file_name
@@ -624,8 +627,14 @@ if (append) then
         write(temp_dev+offset, '(A)'//NEW_LINE(cr)) trim(output_str)
     enddo
     do k=1,n
-        offset = Get_Region(lat(k), lon(k), stratum(k))
-        if (offset > 0) then
+        ! offset = Get_Region(lat(k), lon(k), stratum(k))
+        region = Get_Region(lat(k), lon(k), stratum(k))
+        if (region > 0) then
+            if (region < region_MA) then
+                offset = 1
+            else
+                offset = 2
+            endif
             read(appd_dev+offset,'(A)',iostat=io) input_str
             if (f(k) < 0.0) then
                 write(*,'(A,A,A,A,A,A,A,I5,A)') term_yel, 'WARNING: Negative value in: ', term_blk, &
@@ -633,7 +642,7 @@ if (append) then
             endif
             ! sometimes f(k) takes on the value of E-311, which can not be read back in
             ! seems the minimum value is E-300, even with using format ES15.7E3 
-            if ((f(k) > 0.D0) .AND. (f(k) < zero_thresh)) then
+            if ((f(k) > 0.D0) .AND. (f(k) < zero_threshold)) then
                 write(output_str,'(A,A,(ES14.7 : ))') trim(input_str),',',0.D0
             else
                 write(output_str,'(A,A,(ES14.7 : ))') trim(input_str),',',f(k)

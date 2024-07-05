@@ -20,7 +20,6 @@ integer, parameter :: num_size_classes = (shell_len_max - shell_len_min) / shell
 integer, parameter :: max_num_years  = 50
 integer, parameter :: max_num_areas = 25
 integer, parameter :: max_sides = 8
-integer, parameter :: num_regions = 5
 integer, parameter :: region_none=0
 integer, parameter :: region_N=1
 integer, parameter :: region_S=2
@@ -43,7 +42,7 @@ integer, parameter :: read_dev = 69
 integer, parameter :: write_dev = 63
 
 ! arbritrary value chosen as smallest with 2 digit exponent
-real(dp), parameter :: zero_thresh = 1.0D-99 
+real(dp), parameter :: zero_threshold = 1.0D-99 
 
 ! ASIN incorrectly produces error
 ! Error: Fortran 2003: Elemental function as initialization expression with non-integer/non-character arguments
