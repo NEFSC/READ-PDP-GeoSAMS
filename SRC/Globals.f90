@@ -103,25 +103,6 @@ logical function Is_Leap_Year (yr)
 endfunction
 
 !---------------------------------------------------------------------------------------------------
-!> Purpose: Computes SQRT( SUM( X(1:N)^2 / N) )
-!> @param[in] x a real array 
-!> @param[in] n the number of elements in x
-!---------------------------------------------------------------------------------------------------
-real(dp) function Compute_RMS(x, n)
-    implicit none
-    integer, intent(in) :: n
-    real(dp), intent(in) :: x(:)
-    real(dp) result 
-
-    result = sqrt(sum(x(1:n)**2) / float(n))
-    if (is_nan(result)) then
-        write(*,*) term_red, 'Compute_RMS FAILED; NaN', term_blk
-        STOP 99
-    endif
-    Compute_RMS = result
-endfunction Compute_RMS
-
-!---------------------------------------------------------------------------------------------------
 !> isnan does not work nor does (x/=x)
 !>
 !---------------------------------------------------------------------------------------------------
@@ -132,18 +113,6 @@ logical function is_nan(x)
     write(buf,'(F10.6)') x
     is_nan = (buf(8:10) .EQ. 'NaN')
 endfunction is_nan
-
-!---------------------------------------------------------------------------------------------------
-!> Purpose: Computes Artithmetic Mean
-!> @param[in] x a real array 
-!> @param[in] n the number of elements in x
-!---------------------------------------------------------------------------------------------------
-real(dp) function Compute_MEAN(x, n)
-    implicit none
-    integer, intent(in) :: n
-    real(dp), intent(in) :: x(:)
-    Compute_MEAN = sum(x(1:n) / float(n))
-endfunction Compute_MEAN
 
 !==============================
 ! Changes a string to upper case
@@ -239,6 +208,11 @@ function matrixinv(x,n)
             enddo
         enddo
     enddo   
-endfunction matrixinv
+
+    if (matrixinv(1,1)/=matrixinv(1,1)) then
+        write(*,*) term_red, 'matrixinv FAILED', term_blk
+        STOP 99
+    endif 
+    endfunction matrixinv
 
 end module globals

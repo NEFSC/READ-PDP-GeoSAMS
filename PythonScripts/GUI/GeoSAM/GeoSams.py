@@ -252,7 +252,10 @@ class MainApplication(tk.Tk):
                 if returnCode == 0:
                     messagebox.showinfo("GeoSAMS/UK/Plotting", f'ALL DONE\n{args}')
                 else:
-                    messagebox.showerror("UK", f'Failed\n{args}\nReturn Code = {returnCode}')
+                    if returnCode == 99: 
+                        messagebox.showerror("UK", f'Failed\n{args}\nReturn Code = {returnCode}\nMath Failure. Try changing Spatial Functions')
+                    else:
+                        messagebox.showerror("UK", f'Failed\n{args}\nReturn Code = {returnCode}')
             else:
                 messagebox.showerror("GeoSAM Sim", f'Failed\n{result.args}\nReturn Code = {result.returncode}')
 
