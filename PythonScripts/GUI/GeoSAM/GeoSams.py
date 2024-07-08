@@ -252,7 +252,10 @@ class MainApplication(tk.Tk):
                 if returnCode == 0:
                     messagebox.showinfo("GeoSAMS/UK/Plotting", f'ALL DONE\n{args}')
                 else:
-                    messagebox.showerror("UK", f'Failed\n{args}\nReturn Code = {returnCode}')
+                    if returnCode == 99: 
+                        messagebox.showerror("UK", f'Failed\n{args}\nReturn Code = {returnCode}\nMath Failure. Try changing Spatial Functions')
+                    else:
+                        messagebox.showerror("UK", f'Failed\n{args}\nReturn Code = {returnCode}')
             else:
                 messagebox.showerror("GeoSAM Sim", f'Failed\n{result.args}\nReturn Code = {result.returncode}')
 
@@ -304,14 +307,18 @@ class MainApplication(tk.Tk):
         # Determine which if any file suffixes are needed
         if self.domainName=='MA': self.savedByStratum = False
         if self.savedByStratum:
-            # Only GB and AL[L] use savedByStratum
+            # Only GB and AL use savedByStratum
             if self.domainName=='GB':
-                rgn = ['_SW', '_N', '_S', '_W']
+                # rgn = ['_SW', '_N', '_S', '_W']
+                rgn = ['_GB']
             else:
                 # This would be AL
-                rgn = ['_SW', '_N', '_S', '_W', '_MA']
+                #rgn = ['_SW', '_N', '_S', '_W', '_MA']
+                rgn = ['_GB', '_MA']
         else:
-            # This would be just MA
+            # This would be just MA and, since MA forces savedByStratum to false, it does NOT append the domain suffix
+            # i.e. Data/X_Y_LPUE_MA2015_0_MA.csv
+            #                             ^^
             rgn = ['']
 
         # ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
@@ -349,10 +356,13 @@ class MainApplication(tk.Tk):
                         gridFile = 'MAxyzLatLon.csv'
                         ukCfgFile = 'UK_MA.cfg'
                     else:
-                        gridFile = 'GBxyzLatLon' + r + '.csv'
+                        #gridFile = 'GBxyzLatLon' + r + '.csv'
+                        gridFile = 'GBxyzLatLon.csv'
                         ukCfgFile = 'UK_GB.cfg'
                 else:
-                    gridFile = self.domainName+'xyzLatLon' + r + '.csv'
+                    # DEPRECATE: if we no longer need to separate GB into sub regions
+                    #gridFile = self.domainName+'xyzLatLon' + r + '.csv'
+                    gridFile = self.domainName+'xyzLatLon.csv'
                 cmd = [ex, ukCfgFile, self.domainName, obsFile, gridFile, zArg]
                 result = subprocess.run(cmd)
                 if (result.returncode != 0):

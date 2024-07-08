@@ -11,7 +11,7 @@ InputDataError.txt
 *.pdf
 *.pyc
 *.HOLD
-fort.8
+fort.*
 mod/
 obj/
 Data/

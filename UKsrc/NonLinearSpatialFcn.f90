@@ -325,7 +325,7 @@ if (nsf > 0) then
 
     ! initialize residual 0
     residual_vect(:) = obs%field(1:num_obs_points)
-    write(*,'(A,F10.6)') 'residual  0: ', Compute_RMS(residual_vect(:), num_obs_points)
+    write(*,'(A,F10.6)') 'residual  0: ', sqrt(sum(residual_vect(1:num_obs_points)**2) / float(num_obs_points))
 
     do j = 1, nsf_local
         if(use_orig_data) residual_vect(:) = obs%field(1:num_obs_points)
@@ -341,8 +341,7 @@ if (nsf > 0) then
             field_precond(:) = NLSF_Eval_Semivariance(obs, nlsf(k))
         endif
         residual_vect = NLSF_Fit_Function(obs, nlsf(j), residual_vect, field_precond)
-
-        nlsf(j)%rms = Compute_RMS(residual_vect(:), num_obs_points)
+        nlsf(j)%rms = sqrt(sum(residual_vect(1:num_obs_points)**2) / float(num_obs_points))
         rms(j) = nlsf(j)%rms
         residuals(:, j) = residual_vect(:)
         write(*,'(A,I2,A,F10.6, A, A3, A, I2, A, I2)')'residual ', j, ': ', nlsf(j)%rms, &
@@ -375,8 +374,9 @@ if (nsf > 0) then
         nsf_local = min(nsf_local,nsflim_local)
 
         write(*,'(A,'//trim(buf)//'F10.6)') 'function rms:', nlsf(1:nsf_local)%rms
-        mu = Compute_MEAN(obs%field(1:num_obs_points), num_obs_points)
-        rms0 = Compute_RMS(obs%field(:) - mu, num_obs_points)
+        mu = sum(obs%field(1:num_obs_points)) / float(num_obs_points)
+        rms0   = sqrt(sum((obs%field(1:num_obs_points) - mu  )**2) / float(num_obs_points))
+
         j = 1
         if (save_data) call write_csv(num_obs_points,nsf_local,residuals,'residuals0.csv',num_obs_points, .false.)
         do while( ( nlsf(j)%rms .lt. 0.9_dp * rms0 + 0.1_dp * nlsf(1)%rms ) .and. (j+1 .lt. nsf_local) )
@@ -549,7 +549,8 @@ enddo
 ! spf: penalizes integral [d2 f /d x2 f(x)]^2
 ! set spf=0 for no roughness penalty
 !----------------------------------------------
-rms = Compute_RMS(y(1:num_points), num_points)
+rms = sqrt( sum(y(1:num_points)**2) / float(num_points) )
+
 nlsf%lambda = nlsf%lambda_min
 smoothness_penalty = NLSF_Smooth_Penalty(nlsf)
 spf = rms/smoothness_penalty
@@ -568,7 +569,7 @@ do j = 1, np
         nlsf%lambda = lambda(k)
         s(:) = NLSF_Eval_Semivariance(obs, nlsf)
         lpr = LSF_Simple_Linear_Regression(y(1:num_points), s(1:num_points) * f(1:num_points), num_points)
-        rms = Compute_RMS(y(1:num_points) - lpr(1:num_points), num_points)
+        rms = sqrt( sum((y(1:num_points) - lpr(1:num_points))**2) / float(num_points) )
         smoothness_penalty = NLSF_Smooth_Penalty(nlsf) ! penalize roughness analytic approximation
         err = rms + spf * smoothness_penalty
         if (err.lt.err_min)then

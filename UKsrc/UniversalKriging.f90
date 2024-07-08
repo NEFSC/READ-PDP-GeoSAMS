@@ -148,9 +148,8 @@ write(*,*) term_blu, 'Using Saturate Overflow: ', term_blk, use_saturate
    
 
 !SPECIAL CASE, ALL OBSERVED DATA POINTS ARE 0.0
-
-if (sum(obs%field(1:num_obs_points)) .GE. zero_thresh) then
-    SF = Compute_MEAN(obs%field(1:num_obs_points), num_obs_points) / 5.D0
+if (sum(obs%field(1:num_obs_points)) .GE. zero_threshold) then
+    SF = (sum(obs%field(1:num_obs_points)) / float(num_obs_points)) / 5.D0
     obs%field(1:num_obs_points) = log((one_scallop_per_tow + obs%field(1:num_obs_points)) / SF)
 
     !-----------------------------------------------------------------------------------------------------
@@ -182,7 +181,7 @@ if (sum(obs%field(1:num_obs_points)) .GE. zero_thresh) then
     spatial_fcn = Krig_Eval_Spatial_Function(obs, num_spat_fcns, num_obs_points, nlsf, save_data)
     residual = LSF_Generalized_Least_Squares&
     &       (obs%field, spatial_fcn, residual_cov, num_obs_points, num_spat_fcns, beta, Cbeta, save_data)
-    write(*,'(A,F10.6)')'Ordinary Least Sq Residual:', Compute_RMS( residual(:), num_obs_points)
+    write(*,'(A,F10.6)')'Ordinary Least Sq Residual:', sqrt(sum(residual(1:num_obs_points)**2) / float(num_obs_points))
     if (save_data) then
         call Write_Vector_Scalar_Field(num_obs_points, residual, 'OLSresidual.txt')
         call Write_Vector_Scalar_Field(num_obs_points, obs%field, 'data.txt')
@@ -211,7 +210,7 @@ if (sum(obs%field(1:num_obs_points)) .GE. zero_thresh) then
     ! COMPUTED BUT NOT USED except for GLSres
     trndOBS =  matmul(spatial_fcn, beta)
     resOBS(1:num_obs_points) = obs%field(1:num_obs_points) - trndOBS(1:num_obs_points)
-    write(*,'(A,F10.6)')'GLSres:', Compute_RMS(resOBS(:), num_obs_points)
+    write(*,'(A,F10.6)')'GLSres:', sqrt(sum(resOBS(1:num_obs_points)**2) / float(num_obs_points))
 
     deallocate(spatial_fcn)
     deallocate( beta, Cbeta)
