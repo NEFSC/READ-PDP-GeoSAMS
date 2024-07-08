@@ -1071,7 +1071,7 @@ endsubroutine Mortality_Write_At_Timestep
 elemental real(dp) function Set_Discard(length, selectivity, cull_size, discard, is_closed)
     real(dp), intent(in) :: length, cull_size, discard, selectivity
     logical, intent(in) :: is_closed
-    if ((length .gt. cull_size) .and. is_closed) then
+    if ((length .gt. cull_size) .or. is_closed) then
         Set_Discard = 0.D0
     else
         Set_Discard = discard * selectivity
