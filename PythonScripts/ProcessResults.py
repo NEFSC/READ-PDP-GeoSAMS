@@ -40,12 +40,16 @@ if dn=='MA': savedByStratum = False
 if savedByStratum:
     # Only GB and AL[L] use savedByStratum
     if dn=='GB':
-        rgn = ['_SW', '_N', '_S', '_W']
+        # rgn = ['_SW', '_N', '_S', '_W']
+        rgn = ['_GB']
     else:
         # This would be AL
-        rgn = ['_SW', '_N', '_S', '_W', '_MA']
+        #rgn = ['_SW', '_N', '_S', '_W', '_MA']
+        rgn = ['_GB', '_MA']
 else:
-    # This would be just MA
+    # This would be just MA and, since MA forces savedByStratum to false, it does NOT append the domain suffix
+    # i.e. Data/X_Y_LPUE_MA2015_0_MA.csv
+    #                             ^^
     rgn = ['']
 
 prefix = ['Results/Lat_Lon_Grid_'] #, 'Results/Lat_Lon_Grid_Trend-']
@@ -77,17 +81,20 @@ for pStr in paramStr:
                 gridFile = 'MAxyzLatLon.csv'
                 ukCfgFile = 'UK_MA.cfg'
             else:
-                gridFile = 'GBxyzLatLon' + r + '.csv'
+                #gridFile = 'GBxyzLatLon' + r + '.csv'
+                gridFile = 'GBxyzLatLon.csv'
                 ukCfgFile = 'UK_GB.cfg'
         else:
-            gridFile = dn+'xyzLatLon' + r + '.csv'
+            # DEPRECATE: if we no longer need to separate GB into sub regions
+            #gridFile = self.domainName+'xyzLatLon' + r + '.csv'
+            gridFile = dn+'xyzLatLon.csv'
         cmd = [ex, ukCfgFile, dn, obsFile, gridFile, zArg]
         result = subprocess.run(cmd)
         if (result.returncode != 0):
             print('[31m' + ''.join(str(e)+' ' for e in cmd) + ' error: ' + hex(result.returncode) + '[0m')
             sys.exit(result.returncode)
         print( 'Just Finished: ', cmd)
-        os.remove(dataDir + obsFile)
+###        os.remove(dataDir + obsFile)
 
         for year in years:
             obsFile = 'X_Y_' + pStr + dn + str(year) + r + '.csv'
@@ -97,7 +104,7 @@ for pStr in paramStr:
                 print('[31m' + ''.join(str(e)+' ' for e in cmd) + ' error: ' + hex(result.returncode) + '[0m')
                 sys.exit(result.returncode)
             print( 'Just Finished: ', cmd)
-            os.remove(dataDir + obsFile)
+###            os.remove(dataDir + obsFile)
 
         for pfix in prefix:
             ###########################################################################################
@@ -106,7 +113,7 @@ for pStr in paramStr:
             # Concatenate individual year files into a single file
             ###########################################################################################
             col = []
-            col = [defaultdict(list) for i in range(nyears)]
+            col = [defaultdict(list) for _ in range(nyears)]
             k = 0
             
             flin = pfix + pStr + dn + str(year_start) + '_0' + r + '.csv'
@@ -116,7 +123,7 @@ for pStr in paramStr:
                     for (i,v) in enumerate(row):
                         col[k][i].append(v)
                 f.close()
-            os.remove(flin)
+###            os.remove(flin)
 
             # append remaining years as additional columns to first data set
             for year in years:
@@ -128,7 +135,7 @@ for pStr in paramStr:
                         for (i,v) in enumerate(row):
                             col[k][i].append(v)
                     f.close()
-                os.remove(flin)
+###                os.remove(flin)
 
                 for i in range (len(col[0][0])):    
                     col[0][k + 2].append(col[k][2][i])
@@ -159,7 +166,7 @@ for pStr in paramStr:
                 lines = rdFile.readlines()
                 wrFile.writelines(lines)
                 rdFile.close()
-                os.remove(flin)
+###                os.remove(flin)
             wrFile.close()
             print('Files concatenated to: ',flout)
         # end for pfix

@@ -9,7 +9,6 @@ from Widgets import *
 from PointInPolygon import *
 from Globals import *
 
-#======================================================================================================
 ##
 # This class is used to paint area grouped by
 # 
@@ -20,7 +19,6 @@ from Globals import *
 #    X data .... X data
 #    Y data .... Y data
 #
-#======================================================================================================
 class AreaManager(ttk.Frame):
     
     def __init__(self, container, parent, maxAreas, maxCorners, elementRow, elementCol, cornerRow, cornerColumn, labelArr,
@@ -228,19 +226,18 @@ class AreaManager(ttk.Frame):
         f.close()
 
 
-#======================================================================================================
 ## Defines floating point data for corner defintions
 #
 # long, lat have become interchangeable with x, y
-#======================================================================================================
+#
 class Corner:
     def __init__(self, maxCorners):
         self.long = [0.0 for _ in range(maxCorners)]
         self.lat = [0.0 for _ in range(maxCorners)]
         self.numCorners = 0
 
-#======================================================================================================
-#======================================================================================================
+##
+#
 class AreaMgrSubFrame(tk.Frame):
     def __init__(self, container, parent, areaNum, numCorners, numCornersMax, elementRow, elementCol, cornerRow, cornerCol, labelArr,
                  includeYears=False, numYearsMax=0, yearStart=0, yearStop=0):
@@ -313,9 +310,9 @@ class AreaMgrSubFrame(tk.Frame):
         for i in range(self.numCorners):
             self.corners[i].cornerFrame.grid()
 
-    # ----------------------------------------------------------------------------------------------
-    ## This method is used to add results when the original maximum number of years is exceeded
-    # ----------------------------------------------------------------------------------------------
+    ##
+    # This method is used to add results when the original maximum number of years is exceeded
+    # 
     def AppendResults(self, addYears):
         for i in range(addYears):
             # The label will get repainted as the data is displayed, so we use '0' here

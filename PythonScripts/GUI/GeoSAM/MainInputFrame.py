@@ -1,4 +1,3 @@
-#--------------------------------------------------------------------------------------------------
 ## @page page1 Main
 # @section p2p1 Growth subframe that identifies
 # These are the parameters used to control how long the scallop growth is simulated as well as the
@@ -32,7 +31,6 @@
 #
 # Thus 9 x 4 x 2 or 72 minutes. GB is proportionately shorter with only 6802 grid locations.
 #
-#--------------------------------------------------------------------------------------------------
 import os
 import webbrowser
 import glob
@@ -43,12 +41,10 @@ from tkinter import filedialog
 from Widgets import *
 from Globals import *
 
-#======================================================================================================
 ##
 # This class displays information about GeoSAMS simulation. This same information is used
-# on the command line when starting SRC\ScallopPopDensity
+# on the command line when starting SRC\\ScallopPopDensity
 #
-#======================================================================================================
 class MainInput(ttk.Frame):
 
     def __init__(self, container, friend, tsPerYear, selectedOutputs, maxYears):
@@ -190,9 +186,8 @@ class MainInput(ttk.Frame):
         helpButton = ttk.Button(self, text= "Main Help", style="Help.TLabel", command = self.pop_up)
         helpButton.grid(row=0, column=1)
 
-    #---------------------------------------------------------------------------------------------------
     ## This method is called on both Enter Key clicked and goes out of focus
-    #---------------------------------------------------------------------------------------------------
+    #
     def EnterKeyClicked(self, event):
         # Check for unintended null values
         if self.startYr.myEntry.get() == '':
@@ -212,11 +207,9 @@ class MainInput(ttk.Frame):
             self.friend.frame5.AppendYears(addYears)
             self.maxYears = numYears
 
-    #--------------------------------------------------------------------------------------------------
     ## 
     #  @brief Checks start day to validate date is appropriate for month. Does not consider if leap year
     #
-    #--------------------------------------------------------------------------------------------------
     def CheckStartDay(self, event):
         periodMonthStr = self.startDayComboMonth.get()
         periodDayStr = self.startDayComboDay.get()
@@ -226,11 +219,9 @@ class MainInput(ttk.Frame):
         if periodMonthStr == 'FEB' and int(periodDayStr) > 28:
             self.startDayComboDay.current(27)
 
-    #--------------------------------------------------------------------------------------------------
     ## 
     #  @brief Checks stop day to validate date is appropriate for month. Does not consider if leap year
     #
-    #--------------------------------------------------------------------------------------------------
     def CheckStopDay(self, event):
         periodMonthStr = self.stopDayComboMonth.get()
         periodDayStr = self.stopDayComboDay.get()
@@ -240,39 +231,31 @@ class MainInput(ttk.Frame):
         if periodMonthStr == 'FEB' and int(periodDayStr) > 28:
             self.stopDayComboDay.current(27)
 
-    #--------------------------------------------------------------------------------------------------
     ## 
     #  @brief Determines the value for which outputs are selected as they are checked.
     #
-    #--------------------------------------------------------------------------------------------------
     def CBSelectedOutput(self):
         self.desiredOutput = self.ComputeSelectOuputValue()
 
-    #--------------------------------------------------------------------------------------------------
     ## 
     #  @brief Updates the final value from which outputs are selected.
     #
-    #--------------------------------------------------------------------------------------------------
     def GetSelectedOutputs(self):
         return self.ComputeSelectOuputValue()
     
-    #--------------------------------------------------------------------------------------------------
     ## 
     #  @brief Bit shifts (multiplies) checkbuttons and computes bit position value.
     #
-    #--------------------------------------------------------------------------------------------------
     def ComputeSelectOuputValue(self):
         value = (self.abunVar.get()<<3) + (self.bmsVar.get()<<2) + (self.ebmsVar.get()<<1) + self.lpueVar.get()\
               + (self.fmortVar.get()<<7) + (self.feffVar.get()<<6) + (self.landVar.get()<<5) + (self.lndwVar.get()<<4)\
               + (self.recrVar.get()<<8)
         return value
 
-    #--------------------------------------------------------------------------------------------------
     ## 
     # Calls the filedialog method asksaveasfilename to name a file to be used for the Mortality Configuration
     # file. It then writes out the defined parameters to this file using the 'tag = value' format. 
     #
-    #--------------------------------------------------------------------------------------------------
     def GetMortConfigFName(self):
         file_path = filedialog.asksaveasfilename(title="Open Configuration File", filetypes=[("CFG files", "*.cfg")], defaultextension='cfg', initialdir=self.simStartDir)
         f = file_path.split('/')
@@ -281,12 +264,10 @@ class MainInput(ttk.Frame):
             self.mortCfgFile.myEntry.insert(0,f[-1])
             self.friend.WriteGrowthConfig()
 
-    #--------------------------------------------------------------------------------------------------
     ## 
     # Calls the filedialog method asksaveasfilename to name a file to be used for the Recruitment Configuration
     # file. It then writes out the defined parameters to this file using the 'tag = value' format. 
     #
-    #--------------------------------------------------------------------------------------------------
     def GetRecrConfigFName(self):
         file_path = filedialog.asksaveasfilename(title="Open Configuration File", filetypes=[("CFG files", "*.cfg")], defaultextension='cfg', initialdir=self.simStartDir)
         f = file_path.split('/')
@@ -295,12 +276,10 @@ class MainInput(ttk.Frame):
             self.recrCfgFile.myEntry.insert(0,f[-1])
             self.friend.WriteRecruitmentConfig()
 
-    #--------------------------------------------------------------------------------------------------
     ## 
     # Calls the filedialog method asksaveasfilename to name a file to be used for the Grid Manager Configuration
     # file. It then writes out the defined parameters to this file using the 'tag = value' format. 
     #
-    #--------------------------------------------------------------------------------------------------
     def GetGMgrConfigFName(self):
         file_path = filedialog.asksaveasfilename(title="Open Configuration File", filetypes=[("CFG files", "*.cfg")], defaultextension='cfg', initialdir=self.simStartDir)
         f = file_path.split('/')
@@ -309,12 +288,10 @@ class MainInput(ttk.Frame):
             self.gmCfgFile.myEntry.insert(0,f[-1])
             self.friend.WriteGridMgrConfig()
 
-    #--------------------------------------------------------------------------------------------------
     ## 
     # Calls the filedialog method asksaveasfilename to name a file to be used for the Simulation Configuration
     # file. It then writes out the defined parameters to this file using the 'tag = value' format. 
     #
-    #--------------------------------------------------------------------------------------------------
     def GetSimConfigFName(self):
         file_path = filedialog.asksaveasfilename(title="Open Configuration File", filetypes=[("CFG files", "*.cfg")], defaultextension='cfg', initialdir=self.simStartDir)
         f = file_path.split('/')
@@ -323,12 +300,10 @@ class MainInput(ttk.Frame):
             self.simCfgFile.myEntry.insert(0,f[-1])
             self.friend.WriteScallopConfig()
 
-    #--------------------------------------------------------------------------------------------------
     ## 
     # Calls the filedialog method asksaveasfilename to name a file to be used for the Universal Kriging
     # Configuration file. It then writes out the defined parameters to this file using the 'tag = value' format. 
     #
-    #--------------------------------------------------------------------------------------------------
     def GetUKConfigFName(self):
         file_path = filedialog.asksaveasfilename(title="Open Configuration File", filetypes=[("CFG files", "*.cfg")], defaultextension='cfg', initialdir=self.interpStartDir)
         f = file_path.split('/')
@@ -358,9 +333,8 @@ class MainInput(ttk.Frame):
         else:
             messagebox.showerror("Open PDF File", 'There are no PDF files to open. START Sim to create files.')
 
-    #-------------------------------------------------------------------------------------
     ## 
-    #-------------------------------------------------------------------------------------
+    #
     def pop_up(self):
         about = '''(This frame is scrollable, use mouse wheel)
 Simulation Configuration Files

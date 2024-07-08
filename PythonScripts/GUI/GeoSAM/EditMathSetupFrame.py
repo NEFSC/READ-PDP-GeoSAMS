@@ -1,7 +1,33 @@
-#======================================================================================================
-## @page MathSetupFile Math Setup Frame
+## 
+# @page MathSetupFile Math Setup Frame
 #
-#======================================================================================================
+# Matlab should not need any modification as these are the installed directories.
+# The user should not need to run any Matlab scripts as these are called from the GUI.
+#
+# Octave on the other hand does require some setup. The user will need to install
+# the desired packages from https://gnu-octave.github.io/packages/
+#   - io
+#   - geometry
+#   - mapping
+#   - statistics
+#
+# @section em2p1 Radio Button
+# The user then needs to modify .octaverc to point to where these are installed.
+# Click the Octave radio button and edit the text box to reflect your environment.
+# Then click Write Startup File.
+#
+# @section em2p2 Write Startup File
+# When ready, click Write Startup File to save the content to the appropriate startup file
+# - startup.m
+# - .octaverc
+#
+# Note 1: on a Unix/MacOS platform it is assumed that Matlab is not installed.
+# The script Unpack.sh renames startup.m to startup.xxx so it is not taken 
+# for .octaverc
+#
+# Note 2: If data intialization files have not yet been created, Upack.sh is
+# called to do so.
+#
 import os
 import tkinter as tk
 
@@ -10,11 +36,9 @@ from tkinter import messagebox
 
 from Widgets import *
 
-#===============================================================================================================
 ##
 # This class allows the user to edit the Matlab/Octave setup files to fit their environment.
 #
-#===============================================================================================================
 class EditMathSetup(ttk.Frame):
     ##
     # Constructor for Growth Class
@@ -48,9 +72,8 @@ class EditMathSetup(ttk.Frame):
 
         self.bind("<Visibility>", self.on_visibility)
 
-    #---------------------------------------------------------------------------------------------------------
     ## Opens either startup.m or .octaverc depending if user selected Matlab or Octave resp
-    #---------------------------------------------------------------------------------------------------------
+    #
     def on_visibility(self, event):
         self.ReadFile(False)
 
@@ -87,9 +110,8 @@ class EditMathSetup(ttk.Frame):
                         break
                     self.editText.insert('current',line)
 
-    #-------------------------------------------------------------------------------------
     ## 
-    #-------------------------------------------------------------------------------------
+    #
     def WriteStartupFile(self):
         lines = self.editText.get(1.0,tk.END)
         n = len(lines)
@@ -104,10 +126,8 @@ class EditMathSetup(ttk.Frame):
         f.close()
         messagebox.showinfo('WRITING TO STARTUP FILE', 'File successfully writen.')
         
-
-    #-------------------------------------------------------------------------------------
     ## 
-    #-------------------------------------------------------------------------------------
+    #
     def pop_up(self):
         about = '''(This frame is scrollable, use mouse wheel)
 This frame allows the user to modify the Matlab/Octave startup files.
@@ -124,11 +144,18 @@ the desired packages from https://gnu-octave.github.io/packages/
   - statistics
 
 The user then needs to modify .octaverc to point to where these are installed.
-Either click the Octave radio button or on a non-Windows platform the Unpack.sh
-renames startup.m to startup.xxx such that this frame will default to .octaverc
+Click the Octave radio button and edit the text box to reflect your environment.
 
-At this point simply edit the text box to reflect your environment and click
-Write Startup File.
+When ready, click Write Startup File to save the content to the appropriate startup file
+- startup.m
+- .octaverc
+
+Note 1: on a Unix/MacOS platform it is assumed that Matlab is not installed.
+The script Unpack.sh renames startup.m to startup.xxx so it is not taken 
+for .octaverc
+
+Note 2: If data intialization files have not yet been created, Upack.sh is
+called to do so.
 '''
         #about = re.sub("\n\s*", "\n", about) # remove leading whitespace from each line
         popup = tk.Toplevel()

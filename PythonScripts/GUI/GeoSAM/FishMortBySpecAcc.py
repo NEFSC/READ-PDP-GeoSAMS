@@ -1,25 +1,44 @@
-#======================================================================================================
-## @page FishMort Determine Fishing Mortality in Special Access Area
+##
+# @page FishMort Set Fishing Mortality in Special Access Areas
 # Assists the user in defining areas of interest to assess accumulated parameters located
 # in these areas of interest.
 #
-# @section pFMSAp1 Number of Areas
+# @section pFMSAp1 Number Defined
+# The number of defined areas as determined by the user. This is limited by 
+# Max Areas of Interest. See SHOW Args button for current values.
 #
-# @section pFMSAp3 Load and Save Fishing Mortality Files
+# The Number Defined is limited by default to 25. See SHOW Args for current values.
+# The user can modify this on the command line:
+# > python .\\PythonScripts\\GUI\\GeoSAM\\GeoSams.py Areas Nodes
 #
-# @section pFMSAp5 Area SubFrames
+# Default:
+# > python .\\PythonScripts\\GUI\\GeoSAM\\GeoSams.py 25 8
 #
-# @subsection pFMSAp5p1 Year Definitions
+# @section pFMSAp2 Load and Save Fishing Mortality Files
+# The name of the file used to hold this information. The user can load the 
+# default file 'FishingMortality.csv' or save their own configuration.
 #
-# @subsection pFMSAp5p2 Accumulated Values for Given Output Parameter
+# If this feature is not desired then enter NONE in the window
 #
-# @subsection pFMSAp5p3 Corners, or Defined Mortalities by Area
+# Use Load Fishing Mort File to load a predefined set of data
 #
-# @subsubsection pFMSAp5p3p1 Number of Corners
+# Use Save Fishing Mort File to save the currently displayed setting
 #
-# @subsubsection pFMSAp5p3p2 Corner Identifier by Special Area and Mortality
-# 
-#======================================================================================================
+# @section pFMSAp3 Area SubFrames
+# Comment: Optional. Enter a comment to describe the area being specfied.
+#
+# @subsection pFMSAp3p1 Year Definitions
+# The year for which Area N is valid
+#
+# @subsection pFMSAp3p2 Corners, or Fields of Defined Mortalities by Area
+# @subsubsection pFMSAp3p2p1 Number of Corners
+# Corners: Specifically, the number of Fields for the year given. 
+# This is limited by Max Nodes in Area. See SHOW Args for current values.
+# This can be changed on the command line. See above
+#
+# @subsubsection pFMSAp3p2p2 Field Identifier by Special Area and Mortality
+# These are the area numbers as determined in Special Access Frame. Enter the area number and its Mortality.
+#
 import os
 
 from tkinter import ttk
@@ -30,11 +49,9 @@ from Widgets import *
 from AreaManager import *
 from Globals import *
 
-#===============================================================================================================
 ##
 # This class is used to assist the user in defining areas of interest to assess accumulated parameters located
 # in these areas of interest
-#===============================================================================================================
 class FishMortBySpecAcc(ttk.Frame):
     def __init__(self, container, maxAreas, maxCorners):
         super().__init__()
@@ -202,9 +219,9 @@ class FishMortBySpecAcc(ttk.Frame):
                     f.write(self.areaMgr.areaSubFrame[i].corners[j+1].latitude.myEntry.get()+'\n')
                 f.close()
 
-    #-------------------------------------------------------------------------------------
-    ## Help Window for Fishing Mortatlity in Special Access Area
-    #-------------------------------------------------------------------------------------
+    ##
+    # Help Window for Fishing Mortatlity in Special Access Area
+    #
     def pop_up(self):
         about = '''Fishing Mortatlity in Special Access Area
     (This frame is scrollable, use mouse wheel)

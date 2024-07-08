@@ -1,4 +1,3 @@
-#======================================================================================================
 ## @page Sort Sort By Area Frame
 # Assists the user in defining areas of interest to assess accumulated parameters located
 # in these areas of interest.
@@ -8,12 +7,13 @@
 # The number of defined areas. This is limited by Max Areas of Interest. See SHOW Args button
 # The # of Areas is limited by default to 25. See SHOW Args for current values.
 # The user can modify this on the command line:
-# > python .\\PythonScripts\\GUI\\GeoSAM\\GeoSams.py #Areas #Nodes
+# > python .\\PythonScripts\\GUI\\GeoSAM\\GeoSams.py Areas Nodes
 #
 # Default (same as started with no arguments):\n
 # > python .\\PythonScripts\\GUI\\GeoSAM\\GeoSams.py 25 8
 #
 # @section Sortp2 Output Parameters
+#
 # This is a dropbox of the selected output parameters on the main tab. After 
 # a simulation and interpolation have been run, the user would select one of
 # these output, click Run Sort, and the amount of that output in each of the
@@ -45,7 +45,6 @@
 # These are the coordinates of the area vertices. Enter the Longitude and Latitude of the 
 # vertices for the area. It is up to the user to ensure that a closed shape is defined.
 #
-#======================================================================================================
 import os
 import shutil
 
@@ -58,7 +57,6 @@ from PointInPolygon import *
 from AreaManager import *
 from Globals import *
 
-#===============================================================================================================
 ##
 # This class is used to assist the user in defining areas of interest to assess accumulated parameters located
 # in these areas of interest
@@ -69,7 +67,6 @@ from Globals import *
 # @param maxYears defined at start up for the maximum allowed year range
 # @param paramStr defined at start up for the desired outputs
 # 
-#===============================================================================================================
 class SortByArea(ttk.Frame):
     def __init__(self, container, friend, maxAreas, maxCorners, maxYears, paramStr):
         super().__init__()
@@ -170,8 +167,8 @@ class SortByArea(ttk.Frame):
 
         self.bind("<Visibility>", self.on_visibility)
 
-    #---------------------------------------------------------------------------------------------------------
-    #---------------------------------------------------------------------------------------------------------
+    ##
+    #
     def on_visibility(self, event):
         self.areaFName = os.path.join(self.startDir, self.dataSortFileEntry.get())
         self.paramStr = []
@@ -203,15 +200,15 @@ class SortByArea(ttk.Frame):
                 self.areas.areaSubFrame[i].results[j].myLabel.grid_remove()
         self.UpdateWidgets()
 
-    #---------------------------------------------------------------------------------------------------------
-    #---------------------------------------------------------------------------------------------------------
+    ##
+    #
     def AppendYears(self, addYears):
         for i in range(self.numAreasMax):
             self.areas.areaSubFrame[i].AppendResults(addYears)
         self.maxYears = self.maxYears+addYears
 
-    #---------------------------------------------------------------------------------------------------------
-    #---------------------------------------------------------------------------------------------------------
+    ##
+    #
     def RunSort(self):
         runSortErrors = 0
         paramData = [0.0 for _ in range(self.numYears)] # data read in from file
@@ -285,8 +282,8 @@ class SortByArea(ttk.Frame):
 
         return runSortErrors
 
-    #---------------------------------------------------------------------------------------------------------
-    #---------------------------------------------------------------------------------------------------------
+    ##
+    #
     def UpdateWidgets(self):
         self.numAreas = self.areas.ReadAreaCorners(self.areaFName)
         self.numAreasEntry.delete(0,tk.END)
@@ -300,8 +297,8 @@ class SortByArea(ttk.Frame):
         self.NumAreasUpdate()
         self.areas.UpdateWidgets()
 
-    #---------------------------------------------------------------------------------------------------------
-    #---------------------------------------------------------------------------------------------------------
+    ##
+    #
     def GetDataSortFile(self):
         file_path = filedialog.askopenfilename(title="Open CSV File", filetypes=[("CSV files", "*.csv")], defaultextension='csv', initialdir=self.startDir)
         if file_path:
@@ -311,8 +308,8 @@ class SortByArea(ttk.Frame):
             f = file_path.split('/')
             self.dataSortFileEntry.insert(0, f[-1])
     
-    #---------------------------------------------------------------------------------------------------------
-    #---------------------------------------------------------------------------------------------------------
+    ##
+    #
     def SaveDataSortFile(self):
         fName = filedialog.asksaveasfilename(title="Save CSV File", filetypes=[("CSV files", "*.csv")], defaultextension='csv', initialdir=self.startDir)
         if fName:
@@ -333,8 +330,8 @@ class SortByArea(ttk.Frame):
             f = fName.split('/')
             self.dataSortFileEntry.insert(0, f[-1])
 
-    #---------------------------------------------------------------------------------------------------------
-    #---------------------------------------------------------------------------------------------------------
+    ##
+    #
     def BrowseExportFile(self):
         file_path = filedialog.asksaveasfilename(title="Open CSV File", filetypes=[("CSV files", "*.csv")], defaultextension='csv', initialdir=self.startDir)
         if file_path:
@@ -343,7 +340,6 @@ class SortByArea(ttk.Frame):
             self.exportFileEntry.insert(0, f[-1])
             self.exportFileName = file_path
 
-    #---------------------------------------------------------------------------------------------------------
     ## This method exports the current page of data, just a single output parameter
     #
     # First row :
@@ -355,7 +351,7 @@ class SortByArea(ttk.Frame):
     #   N       StartYear     
     #   N       ...
     #   N       StopYear     
-    #---------------------------------------------------------------------------------------------------------
+    #
     def ExportThis(self, nomsg=False):
         if self.exportFileName != '':
             # Ensure data is up to date
@@ -376,12 +372,11 @@ class SortByArea(ttk.Frame):
         else:
             messagebox.showerror('Export This', 'File Name has not been defined.')
 
-    #---------------------------------------------------------------------------------------------------------
     ## Export all select parameters
     #
     # For each parameter
     # - Verify data file exists, Lat_Lon_Grid_ + ABUN_ + AL + _ 2015_2017
-    #---------------------------------------------------------------------------------------------------------
+    #
     def ExportAll(self):
         if self.exportFileName != '':
             # Check that data files are present
@@ -428,13 +423,13 @@ class SortByArea(ttk.Frame):
         else:
             messagebox.showerror('Export All', 'File Name has not been defined.')
 
-    # --------------------------------------------------------------------------------------------------------
-    # --------------------------------------------------------------------------------------------------------
+    ##
+    #
     def EnterKeyClicked(self, event):
         self.NumAreasUpdate()
 
-    #---------------------------------------------------------------------------------------------------------
-    #---------------------------------------------------------------------------------------------------------
+    ##
+    #
     def NumAreasUpdate(self):
         """ Updates the number of areas functions. """
         for i in range(self.numAreasMax):
@@ -453,9 +448,8 @@ class SortByArea(ttk.Frame):
         self.numAreas = n
         self.areas.NumAreasUpdate(n)
 
-    #-------------------------------------------------------------------------------------
     ## Help Window for Sort By Area
-    #-------------------------------------------------------------------------------------
+    #
     def pop_up(self):
         about = '''Sort By Area
     (This frame is scrollable, use mouse wheel)

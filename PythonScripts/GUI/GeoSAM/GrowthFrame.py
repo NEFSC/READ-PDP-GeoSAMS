@@ -1,53 +1,95 @@
-#======================================================================================================
 ## @page page3 Growth Frame
 # Allows the user to modify parameters that are used to define mortality computations
 #
 # @section p4p1 Mortality
 # @subsection p4p1p1 Fishing Mortality
-# This is the default fishing mortality lacking any other definition
+# This is the default fishing mortality in lieu of any other definition
 #
 # @subsection p4p1p2 Alpha Mortality
-#  So for open areas, an overall fishing mortality F_avg would be specified and then F at each location
+#  So for open areas, an overall fishing mortality @f$F_{avg}@f$ would be specified and then @f$F@f$ at each location
 #  would be computed so that:\n
-#   -# The weighted (by exploitable numbers) average F over all locations is equal to F_avg and 
-#   -# F at each location is proportional to LPUE^alpha_mort.\n
+#   -# The weighted average (by exploitable numbers), F, over all locations is equal to @f$F_{avg}@f$ and 
+#   -# @f$F@f$ at each location is proportional to @f$LPUE^{alpha_{mort}}@f$.\n
+#
 #  This would also apply to special access areas, but each one would have their own specified F, 
 #  and the average would only be for those points within that access area.
-# f_avg = dot_product(expl_num, F_mort_raw) / sum(expl_num)
+#
+# @f$ f_{avg} = \frac{\vec{scallops_{num}} \cdot \vec{F_{mort_{raw}}}}{sum(\vec{scallops_{num})}} @f$
 #
 # @subsection p4p1p3 Adult Mortality
-# There are two values here, one associated with the Mid-Atlantic and the other associated with Georges-Bank
-# @subsubsection p4p1p3p1 Adult mortality for Mid-Atlantic
-# @subsubsection p4p1p3p2 Adult Mortality for Georges Bank
 #
-# @subsection p4p1p4 Length 0
-# Length_0 is used in computing Natural Mortality
+# <table>
+# <caption id>Mortality</caption>
+# <tr><th> <th>Adult<th>Length<SUB>0</SUB>
+# <tr><th>MA<td>0.25<td>65.0
+# <tr><th>GB<td>0.2<td>70.0
+# </table>
+# 
+# @subsection p4p1p4 Computing Alpha
+# Alpha is based on the lengths of the shell normalized by length<SUB>0</SUB>
 # @f[
 # \vec{alpha} = 1 - \frac{1}{1 + exp\left(-(\vec{length_{shell}} - length_0)/10 \right))}
 # @f]
 #
+# @subsection p4p1p5 Computing Natural Mortality
 # Then natural mortality is computed from juvenile natural mortality and adult natural mortality as
 # @f[
 # \vec{mort_{nat}} = \vec{alpha} * mort_{nat_{juv}} + \left(1 - \vec{alpha} \right) * mort_{nat_{adult}}
 # @f]
 # 
-# @subsubsection p4p1p4p1 Length_0 for Mid-Atlantic
-# @subsubsection p4p1p4p2 Length_0 for Georges Bank
-#
-# @section       p4p2 Selectivity
-# These parameters are used to compute the scallop selectivity as a function of its length.
+# @section p4p2 Selectivity
+# These parameters are used to compute the scallop selectivity as a function of its length. MA and GB have
+# respective values for each term. GB will also distinguish between open and closed areas.
 # @f$ selectivity = 1 / ( 1 + exp( select_a - select_b * (l_{shell} + 2.5))) @f$
-# @subsection    p4p2p1 FSelectA
-# @subsubsection p4p2p1p1 Value to use for MA
-# @subsubsection p4p2p1p2 Value to use for GB Closed
-# @subsubsection p4p2p1p3 Value to use for GB Open
-# @subsection    p4p2p2 FSelectB
-# @subsubsection p4p2p2p1 Value to use for MA
-# @subsubsection p4p2p2p2 Value to use for GB Closed
-# @subsubsection p4p2p2p3 Value to use for GB 
 #
-# @section    p4p3 Computing Landings Per Unit Effort, LPUE
+# <table>
+# <caption id>Selectivity</caption>
+# <tr><th> <th>MA<th>GB Open<th>GB Closed
+# <tr><th>FSelect A<td>20.5079<td>17.72<td>21.7345
+# <tr><th>FSelect B<td>0.19845<td>0.15795<td>0.2193
+# </table>
+# 
+# @section    p4p3 Incidental
+# <table>
+# <caption id>Incidental</caption>
+# <tr><th>MA<td>0.05
+# <tr><th>GB<td>0.1
+# </table>
+#
+# @section    p4p4 Discard
+# Discard determines how many scallops are thrown out of a catch. It is determined by 
+# scallop length and if the area is closed.
+#@code{C}
+# if ((length > cull_size) OR is_closed) then
+#     SetDiscard = 0.0
+# else
+#     SetDiscard = discard * selectivity
+#@endcode
+#
+# <table>
+# <caption>Discard</caption>
+# <tr><th> <th>Cull Size<th>Discard
+# <tr><th>MA<td>90.0<td>0.2
+# <tr><th>GB<td>100.0<td>0.2
+# </table>
+#
+# @section p4p5 Overall Mortality, M
+# @f$M = natural_{mortality} + Fishing_{effort} * (selectivity + incidental + discard))@f$
+#
+# @section p4p6 Computing Landings Per Unit Effort, LPUE
 # The simulation uses the following parameters to compute LPUE
+#
+# <table>
+# <caption id>LPUE</caption>
+# <tr><th> <th>Default
+# <tr><td>LPUE Slope<td>0.6556
+# <tr><td>LPUE Slope2<td>2.3
+# <tr><td>LPUE Intercept<td>1094.0
+# <tr><td>Max # of Scallops Shucked Per Day<td>56000.0
+# <tr><td>Max # of Hours Dredging Per Day<td>19.0
+# <tr><td>Dredge Width in meters<td>9.144
+# <tr><td>Towing Speed in knots<td>4.8
+# </table>
 #
 # @f[ W_{expl} = \frac{EBMS}{N_{scallops}} \text{, weight in grams} @f]
 #
@@ -61,33 +103,6 @@
 # 
 # @f[ LPUE = min(slope_1, slope_2, LPUE_{limit})  @f]
 #
-# @subsection p4p3p1 LPUE Slope
-#
-# @subsection p4p3p2 LPUE Slope2
-#
-# @subsection p4p3p3 LPUE Intercept
-#
-# @subsection p4p3p4 Maximum Number of Scallops Shucked Per Day
-#
-# @subsection p4p3p5 Maximum Number of Hours Dredging Per Day
-#
-# @subsection p4p3p6 Dredge Width in meters
-#
-# @subsection p4p3p7 Towing Speed in knots
-#
-# @section    p4p4 Incidental
-# @subsection p4p4p1 MA
-# @subsection p4p4p2 GB
-#
-# @section    p4p5 Discard
-# @subsection p4p5p1 Cull Size
-# @subsubsection p4p5p1p1 MA
-# @subsubsection p4p5p1p2 GB
-# @subsection p4p5p2 Discard
-# @subsubsection p4p5p2p1 MA
-# @subsubsection p4p5p2p2 GB
-#
-#======================================================================================================
 import tkinter as tk
 
 from tkinter import ttk
@@ -95,11 +110,9 @@ from tkinter import ttk
 from Widgets import *
 from GeoSams import MainApplication
 
-#===============================================================================================================
 ##
 # This class allows the user to adjust parameters used in computing scallop growth
 #
-#===============================================================================================================
 class Growth(ttk.Frame, MainApplication):
     ##
     # Constructor for Growth Class
@@ -155,7 +168,7 @@ class Growth(ttk.Frame, MainApplication):
         fishingFrame.grid(row=1, column=0, padx=10, sticky='n')
         # ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
         # ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-        selectivityFrame = ttk.LabelFrame(self, text='Selectivity', style='Growth.TFrame')
+        selectivityFrame = ttk.LabelFrame(self, text='Selectivity', style='SAMS.TFrame')
         #-------------------------------------------------------------------------------------------
         self.maFSelectA       = SubFrameElement(self, selectivityFrame, 'MA FSelectA', self.maFSelAStr,          0, 0, 1, valCmd=floatCallback, width=10)
         #-------------------------------------------------------------------------------------------
@@ -217,14 +230,14 @@ class Growth(ttk.Frame, MainApplication):
 
         self.bind("<Visibility>", self.on_visibility)
 
-    #---------------------------------------------------------------------------------------------------------
-    #---------------------------------------------------------------------------------------------------------
+    ##
+    #
     def on_visibility(self, event):
         self.UpdateValues(self.cfgFname)
         self.UpdateWidgets()
 
-    #---------------------------------------------------------------------------------------------------------
-    #---------------------------------------------------------------------------------------------------------
+    ##
+    #
     def UpdateWidgets(self):
         # restore entries
         self.fishMort.myEntry.delete(0,tk.END)
@@ -302,12 +315,9 @@ class Growth(ttk.Frame, MainApplication):
         self.gbDiscard.myEntry.delete(0,tk.END)
         self.gbDiscard.myEntry.insert(0, self.gbDiscStr)
 
-
-    #--------------------------------------------------------------------------------------------------
     ##
     # Method to read Mortality Configuration file and set values accordingly
     #
-    #--------------------------------------------------------------------------------------------------
     def UpdateValues(self, fName):
         # read current settings
         tags = self.ReadConfigFile(fName)
@@ -340,9 +350,8 @@ class Growth(ttk.Frame, MainApplication):
             elif tag == 'Dredge Width':       self.dredgeWdStr = value
             elif tag == 'Towing Speed':       self.towSpdStr = value
 
-    #-------------------------------------------------------------------------------------
     ## 
-    #-------------------------------------------------------------------------------------
+    #
     def pop_up(self):
         about = '''Mortality
     Define parameters to compute fishing mortality

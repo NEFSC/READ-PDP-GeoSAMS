@@ -1,29 +1,47 @@
-#======================================================================================================
 ## @page SpecialArea Special Access Area
-# Assists the user in defining areas of interest to assess accumulated parameters located
-# in these areas of interest.
-#
+# This frame in conjunction with the FishingMort in Special Access frame is 
+# used to define fishing mortalities within a defined area for a specified 
+# year. If a sim data point falls within a defined area given in this frame 
+# by the assigned area number. Then if the current year is the same as the 
+# year given in the FishingMort in Special Access frame and the area number 
+# is listed then the fishing mortality is specified by the Mortality value. 
+# Otherwise it is the default value which is defined in the Growth Frame as 
+# Fishing mortality
+# #
 # @section pSAp1 Number of Areas
+# The number of areas the user wishes to define. This is limited by Max Areas
+# of Interest. See SHOW Args button
 #
-# @section pSAp2 Output Parameters
+# The # of Areas is limited by default to 25. See SHOW Args. 
+# The user can modify this on the command line:
+# > python .\\PythonScripts\\GUI\\GeoSAM\\GeoSams.py #Areas #Nodes
+# Default:
+# > python .\\PythonScripts\\GUI\\GeoSAM\\GeoSams.py 25 8
 #
-# @section pSAp3 Load and Save Data Sort Files
+# @section pSAp2 Special Access File
+# The name of the file used to hold this information. The user can load the 
+# default file 'SpecialAreas.csv' or define and save their own configuration.
 #
-# @section pSAp4 Run Sort
+# If this feature is not desired then enter NONE in the window
 #
-# @section pSAp5 Area SubFrames
+# Use Load Special Area File to load a predefined set of data
 #
-# @subsection pSAp5p1 Years Simulated
+# Use Save Special Area File to save the currently displayed setting
 #
-# @subsection pSAp5p2 Accumulated Values for Given Output Parameter
+# @section pSAp3 Area Definitions
+# @subsection pSAp3p1 Area N
+#   - Comment: Optional. Enter a comment to describe the area being specfied.
 #
-# @subsection pSAp5p3 Corners
+# @subsection pSAp3p2 Corners: 
+# Also called nodes or sides. 
+# This is limited by Max Nodes in Area. See SHOW Args for current values.
+# This can be changed on the command line. See above
+#               
+# @subsection pSAp3p3  Corner N
+# These are the coordinates of the area vertices. Enter the Longitude and
+# Latitude of the vertices for the area. It is up to the user to ensure 
+# that a closed shape is defined.
 #
-# @subsubsection pSAp5p3p1 Number of Corners
-#
-# @subsubsection pSAp5p3p2 Corner Identifier by Longitude and Latitude
-# 
-#======================================================================================================
 import os
 
 from tkinter import ttk
@@ -34,11 +52,10 @@ from Widgets import *
 from AreaManager import *
 from Globals import *
 
-#===============================================================================================================
 ##
 # This class is used to assist the user in defining areas of interest to assess accumulated parameters located
 # in these areas of interest
-#===============================================================================================================
+#
 class SpecialArea(ttk.Frame):
     def __init__(self, container, maxAreas, maxCorners):
         super().__init__()
@@ -152,9 +169,8 @@ class SpecialArea(ttk.Frame):
             f = self.areaFName.split('/')
             self.specAccFile.myEntry.insert(0, f[-1])
 
-    #-------------------------------------------------------------------------------------
     ## Help Window for Special Access Area
-    #-------------------------------------------------------------------------------------
+    #
     def pop_up(self):
         about = '''Special Area
     (This frame is scrollable, use mouse wheel)

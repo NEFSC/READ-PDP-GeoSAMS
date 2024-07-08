@@ -91,50 +91,6 @@ elemental real(dp) function Logic_To_Double (value)
     endif
 endfunction Logic_To_Double
 
-logical function Is_Leap_Year (yr)
-    integer, intent(in) :: yr
-    if (mod(yr,100) .ne. 0 .AND. mod(yr,4) .eq. 0) then
-        Is_Leap_Year = .true.
-    elseif (mod(yr,400) .eq. 0) then
-        Is_Leap_Year = .true.
-    else
-        Is_Leap_Year = .false.
-    endif
-endfunction
-
-!---------------------------------------------------------------------------------------------------
-!> isnan does not work nor does (x/=x)
-!>
-!---------------------------------------------------------------------------------------------------
-logical function is_nan(x)
-    real(dp), intent(in) :: x
-    character(10) buf
-
-    write(buf,'(F10.6)') x
-    is_nan = (buf(8:10) .EQ. 'NaN')
-endfunction is_nan
-
-!==============================
-! Changes a string to upper case
-!==============================
-Pure Function to_upper (str) Result (string)
-    Implicit None
-    Character(*), Intent(In) :: str
-    Character(LEN(str))      :: string
-
-    Integer :: ic, i
-
-    Character(26), Parameter :: cap = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ'
-    Character(26), Parameter :: low = 'abcdefghijklmnopqrstuvwxyz'
-
-    !   Capitalize each letter if it is lowecase
-    string = str
-    do i = 1, LEN_TRIM(str)
-        ic = INDEX(low, str(i:i))
-        if (ic > 0) string(i:i) = cap(ic:ic)
-    end do
-endfunction to_upper
-
 !=====================================
 ! Returns the inverse matrix of a(n,n)
 !=====================================
@@ -209,6 +165,7 @@ function matrixinv(x,n)
         enddo
     enddo   
 
+    ! Test for NaN
     if (matrixinv(1,1)/=matrixinv(1,1)) then
         write(*,*) term_red, 'matrixinv FAILED', term_blk
         STOP 99

@@ -1,4 +1,3 @@
-#======================================================================================================
 ## @page page4 UKInterpolation Frame
 # This frame assists the user in defining spatial functions used to perform Universal Kriging, UK interpolation.
 # 
@@ -6,8 +5,6 @@
 # These are parameters that define limits and type of interpolation. For more details on Universal Kriging 
 # refer to Noel A. C. Cressie, "Statistics for Spatial Data", published by John Wiley & Sons, Inc., 1973
 # pages 151 to 154
-#
-# @subsection p5p1p1 High Limit Factor
 #
 # @subsection p5p1p2 Variogram Form
 # This defines the shape of the variogram models. The kriging refernces identify a typical variogram shape.
@@ -36,15 +33,6 @@
 # @f[  \gamma(h) = \begin{cases} nugget + sill *\left(1 - \frac{\sqrt(2)}{\Gamma(0.5)}*J_n(2,\frac{h}{range})*\sqrt(\frac{h}{range})\right), & h > 0 \\   0, & h = 0  \end{cases} @f]
 # @f$ \text{ where }J_n\text{ is the Bessel function of the first kind} @f$
 #
-# @subsection p5p1p3 Use Log Transform
-# If this is set to True, then a log of the observed data is used before starting the interpolation.
-# @f$ \vec{obs} = log( c + \vec{obs} / \mu) @f$
-#
-# @subsection p5p1p4 Power Transform
-#
-# Power transform interpolates f(x)^alpha. Generally 0< alpha < 1 but this has not been tested. Not used if "Log Transform = T"
-#
-#
 # @subsection p5p1p5 Spatial Fcn Configuration File
 # The name of the file to hold the formating of the spactial functions read in by UK.exe during interpolation
 #
@@ -63,10 +51,37 @@
 # This is true for fitting the nonlinear parameters of function 3 hence the parameters of function 1 must be fit before the parameters of function 3.
 #
 # @subsection p5p2p1 Number (#) of Functions
+# This value is hard limited to 20. It determines how many functions can be defined
 # 
 # @subsection p5p2p2 Function Definitions
+# @subsubsection p5p2p2p1 Dim
+# This specifies which axis for the computations
+# - x
+# - y
+# - z, or depth
+#
+# @subsubsection p5p2p2p2 Shape
+#
+# Let @f$\vec{A} = \vec{dim} - f0@f$
+#
+#   - Gaussian:  @f$exp( -( \vec{A} / \lambda )^2 ) @f$
+#   - Logistic: @f$1 / ( 1 + exp( - \vec{A}/\lambda) ) @f$
+#   - SinExp: @f$sin(\vec{A}/\lambda) * exp(-(\vec{A}/\lambda )^2) @f$
+#   - CosExp: @f$cos(\vec{A}/\lambda) * exp(-(\vec{A}/(2\lambda) )^2) @f$
+#
+# f0 is used for a linear interpolation and is approximately
+# @f{eqnarray*}{
+# \lambda_{max} &=& max(\vec{A}) - min(\vec{A}),\\
+# \lambda_{min} &=&5000, \text{for x and y, 5 for z},\\
+# \lambda &=& \lambda_{min} +(\lambda_{max} - \lambda_{min}) * Linear Function,\\
+# f_{0_{min}} &=& min(\vec{A}),\\
+# f_{0_{max}} &=& max(\vec{A}),\\
+# f_0 &=& f_{0_{min}} + (f_{0_{max}} - f_{0_{min}}) * Linear Function
+# @f}
+#
+# @subsubsection p5p2p2p3 Precon
+# Precon value determines order of computation. See above.
 # 
-#======================================================================================================
 import tkinter as tk
 import os
 
@@ -77,14 +92,12 @@ from tkinter import filedialog
 from Widgets import *
 from Globals import *
 
-#======================================================================================================
 ##
 # This class is used to present the parameters to the user to customize how the interpolation is performed.\n
 # Testing has shown that 
 # - MA works best with 9 spatial functions
 # - GB works best with 5 spatial functions
-
-#======================================================================================================
+#
 class UKInterpolation(ttk.Frame):
     def __init__(self, container, parent, friend):
         super().__init__()
@@ -315,9 +328,8 @@ class UKInterpolation(ttk.Frame):
 
         self.bind("<Visibility>", self.on_visibility)
     
-    #--------------------------------------------------------------------------------------------------
-    ## 
-    #--------------------------------------------------------------------------------------------------
+    ##
+    # 
     def UpdateUKParameters(self, tags):
         for (tag, value) in tags:
             if (tag == 'Kriging variogram form'):
@@ -339,9 +351,8 @@ class UKInterpolation(ttk.Frame):
                 self.spatCfgFile.myEntry.delete(0,tk.END)
                 self.spatCfgFile.myEntry.insert(0,value.strip())
 
-    #--------------------------------------------------------------------------------------------------
     ## 
-    #--------------------------------------------------------------------------------------------------
+    #
     def UpdateMAParameters(self, tags):
         for (tag, value) in tags:
             if (tag == 'Kriging variogram form'):
@@ -360,9 +371,8 @@ class UKInterpolation(ttk.Frame):
                 self.spatMACfgFile.myEntry.delete(0,tk.END)
                 self.spatMACfgFile.myEntry.insert(0,value.strip())
 
-    #--------------------------------------------------------------------------------------------------
     ## 
-    #--------------------------------------------------------------------------------------------------
+    #
     def UpdateGBParameters(self,tags):
         for (tag, value) in tags:
             if (tag == 'Kriging variogram form'):
@@ -381,12 +391,10 @@ class UKInterpolation(ttk.Frame):
                 self.spatGBCfgFile.myEntry.delete(0,tk.END)
                 self.spatGBCfgFile.myEntry.insert(0,value.strip())
 
-    #--------------------------------------------------------------------------------------------------
     ## 
     # Calls the filedialog method asksaveasfilename to name a file to be used for the Spatial Function Cfg File
     # file. It then writes out the defined parameters to this file using the 'tag = value' format. 
     #
-    #--------------------------------------------------------------------------------------------------
     def SaveSpatialFcnConfigFName(self):
         file_path = filedialog.asksaveasfilename(title="Open Configuration File", filetypes=[("CFG files", "*.cfg")], defaultextension='cfg', initialdir=self.startDir)
         f = file_path.split('/')
@@ -427,12 +435,10 @@ class UKInterpolation(ttk.Frame):
                                   self.saturateGBThresh.myEntry.get(),
                                   self.spatGBCfgFile.myEntry.get())
 
-    #--------------------------------------------------------------------------------------------------
     ## 
     # Calls the filedialog method askopenfilename to name a file to be used for the Spatial Function Cfg File
     # file. It then writes out the defined parameters to this file using the 'tag = value' format. 
     #
-    #--------------------------------------------------------------------------------------------------
     def GetSpatialFcnConfigFName(self):
         fName = filedialog.askopenfilename(title="Open Configuration File", filetypes=[("CFG files", "*.cfg")], defaultextension='cfg', initialdir=self.startDir)
         f = fName.split('/')
@@ -457,13 +463,11 @@ class UKInterpolation(ttk.Frame):
             self.spatGBCfgFile.myEntry.insert(0,f[-1])
             self.gbNsf = self.ReadSpactialFunctionFile(fName, self.gbFunctions, self.gbNumFncsEntry)
 
-    #--------------------------------------------------------------------------------------------------
     ## 
     # Read in the Spactial Function File. 
     # @param fName Name of the file to read, assumes it is valid.
     # It then writes parameters to the widgets.
     #
-    #--------------------------------------------------------------------------------------------------
     def ReadSpactialFunctionFile(self, fName, functions, numFncsEntry):
         correctDimStr =['x', 'y', 'z']
         correctShapeStr = ['Gaussian', 'Logistic', 'SinExp', 'CosExp']
@@ -549,12 +553,9 @@ class UKInterpolation(ttk.Frame):
         nsf = self.UpdateFunctions(functions, numFncsEntry)
         return nsf
 
-
-    #--------------------------------------------------------------------------------------------------
     ## 
     # This method is used to update widgets each time the user switches to this tab
     #
-    #--------------------------------------------------------------------------------------------------
     def on_visibility(self, event):
         # This window is only needed with domain AL
         if self.parent.frame1.domainNameCombo.get() == 'AL':
@@ -601,8 +602,8 @@ class UKInterpolation(ttk.Frame):
                 for i in range(self.nsf):
                     self.functions[i].funcFrame.grid()
 
-    # --------------------------------------------------------------------------------------------------------
-    # --------------------------------------------------------------------------------------------------------
+    ###
+    #
     def EnterKeyClicked(self, event):
         self.UpdateFunctions(self.functions, self.numFncsEntry)
 
@@ -612,11 +613,9 @@ class UKInterpolation(ttk.Frame):
     def GBEnterKeyClicked(self, event):
         self.UpdateFunctions(self.gbFunctions, self.gbNumFncsEntry)
 
-    #--------------------------------------------------------------------------------------------------
     ##
     # This method updates the number of spatial functions. Overrides default value for MA and GB
     #
-    #--------------------------------------------------------------------------------------------------
     def NumFuncsUpdate(self):
         self.UpdateFunctions(self.functions, self.numFncsEntry)
         
@@ -650,9 +649,8 @@ class UKInterpolation(ttk.Frame):
             functions[i].funcFrame.grid()
         return n
 
-    #-------------------------------------------------------------------------------------
     ## Help Window for Sort By Area
-    #-------------------------------------------------------------------------------------
+    #
     def pop_up(self):
         about = '''Universal Krigin Interpolation
     (This frame is scrollable, use mouse wheel)
@@ -750,8 +748,6 @@ Spatial Functions
     function 3.
 
     # of Functions: This is limited to 20.
-
-    Update: Use Enter Key or click this button to populate the function entries.
 
 Function N
     These are the Function definitions as explained above

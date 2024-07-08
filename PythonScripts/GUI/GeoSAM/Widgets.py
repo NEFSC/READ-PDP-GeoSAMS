@@ -3,12 +3,11 @@ import platform
 from Globals import *
 from tkinter import ttk
 
-# *************************************************************************************************
 ## Generic Element
 # 
 # Provides a label and an entery field. Optionally allows programmer to specify a method to
 # validate entry and another method to respond to Enter Key.
-# *************************************************************************************************
+#
 class SubFrameElement(tk.Frame):
     def __init__(self, container, parent, label, value, elementRow, labelCol, entryCol, width=5,
                  valCmd=None, enterCmd=None):
@@ -28,8 +27,8 @@ class SubFrameElement(tk.Frame):
         self.myLabel = ttk.Label(parent, text=label, wraplength=200, anchor='n', justify='right')
         self.myLabel.grid(row=elementRow, column=labelCol, sticky='n', padx=5, pady=5)
 
-# *************************************************************************************************
-# *************************************************************************************************
+##
+#
 class SubFrameInterpFunction(tk.Frame):
     def __init__(self, container, parent, funcNum, dim, shape, preconNum, elementRow, elementCol):
         super().__init__()
@@ -58,11 +57,10 @@ class SubFrameInterpFunction(tk.Frame):
 
         self.funcFrame.grid(row=elementRow, column=elementCol)
 
-# *************************************************************************************************
 ## Widget for XY label and entery
 # 
 # Longitude, Latitude have become interchangeable with X, Y
-# *************************************************************************************************
+#
 class SubFrameXY(tk.Frame):
     def __init__(self, container, parent, fieldNum, elementRow, elementCol, lableArr):
         super().__init__()
@@ -77,11 +75,10 @@ class SubFrameXY(tk.Frame):
         self.latitude   = SubFrameElement(self, self.cornerFrame, yText, yVal,   1, 0, 1, width=10, valCmd=floatCallback)
         self.cornerFrame.grid(row=elementRow, column=elementCol, padx=5)
 
-
-# ************************
+##
 # Scrollable Frame Class
 # from https://gist.github.com/mp035/9f2027c3ef9172264532fcd6262f3b01
-# ************************
+#
 class ScrollFrame(tk.Frame):
     def __init__(self, parent):
         super().__init__(parent) # create a frame (self)
@@ -104,16 +101,15 @@ class ScrollFrame(tk.Frame):
 
         self.onFrameConfigure(None)                              #perform an initial stretch on render, otherwise the scroll region has a tiny border until the first resize
 
-    #---------------------------------------------------------------------------------
     ## whenever the size of the frame changes, alter the scroll region respectively.
-    #---------------------------------------------------------------------------------
+    #
     def onFrameConfigure(self, event):                 
         '''Reset the scroll region to encompass the inner frame'''
         self.canvas.configure(scrollregion=self.canvas.bbox("all"))
 
-    #---------------------------------------------------------------------------------
+    
     ## cross platform scroll wheel event
-    #---------------------------------------------------------------------------------
+    #
     def onMouseWheel(self, event):
         if platform.system() == 'Windows':
             self.canvas.yview_scroll(int(-1* (event.delta/120)), "units")
@@ -125,10 +121,8 @@ class ScrollFrame(tk.Frame):
             elif event.num == 5:
                 self.canvas.yview_scroll( 1, "units" )
     
-    #---------------------------------------------------------------------------------
     ## bind wheel events when the cursor enters the control
     #
-    #---------------------------------------------------------------------------------
     def onEnter(self, event):
         if platform.system() == 'Linux':
             self.canvas.bind_all("<Button-4>", self.onMouseWheel)
@@ -136,10 +130,8 @@ class ScrollFrame(tk.Frame):
         else:
             self.canvas.bind_all("<MouseWheel>", self.onMouseWheel)
 
-    #---------------------------------------------------------------------------------
     ## unbind wheel events when the cursorl leaves the control
     #
-    #---------------------------------------------------------------------------------
     def onLeave(self, event):
         if platform.system() == 'Linux':
             self.canvas.unbind_all("<Button-4>")
@@ -147,18 +139,16 @@ class ScrollFrame(tk.Frame):
         else:
             self.canvas.unbind_all("<MouseWheel>")
 
-# *************************************************************************************************
 ## Allows only correctly formed positive integers, ignores non-numeric characters
-# *************************************************************************************************
+#
 def numbersCallback(input):
     """Only allows numeric for input """
     if input.isdigit(): return True  
     elif input == "": return True # allows backspace
     else: return False
 
-# *************************************************************************************************
-## Allows only correctly formed +- floats, ignores non-numeric characters
-# *************************************************************************************************
+## Allows only correctly formed floats, ignores non-numeric characters
+#
 def floatCallback(input):
     if input.isdigit(): return True  
     elif input == ".": return True
