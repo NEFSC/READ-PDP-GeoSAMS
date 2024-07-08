@@ -155,7 +155,7 @@ class Growth(ttk.Frame, MainApplication):
         fishingFrame.grid(row=1, column=0, padx=10, sticky='n')
         # ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
         # ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-        selectivityFrame = ttk.LabelFrame(self, text='Selectivity', style='Growth.TFrame')
+        selectivityFrame = ttk.LabelFrame(self, text='Selectivity', style='SAMS.TFrame')
         #-------------------------------------------------------------------------------------------
         self.maFSelectA       = SubFrameElement(self, selectivityFrame, 'MA FSelectA', self.maFSelAStr,          0, 0, 1, valCmd=floatCallback, width=10)
         #-------------------------------------------------------------------------------------------
