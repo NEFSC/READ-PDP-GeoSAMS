@@ -32,14 +32,14 @@ goto args_count_ok
 
 :args_count_wrong
     @echo [31mMissing arguments[0m
-    @echo "Expecting: GeoSamSetup.bat YYYYstart YYYYend DataSource# Domain [M|O]"
+    @echo "Expecting: Unpack.bat YYYYstart YYYYend DataSource# Domain [M|O]"
     @echo "Data Source"
-    @echo "    NMFS_ALB EQU> 1111"
-    @echo "    CANADIAN EQU> 2222"
-    @echo "    F/V_TRAD EQU> 3333"
-    @echo "    VIMSRSA  EQU> 4444"
-    @echo "    NMFSSHRP EQU> 5555"
-    @echo "    ALL      EQU> 0"
+    @echo "    NMFS_ALB ==> 1111"
+    @echo "    CANADIAN ==> 2222"
+    @echo "    F/V_TRAD ==> 3333"
+    @echo "    VIMSRSA  ==> 4444"
+    @echo "    NMFSSHRP ==> 5555"
+    @echo "    ALL      ==> 0"
     @echo "Domain"
     @echo "    MA"
     @echo "    GB"

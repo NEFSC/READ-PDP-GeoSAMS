@@ -25,7 +25,7 @@
 if [ $# -ne 5 ] 
 then
     echo [31mMissing arguments[0m
-    echo Expecting: GeoSamSetup.sh YYYYstart YYYYend DataSource# Domain "M|O"
+    echo Expecting: Unpack.sh YYYYstart YYYYend DataSource# Domain "M|O"
     echo Data Source
     echo "    NMFS_ALB ==> 1111"
     echo "    CANADIAN ==> 2222"

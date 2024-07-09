@@ -12,7 +12,7 @@ from ReadSimConfigFile import *
 
 nargs = len(sys.argv)
 if (nargs != 6):
-    print ("  Missing command line arguments. Expecting: ")
+    print ('[31m' + "  Missing command line arguments. Expecting: "+ '[0m')
     print ("  $ ProcessResults.py Domain StartYear EndYear Scallop.cfg UK.cfg")
     print()
     quit()
