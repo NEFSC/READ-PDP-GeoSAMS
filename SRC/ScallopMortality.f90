@@ -928,7 +928,7 @@ do loc = 1, num_grids
     & + fishing_effort(loc) * ( mortality(loc)%selectivity(1:num_size_classes) &
     & + mortality(loc)%incidental + mortality(loc)%discard(1:num_size_classes) )
 
-    abundance(loc) = sum(state_mat(loc,1:num_size_classes)) ! scallops per sq meter
+    abundance(loc) = sum(state_mat(loc,1:num_size_classes))*grid_area_sqm ! scallops
     bms(loc) = dot_product(state_mat(loc,1:num_size_classes), weight_grams(loc,1:num_size_classes) / grams_per_metric_ton) ! metric tons per sq meter
 enddo
 
