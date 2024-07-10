@@ -18,7 +18,6 @@ FC = gfortran
 #FFLAGS = -Wall -std=f95 -fall-intrinsics -O3  -mcmodel=medium -funroll-all-loops -ffast-math -msse -msse2 -m3dnow -m64
 FFLAGS = -Wall -std=f95 -fall-intrinsics -O3  -funroll-all-loops -ffast-math -m64
 
-
 # For debug use these flags
 #FFLAGS = -g -Wall -std=f95 -fall-intrinsics -fbounds-check
 

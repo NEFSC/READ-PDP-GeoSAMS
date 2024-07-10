@@ -11,8 +11,6 @@
 !> @subsection m0p1p1 UK Configuration File
 !>
 !> This file is specified on the command line. It has the following parameters
-!> * High Limit Factor
-!> * Number of Random Fields
 !> * Kriging variogram form
 !> * Log Transform
 !> * Power Transform Parameter
