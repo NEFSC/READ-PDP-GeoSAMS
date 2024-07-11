@@ -277,7 +277,7 @@ class MainApplication(tk.Tk):
     #
     def InterpAndPlotResults(self):
         dataDir = 'Data'
-        years = range(self.yearStart, self.yearStop+1)
+        years = range(self.yearStart-1, self.yearStop+1) # year_start-1 is initial state
 
         # set configuration file name for UK.exe
         ukCfgFile = self.ukCfgFile  # This may be overwritten depending on domain
@@ -328,7 +328,6 @@ class MainApplication(tk.Tk):
             # .\UKsrc\UK UK.cfg GB      X_Y_EBMS_GB2005_0_SW.csv  GBxyzLatLon_SW.csv   0.0 | 70.0
             #  arg#        1     2              3                  4                   5
             for r in rgn:
-                obsFile = 'X_Y_' + pStr + self.domainName + str(self.yearStart) + '_0' + r + '.csv'
                 if self.domainName == 'AL':
                     # ALxyzLatLon_MA uses the same grid file as MA, 
                     # and did not want to configuration manage multiple identical files
@@ -350,15 +349,6 @@ class MainApplication(tk.Tk):
                     # DEPRECATE: if we no longer need to separate GB into sub regions
                     #gridFile = self.domainName+'xyzLatLon' + r + '.csv'
                     gridFile = self.domainName+'xyzLatLon.csv'
-                cmd = [ex, ukCfgFile, self.domainName, obsFile, gridFile, zArg]
-                result = subprocess.run(cmd)
-                if (result.returncode != 0):
-                    errorStr = '[31m' + ''.join(str(e)+' ' for e in cmd) + ' error: ' + hex(result.returncode) + '[0m'
-                    print(errorStr)
-                    return (result.returncode, result.args)
-                print( 'Just Finished: ', cmd)
-                # Cleanup dataDir
-                os.remove(os.path.join(dataDir, obsFile))
 
                 for year in years:
                     obsFile = 'X_Y_' + pStr + self.domainName + str(year) + r + '.csv'
@@ -381,18 +371,8 @@ class MainApplication(tk.Tk):
                     col = [defaultdict(list) for _ in range(nyears)]
                     k = 0
                     
-                    flin = pfix + pStr + self.domainName + str(self.yearStart) + '_0' + r + '.csv'
-                    with open(flin) as f:
-                        reader = csv.reader(f)
-                        for row in reader:
-                            for (i,v) in enumerate(row):
-                                col[k][i].append(v)
-                        f.close()
-                    os.remove(flin)
-
                     # append remaining years as additional columns to first data set
                     for year in years:
-                        k  += 1
                         flin = pfix + pStr + self.domainName + str(year) + r + '.csv'
                         with open(flin) as f:
                             reader = csv.reader(f)
@@ -404,6 +384,7 @@ class MainApplication(tk.Tk):
 
                         for i in range (len(col[0][0])):    
                             col[0][k + 2].append(col[k][2][i])
+                        k  += 1
 
                     # brute force write out results
                     if self.savedByStratum:

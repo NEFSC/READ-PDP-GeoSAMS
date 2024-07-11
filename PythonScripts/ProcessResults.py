@@ -23,7 +23,7 @@ year_start = int(sys.argv[2])
 year_end = int(sys.argv[3])
 simCfgFile = sys.argv[4]
 ukCfgFile = sys.argv[5]
-years = range(year_start, year_end + 1)
+years = range(year_start-1, year_end + 1) # year_start-1 is initial state
 
 # Used while concatenating files
 # number of colums in csv file, starting at 0
@@ -68,7 +68,6 @@ for pStr in paramStr:
     # .\UKsrc\UK UK.cfg GB      X_Y_EBMS_GB2005_0_SW.csv  GBxyzLatLonSW.csv   0.0 | 70.0
     #  arg#        1     2              3                  4                   5
     for r in rgn:
-        obsFile = 'X_Y_' + pStr + dn + str(year_start) + '_0' + r + '.csv'
         if dn == 'AL':
             # ALxyzLatLon_MA uses the same grid file as MA
             #     'MA'+'xyzLatLon' + '' + '.csv'
@@ -88,13 +87,6 @@ for pStr in paramStr:
             # DEPRECATE: if we no longer need to separate GB into sub regions
             #gridFile = self.domainName+'xyzLatLon' + r + '.csv'
             gridFile = dn+'xyzLatLon.csv'
-        cmd = [ex, ukCfgFile, dn, obsFile, gridFile, zArg]
-        result = subprocess.run(cmd)
-        if (result.returncode != 0):
-            print('[31m' + ''.join(str(e)+' ' for e in cmd) + ' error: ' + hex(result.returncode) + '[0m')
-            sys.exit(result.returncode)
-        print( 'Just Finished: ', cmd)
-###        os.remove(dataDir + obsFile)
 
         for year in years:
             obsFile = 'X_Y_' + pStr + dn + str(year) + r + '.csv'
@@ -116,18 +108,8 @@ for pStr in paramStr:
             col = [defaultdict(list) for _ in range(nyears)]
             k = 0
             
-            flin = pfix + pStr + dn + str(year_start) + '_0' + r + '.csv'
-            with open(flin) as f:
-                reader = csv.reader(f)
-                for row in reader:
-                    for (i,v) in enumerate(row):
-                        col[k][i].append(v)
-                f.close()
-###            os.remove(flin)
-
             # append remaining years as additional columns to first data set
             for year in years:
-                k  += 1
                 flin = pfix + pStr + dn + str(year) + r + '.csv'
                 with open(flin) as f:
                     reader = csv.reader(f)
@@ -135,10 +117,11 @@ for pStr in paramStr:
                         for (i,v) in enumerate(row):
                             col[k][i].append(v)
                     f.close()
-###                os.remove(flin)
+                os.remove(flin)
 
                 for i in range (len(col[0][0])):    
                     col[0][k + 2].append(col[k][2][i])
+                k  += 1
 
             # brute force write out results
             if savedByStratum:
@@ -166,7 +149,7 @@ for pStr in paramStr:
                 lines = rdFile.readlines()
                 wrFile.writelines(lines)
                 rdFile.close()
-###                os.remove(flin)
+                os.remove(flin)
             wrFile.close()
             print('Files concatenated to: ',flout)
         # end for pfix

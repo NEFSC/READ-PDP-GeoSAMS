@@ -716,36 +716,9 @@ if (plot_data_sel%plot_LPUE) call Write_Lat_Lon_Preamble(num_grids, grid, output
 if (plot_data_sel%plot_RECR) call Write_Lat_Lon_Preamble(num_grids, grid, output_dir//'Lat_Lon_Surv_RECR_'//domain_name//'.csv')
 
 ! Write similar data for later interpolation by UK (Universal Kriging)
-write(buf,'(I4)') start_year
-yr_offset = 0.
-if (plot_data_sel%plot_ABUN) &
-&    call Write_X_Y_Preamble(num_grids, grid, yr_offset, data_dir//'X_Y_ABUN_'//domain_name//buf//'_0.csv', save_by_stratum)
-
-if (plot_data_sel%plot_BMMT) &
-&    call Write_X_Y_Preamble(num_grids, grid, yr_offset, data_dir//'X_Y_BMMT_'//domain_name//buf//'_0.csv', save_by_stratum)
-
-if (plot_data_sel%plot_EBMS) &
-&    call Write_X_Y_Preamble(num_grids, grid, yr_offset, data_dir//'X_Y_EBMS_'//domain_name//buf//'_0.csv', save_by_stratum)
-
-if (plot_data_sel%plot_FEFF) &
-&    call Write_X_Y_Preamble(num_grids, grid, yr_offset, data_dir//'X_Y_FEFF_'//domain_name//buf//'_0.csv', save_by_stratum)
-
-if (plot_data_sel%plot_FMOR) &
-&    call Write_X_Y_Preamble(num_grids, grid, yr_offset, data_dir//'X_Y_FMOR_'//domain_name//buf//'_0.csv', save_by_stratum)
-
-if (plot_data_sel%plot_LAND) & 
-&    call Write_X_Y_Preamble(num_grids, grid, yr_offset, data_dir//'X_Y_LAND_'//domain_name//buf//'_0.csv', save_by_stratum)
-
-if (plot_data_sel%plot_LNDW) & 
-&    call Write_X_Y_Preamble(num_grids, grid, yr_offset, data_dir//'X_Y_LNDW_'//domain_name//buf//'_0.csv', save_by_stratum)
-
-if (plot_data_sel%plot_LPUE) &
-&    call Write_X_Y_Preamble(num_grids, grid, yr_offset, data_dir//'X_Y_LPUE_'//domain_name//buf//'_0.csv', save_by_stratum)
-
-if (plot_data_sel%plot_RECR) &
-&    call Write_X_Y_Preamble(num_grids, grid, yr_offset, data_dir//'X_Y_RECR_'//domain_name//buf//'_0.csv', save_by_stratum)
-
-do n = start_year, stop_year
+! Year-1 is the initial state
+yr_offset = -1.
+do n = start_year-1, stop_year
     write(buf,'(I4)') n
     if (plot_data_sel%plot_ABUN) &
     &    call Write_X_Y_Preamble(num_grids, grid, yr_offset, data_dir//'X_Y_ABUN_'//domain_name//buf//'.csv', save_by_stratum)
@@ -795,29 +768,22 @@ integer, intent(in) :: year, start_year
 type(Recruitment_Class), intent(in) :: recruit(*)
 
 character(4) buf
-character(6) buf_0
 integer recr_idx
 character(fname_len) file_name
 
 recr_idx = year - start_year + 1
 
 if (mod(ts, ts_per_year) .eq. 1) then
-    write(buf,'(I4)') year
+    if (ts .eq. 1) then
+        write(buf,'(I4)') year-1
+    else
+        write(buf,'(I4)') year
+    endif
     if (save_by_stratum) then
-        if (ts .eq. 1) then
-            write(buf_0,'(I4,A2)') year, '_0'
-        else
-            write(buf_0,'(I4)') year
-        endif
         call Write_Column_CSV_By_Stratum(num_grids, recruit(1:num_grids)%recruitment(recr_idx), &
         &            grid(1:num_grids)%lat, grid(1:num_grids)%lon, grid(1:num_grids)%stratum, &
-        &            'RECR', data_dir//'X_Y_RECR_'//domain_name//trim(buf_0), .true.)
+        &            'RECR', data_dir//'X_Y_RECR_'//domain_name//trim(buf), .true.)
     else
-        if (ts .eq. 1) then
-            file_name = data_dir//'X_Y_RECR_'//domain_name//buf//'_0.csv'
-        else
-            file_name = data_dir//'X_Y_RECR_'//domain_name//buf//'.csv'
-        endif 
         call Write_Column_CSV(num_grids, recruit(1:num_grids)%recruitment(recr_idx), 'Recruitment', file_name, .true.)
     endif
 endif

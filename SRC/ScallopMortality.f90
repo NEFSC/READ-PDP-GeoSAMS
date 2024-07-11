@@ -973,7 +973,7 @@ if (data_select%plot_LPUE) &
 ! This data is later interpolated to MA or GB Grid
 if (mod(ts, ts_per_year) .eq. 1) then
     if (ts .eq. 1) then
-        write(buf,'(I4,A2)') year, '_0'
+        write(buf,'(I4,A2)') year-1 ! this is the intial state
     else
         write(buf,'(I4)') year
     endif
