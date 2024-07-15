@@ -17,6 +17,7 @@ if isOctave
     arg_list=argv();
     if ~strcmp(arg_list(1), '--gui');
         src = str2num(cell2mat(arg_list(1)));
+        useHabCam = cell2mat(arg_list(1));
     else
         src = str2num(src);
     end

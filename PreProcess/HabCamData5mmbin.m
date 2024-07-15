@@ -112,7 +112,7 @@ for yr=yrStart:yrEnd
         if isOctave
             stratum_t = M(j,16);
             % place holder for is_closed
-            is_closed_t = array2table(zeros(size(stratum_t)), 'VariableNames',{'Is Closed'});
+            is_closed_t = zeros(size(stratum_t));
             lat_t = M(j,5);
             lon_t = M(j,6);
             mon = M(j,2);
