@@ -1,4 +1,4 @@
-function ProcessRecruitData(yrStart, yrEnd, domain)
+function ProcessRecruitData(yrStart, yrEnd, domain, useHabCam)
 
 isOctave = (exist('OCTAVE_VERSION', 'builtin') ~= 0);
 if isOctave
@@ -8,11 +8,14 @@ if isOctave
     yrStart = str2num(cell2mat(arg_list(1)));
     yrEnd = str2num(cell2mat(arg_list(2)));
     domain = cell2mat(arg_list(3));
+    useHabCam = cell2mat(arg_list(4));
   else
     yrStart = str2num(yrStart);
     yrEnd = str2num(yrEnd);
   end
 end
+
+useHC = strcmp(useHabCam, 'T');
 
 if ~strcmp(domain, 'GB') & ~strcmp(domain, 'MA') & ~strcmp(domain, 'AL')
   fprintf( 'Invalid Domain %s\n',  domain);
@@ -28,15 +31,27 @@ DetectRS=.27;
 DetectHD=.13;
 DetectHDThreshold=2;%scallops/m^2
 
-%flnm = 'OriginalData/recruitsv2.csv'; yr_col=5;
-flnm = 'OriginalData/NewRecruits.csv'; yr_col=4;
-%flnm = 'OriginalData/recruitsv2KWS.csv';
-% data files differ by one column, using year column as reference
-mon_col=yr_col+1;
-day_col=mon_col+1;
-lat_col=yr_col+14;
-lon_col=yr_col+15;
-depth_col=yr_col+17;
+flnm = 'OriginalData/NewRecruits.csv';
+if useHC
+    % PullOutRecruitData creates a very different file format 
+    % when reading from HabCam Data
+    yr_col=1;
+    mon_col=2;
+    day_col=3;
+    lat_col=5;
+    lon_col=6;
+    depth_col=9;
+else
+    yr_col=4;
+    %flnm = 'OriginalData/recruitsv2.csv'; yr_col=5;
+    %flnm = 'OriginalData/recruitsv2KWS.csv';
+    % data files differ by one column, using year column as reference
+    mon_col=yr_col+1;
+    day_col=mon_col+1;
+    lat_col=yr_col+14;
+    lon_col=yr_col+15;
+    depth_col=yr_col+17;
+end
 fprintf('Reading from %s\n', flnm)
 
 if isOctave

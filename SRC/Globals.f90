@@ -26,6 +26,8 @@ integer, parameter :: region_S=2
 integer, parameter :: region_SW=3
 integer, parameter :: region_W=4
 integer, parameter :: region_MA=5
+integer, parameter :: region_GBK = 1
+integer, parameter :: region_MAB = 5
 
 ! used by configuration files
 integer, parameter :: tag_len = 40

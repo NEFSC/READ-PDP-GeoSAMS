@@ -8,7 +8,7 @@
 % VIMSRSA ==> 4444
 % NMFSSHRP ==> 5555
 % ALL ==> 0
-function PullOutRecruitData(src)
+function PullOutRecruitData(src, useHabCam)
 
 isOctave = (exist('OCTAVE_VERSION', 'builtin') ~= 0);
 
@@ -23,20 +23,34 @@ if isOctave
 end
 srcText = src;
 
-flnm = 'OriginalData/dredgetowbysize7917.csv';
+useHC = strcmp(useHabCam, 'T');
+if useHC
+    srcText = 0;
+    sgCol = 10;
+    svCol = 11;
+	srcCol = 16;  % not used for HabCam data
+    flnm = 'OriginalData/Habcam_BySegment_2000_2014-2019.csv';
+else
+    sgCol = 27;
+    svCol = 30;
+	srcCol = 37;
+    flnm = 'OriginalData/dredgetowbysize7917.csv';
+end
+    
+
 fprintf('Reading from %s\n', flnm)
 
 if isOctave
   F=csvreadK(flnm);
-  size_grp = F(:,27);
-  survn = F(:,30);
-  dataSrc = F(:,37);
+  size_grp = F(:,sgCol);
+  survn = F(:,svCol);
+  dataSrc = F(:,srcCol);
 else
   warning('OFF', 'MATLAB:table:ModifiedAndSavedVarnames')
   F= readtable(flnm,"FileType","text");
-  size_grp = table2array(F(:,27));
-  survn = table2array(F(:,30));
-  dataSrc = table2array(F(:,37));
+  size_grp = table2array(F(:,sgCol));
+  survn = table2array(F(:,svCol));
+  dataSrc = table2array(F(:,srcCol));
 end
 
 if srcText == 0
@@ -44,6 +58,7 @@ if srcText == 0
 else
     n=find(size_grp==3 & dataSrc==srcText);
 end
+recr = zeros(1, numel(n));
 for k=1:numel(n)
     % sum 3cm to 6 cm
     recr(k) = sum(survn(n(k)+1:n(k)+6));

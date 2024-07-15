@@ -137,12 +137,24 @@ class MainInput(ttk.Frame):
         self.domainNameCombo.current(2)
         self.domainNameCombo.grid(row=3, column=1, sticky='w', pady=5)
         #-------------------------------------------------------------------------------------------
+        self.usingHabCamLabel = ttk.Label(durationFrame, text='Domain Name')
+        self.usingHabCam = tk.BooleanVar(durationFrame, self.friend.useHabCamData)
+        self.usingHabCamLabel = ttk.Label(durationFrame, text='Data Source')
+        self.usingHabCamLabel.grid(row=4, column=0)
+        self.useHabCamRB = ttk.Radiobutton(durationFrame, text='Habcam', value=True, variable=self.usingHabCam, command=None)
+        self.useHabCamRB.grid(row=4, column=1,sticky='w')
+        self.useDredgeRB = ttk.Radiobutton(durationFrame, text='Dredge', value=False, variable=self.usingHabCam, command=None)
+        self.useDredgeRB.grid(row=5, column=1,sticky='w')
+        #-------------------------------------------------------------------------------------------
         self.useStratumLabel = ttk.Label(durationFrame, text='Use Stratum\n(Not Used by MA)')
-        self.useStratumLabel.grid(row=4, column=0)
+        self.useStratumLabel.grid(row=6, column=0)
         #-------------------------------------------------------------------------------------------
         self.useStratumCombo = ttk.Combobox(durationFrame, width=3, values=comboTFStr)
-        self.useStratumCombo.current(comboTFStr.index('T'))
-        self.useStratumCombo.grid(row=4, column=1, sticky='w')
+        if self.friend.savedByStratum:
+            self.useStratumCombo.current(comboTFStr.index('T'))
+        else:
+            self.useStratumCombo.current(comboTFStr.index('F'))
+        self.useStratumCombo.grid(row=6, column=1, sticky='w')
         # Not user configurable at this time        
         self.useStratumLabel.grid_remove()
         self.useStratumCombo.grid_remove()

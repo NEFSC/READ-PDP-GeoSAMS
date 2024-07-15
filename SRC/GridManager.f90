@@ -97,6 +97,7 @@ type(LonLatVector), PRIVATE :: area(max_num_areas)
 integer, PRIVATE :: num_areas ! number of special access areas
 integer, PRIVATE :: num_grids
 logical, PRIVATE :: use_spec_access_data
+logical, PRIVATE :: use_habcam_data
 character(domain_len), PRIVATE :: domain_name
 character(fname_len), PRIVATE :: config_file_name
 character(fname_len), PRIVATE :: init_cond_fname
@@ -138,17 +139,19 @@ endfunction Set_Num_Grids
 !> Initializes growth for startup
 !>
 !==================================================================================================================
-subroutine Set_Grid_Manager(state_mat, grid, ngrids, dom_name)
+subroutine Set_Grid_Manager(state_mat, grid, ngrids, dom_name, use_hc)
 integer, intent(inout) :: ngrids
 real(dp), intent(out):: state_mat(1:ngrids, 1:num_size_classes)
 type(Grid_Data_Class), intent(out) :: grid(*)
 character(domain_len), intent(in) :: dom_name
+logical, intent(in) :: use_hc
 
 integer n, j
 character(fname_len) fname
 
 ! set private variables
 domain_name = dom_name
+use_habcam_data = use_hc
 
 ! Used to verify grid in special access area
 fname = 'Results\SurveyLoc.txt'
@@ -377,6 +380,7 @@ integer function Load_Grid_State(grid, state_mat)
                 grid(n)%is_closed = (is_closed > 0)
                 grid(n)%special_access_index = 0
             else
+                print *, term_red, n, grid(n)%year, grid(n)%x, grid(n)%y, grid(n)%lat, grid(n)%lon, grid(n)%z, term_blk
                 n = n - 1 ! skip this data
             endif
         else
@@ -606,55 +610,70 @@ use globals
 implicit none
 real(dp), intent(in) :: lat, lon, stratum_real
 
-integer stratum
+integer stratum, result
 
+result = region_none
 stratum = int(stratum_real)
 
-if (stratum < 6400) then
-    Get_Region = region_MA
-elseif( (stratum < 6460) .OR. (stratum .EQ. 6652) .OR. (stratum .EQ. 6662) ) then
-    Get_Region = region_none
-elseif (stratum < 6490) then
-    if ((lat > 40.7_dp) .AND. (lon > -69.35_dp)) then
-        Get_Region = region_W
-    else
-        Get_Region = region_SW
-    endif
-elseif (stratum < 6530) then
-    Get_Region = region_W
-elseif (stratum < 6560) then
-    Get_Region = region_N
-elseif (stratum < 6610) then
-    Get_Region = region_S
-elseif (stratum < 6622) then
-    Get_Region = region_S
-elseif (stratum < 6651) then
-    Get_Region = region_none
-elseif (stratum < 6680) then
-    Get_Region = region_N
-elseif (stratum < 6710) then
-    Get_Region = region_none
-elseif (stratum < 6730) then
-    Get_Region = region_N
-elseif (stratum < 6740) then
-    Get_Region = region_none
-elseif (stratum < 6960) then
-    if (stratum .EQ. 6740) then
-        if (lat > 41.5_dp) then
-            if (lon < -67.14) then
-                Get_Region = region_none
-            else
-                Get_Region = region_N
+! if (use_habcam_data) then
+!     if (stratum<6410) then
+!         result=region_MAB;
+!     elseif (stratum<6860) then
+!         result=region_GBK;
+!     elseif (stratum<6960) then
+!         result=region_MAB;
+!     else
+!         result=region_GBK;
+!     endif
+! else
+    if (stratum < 6400) then
+        result = region_MA
+    elseif( (stratum < 6460) .OR. (stratum .EQ. 6652) .OR. (stratum .EQ. 6662) ) then
+        result = region_none
+    elseif (stratum < 6490) then
+        if ((lat > 40.7_dp) .AND. (lon > -69.35_dp)) then
+            result = region_W
+        else
+            result = region_SW
+        endif
+    elseif (stratum < 6530) then
+        result = region_W
+    elseif (stratum < 6560) then
+        result = region_N
+    elseif (stratum < 6610) then
+        result = region_S
+    elseif (stratum < 6622) then
+        result = region_S
+    elseif (stratum < 6651) then
+        result = region_none
+    elseif (stratum < 6680) then
+        result = region_N
+    elseif (stratum < 6710) then
+        result = region_none
+    elseif (stratum < 6730) then
+        result = region_N
+    elseif (stratum < 6740) then
+        result = region_none
+    elseif (stratum < 6960) then
+        if (stratum .EQ. 6740) then
+            if (lat > 41.5_dp) then
+                if (lon < -67.14) then
+                    result = region_none
+                else
+                    result = region_N
+                endif
+            else 
+                result = region_S
             endif
-        else 
-            Get_Region = region_S
+        else
+            result = region_none
         endif
     else
-        Get_Region = region_none
+        result = region_none
     endif
-else
-    Get_Region = region_none
-endif
+! endif
+
+Get_Region = result
 
 endfunction Get_Region
 

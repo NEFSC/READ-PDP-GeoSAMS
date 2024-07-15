@@ -27,12 +27,12 @@ for %%x in (%*) do (
    set "argVec[!argCount!]=%%~x"
 )
 
-if %argCount% NEQ 5 goto args_count_wrong
+if %argCount% NEQ 6 goto args_count_wrong
 goto args_count_ok
 
 :args_count_wrong
     @echo [31mMissing arguments[0m
-    @echo "Expecting: Unpack.bat YYYYstart YYYYend DataSource# Domain [M|O]"
+    @echo "Expecting: Unpack.bat YYYYstart YYYYend DataSource# Domain [M|O] [H|D]"
     @echo "Data Source"
     @echo "    NMFS_ALB ==> 1111"
     @echo "    CANADIAN ==> 2222"
@@ -47,6 +47,9 @@ goto args_count_ok
     @echo "[M|O]"
     @echo "    M: Use Matlab for numerical processing"
     @echo "    O: Use Octave for numerical processing"
+    @echo "Data Source Args"
+    @echo "    H: pull data from HabCam Data"
+    @echo "    D: pull data from Dredge Survey Data"
     exit /b 11
 
 :args_count_ok
@@ -80,8 +83,8 @@ if "%4" EQU "AL" goto check_math_arg
     exit /b 13
 
 :check_math_arg
-if "%5" EQU "M" goto continue
-if "%5" EQU "O" goto continue
+if "%5" EQU "M" goto checkDataSrc
+if "%5" EQU "O" goto checkDataSrc
 :math_arg_wrong
     @echo [31mInvalid Math Arg: [0m %5
     @echo "Math Arg"
@@ -89,12 +92,33 @@ if "%5" EQU "O" goto continue
     @echo "    O EQU> Use Octave"
     exit /b 14
 
+:checkDataSrc
+if "%6" EQU "H" goto continue
+if "%6" EQU "D" goto continue
+:math_arg_wrong
+    @echo [31mInvalid Data Source Arg: [0m %5
+    @echo "Math Arg"
+    @echo "    H EQU> Pull From HabCam Data"
+    @echo "    D EQU> Pull From Dredge Survey Data"
+    exit /b 14
+
 :continue
+if "%6" EQU "D" (
 @REM unzip dredge data
 if not exist OriginalData\dredgetowbysize7917.csv (
     cd "OriginalData/"
     "C:\Program Files\7-Zip\7z" e dredgetowbysize7917.zip
     cd ..
+)
+)
+
+if "%6" EQU "H" (
+@REM unzip dredge data
+if not exist OriginalData\Habcam_BySegment_2000_2014-2019.csv (
+    cd "OriginalData/"
+    "C:\Program Files\7-Zip\7z" e Habcam_BySegment_2000_2014-2019.zip
+    cd ..
+)
 )
 
 @REM Create Directories used by GeoSAMS
@@ -154,26 +178,86 @@ cd ..
 @REM However, vscode does not see it. Either cut&paste here or enter via notepad and cut & paste to here.
 @REM https://stackoverflow.com/questions/2048509/how-to-echo-with-different-colors-in-the-windows-command-line
 @REM https://gist.githubusercontent.com/mlocati/fdabcaeb8071d5c75a2d51712db24011/raw/b710612d6320df7e146508094e84b92b34c77d48/win10colors.cmd
-if "%5" EQU "M" matlab.exe -batch "TrawlData5mmbin(%1, %2, %3, '%4'); exit;"
-if "%5" EQU "O" octave PreProcess/TrawlData5mmbin.m $1 $2 $3 $4
+
+@REM Pull Out Survey Data --------------------------------------------------------------
+if "%5" EQU "M" if "%6" EQU "D" (
+    @echo [33mmatlab.exe -batch "TrawlData5mmbin(%1, %2, %3, '%4'); exit;"[0m
+    matlab.exe -batch "TrawlData5mmbin(%1, %2, %3, '%4'); exit;"
+)
 IF ERRORLEVEL 1 (
     @echo [31mError in MATLAB TrawlData5mmbin. Stopping[0m
     exit 1/b
 )
-if "%5" EQU "M" matlab.exe -batch "PullOutRecruitData(%3); exit;"
-if "%5" EQU "O" octave PreProcess/PullOutRecruitData.m $3
+
+if "%5" EQU "M" if "%6" EQU "H" (
+    @echo [33mmatlab.exe -batch "HabCamData5mmbin(%1, %2, '%4'); exit;"[0m
+    matlab.exe -batch "HabCamData5mmbin(%1, %2, '%4'); exit;"
+)
+IF ERRORLEVEL 1 (
+    @echo [31mError in MATLAB HabCamData5mmbin. Stopping[0m
+    exit 1/b
+)
+
+if "%5" EQU "O" if "%6" EQU "D" (
+    @echo [33moctave PreProcess/TrawlData5mmbin.m $1 $2 $3 $4[0m
+    octave PreProcess/TrawlData5mmbin.m $1 $2 $3 $4
+)
+IF ERRORLEVEL 1 (
+    @echo [31mError in Octave TrawlData5mmbin. Stopping[0m
+    exit 1/b
+)
+
+if "%5" EQU "O" if "%6" EQU "H" (
+    @echo [33moctave PreProcess/HabCamData5mmbin.m $1 $2 $4[0m
+    octave PreProcess/HabCamData5mmbin.m $1 $2 $4
+)
+IF ERRORLEVEL 1 (
+    @echo [31mError in Octave TrawlData5mmbin. Stopping[0m
+    exit 1/b
+)
+
+@REM Pull Out Recruit Data --------------------------------------------------------------
+if "%6" EQU "H" (
+    set hcChar="T"
+)
+if "%6" EQU "D" (
+    set hcChar="F"
+)
+if "%5" EQU "M" (
+    @echo [33mmatlab.exe -batch "PullOutRecruitData(%3, '%hcChar%'); exit;"[0m
+    matlab.exe -batch "PullOutRecruitData(%3, '%hcChar%'); exit;"
+)
 IF ERRORLEVEL 1 (
     @echo [31mError in MATLAB PullOutRecruitData. Stopping[0m
     exit 2/b
 )
-if "%5" EQU "M" matlab.exe -batch "ProcessRecruitData(%1, %2, '%4'); exit;"
-if "%5" EQU Ooctave PreProcess/ProcessRecruitData.m $1 $2 $4
+
+if "%5" EQU "O" (
+    @echo [33moctave PreProcess/PullOutRecruitData.m %3, %hcChar%[0m
+    octave PreProcess/PullOutRecruitData.m %3 %hcChar%
+)
+IF ERRORLEVEL 1 (
+    @echo [31mError in Octave PullOutRecruitData. Stopping[0m
+    exit 2/b
+)
+
+@REM Process Recruit Data --------------------------------------------------------------
+if "%5" EQU "M" (
+    @echo [33mmatlab.exe -batch "ProcessRecruitData(%1, %2, '%4', '%hcChar%'); exit;"[0m
+    matlab.exe -batch "ProcessRecruitData(%1, %2, '%4', '%hcChar%'); exit;"
+)
+if "%5" EQU "O" (
+    @echo [33mPreProcess/ProcessRecruitData.m %1 %2 %4 %hcChar%[0m
+    octave PreProcess/ProcessRecruitData.m %1 %2 %4 %hcChar%
+)
 IF ERRORLEVEL 1 (
     @echo [31mError in MATLAB ProcessRecruitData. Stopping[0m
     exit 3/b
 )
+
+@REM Expand Nearest Neighbor to first year Survey Grid----------------------------------
 if "%5" EQU "M" matlab.exe -batch "NearestNeighborRecInterp(%1, %2, '%4'); exit;"
-if "%5" EQU "O" octave mfiles/NearestNeighborRecInterp.m $1 $2 $4
+if "%5" EQU "O" octave mfiles/NearestNeighborRecInterp.m %1 %2 %4
 IF ERRORLEVEL 1 (
     @echo [31mError in MATLAB NearestNeighborRecInterp. Stopping[0m
     exit 4/b

@@ -80,6 +80,7 @@ class MainApplication(tk.Tk):
         self.paramVal = 0
         self.paramStr = []
         self.savedByStratum = False
+        self.useHabCamData = False
 
         # Sim settings
         self.domainName = ''
@@ -186,8 +187,14 @@ class MainApplication(tk.Tk):
         # Ensure data is available, by first checking if data files have been created.
         # Typical data file name: Data/bin5mm2015AL.csv
         filesExist = True
+        if self.frame1.usingHabCam.get():
+            prefix = 'HCbin5mm'
+            dataSrcArg = 'H'
+        else:
+            prefix = 'bin5mm'
+            dataSrcArg = 'D'
         for yr in range(self.yearStart, self.yearStop+1):
-            dataFName = os.path.join(self.root, 'Data', 'bin5mm'+str(yr)+self.domainName+'.csv')
+            dataFName = os.path.join(self.root, 'Data', prefix+str(yr)+self.domainName+'.csv')
             if not os.path.isfile(dataFName): 
                 filesExist = False
                 break
@@ -195,13 +202,14 @@ class MainApplication(tk.Tk):
         if not filesExist: 
             # Create them
             if self.frame2.usingMatlab.get():
-                mArg = 'M'
+                mathArg = 'M'
             else:
-                mArg = 'O'
+                mathArg = 'O'
+
             if platform.system() == 'Windows':
-                cmd = [os.path.join(self.root, 'Unpack.bat'), startYear, stopYear, '0', self.domainName, mArg]
+                cmd = [os.path.join(self.root, 'Unpack.bat'), startYear, stopYear, '0', self.domainName, mathArg, dataSrcArg]
             else:
-                cmd = [os.path.join(self.root, 'Unpack.sh'), startYear, stopYear, '0', self.domainName, mArg]
+                cmd = [os.path.join(self.root, 'Unpack.sh'), startYear, stopYear, '0', self.domainName, mathArg, dataSrcArg]
                 subprocess.run(['chmod','744','Unpack.sh']) # make file executable
             messagebox.showinfo("Unpack", f'Starting Unpack.\nThis could take several minutes, longer if using Octave.\nPlease be patient.')
             result = subprocess.run(cmd)
@@ -467,6 +475,7 @@ class MainApplication(tk.Tk):
             f.write('# input file for Scallops \n')
             f.write('Time steps per Year = ' + str(self.frame1.tsPerYear.myEntry.get())+'\n')
             f.write('Save By Stratum = '     + str(self.frame1.useStratumCombo.get())+'\n')
+            f.write('Use HabCam Data = '     + str(self.frame1.usingHabCam.get())[0]+'\n')
             f.write('# Configuration files are expected to be in the Configuration directory\n')
             f.write('Mortality Config File = '   + self.frame1.mortCfgFile.myEntry.get() + '\n')
             f.write('Recruit Config File = '     + self.frame1.recrCfgFile.myEntry.get() + '\n')
@@ -722,6 +731,8 @@ class MainApplication(tk.Tk):
                 self.tsPerYear = int(value)
             elif (tag == 'Save By Stratum'):
                 self.savedByStratum = value[0] == 'T'
+            elif (tag == 'Use HabCam Data'):
+                self.useHabCamData = value[0] == 'T'
 
     ## 
     # Read in the (tag, value) parameters from the UK configuration file.
@@ -802,7 +813,7 @@ def main():
         maxAreas = 25
         maxCorners = 8
         print ("Missing command line arguments. Expecting: ")
-        print ("  $ GeoSams.py MaxNumAreas MaxNumCorners MaxNumYears")
+        print ("  $ GeoSams.py MaxNumAreas MaxNumCorners")
         print ("  Proceeding with default values:")
         print ("  Maximum areas of interest: {}".format(maxAreas))
         print ("  Maximum nodes for area of interest: {}".format(maxCorners))
