@@ -17,6 +17,7 @@ if isOctave
     arg_list=argv();
     if ~strcmp(arg_list(1), '--gui');
         src = str2num(cell2mat(arg_list(1)));
+        useHabCam = cell2mat(arg_list(2))
     else
         src = str2num(src);
     end
@@ -24,19 +25,42 @@ end
 srcText = src;
 
 useHC = strcmp(useHabCam, 'T');
+
+% Need these header data used by ProcessRecruitData
+% Year Month Day Lat Lon Z recr
 if useHC
+    header = { "year","month","day","station","lat","lon","xutm","yutm","setdpth","sizegrp","surv_n",...
+                "SQM","NImages","area","stratum","clop"};
+    yearCol    = find(strcmpi("year", header), 1);
+    monCol     = find(strcmpi("month", header), 1);
+    dayCol     = find(strcmpi("day", header), 1);
+    latCol     = find(strcmpi("lat"    , header), 1);
+    lonCol     = find(strcmpi("lon"    , header), 1);
+    zCol       = find(strcmpi("setdpth", header), 1);
+    sgCol      = find(strcmpi("sizegrp", header), 1);
+    svCol      = find(strcmpi("surv_n" , header), 1);
+    sqmCol     = find(strcmpi("SQM"    , header), 1);
     srcText = 0;
-    sgCol = 10;
-    svCol = 11;
-	srcCol = 16;  % not used for HabCam data
-    flnm = 'OriginalData/Habcam_BySegment_2000_2014-2019.csv';
+    srcCol = 16;  % not used for HabCam data, srcText force to 0
+    flnm = 'OriginalData/Habcam_BySegment_2000_2014-2020.csv';
 else
-    sgCol = 27;
-    svCol = 30;
-	srcCol = 37;
+    header = { "area","subarea","cruise6","year","month","day","time","stratum","tow","station",...
+               "statype","SVGEAR","haul","gearcon","sdefid","newstra","clop","lat","lon","tnms",...
+               "setdpth","bottemp","dopdisb","distused","towadj","towdur","sizegrp","catchnu",...
+               "catchwt","surv_n","partrecn","fullrecn","surv_b","partrecb","fullrecb","postow",...
+               "datasource","lwarea","SETLW","SVSPP","PropChains","AREAKIND","STRATMAP","SQNM"};
+    yearCol    = find(strcmpi("year", header), 1);
+    monCol     = find(strcmpi("month", header), 1);
+    dayCol     = find(strcmpi("day",   header), 1);
+    latCol     = find(strcmpi("lat"    , header), 1);
+    lonCol     = find(strcmpi("lon"    , header), 1);
+    zCol       = find(strcmpi("setdpth", header), 1);
+    sgCol      = find(strcmpi("sizegrp", header), 1);
+    svCol      = find(strcmpi("surv_n" , header), 1);
+    srcCol     = find(strcmpi("datasource", header), 1);
     flnm = 'OriginalData/dredgetowbysize7917.csv';
 end
-    
+
 
 fprintf('Reading from %s\n', flnm)
 
@@ -64,16 +88,21 @@ for k=1:numel(n)
     recr(k) = sum(survn(n(k)+1:n(k)+6));
 end
 
+% Need to format file so that it has the same data regardless of source
 if isOctave
     recr_t = transpose(recr);
 else
     recr_t = array2table(transpose(recr),'VariableNames',{'rec'});
 end
 if srcText == 0
-    j=size_grp==4; M = [F(j,:) recr_t];
+    j=size_grp==4;
 else
-    j=size_grp==4 & dataSrc==srcText; M = [F(j,:) recr_t];
+    j=size_grp==4 & dataSrc==srcText;
 end
+if ~useHC
+    F(j,lonCol) = -F(j,lonCol);
+end
+M = [F(j,yearCol) F(j,monCol) F(j,dayCol) F(j,latCol) F(j,lonCol) F(j,zCol) recr_t];
 
 flnm = 'OriginalData/NewRecruits.csv';
 

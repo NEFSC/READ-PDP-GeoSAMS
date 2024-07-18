@@ -1,13 +1,22 @@
-% src
-%   NMFS_ALB ==> 1111
-%   CANADIAN ==> 2222
-%   F/V_TRAD ==> 3333
-%   VIMSRSA ==> 4444
-%   NMFSSHRP ==> 5555
-%   ALL ==> 0
 function HabCamData5mmbin(yrStart, yrEnd, domain)
 
-dataFile = 'OriginalData/Habcam_BySegment_2000_2014-2019.csv';
+dataFile = 'OriginalData/Habcam_BySegment_2000_2014-2020.csv';
+
+header = { "year","month","day","station","lat","lon","xutm","yutm","setdpth","sizegrp","surv_n","SQM","NImages","area","stratum","clop"};
+yearCol    = find(strcmpi("year", header), 1);
+monCol     = find(strcmpi("month", header), 1);
+dayCol     = find(strcmpi("day", header), 1);
+latCol     = find(strcmpi("lat"    , header), 1);
+lonCol     = find(strcmpi("lon"    , header), 1);
+utmxCol    = find(strcmpi("xutm"   , header), 1);
+utmyCol    = find(strcmpi("yutm"   , header), 1);
+zCol       = find(strcmpi("setdpth", header), 1);
+sgCol      = find(strcmpi("sizegrp", header), 1);
+svCol      = find(strcmpi("surv_n" , header), 1);
+sqmCol     = find(strcmpi("SQM"    , header), 1);
+areaCol    = find(strcmpi("area"   , header), 1);
+stratumCol = find(strcmpi("stratum", header), 1);
+clopCol    = find(strcmpi("clop"   , header), 1);
 
 domList = {'MA', 'GB', 'AL'};
 
@@ -17,9 +26,12 @@ if isOctave
     % used if called by command line
     arg_list=argv();
     if ~strcmp(arg_list(1), '--gui')
-	    yrStart = str2num(cell2mat(arg_list(1)));
-	    yrEnd = str2num(cell2mat(arg_list(2)));
-	    domain = cell2mat(arg_list(3));
+        yrStart = str2num(cell2mat(arg_list(1)));
+        yrEnd = str2num(cell2mat(arg_list(2)));
+        domain = cell2mat(arg_list(3));
+    else
+        yrStart = str2num(yrStart);
+        yrEnd = str2num(yrEnd);
     end
 end
 
@@ -41,59 +53,27 @@ if isOctave
 
         %------- new M with just MA or GB ----------------------
         M = M(j,:);
-        area = M(:,15);
-        lat  = M(:,5);
-        lon  = M(:,6);
-        xutm = M(:,7);
-        yutm = M(:,8);
-
-    else % working with AL
-        area= M(:,15);
-        lat = M(:,5);
-        lon = M(:,6);
-        xutm  = M(:,7);
-        yutm  = M(:,8);
     end
 
-    year = M(:,1);
-    sg = M(:,10);
+    year = M(:,yearCol);
+    sg = M(:,sgCol);
 else % NOT Octave
     M = readtable(dataFile,"FileType","text");
     if ~strcmp(domain, 'AL')
-        area = table2array(M(:,15));
+        area = table2array(M(:,areaCol));
         if strcmp(domain, 'GB')
             j = strcmp(area, 'GBK');
-            zone=19;
         else
             j = strcmp(area, 'MAB');
-            zone=18;
         end
-
         %------- new M with just MA or GB ----------------------
         M = M(j,:);
-        area = table2array(M(:,15));
-        lat  = table2array(M(:,5));
-        lon  = table2array(M(:,6));
-        xutm = table2array(M(:,7));
-        yutm = table2array(M(:,8));
-
-    else % working with AL
-        area = table2array(M(:,15));
-        lat  = table2array(M(:,5));
-        lon  = table2array(M(:,6));
-        xutm = table2array(M(:,7));
-        yutm = table2array(M(:,8));
     end
 
-    year = table2array(M(:,1));
-    sg = table2array(M(:,10));
+    year = table2array(M(:,yearCol));
+    sg = table2array(M(:,sqmCol));
 end
 Detect=.4;
-
-%  standard tow length of 1 nautical mile by 8 ft, or 2.4384 m, wide dredge
-nautMile_m = 1852.;
-towArea_sqm = nautMile_m * 2.438;
-countPerSqm = 1. / (towArea_sqm * Detect);
 
 for yr=yrStart:yrEnd
     X=[];
@@ -110,39 +90,41 @@ for yr=yrStart:yrEnd
         fprintf( 'Working on %s Year %d\n',  domain, yr);
 
         if isOctave
-            stratum_t = M(j,16);
-            % place holder for is_closed
-            is_closed_t = array2table(zeros(size(stratum_t)), 'VariableNames',{'Is Closed'});
-            lat_t = M(j,5);
-            lon_t = M(j,6);
-            mon = M(j,2);
-            day = M(j,3);
+            stratum_t = M(j,stratumCol);
+            is_closed_t = M(j,clopCol);
+            lat_t = M(j,latCol);
+            lon_t = M(j,lonCol);
+            mon = M(j,monCol);
+            day = M(j,dayCol);
             yd = 0 * day;
             for k=1:length(day)
                 yd(k) = yearday(mon(k),day(k),0);
             end
             DecYr_t = year(j) + yd/365.25;
-            z_t = M(j,9);
-            xutm_t = xutm(j);
-            yutm_t = yutm(j);
-            area_t = M(j,15);
+            z_t = M(j,zCol);
+            xutm_t = M(j,utmxCol);
+            yutm_t = M(j,utmyCol);
+            area_t = M(j,areaCol);
+            % Compute density
+            M(j,svCol) = M(j,svCol) ./ M(j,sqmCol);
         else
-            stratum_t = M(j,16);
-            % place holder for is_closed
-            is_closed_t = array2table(zeros(size(stratum_t)), 'VariableNames',{'Is Closed'});
-            lat_t = M(j,5);
-            lon_t = M(j,6);
-            mon = table2array(M(j,2));
-            day = table2array(M(j,3));
+            stratum_t = M(j,stratumCol);
+            is_closed_t = M(j,clopCol);
+            lat_t = M(j,latCol);
+            lon_t = M(j,lonCol);
+            mon = M(j,monCol);
+            day = M(j,dayCol);
             yd = 0 * day;
             for k=1:length(day)
                 yd(k) = yearday(mon(k),day(k),0);
             end
             DecYr_t = array2table(year(j) + yd/365.25,'VariableNames',{'DecYr'});
-            z_t = M(j,9);
-            xutm_t = M(j,7);
-            yutm_t = M(j,8);
-            area_t = M(j,15);
+            z_t = M(j,zCol);
+            xutm_t = M(j,utmxCol);
+            yutm_t = M(j,utmyCol);
+            area_t = M(j,areaCol);
+            % Compute density
+            M(j,svCol) = M(j,svCol) ./ M(j,sqmCol);
         end
 
         n=find(and(year==yr,sg==3.));
@@ -156,15 +138,13 @@ for yr=yrStart:yrEnd
             region = Get_Region(isOctave, lat_t(k,:), lon_t(k,:), stratum_t(k,:));
             if region>0
                 if isOctave
-                    k25 = sum((M(n(k)+24:n(k)+30, 11)));
-                    density = [(M(n(k):n(k)+23, 11));k25];
-                    density= density * countPerSqm;
+                    k25 = sum((M(n(k)+24:n(k)+30, svCol)));
+                    density = [(M(n(k):n(k)+23, svCol));k25];
                     X=[X;DecYr_t(k,:), xutm_t(k,:), yutm_t(k,:), lat_t(k,:), lon_t(k,:), z_t(k,:), is_closed_t(k,:), stratum_t(k,:), transpose(density)];
                 else
-                    k25   = sum(table2array(M(n(k)+24:n(k)+30, 11)));
-                    density = [table2array(M(n(k):n(k)+23, 11));k25];
-                    density= rows2vars(array2table( density * countPerSqm));
-                    %        A           B            C            D             E         F          G                    H             I                 
+                    k25   = sum(table2array(M(n(k)+24:n(k)+30, svCol)));
+                    density = [table2array(M(n(k):n(k)+23, svCol));k25];
+                    %        A           B            C            D             E         F          G                    H             I
                     X=[X;DecYr_t(k,:), xutm_t(k,:), yutm_t(k,:), lat_t(k,:), lon_t(k,:), z_t(k,:), is_closed_t(k,:), stratum_t(k,:), density(1,2:end)];
                 end
             end

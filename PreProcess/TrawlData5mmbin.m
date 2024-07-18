@@ -15,10 +15,14 @@ if isOctave
     % used if called by command line
     arg_list=argv();
     if ~strcmp(arg_list(1), '--gui')
-	    yrStart = str2num(cell2mat(arg_list(1)));
-	    yrEnd = str2num(cell2mat(arg_list(2)));
-	    src = str2num(cell2mat(arg_list(3)));
-	    domain = cell2mat(arg_list(4));
+        yrStart = str2num(cell2mat(arg_list(1)));
+        yrEnd = str2num(cell2mat(arg_list(2)));
+        src = str2num(cell2mat(arg_list(3)));
+        domain = cell2mat(arg_list(4));
+    else
+        yrStart = str2num(yrStart)
+        yrEnd = str2num(yrEnd)
+        src = str2num(src)
     end
 end
 srcText = src;
@@ -125,8 +129,8 @@ nautMile_m = 1852.;
 towArea_sqm = nautMile_m * 2.438;
 countPerSqm = 1. / (towArea_sqm * Detect);
 
-%for yr=1979:2017
 for yr=yrStart:yrEnd
+    yr
     X=[];
     %j=and(year==yr,sg==3.);
     if srcText == 0

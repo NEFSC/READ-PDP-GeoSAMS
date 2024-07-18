@@ -32,35 +32,22 @@ DetectHD=.13;
 DetectHDThreshold=2;%scallops/m^2
 
 flnm = 'OriginalData/NewRecruits.csv';
-if useHC
-    % PullOutRecruitData creates a very different file format 
-    % when reading from HabCam Data
-    yr_col=1;
-    mon_col=2;
-    day_col=3;
-    lat_col=5;
-    lon_col=6;
-    depth_col=9;
-else
-    yr_col=4;
-    %flnm = 'OriginalData/recruitsv2.csv'; yr_col=5;
-    %flnm = 'OriginalData/recruitsv2KWS.csv';
-    % data files differ by one column, using year column as reference
-    mon_col=yr_col+1;
-    day_col=mon_col+1;
-    lat_col=yr_col+14;
-    lon_col=yr_col+15;
-    depth_col=yr_col+17;
-end
+yrCol    = 1;
+monCol   = 2;
+dayCol   = 3;
+latCol   = 4;
+lonCol   = 5;
+depthCol = 6;
+recrCol  = 7
 fprintf('Reading from %s\n', flnm)
 
 if isOctave
   F=csvreadK(flnm);
-  year=F(:,yr_col);mon=F(:,mon_col);day=F(:,day_col);
+  year=F(:,yrCol);mon=F(:,monCol);day=F(:,dayCol);
 else
   warning('OFF', 'MATLAB:table:ModifiedAndSavedVarnames')
   F= readtable(flnm,"FileType","text");
-  year=table2array(F(:,yr_col));mon=table2array(F(:,mon_col));day=table2array(F(:,day_col));
+  year=table2array(F(:,yrCol));mon=table2array(F(:,monCol));day=table2array(F(:,dayCol));
 end
 % if NAN or blank, i.e. 0
 j=find(isnan(mon));mon(j)=6;day(j)=21;% assign missing date to summer solstice
@@ -74,13 +61,13 @@ yd=yd(:);
 DecYr=year(:)+( yd(:)/365.25 );
 
 if isOctave
-  lat=F(:,lat_col);lon=-F(:,lon_col);
-  Rec=F(:,end);
-  Depth=F(:,depth_col);
+  lat=F(:,latCol);lon=F(:,lonCol);
+  Rec=F(:,recrCol);
+  Depth=F(:,depthCol);
 else
-  lat=table2array(F(:,lat_col));lon=-table2array(F(:,lon_col));
-  Rec=table2array(F(:,end));
-  Depth=table2array(F(:,depth_col));
+  lat=table2array(F(:,latCol));lon=-table2array(F(:,lonCol));
+  Rec=table2array(F(:,recrCol));
+  Depth=table2array(F(:,depthCol));
 end
 
 RecM2=Rec*T2M2;
@@ -266,6 +253,6 @@ else
     fprintf('INPUT YEARS OUT OF RANGE: %i to %i : actual %i to %i\n', yearMin, yearMax, yrStart, yrEnd )
     msg = sprintf( 'INPUT YEARS OUT OF RANGE: %i to %i : actual %i to %i\n', yearMin, yearMax, yrStart, yrEnd);
     errorStruct.message = msg;
-    errorStruct.identifier = 'myComponent:inputError';        
+    errorStruct.identifier = 'myComponent:inputError';
     error(errorStruct)
 end

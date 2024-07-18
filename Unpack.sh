@@ -156,7 +156,7 @@ make
 cd ..
 
 # Pull Out Survey Data --------------------------------------------------------------
-if [ "$5" == "M" && "$6" == "D"]; then 
+if [[ "$5" == "M"  &&  "$6" == "D" ]]; then 
 echo [33mmatlab.exe -batch "TrawlData5mmbin(%1, %2, %3, '%4'); exit;"[0m
 matlab.exe -batch "TrawlData5mmbin(%1, %2, %3, '%4'); exit;"
 fi
@@ -165,7 +165,7 @@ if [ $? != 0 ]; then
     exit 1
 fi
 
-if [ "$5" == "M" && "$6" == "H"]; then 
+if [[ "$5" == "M"  &&  "$6" == "H" ]]; then 
 echo [33mmatlab.exe -batch "HabCamData5mmbin(%1, %2, '%4'); exit;"[0m
 matlab.exe -batch "HabCamData5mmbin(%1, %2, '%4'); exit;"
 fi
@@ -174,7 +174,7 @@ if [ $? != 0 ]; then
     exit 1
 fi
 
-if [ "$5" == "O" && "$6" == "D"]; then 
+if [[ "$5" == "O"  &&  "$6" == "D" ]]; then 
 echo [33moctave PreProcess/TrawlData5mmbin.m $1 $2 $3 $4[0m
 octave PreProcess/TrawlData5mmbin.m $1 $2 $3 $4
 fi
@@ -183,7 +183,7 @@ if [ $? != 0 ]; then
     exit 1
 fi
 
-if [ "$5" == "O" && "$6" == "H"]; then 
+if [[ "$5" == "O"  &&  "$6" == "H" ]]; then 
 echo [33moctave PreProcess/HabCamData5mmbin.m $1 $2 $4[0m
 octave PreProcess/HabCamData5mmbin.m $1 $2 $4
 fi
@@ -193,7 +193,7 @@ if [ $? != 0 ]; then
 fi
 
 # Pull Out Recruit Data --------------------------------------------------------------
-if [ "$6" == 'H"']; then
+if [ "$6" == "H" ]; then
 hcChar='T'
 else
 hcChar='F'
