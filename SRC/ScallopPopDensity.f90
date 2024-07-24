@@ -572,22 +572,18 @@ integer k
 if (save_by_stratum) then
     k = index(fname, '.') -1
     file_name = fname(1:k)
-    call Write_Column_CSV_By_Stratum(num_grids, grid(1:num_grids)%year+yr_offset, &
-    &                                           grid(1:num_grids)%lat, &
+    call Write_Column_CSV_By_Region(num_grids, grid(1:num_grids)%year+yr_offset, &
     &                                           grid(1:num_grids)%lon, &
-    &                                           grid(1:num_grids)%stratum, 'YEAR', trim(file_name),.false.)
-    call Write_Column_CSV_By_Stratum(num_grids, grid(1:num_grids)%x, &
-    &                                           grid(1:num_grids)%lat, &
+    &                                           'YEAR', trim(file_name),.false.)
+    call Write_Column_CSV_By_Region(num_grids, grid(1:num_grids)%x, &
     &                                           grid(1:num_grids)%lon, &
-    &                                           grid(1:num_grids)%stratum, 'UTM_X', trim(file_name),.true.)
-    call Write_Column_CSV_By_Stratum(num_grids, grid(1:num_grids)%y, &
-    &                                           grid(1:num_grids)%lat, &
+    &                                           'UTM_X', trim(file_name),.true.)
+    call Write_Column_CSV_By_Region(num_grids, grid(1:num_grids)%y, &
     &                                           grid(1:num_grids)%lon, &
-    &                                           grid(1:num_grids)%stratum, 'UTM_Y', trim(file_name),.true.)
-    call Write_Column_CSV_By_Stratum(num_grids, grid(1:num_grids)%z, &
-    &                                           grid(1:num_grids)%lat, &
+    &                                           'UTM_Y', trim(file_name),.true.)
+    call Write_Column_CSV_By_Region(num_grids, grid(1:num_grids)%z, &
     &                                           grid(1:num_grids)%lon, &
-    &                                           grid(1:num_grids)%stratum, 'DEPTH', trim(file_name),.true.)
+    &                                           'DEPTH', trim(file_name),.true.)
 else
     call Write_Column_CSV(num_grids, grid(1:num_grids)%year+yr_offset, 'YEAR', fname,.false.)
     call Write_Column_CSV(num_grids, grid(1:num_grids)%x,    'UTM_X', fname,.true.)
@@ -605,12 +601,12 @@ endsubroutine Write_X_Y_Preamble
 !>  f (real(dp)) values to write to csv file
 !> file_name (character(72)) filename to write f to in csv format
 !--------------------------------------------------------------------------------------------------
-subroutine Write_Column_CSV_By_Stratum(n,f, lat, lon, stratum, header,file_name,append)
+subroutine Write_Column_CSV_By_Region(n,f, lon, header,file_name,append)
 use globals
 use Grid_Manager_Mod
 implicit none
 integer, intent(in):: n
-real(dp), intent(in):: f(*), lat(*), lon(*), stratum(*)
+real(dp), intent(in):: f(*), lon(*)
 character(*), intent(in) :: header
 character(*), intent(in) ::file_name
 logical, intent(in) :: append
@@ -621,10 +617,7 @@ character(5000) input_str
 character(5000) output_str
 integer, parameter :: temp_dev = 70
 integer, parameter :: appd_dev = 80
-integer, parameter :: num_regions = 2
-!character(3) :: rgn(num_regions) = (/ '_N ', '_S ', '_SW', '_W ', '_MA'/)
-character(3) :: rgn(num_regions) = (/ '_GB', '_MA'/)
-integer offset, region
+integer offset
 integer line_count(num_regions)
 
 line_count = (/0,0/)
@@ -641,30 +634,28 @@ if (append) then
         write(temp_dev+offset, '(A)'//NEW_LINE(cr)) trim(output_str)
     enddo
     do k=1,n
-        ! offset = Get_Region(lat(k), lon(k), stratum(k))
-        region = Get_Region(lat(k), lon(k), stratum(k))
-        if (region > 0) then
-            if (region < region_MA) then
-                offset = 1
-            else
-                offset = 2
-            endif
-            line_count(offset) = line_count(offset) + 1
-            read(appd_dev+offset,'(A)',iostat=io) input_str
-            if (f(k) < 0.0) then
-                write(*,'(A,A,A,A,A,A,A,I5,A,A,A)') term_yel, 'WARNING: Negative value in: ', term_blk, &
-                &  file_name//trim(rgn(offset))//'.csv', term_yel, ' line: ', term_blk, line_count(offset), &
-                &  term_yel, ' set to 0.00000', term_blk
-                write(output_str,'(A,A,(ES14.7 : ))') trim(input_str),',',0.D0
-            ! sometimes f(k) takes on the value of E-311, which can not be read back in
-            ! seems the minimum value is E-300, even with using format ES15.7E3 
-            elseif (f(k) < zero_threshold) then
-                write(output_str,'(A,A,(ES14.7 : ))') trim(input_str),',',0.D0
-            else
-                write(output_str,'(A,A,(ES14.7 : ))') trim(input_str),',',f(k)
-            endif
-            write(temp_dev+offset, '(A)'//NEW_LINE(cr)) trim(output_str)
+        if (lon(k) > ma_gb_border) then
+            ! GB
+            offset = 1
+        else
+            ! MA
+            offset = 2
         endif
+        line_count(offset) = line_count(offset) + 1
+        read(appd_dev+offset,'(A)',iostat=io) input_str
+        if (f(k) < 0.0) then
+            write(*,'(A,A,A,A,A,A,A,I5,A,A,A)') term_yel, 'WARNING: Negative value in: ', term_blk, &
+            &  file_name//trim(rgn(offset))//'.csv', term_yel, ' line: ', term_blk, line_count(offset), &
+            &  term_yel, ' set to 0.00000', term_blk
+            write(output_str,'(A,A,(ES14.7 : ))') trim(input_str),',',0.D0
+        ! sometimes f(k) takes on the value of E-311, which can not be read back in
+        ! seems the minimum value is E-300, even with using format ES15.7E3 
+        elseif (f(k) < zero_threshold) then
+            write(output_str,'(A,A,(ES14.7 : ))') trim(input_str),',',0.D0
+        else
+            write(output_str,'(A,A,(ES14.7 : ))') trim(input_str),',',f(k)
+        endif
+        write(temp_dev+offset, '(A)'//NEW_LINE(cr)) trim(output_str)
     enddo
     do k = 1, num_regions
         close(appd_dev+k)
@@ -693,14 +684,20 @@ else
     
     ! write data to first column
     do k=1,n
-        offset = Get_Region(lat(k), lon(k), stratum(k))
-        if (offset>0) write(appd_dev+offset,fmtstr) f(k)
+        if (lon(k) > ma_gb_border) then
+            ! GB
+            offset = 1
+        else
+            ! MA
+            offset = 2
+        endif
+        write(appd_dev+offset,fmtstr) f(k)
     enddo
     do offset = 1,num_regions
         close(appd_dev+offset)
     enddo
 endif
-endsubroutine Write_Column_CSV_By_Stratum
+endsubroutine Write_Column_CSV_By_Region
 
 !-----------------------------------------------------------------------------------------------------------
 !! Purpose: This method is used to setup the output data files that are used for plotting and interpolation
@@ -796,9 +793,8 @@ if (mod(ts, ts_per_year) .eq. 1) then
         write(buf,'(I4)') year
     endif
     if (save_by_stratum) then
-        call Write_Column_CSV_By_Stratum(num_grids, recruit(1:num_grids)%recruitment(recr_idx), &
-        &            grid(1:num_grids)%lat, grid(1:num_grids)%lon, grid(1:num_grids)%stratum, &
-        &            'RECR', data_dir//'X_Y_RECR_'//domain_name//trim(buf), .true.)
+        call Write_Column_CSV_By_Region(num_grids, recruit(1:num_grids)%recruitment(recr_idx), &
+        &            grid(1:num_grids)%lon, 'RECR', data_dir//'X_Y_RECR_'//domain_name//trim(buf), .true.)
     else
         call Write_Column_CSV(num_grids, recruit(1:num_grids)%recruitment(recr_idx), 'Recruitment', file_name, .true.)
     endif

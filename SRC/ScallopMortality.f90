@@ -980,43 +980,35 @@ if (mod(ts, ts_per_year) .eq. 1) then
 
     if (save_by_stratum) then
         if (data_select%plot_ABUN) &
-        &    call Write_Column_CSV_By_Stratum(num_grids, abundance(:), grid(1:num_grids)%lat, grid(1:num_grids)%lon, &
-        &    grid(1:num_grids)%stratum, 'ABUN', &
+        &    call Write_Column_CSV_By_Region(num_grids, abundance(:), grid(1:num_grids)%lon, 'ABUN', &
         &    data_dir//'X_Y_ABUN_'//domain_name//trim(buf), .true.)
 
         if (data_select%plot_BMMT) &
-        &    call Write_Column_CSV_By_Stratum(num_grids, bms(:), grid(1:num_grids)%lat, grid(1:num_grids)%lon, &
-        &    grid(1:num_grids)%stratum, 'BMMT', &
+        &    call Write_Column_CSV_By_Region(num_grids, bms(:), grid(1:num_grids)%lon, 'BMMT', &
         &    data_dir//'X_Y_BMMT_'//domain_name//trim(buf), .true.)
 
         if (data_select%plot_EBMS) &
-        &    call Write_Column_CSV_By_Stratum(num_grids, ebms_mt(:), grid(1:num_grids)%lat, grid(1:num_grids)%lon, &
-        &    grid(1:num_grids)%stratum, 'EBMS', &
+        &    call Write_Column_CSV_By_Region(num_grids, ebms_mt(:), grid(1:num_grids)%lon, 'EBMS', &
         &    data_dir//'X_Y_EBMS_'//domain_name//trim(buf), .true.)
 
         if (data_select%plot_FEFF) &
-        &    call Write_Column_CSV_By_Stratum(num_grids, fishing_effort(:), grid(1:num_grids)%lat, grid(1:num_grids)%lon, &
-        &    grid(1:num_grids)%stratum, 'FEFF', &
+        &    call Write_Column_CSV_By_Region(num_grids, fishing_effort(:), grid(1:num_grids)%lon, 'FEFF', &
         &    data_dir//'X_Y_FEFF_'//domain_name//trim(buf), .true.)
 
         if (data_select%plot_FMOR) &
-        &    call Write_Column_CSV_By_Stratum(num_grids, F_mort(:), grid(1:num_grids)%lat, grid(1:num_grids)%lon, &
-        &    grid(1:num_grids)%stratum, 'FMOR', &
+        &    call Write_Column_CSV_By_Region(num_grids, F_mort(:), grid(1:num_grids)%lon, 'FMOR', &
         &    data_dir//'X_Y_FMOR_'//domain_name//trim(buf), .true.)
 
         if (data_select%plot_LAND) &
-        &    call Write_Column_CSV_By_Stratum(num_grids, landings_by_num(:), grid(1:num_grids)%lat, grid(1:num_grids)%lon, &
-        &    grid(1:num_grids)%stratum, 'LAND', &
+        &    call Write_Column_CSV_By_Region(num_grids, landings_by_num(:), grid(1:num_grids)%lon, 'LAND', &
         &    data_dir//'X_Y_LAND_'//domain_name//trim(buf), .true.)
 
         if (data_select%plot_LNDW) &
-        &    call Write_Column_CSV_By_Stratum(num_grids, landings_wgt_grams(:), grid(1:num_grids)%lat, grid(1:num_grids)%lon, &
-        &    grid(1:num_grids)%stratum, 'LNDW', &
+        &    call Write_Column_CSV_By_Region(num_grids, landings_wgt_grams(:), grid(1:num_grids)%lon, 'LNDW', &
         &    data_dir//'X_Y_LNDW_'//domain_name//trim(buf), .true.)
 
         if (data_select%plot_LPUE) &
-        &    call Write_Column_CSV_By_Stratum(num_grids, lpue(:), grid(1:num_grids)%lat, grid(1:num_grids)%lon, &
-        &    grid(1:num_grids)%stratum, 'LPUE', &
+        &    call Write_Column_CSV_By_Region(num_grids, lpue(:), grid(1:num_grids)%lon, 'LPUE', &
         &    data_dir//'X_Y_LPUE_'//domain_name//trim(buf), .true.)
 
     else

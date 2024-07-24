@@ -135,7 +135,7 @@ for yr=yrStart:yrEnd
             %               n(k) - n(k+23)
             % accumulate 15 to 18
             % sum n(k+24) - n(k+30) into k=25
-            region = Get_Region(isOctave, lat_t(k,:), lon_t(k,:), stratum_t(k,:));
+            region = GetRegion(isOctave, lat_t(k,:), lon_t(k,:), stratum_t(k,:));
             if region>0
                 if isOctave
                     k25 = sum((M(n(k)+24:n(k)+30, svCol)));
@@ -160,92 +160,4 @@ for yr=yrStart:yrEnd
 end  % for yr=yrStart:yrEnd
 end
 
-
-function x = Get_Region(isOctave, lat_t, lon_t, stratum_t)
-%region_none=0;
-%region_GBK=1;
-%region_MAB=2;
-%
-%if (isOctave)
-%    lat = lat_t;
-%    lon = lon_t;
-%    stratum = lon_t;
-%else
-%    lat = table2array(lat_t);
-%    lon = table2array(lon_t);
-%    stratum = table2array(stratum_t);
-%end
-%
-% if stratum<6410
-%     x=region_MAB;
-% elseif stratum<6860
-%     x=region_GBK;
-% elseif stratum<6960
-%     x=region_MAB;
-% else
-%     x=region_GBK;
-% end
-region_none=0;
-region_N=1;
-region_S=2;
-region_SW=3;
-region_W=4;
-region_MA=5;
-
-if (isOctave)
-    lat = lat_t;
-    lon = lon_t;
-    stratum = lon_t;
-else
-    lat = table2array(lat_t);
-    lon = table2array(lon_t);
-    stratum = table2array(stratum_t);
-end
-
-if (stratum < 6400)
-    x = region_MA;
-elseif( (stratum < 6460) || (stratum == 6652) || (stratum == 6662) )
-    x = region_none;
-elseif (stratum < 6490)
-    if ((lat > 40.7) && (lon > -69.35))
-        x = region_W;
-    else
-        x = region_SW;
-    end
-elseif (stratum < 6530)
-    x = region_W;
-elseif (stratum < 6560)
-    x = region_N;
-elseif (stratum < 6610)
-    x = region_S;
-elseif (stratum < 6622)
-    x = region_S;
-elseif (stratum < 6651)
-    x = region_none;
-elseif (stratum < 6680)
-    x = region_N;
-elseif (stratum < 6710)
-    x = region_none;
-elseif (stratum < 6730)
-    x = region_N;
-elseif (stratum < 6740)
-    x = region_none;
-elseif (stratum < 6960)
-    if (stratum == 6740)
-        if (lat > 41.5)
-            if lon < -67.14
-                x = region_none;
-            else
-                x = region_N;
-            end
-        else
-            x = region_S;
-        end
-    else
-        x = region_none;
-    end
-else
-    x = region_none;
-end
-end
 
