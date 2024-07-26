@@ -263,7 +263,6 @@ integer start_year, stop_year
 integer num_time_steps
 integer ts_per_year
 logical use_habcam_data
-logical save_by_stratum
 integer num_years
 integer year
 character(4) buf
@@ -290,7 +289,7 @@ integer pct_comp
 !==================================================================================================================
 !  - I. Read Configuration file 'Scallop.inp'
 !==================================================================================================================
-call Read_Startup_Config(ts_per_year, use_habcam_data, save_by_stratum, start_year, stop_year, domain_name, plot_data_sel)
+call Read_Startup_Config(ts_per_year, use_habcam_data, start_year, stop_year, domain_name, plot_data_sel)
 
 !==================================================================================================================
 
@@ -329,7 +328,7 @@ call Set_Growth(growth, grid, shell_length_mm, num_time_steps, ts_per_year, doma
 call Set_Recruitment(recruit, num_grids, domain_name, domain_area, &
 &                    growth(1:num_grids)%L_inf_mu, growth(1:num_grids)%K_mu, shell_length_mm, start_year, stop_year)
 call Set_Mortality(mortality, grid, shell_length_mm, domain_name, domain_area, num_time_steps, &
-&                    ts_per_year, num_grids, save_by_stratum)
+&                    ts_per_year, num_grids)
 
 write(*,*) '========================================================'
 write(*,'(A,I6)') ' Working with #grids ', num_grids
@@ -338,7 +337,6 @@ write(*,'(A,I6)') ' Start Year:         ', start_year
 write(*,'(A,I6)') ' Stop Year:          ', stop_year
 write(*,'(A,I6,A,F7.4)') ' Time steps/year:', ts_per_year
 write(*,'(A,I6,A,F7.4)') ' Total number time steps:', num_time_steps
-write(*,*) ' Saving Output by Stratum: ', save_by_stratum
 write(*,*) ' Using HabCam Data:        ', use_habcam_data
 write(*,*) '========================================================'
 
@@ -347,11 +345,11 @@ write(*,*) '========================================================'
 !  - III. MAIN LOOP
 ! Start simulation
 !==================================================================================================================
-call Setup_Data_Files(plot_data_sel, num_grids, grid, domain_name, save_by_stratum, start_year, stop_year)
+call Setup_Data_Files(plot_data_sel, num_grids, grid, domain_name, start_year, stop_year)
 
 year = start_year
 do ts = 1, num_time_steps
-    if (plot_data_sel%plot_RECR) call Write_Recruit_Estimates(ts, ts_per_year, num_grids, grid, domain_name, save_by_stratum, &
+    if (plot_data_sel%plot_RECR) call Write_Recruit_Estimates(ts, ts_per_year, num_grids, grid, domain_name, &
     &    year, start_year, recruit)
     
     !- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - 
@@ -401,7 +399,7 @@ END PROGRAM ScallopPopDensity
 !> @param[out] time_steps_per_year Number of times steps to evaluate growth
 !> @param[out] num_monte_carlo_iter Number of iterations for Monte Carlo simulation
 !-----------------------------------------------------------------------
-subroutine Read_Startup_Config(time_steps_per_year, use_habcam_data, save_by_stratum, start_year, stop_year, &
+subroutine Read_Startup_Config(time_steps_per_year, use_habcam_data, start_year, stop_year, &
     & domain_name, plot_data_sel)
     use globals
     use Mortality_Mod, only : Mortality_Set_Config_File_Name => Set_Config_File_Name, DataForPlots, Set_Select_Data
@@ -410,7 +408,6 @@ subroutine Read_Startup_Config(time_steps_per_year, use_habcam_data, save_by_str
 
     implicit none
     integer, intent(out) :: time_steps_per_year ! , num_monte_carlo_iter
-    logical, intent(out) :: save_by_stratum
     logical, intent(out) :: use_habcam_data
     integer, intent(out) :: start_year, stop_year
     character(domain_len), intent(out) :: domain_name
@@ -427,7 +424,6 @@ subroutine Read_Startup_Config(time_steps_per_year, use_habcam_data, save_by_str
     character(fname_len) arg
 
     ! default values
-    save_by_stratum = .false.
     time_steps_per_year = 13
     plot_data_sel = DataForPlots(.false.,.false.,.false.,.false.,.false.,.false.,.false.,.false.,.false.)
 
@@ -480,9 +476,6 @@ subroutine Read_Startup_Config(time_steps_per_year, use_habcam_data, save_by_str
             case('Recruit Config File')
                 call Recruit_Set_Config_File_Name(trim(adjustl(value)))
 
-            case('Save By Stratum')
-                read(value,*) save_by_stratum
-
             case('Use HabCam Data')
                 read(value,*) use_habcam_data
 
@@ -531,10 +524,6 @@ subroutine Read_Startup_Config(time_steps_per_year, use_habcam_data, save_by_str
         stop 1
     endif
     
-    ! For now, MA does not sort survey data by stratum. Force value to be false
-    if (domain_name.eq.'MA') save_by_stratum = .false.
-    
-    
     return
 end subroutine Read_Startup_Config
 
@@ -558,38 +547,30 @@ endsubroutine Write_Lat_Lon_Preamble
 !! Write_X_Y_Preamble
 !> @brief Writes year, UTM-X, UTM-Y, and Depth columns with headers to named file
 !--------------------------------------------------------------------------------
-subroutine Write_X_Y_Preamble(num_grids, grid, yr_offset, fname, save_by_stratum)
+subroutine Write_X_Y_Preamble(num_grids, grid, yr_offset, fname)
 use globals
 use Grid_Manager_Mod
 integer, intent(in) :: num_grids
 type(Grid_Data_Class), intent(in) :: grid(*)
 real(dp), intent(in) :: yr_offset
 character(*), intent(in) :: fname
-logical, intent(in) :: save_by_stratum
 
 character(fname_len) file_name
 integer k
-if (save_by_stratum) then
-    k = index(fname, '.') -1
-    file_name = fname(1:k)
-    call Write_Column_CSV_By_Region(num_grids, grid(1:num_grids)%year+yr_offset, &
-    &                                           grid(1:num_grids)%lon, &
-    &                                           'YEAR', trim(file_name),.false.)
-    call Write_Column_CSV_By_Region(num_grids, grid(1:num_grids)%x, &
-    &                                           grid(1:num_grids)%lon, &
-    &                                           'UTM_X', trim(file_name),.true.)
-    call Write_Column_CSV_By_Region(num_grids, grid(1:num_grids)%y, &
-    &                                           grid(1:num_grids)%lon, &
-    &                                           'UTM_Y', trim(file_name),.true.)
-    call Write_Column_CSV_By_Region(num_grids, grid(1:num_grids)%z, &
-    &                                           grid(1:num_grids)%lon, &
-    &                                           'DEPTH', trim(file_name),.true.)
-else
-    call Write_Column_CSV(num_grids, grid(1:num_grids)%year+yr_offset, 'YEAR', fname,.false.)
-    call Write_Column_CSV(num_grids, grid(1:num_grids)%x,    'UTM_X', fname,.true.)
-    call Write_Column_CSV(num_grids, grid(1:num_grids)%y,    'UTM_Y', fname,.true.)
-    call Write_Column_CSV(num_grids, grid(1:num_grids)%z,    'DEPTH', fname,.true.)
-endif
+k = index(fname, '.') -1
+file_name = fname(1:k)
+call Write_Column_CSV_By_Region(num_grids, grid(1:num_grids)%year+yr_offset, &
+&                                           grid(1:num_grids)%lon, &
+&                                           'YEAR', trim(file_name),.false.)
+call Write_Column_CSV_By_Region(num_grids, grid(1:num_grids)%x, &
+&                                           grid(1:num_grids)%lon, &
+&                                           'UTM_X', trim(file_name),.true.)
+call Write_Column_CSV_By_Region(num_grids, grid(1:num_grids)%y, &
+&                                           grid(1:num_grids)%lon, &
+&                                           'UTM_Y', trim(file_name),.true.)
+call Write_Column_CSV_By_Region(num_grids, grid(1:num_grids)%z, &
+&                                           grid(1:num_grids)%lon, &
+&                                           'DEPTH', trim(file_name),.true.)
 
 endsubroutine Write_X_Y_Preamble
 !--------------------------------------------------------------------------------------------------
@@ -702,7 +683,7 @@ endsubroutine Write_Column_CSV_By_Region
 !-----------------------------------------------------------------------------------------------------------
 !! Purpose: This method is used to setup the output data files that are used for plotting and interpolation
 !-----------------------------------------------------------------------------------------------------------
-subroutine Setup_Data_Files(plot_data_sel, num_grids, grid, domain_name, save_by_stratum, start_year, stop_year)
+subroutine Setup_Data_Files(plot_data_sel, num_grids, grid, domain_name, start_year, stop_year)
 use globals
 use Grid_Manager_Mod
 use Mortality_Mod
@@ -711,7 +692,6 @@ type(DataForPlots), intent(in) :: plot_data_sel
 integer, intent(in) :: num_grids
 type(Grid_Data_Class), intent(in) :: grid(*)
 character(domain_len), intent(out) :: domain_name
-logical, intent(in) :: save_by_stratum
 integer, intent(in) :: start_year, stop_year
 
 character(4) buf
@@ -734,31 +714,31 @@ yr_offset = -1.
 do n = start_year-1, stop_year
     write(buf,'(I4)') n
     if (plot_data_sel%plot_ABUN) &
-    &    call Write_X_Y_Preamble(num_grids, grid, yr_offset, data_dir//'X_Y_ABUN_'//domain_name//buf//'.csv', save_by_stratum)
+    &    call Write_X_Y_Preamble(num_grids, grid, yr_offset, data_dir//'X_Y_ABUN_'//domain_name//buf//'.csv')
 
     if (plot_data_sel%plot_BMMT) &
-    &    call Write_X_Y_Preamble(num_grids, grid, yr_offset, data_dir//'X_Y_BMMT_'//domain_name//buf//'.csv', save_by_stratum)
+    &    call Write_X_Y_Preamble(num_grids, grid, yr_offset, data_dir//'X_Y_BMMT_'//domain_name//buf//'.csv')
 
     if (plot_data_sel%plot_EBMS) &
-    &    call Write_X_Y_Preamble(num_grids, grid, yr_offset, data_dir//'X_Y_EBMS_'//domain_name//buf//'.csv', save_by_stratum)
+    &    call Write_X_Y_Preamble(num_grids, grid, yr_offset, data_dir//'X_Y_EBMS_'//domain_name//buf//'.csv')
 
     if (plot_data_sel%plot_FEFF) &
-    &    call Write_X_Y_Preamble(num_grids, grid, yr_offset, data_dir//'X_Y_FEFF_'//domain_name//buf//'.csv', save_by_stratum)
+    &    call Write_X_Y_Preamble(num_grids, grid, yr_offset, data_dir//'X_Y_FEFF_'//domain_name//buf//'.csv')
 
     if (plot_data_sel%plot_FMOR) &
-    &    call Write_X_Y_Preamble(num_grids, grid, yr_offset, data_dir//'X_Y_FMOR_'//domain_name//buf//'.csv', save_by_stratum)
+    &    call Write_X_Y_Preamble(num_grids, grid, yr_offset, data_dir//'X_Y_FMOR_'//domain_name//buf//'.csv')
 
     if (plot_data_sel%plot_LAND) &
-    &    call Write_X_Y_Preamble(num_grids, grid, yr_offset, data_dir//'X_Y_LAND_'//domain_name//buf//'.csv', save_by_stratum)
+    &    call Write_X_Y_Preamble(num_grids, grid, yr_offset, data_dir//'X_Y_LAND_'//domain_name//buf//'.csv')
 
     if (plot_data_sel%plot_LNDW) &
-    &    call Write_X_Y_Preamble(num_grids, grid, yr_offset, data_dir//'X_Y_LNDW_'//domain_name//buf//'.csv', save_by_stratum)
+    &    call Write_X_Y_Preamble(num_grids, grid, yr_offset, data_dir//'X_Y_LNDW_'//domain_name//buf//'.csv')
 
     if (plot_data_sel%plot_LPUE) &
-    &    call Write_X_Y_Preamble(num_grids, grid, yr_offset, data_dir//'X_Y_LPUE_'//domain_name//buf//'.csv', save_by_stratum)
+    &    call Write_X_Y_Preamble(num_grids, grid, yr_offset, data_dir//'X_Y_LPUE_'//domain_name//buf//'.csv')
 
     if (plot_data_sel%plot_RECR) &
-    &    call Write_X_Y_Preamble(num_grids, grid, yr_offset, data_dir//'X_Y_RECR_'//domain_name//buf//'.csv', save_by_stratum)
+    &    call Write_X_Y_Preamble(num_grids, grid, yr_offset, data_dir//'X_Y_RECR_'//domain_name//buf//'.csv')
 
     yr_offset = yr_offset + 1.0
 end do
@@ -767,8 +747,7 @@ endsubroutine Setup_Data_Files
 !-----------------------------------------------------------------------------------------------------------
 !! Purpose: This method is used to setup the write recruitment data files at each time step
 !-----------------------------------------------------------------------------------------------------------
-subroutine Write_Recruit_Estimates(ts, ts_per_year, num_grids, grid, domain_name, save_by_stratum, &
-&    year, start_year, recruit)
+subroutine Write_Recruit_Estimates(ts, ts_per_year, num_grids, grid, domain_name, year, start_year, recruit)
 use globals
 use Grid_Manager_Mod
 use Mortality_Mod
@@ -776,7 +755,6 @@ use Recruit_Mod
 integer, intent(in) :: ts,ts_per_year, num_grids
 type(Grid_Data_Class), intent(in) :: grid(*)
 character(domain_len), intent(out) :: domain_name
-logical, intent(in) :: save_by_stratum
 integer, intent(in) :: year, start_year
 type(Recruitment_Class), intent(in) :: recruit(*)
 
@@ -792,12 +770,8 @@ if (mod(ts, ts_per_year) .eq. 1) then
     else
         write(buf,'(I4)') year
     endif
-    if (save_by_stratum) then
-        call Write_Column_CSV_By_Region(num_grids, recruit(1:num_grids)%recruitment(recr_idx), &
-        &            grid(1:num_grids)%lon, 'RECR', data_dir//'X_Y_RECR_'//domain_name//trim(buf), .true.)
-    else
-        call Write_Column_CSV(num_grids, recruit(1:num_grids)%recruitment(recr_idx), 'Recruitment', file_name, .true.)
-    endif
+    call Write_Column_CSV_By_Region(num_grids, recruit(1:num_grids)%recruitment(recr_idx), &
+    &            grid(1:num_grids)%lon, 'RECR', data_dir//'X_Y_RECR_'//domain_name//trim(buf), .true.)
 endif
 
 ! Write data for survey grid

@@ -36,12 +36,13 @@ if useHC
     dayCol     = find(strcmpi("day", header), 1);
     latCol     = find(strcmpi("lat"    , header), 1);
     lonCol     = find(strcmpi("lon"    , header), 1);
+    utmxCol    = find(strcmpi("xutm"   , header), 1);
+    utmyCol    = find(strcmpi("yutm"   , header), 1);
     zCol       = find(strcmpi("setdpth", header), 1);
     sgCol      = find(strcmpi("sizegrp", header), 1);
     svCol      = find(strcmpi("surv_n" , header), 1);
     sqmCol     = find(strcmpi("SQM"    , header), 1);
     srcText = 0;
-    srcCol = 16;  % not used for HabCam data, srcText force to 0
     flnm = 'OriginalData/Habcam_BySegment_2000_2014-2020.csv';
 else
     header = { "area","subarea","cruise6","year","month","day","time","stratum","tow","station",...
@@ -65,44 +66,88 @@ end
 fprintf('Reading from %s\n', flnm)
 
 if isOctave
-  F=csvreadK(flnm);
-  size_grp = F(:,sgCol);
-  survn = F(:,svCol);
-  dataSrc = F(:,srcCol);
+    F=csvreadK(flnm);
+    size_grp = F(:,sgCol);
+    survn = F(:,svCol);
+    if (useHC)
+        sqm = F(:,sqmCol);
+    else
+        dataSrc = F(:,srcCol);
+    end
 else
-  warning('OFF', 'MATLAB:table:ModifiedAndSavedVarnames')
-  F= readtable(flnm,"FileType","text");
-  size_grp = table2array(F(:,sgCol));
-  survn = table2array(F(:,svCol));
-  dataSrc = table2array(F(:,srcCol));
+    warning('OFF', 'MATLAB:table:ModifiedAndSavedVarnames')
+    F= readtable(flnm,"FileType","text");
+    size_grp = table2array(F(:,sgCol));
+    survn = table2array(F(:,svCol));
+    if (useHC)
+        sqm = table2array(F(:,sqmCol));
+    else
+        dataSrc = table2array(F(:,srcCol));
+    end
 end
 
-if srcText == 0
+% Area of survey is determined differently between HabCam and Dredge
+% Dredge is a known size determined by width of dredge and tow length
+% HabCam is determined from focal length and captured in the survey file in SQM column
+if useHC
+    survn = survn ./ sqm;
     n=find(size_grp==3);
+    recr = zeros(1, numel(n));
+    for k=1:numel(n)
+        % sum 3cm to 6 cm
+        recr(k) = sum(survn(n(k)+1:n(k)+6));
+    end
 else
-    n=find(size_grp==3 & dataSrc==srcText);
-end
-recr = zeros(1, numel(n));
-for k=1:numel(n)
-    % sum 3cm to 6 cm
-    recr(k) = sum(survn(n(k)+1:n(k)+6));
+    if srcText == 0
+        n=find(size_grp==3);
+    else
+        n=find(size_grp==3 & dataSrc==srcText);
+    end
+    recr = zeros(1, numel(n));
+    for k=1:numel(n)
+        % sum 3cm to 6 cm
+        recr(k) = sum(survn(n(k)+1:n(k)+6));
+    end
+    % convert recruits from count to density per square meters
+    towArea_sqm = 4516;
+    T2M2=1./towArea_sqm;
+    recr = recr * T2M2;
 end
 
-% Need to format file so that it has the same data regardless of source
 if isOctave
     recr_t = transpose(recr);
 else
     recr_t = array2table(transpose(recr),'VariableNames',{'rec'});
 end
+
 if srcText == 0
     j=size_grp==4;
 else
     j=size_grp==4 & dataSrc==srcText;
 end
-if ~useHC
+if useHC
+    utmX = F(j, utmxCol);
+    utmY = F(j, utmyCol);
+else
+    % Correct sign of longitude
     F(j,lonCol) = -F(j,lonCol);
+    lon = F(j,lonCol);
+    lat = F(j,latCol);
+
+    utmX = zeros(size(lon,1),1);
+    utmY = zeros(size(lon,1),1);
+
+    for i = 1:size(lon,1)
+        if lon(i)>-70.5
+            zone=19;
+        else
+            zone=18;
+        end
+        [utmX(i),utmY(i)]=ll2utm(lat(i),lon(i),zone);
+    end
 end
-M = [F(j,yearCol) F(j,monCol) F(j,dayCol) F(j,latCol) F(j,lonCol) F(j,zCol) recr_t];
+
+M = [F(j,yearCol) F(j,monCol) F(j,dayCol) F(j,latCol) F(j,lonCol) utmX utmY F(j,zCol) recr_t];
 
 flnm = 'OriginalData/NewRecruits.csv';
 

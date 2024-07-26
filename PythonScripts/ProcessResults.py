@@ -35,22 +35,16 @@ nyears = year_end - year_start + 2
 # set configuration file name for UK.exe
 ex = os.path.join('UKsrc', 'UK')
 simFile = os.path.join('Configuration', 'Simulation', simCfgFile)
-[paramStr, tsInYear, savedByStratum] = ReadSimConfigFile(simFile)
-if dn=='MA': savedByStratum = False
-if savedByStratum:
-    # Only GB and AL[L] use savedByStratum
-    if dn=='GB':
-        # rgn = ['_SW', '_N', '_S', '_W']
-        rgn = ['_GB']
-    else:
-        # This would be AL
-        #rgn = ['_SW', '_N', '_S', '_W', '_MA']
-        rgn = ['_GB', '_MA']
+[paramStr, tsInYear] = ReadSimConfigFile(simFile)
+if dn=='GB':
+    # rgn = ['_SW', '_N', '_S', '_W']
+    rgn = ['_GB']
+elif dn=='MA':
+    rgn = ['_MA']
 else:
-    # This would be just MA and, since MA forces savedByStratum to false, it does NOT append the domain suffix
-    # i.e. Data/X_Y_LPUE_MA2015_0_MA.csv
-    #                             ^^
-    rgn = ['']
+    # This would be AL
+    #rgn = ['_SW', '_N', '_S', '_W', '_MA']
+    rgn = ['_GB', '_MA']
 
 prefix = ['Results/Lat_Lon_Grid_'] #, 'Results/Lat_Lon_Grid_Trend-']
 
@@ -124,10 +118,7 @@ for pStr in paramStr:
                 k  += 1
 
             # brute force write out results
-            if savedByStratum:
-                flout = open(pfix + pStr + dn + r + '.csv', 'w')
-            else:
-                flout = open(pfix + pStr + dn + '_' + str(year_start) + '_' + str(year_end) + '.csv', 'w')
+            flout = open(pfix + pStr + dn + r + '.csv', 'w')
             for row in range(len(col[0][0])):
                 for c in range(ncols):
                     flout.write(col[0][c][row])
@@ -138,25 +129,20 @@ for pStr in paramStr:
         # end for pfix
     # end for rgn
 
-    if savedByStratum:
-        # now combine all region files into one file
-        for pfix in prefix:
-            flout = pfix + pStr + dn + '_' + str(year_start) + '_' + str(year_end) + '.csv'
-            wrFile = open(flout, 'w')
-            for r in rgn:
-                flin = pfix + pStr + dn + r + '.csv'
-                rdFile = open(flin, 'r')
-                lines = rdFile.readlines()
-                wrFile.writelines(lines)
-                rdFile.close()
-                os.remove(flin)
-            wrFile.close()
-            print('Files concatenated to: ',flout)
-        # end for pfix
-    else:
-        print('Files concatenated to: ',flout.name)
-
-    # end savedByStratum
+    # now combine all region files into one file
+    for pfix in prefix:
+        flout = pfix + pStr + dn + '_' + str(year_start) + '_' + str(year_end) + '.csv'
+        wrFile = open(flout, 'w')
+        for r in rgn:
+            flin = pfix + pStr + dn + r + '.csv'
+            rdFile = open(flin, 'r')
+            lines = rdFile.readlines()
+            wrFile.writelines(lines)
+            rdFile.close()
+            os.remove(flin)
+        wrFile.close()
+        print('Files concatenated to: ',flout)
+    # end for pfix
 # end for pStr
 
 # We have needed output paramters so lets plot data and save to pdf files

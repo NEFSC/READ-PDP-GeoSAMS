@@ -47,7 +47,7 @@ if isOctave
             j = lon>-70.5;%GB
             zone=19;
         else
-            j = lon<-70.5;%MA
+            j = lon<=-70.5;%MA
             zone=18;
         end
 
@@ -122,12 +122,12 @@ else % NOT Octave
     sg = table2array(M(:,27));
     dataSrc = table2array(M(:,37));
 end
-Detect=.4;
+detect=.4;
 
 %  standard tow length of 1 nautical mile by 8 ft, or 2.4384 m, wide dredge
-nautMile_m = 1852.;
-towArea_sqm = nautMile_m * 2.438;
-countPerSqm = 1. / (towArea_sqm * Detect);
+% nautMile_m = 1852.;
+towArea_sqm = 4516.; % nautMile_m * 2.438;
+countPerSqm = detect / towArea_sqm;
 
 for yr=yrStart:yrEnd
     yr

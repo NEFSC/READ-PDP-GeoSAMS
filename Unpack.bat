@@ -243,12 +243,12 @@ IF ERRORLEVEL 1 (
 
 @REM Process Recruit Data --------------------------------------------------------------
 if "%5" EQU "M" (
-    @echo [33mmatlab.exe -batch "ProcessRecruitData(%1, %2, '%4', '%hcChar%'); exit;"[0m
-    matlab.exe -batch "ProcessRecruitData(%1, %2, '%4', '%hcChar%'); exit;"
+    @echo [33mmatlab.exe -batch "ProcessRecruitData(%1, %2, '%4'); exit;"[0m
+    matlab.exe -batch "ProcessRecruitData(%1, %2, '%4'); exit;"
 )
 if "%5" EQU "O" (
-    @echo [33mPreProcess/ProcessRecruitData.m %1 %2 %4 %hcChar%[0m
-    octave PreProcess/ProcessRecruitData.m %1 %2 %4 %hcChar%
+    @echo [33mPreProcess/ProcessRecruitData.m %1 %2 %4[0m
+    octave PreProcess/ProcessRecruitData.m %1 %2 %4 
 )
 IF ERRORLEVEL 1 (
     @echo [31mError in MATLAB ProcessRecruitData. Stopping[0m

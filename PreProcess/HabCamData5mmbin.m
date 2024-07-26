@@ -44,11 +44,11 @@ end
 if isOctave
     M=csvreadK(dataFile);
     if ~strcmp(domain, 'AL')
-        area = M(:,15);
+        lon = M(:,lonCol);
         if strcmp(domain, 'GB')
-            j = area == 'GBK';
+            j = lon > -70.5
         else
-            j = area == 'MAB';
+            j = lon <= -70.5;
         end
 
         %------- new M with just MA or GB ----------------------
@@ -73,7 +73,9 @@ else % NOT Octave
     year = table2array(M(:,yearCol));
     sg = table2array(M(:,sqmCol));
 end
-Detect=.4;
+% convert count to density
+detect=.4;
+M(:,svCol) = (detect * M(:,svCol)) ./ M(:,sqmCol);
 
 for yr=yrStart:yrEnd
     X=[];
@@ -105,8 +107,6 @@ for yr=yrStart:yrEnd
             xutm_t = M(j,utmxCol);
             yutm_t = M(j,utmyCol);
             area_t = M(j,areaCol);
-            % Compute density
-            M(j,svCol) = M(j,svCol) ./ M(j,sqmCol);
         else
             stratum_t = M(j,stratumCol);
             is_closed_t = M(j,clopCol);
@@ -123,8 +123,6 @@ for yr=yrStart:yrEnd
             xutm_t = M(j,utmxCol);
             yutm_t = M(j,utmyCol);
             area_t = M(j,areaCol);
-            % Compute density
-            M(j,svCol) = M(j,svCol) ./ M(j,sqmCol);
         end
 
         n=find(and(year==yr,sg==3.));

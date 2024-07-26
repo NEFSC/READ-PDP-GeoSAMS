@@ -1,4 +1,4 @@
-function ProcessRecruitData(yrStart, yrEnd, domain, useHabCam)
+function ProcessRecruitData(yrStart, yrEnd, domain)
 
 isOctave = (exist('OCTAVE_VERSION', 'builtin') ~= 0);
 if isOctave
@@ -8,23 +8,17 @@ if isOctave
     yrStart = str2num(cell2mat(arg_list(1)));
     yrEnd = str2num(cell2mat(arg_list(2)));
     domain = cell2mat(arg_list(3));
-    useHabCam = cell2mat(arg_list(4));
   else
     yrStart = str2num(yrStart);
     yrEnd = str2num(yrEnd);
   end
 end
 
-useHC = strcmp(useHabCam, 'T');
-
 if ~strcmp(domain, 'GB') & ~strcmp(domain, 'MA') & ~strcmp(domain, 'AL')
   fprintf( 'Invalid Domain %s\n',  domain);
   fprintf( "Use: 'MA' or 'GB' or 'AL'\n" )
   return;
 end
-
-towArea_sqm = 4516;
-T2M2=1./towArea_sqm;
 
 Detect=.4;
 DetectRS=.27;
@@ -37,17 +31,23 @@ monCol   = 2;
 dayCol   = 3;
 latCol   = 4;
 lonCol   = 5;
-depthCol = 6;
-recrCol  = 7
+utmxCol  = 6;
+utmyCol  = 7;
+depthCol = 8;
+recrCol  = 9;  % recruit units are scallops/m^2
 fprintf('Reading from %s\n', flnm)
 
 if isOctave
   F=csvreadK(flnm);
-  year=F(:,yrCol);mon=F(:,monCol);day=F(:,dayCol);
+  year=F(:,yrCol);
+  mon=F(:,monCol);
+  day=F(:,dayCol);
 else
   warning('OFF', 'MATLAB:table:ModifiedAndSavedVarnames')
   F= readtable(flnm,"FileType","text");
-  year=table2array(F(:,yrCol));mon=table2array(F(:,monCol));day=table2array(F(:,dayCol));
+  year=table2array(F(:,yrCol));
+  mon=table2array(F(:,monCol));
+  day=table2array(F(:,dayCol));
 end
 % if NAN or blank, i.e. 0
 j=find(isnan(mon));mon(j)=6;day(j)=21;% assign missing date to summer solstice
@@ -61,22 +61,28 @@ yd=yd(:);
 DecYr=year(:)+( yd(:)/365.25 );
 
 if isOctave
-  lat=F(:,latCol);lon=F(:,lonCol);
-  Rec=F(:,recrCol);
+  lat=F(:,latCol);
+  lon=F(:,lonCol);
+  utmx=F(:,utmxCol);
+  utmy=F(:,utmyCol);
+  RecM2=F(:,recrCol);
   Depth=F(:,depthCol);
 else
-  lat=table2array(F(:,latCol));lon=-table2array(F(:,lonCol));
-  Rec=table2array(F(:,recrCol));
+  lat=table2array(F(:,latCol));
+  lon=table2array(F(:,lonCol));
+  utmx=table2array(F(:,utmxCol));
+  utmy=table2array(F(:,utmyCol));
+  RecM2=table2array(F(:,recrCol));
   Depth=table2array(F(:,depthCol));
 end
 
-RecM2=Rec*T2M2;
-M=[DecYr(:),lat(:),lon(:),Depth(:),RecM2(:)];
-j=find(~isnan(sum(M')));M=M(j,:);
+M=[DecYr(:),lat(:),lon(:),utmx(:),utmy(:),Depth(:),RecM2(:)];
+j=find(~isnan(sum(M')));
+M=M(j,:);
 flnm='Data/RecruitsUnadjusted.csv';
-header='"decmal year", "latitude", "longitude", "bottom depth(m)","recruits per m^2"';
+header='"decimal year", "latitude", "longitude", "UTM x", "UTM y", "bottom depth(m)","recruits per m^2"';
 fprintf('Writing to %s\n\n', flnm)
-writecsv(M,flnm,['%g, %g, %g, %g, %e'],header);
+writecsv(M,flnm,['%g, %g, %g, %g, %g, %g, %e'],header);
 
 
 %XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX
@@ -120,7 +126,14 @@ else
     F=table2array(readtable(flnm,'PreserveVariableNames', true));
 end
 
-[N,five]=size(F);lat=F(:,2);lon=F(:,3);DecYr=F(:,1);Depth=F(:,4);Rec=F(:,5);
+[N,five]=size(F);
+DecYr=F(:,1);
+lat=F(:,2);
+lon=F(:,3);
+utmx=F(:,4);
+utmy=F(:,5);
+Depth=F(:,6);
+Rec=F(:,7);
 G = shaperead('ShapeFiles/Shellfish_Strata.shp');
 IsRock=zeros(size(lat));
 for k=1:NRS
@@ -141,11 +154,12 @@ j0=find(IsRock==0);
 j1=find(IsRock==1);
 RecA(j0)=Rec(j0)/Detect;
 RecA(j1)=Rec(j1)/DetectRS;
-M=[DecYr(:),lat(:),lon(:),Depth(:),Rec(:),IsRock(:),RecA(:)];
-j=find(~isnan(sum(M')));M=M(j,:);
+M=[DecYr(:),lat(:),lon(:),utmx(:),utmy(:),Depth(:),Rec(:),IsRock(:),RecA(:)];
+j=find(~isnan(sum(M')));
+M=M(j,:);
 flnm='Data/RecruitsRockStrataAdjustment.csv';
-header='"decmal year", "latitude", "longitude", "bottom depth(m)","recruits per sq m raw","Is Rock Strata","recruits per sq m adjusted"';
-writecsv(M,flnm,['%g, %g, %g, %g, %e, %i ,%e' ],header);
+header='"decimal year", "latitude", "longitude", "UTM x", "UTM y","bottom depth(m)","recruits per sq m raw","Is Rock Strata","recruits per sq m adjusted"';
+writecsv(M,flnm,['%g, %g, %g, %g, %g, %g, %e, %i ,%e' ],header);
 fprintf('Writing to %s\n\n', flnm)
 
 close all;
@@ -179,49 +193,35 @@ if isOctave
     DecYr=F(:,1);
     lat=F(:,2);
     lon=F(:,3);
-    Depth=F(:,4);
-    rec=F(:,7);
+    utmx=F(:,4);
+    utmy=F(:,5);
+    Depth=F(:,6);
+    rec=F(:,9);
 else
     warning('OFF', 'MATLAB:table:ModifiedAndSavedVarnames')
     F=readtable(flnm,"FileType","text");
     DecYr=table2array(F(:,1));
     lat=table2array(F(:,2));
     lon=table2array(F(:,3));
-    Depth=table2array(F(:,4));
-    rec=table2array(F(:,7));
+    utmx=table2array(F(:,4));
+    utmy=table2array(F(:,5));
+    Depth=table2array(F(:,6));
+    rec=table2array(F(:,9));
 end
 
 if ~strcmp(domain, 'AL')
     if strcmp(domain, 'GB')
         j = lon>-70.5;
-        zone=19;
     else
         j = lon<=-70.5;
-        zone=18;
     end
-    % preallocate
-    xx = lat(j);
-    yy = lon(j);
-    [xx, yy] = ll2utm(lat(j),lon(j),zone);
-
-    M=[DecYr(j), xx, yy, Depth(j), rec(j)];
+    M=[DecYr(j), utmx(j), utmy(j), Depth(j), rec(j)];
 else
-    % preallocate
-    xx=lon;
-    yy=lat;
-    for i = 1:size(lon,1)
-        if lon(i)>-70.5
-            zone=19;
-        else
-            zone=18;
-        end
-        [xx(i),yy(i)]=ll2utm(lat(i),lon(i),zone);
-    end
-    M=[DecYr, xx, yy, Depth, rec];
+    M=[DecYr, utmx, utmy, Depth, rec];
 end
 
 flnm=['Data/Recruits', domain, '.csv'];
-header='"decmal year", "x utm", "y utm", "bottom depth(m)","recruits per sq m"';
+header='"decimal year", "utm x", "utm y", "bottom depth(m)","recruits per sq m"';
 fprintf('Writing to %s\n', flnm)
 writecsv(M,flnm,'%g, %f, %f, %f, %e',header);
 
@@ -245,7 +245,7 @@ if yrStart >= yearMin && yrEnd <= yearMax
             M=table2array(F(j,:));
         end
         flnm=['Data/Recruits',int2str(yr),domain,'.csv'];
-        header='"decmal year", "x utm", "y utm", "bottom depth(m)","recruits per sq m"';
+        header='"decimal year", "utm x", "utm y", "bottom depth(m)","recruits per sq m"';
         writecsv(M,flnm,'%g, %f, %f, %f, %e',header);
         fprintf('Writing to %s. Number of records %d\n', flnm, size(M,1))
     end

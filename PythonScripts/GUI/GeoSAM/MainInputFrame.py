@@ -146,19 +146,6 @@ class MainInput(ttk.Frame):
         self.useDredgeRB = ttk.Radiobutton(durationFrame, text='Dredge', value=False, variable=self.usingHabCam, command=None)
         self.useDredgeRB.grid(row=5, column=1,sticky='w')
         #-------------------------------------------------------------------------------------------
-        self.useStratumLabel = ttk.Label(durationFrame, text='Use Stratum\n(Not Used by MA)')
-        self.useStratumLabel.grid(row=6, column=0)
-        #-------------------------------------------------------------------------------------------
-        self.useStratumCombo = ttk.Combobox(durationFrame, width=3, values=comboTFStr)
-        if self.friend.savedByStratum:
-            self.useStratumCombo.current(comboTFStr.index('T'))
-        else:
-            self.useStratumCombo.current(comboTFStr.index('F'))
-        self.useStratumCombo.grid(row=6, column=1, sticky='w')
-        # Not user configurable at this time        
-        self.useStratumLabel.grid_remove()
-        self.useStratumCombo.grid_remove()
-        #-------------------------------------------------------------------------------------------
         durationFrame.grid(row=2, column=1, padx=5, sticky='w')
         # +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
         outputSelFrame = ttk.LabelFrame(self, text='Output Selection', style='SAMS.TFrame')

@@ -218,11 +218,11 @@ fi
 
 # Process Recruit Data --------------------------------------------------------------
 if [ "$5" == "M" ]; then
-echo [33mmatlab.exe -batch "ProcessRecruitData($1, $2, '$4', $hcChar); exit;"[0m
+echo [33mmatlab.exe -batch "ProcessRecruitData($1, $2, '$4'); exit;"[0m
 matlab.exe -batch "ProcessRecruitData($1, $2, '$4', $hcChar); exit;"
 else
-echo [33moctave PreProcess/ProcessRecruitData.m $1 $2 $4 $hcChar[0m
-octave PreProcess/ProcessRecruitData.m $1 $2 $4 $hcChar
+echo [33moctave PreProcess/ProcessRecruitData.m $1 $2 $4 [0m
+octave PreProcess/ProcessRecruitData.m $1 $2 $4
 fi
 if [ $? != 0 ]; then
     echo [31mError in octave ProcessRecruitData. Stopping[0m

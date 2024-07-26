@@ -26,7 +26,6 @@
 !> @f]
 !>
 !> @subsection p3p1p5 Set_Fishing_Effort
-!> @subsection p3p1p6 Dollars_Per_SqM
 !> @subsection p3p1p7 Scallops_To_Counts
 !> @subsection p3p1p8 Set_Fishing_Effort_Weight_USD
 !> @subsection p3p1p9 Set_Fishing_Effort_Weight_BMS
@@ -92,7 +91,6 @@ real(dp), PRIVATE :: domain_area_sqm
 integer, PRIVATE :: num_time_steps
 integer, PRIVATE :: ts_per_year
 real(dp), PRIVATE :: delta_time
-logical, PRIVATE :: save_by_stratum
 
 ! configuration parameters
 real(dp), PRIVATE :: fishing_mort
@@ -126,7 +124,6 @@ real(dp), PRIVATE :: dredge_width_m
 real(dp), PRIVATE :: towing_speed_knots
 
 real(dp), PRIVATE, allocatable :: expl_biomass_gpsqm(:)
-real(dp), PRIVATE, allocatable :: USD_per_sqm(:)
 real(dp), PRIVATE, allocatable :: expl_scallops_psqm(:)
 real(dp), PRIVATE, allocatable :: expl_num(:)
 real(dp), PRIVATE, allocatable :: F_mort(:)
@@ -158,7 +155,6 @@ endsubroutine Set_Select_Data
 subroutine Destructor()
     deallocate(expl_biomass_gpsqm)
 
-    deallocate(USD_per_sqm)
     deallocate(expl_scallops_psqm)
     deallocate(expl_num)
     deallocate(F_mort)
@@ -182,7 +178,7 @@ endsubroutine Destructor
 !> @param[in] domain_area,Size of domain under consideration in square meters
 !> 
 !==================================================================================================================
-subroutine Set_Mortality(mortality, grid, shell_lengths, dom_name, dom_area, num_ts, ts_py, ngrids, save_by_strat)
+subroutine Set_Mortality(mortality, grid, shell_lengths, dom_name, dom_area, num_ts, ts_py, ngrids)
     implicit none
     
     type(Mortality_Class), intent(inout):: mortality(*)
@@ -192,7 +188,6 @@ subroutine Set_Mortality(mortality, grid, shell_lengths, dom_name, dom_area, num
     real(dp), intent(in) :: dom_area
     integer, intent(in) :: num_ts, ts_py
     integer, intent(in) :: ngrids
-    logical, intent(in) :: save_by_strat
     integer j
     real(dp) length_0
     real(dp) cull_size, discard
@@ -208,7 +203,6 @@ subroutine Set_Mortality(mortality, grid, shell_lengths, dom_name, dom_area, num
     num_time_steps = num_ts
     ts_per_year = ts_py
     delta_time = 1._dp / dfloat(ts_per_year)
-    save_by_stratum = save_by_strat
 
     !---------------------------------------------------
     ! default values
@@ -238,7 +232,6 @@ subroutine Set_Mortality(mortality, grid, shell_lengths, dom_name, dom_area, num
     call Load_Fishing_Mortalities()
 
     allocate(expl_biomass_gpsqm(num_grids))
-    allocate(USD_per_sqm(num_grids))
     allocate(expl_scallops_psqm(num_grids))
     allocate(expl_num(num_grids))
     allocate(F_mort(num_grids))
@@ -428,9 +421,6 @@ function Set_Fishing_Effort(year, ts, state_mat, weight_grams, mortality, grid)
         ! dot_product(selectivity * state, weight)
         expl_biomass_gpsqm(loc) = dot_product(expl_scallops_psqm_at_size(1:num_size_classes), &
         &                                      weight_grams(loc,1:num_size_classes))
-
-        ! Dollars_Per_SqM ultimately uses expl_scallops_psqm_at_size -> Scallops_To_Counts
-        USD_per_sqm(loc) = Dollars_Per_SqM(year, weight_grams(loc, 1:num_size_classes))
     enddo
 
     F_mort_raw(:) = Set_Fishing_Mortality(grid(1:num_grids), year, .false., 0._dp)
@@ -516,53 +506,6 @@ function Set_Fishing_Effort(year, ts, state_mat, weight_grams, mortality, grid)
 
     return
 endfunction Set_Fishing_Effort
-
-!==================================================================================================================
-!! @public @memberof Mortality_Class
-!> @brief Compute value of scallop population at a specific grid location
-!>
-!> Value is based on population structure. 
-!> The population is sorted into size count bucket classes U10, 10-20, 20-30, 30+ 
-!> and the value based on these classes and the year is read from the file 
-!> "Data/ScallopPrice.csv".
-!>
-!>
-!> @param[in] year	- current year
-!> @param[in] meat_weight_grams	[num_size_classes] - Weight meat per individual scallop in each size class
-!> @returns dollars per square meter
-!>
-!> @author Keston Smith 2022
-!==================================================================================================================
-!Hi Keston. Attached are landings (metric tons), value (thousand $) and price ($/lb) from 1998 to 2021. 
-!The market categories are given in 
-!NESPP4: 8002 = U10, 8003 = 10-20, 8004 = 20-30, 8005 = 30-40, 8006 = 40-50, 8007 = 50-60, 8008 = 60+, 8009 = unclassified
-real(dp) function Dollars_Per_SqM(year, meat_weight_grams)
-    implicit none
-    real(dp), intent(in):: meat_weight_grams(*)
-    integer, intent(in):: year
-    real(dp) cnt10, cnt10to20, cnt20to30, cnt30plus
-    real(dp) ScallopPrice(50, 5);
-    integer NPriceYears, indx
-
-    ! convert weight in grams to count per pound and sort
-    call Scallops_To_Counts(meat_weight_grams, cnt10, cnt10to20, cnt20to30, cnt30plus)
-
-    ! Read in price per pound
-    !'"decmal year", "U10", "10-20", "20-30", "30+"';
-    call Read_CSV(NPriceYears, 5, 'Data/ScallopPrice.csv', ScallopPrice, size(ScallopPrice,1))
-
-    ! Find index into ScallopPrice for the current year
-    indx = minloc( abs( float(year)-ScallopPrice(1:NPriceYears, 1)  ), 1  )
-    if ((year-ScallopPrice(indx, 1)) .NE. 0) then
-        write(*,*) term_red, 'Scallop Price Year not found in Data/ScallopPrice.csv', year, term_blk
-        stop 1
-    endif
-
-    ! Find total dollar amount of scallops
-    Dollars_Per_SqM = cnt10 * ScallopPrice(indx, 2)+cnt10to20 * ScallopPrice(indx, 3)+&
-                cnt20to30 * ScallopPrice(indx, 4)+cnt30plus * ScallopPrice(indx, 5)
-    return
-endfunction Dollars_Per_SqM
 
 !==================================================================================================================
 !! @public @memberof Mortality_Class
@@ -663,7 +606,8 @@ function Compute_Natural_Mortality(max_rec_ind, mortality, state_vector, longitu
     ! Find the total sum of scallops per sq meter time region area yields total estimate of scallops, 
     ! recruits is the number of scallops in millions
 
-    recruits = sum(state_vector(1:max_rec_ind)) * domain_area_sqm/(10.**6)
+    !!!!recruits = sum(state_vector(1:max_rec_ind)) * domain_area_sqm/(10.**6)
+    recruits = sum(state_vector(1:max_rec_ind)) * grid_area_sqm/(10.**6)
     if (longitude > ma_gb_border) then ! GB
         mortality%natural_mort_juv = max( mortality%natural_mort_adult , exp(1.226_dp * log(recruits) - 10.49_dp ))
     else
@@ -978,73 +922,38 @@ if (mod(ts, ts_per_year) .eq. 1) then
         write(buf,'(I4)') year
     endif
 
-    if (save_by_stratum) then
-        if (data_select%plot_ABUN) &
-        &    call Write_Column_CSV_By_Region(num_grids, abundance(:), grid(1:num_grids)%lon, 'ABUN', &
-        &    data_dir//'X_Y_ABUN_'//domain_name//trim(buf), .true.)
+    if (data_select%plot_ABUN) &
+    &    call Write_Column_CSV_By_Region(num_grids, abundance(:), grid(1:num_grids)%lon, 'ABUN', &
+    &    data_dir//'X_Y_ABUN_'//domain_name//trim(buf), .true.)
 
-        if (data_select%plot_BMMT) &
-        &    call Write_Column_CSV_By_Region(num_grids, bms(:), grid(1:num_grids)%lon, 'BMMT', &
-        &    data_dir//'X_Y_BMMT_'//domain_name//trim(buf), .true.)
+    if (data_select%plot_BMMT) &
+    &    call Write_Column_CSV_By_Region(num_grids, bms(:), grid(1:num_grids)%lon, 'BMMT', &
+    &    data_dir//'X_Y_BMMT_'//domain_name//trim(buf), .true.)
 
-        if (data_select%plot_EBMS) &
-        &    call Write_Column_CSV_By_Region(num_grids, ebms_mt(:), grid(1:num_grids)%lon, 'EBMS', &
-        &    data_dir//'X_Y_EBMS_'//domain_name//trim(buf), .true.)
+    if (data_select%plot_EBMS) &
+    &    call Write_Column_CSV_By_Region(num_grids, ebms_mt(:), grid(1:num_grids)%lon, 'EBMS', &
+    &    data_dir//'X_Y_EBMS_'//domain_name//trim(buf), .true.)
 
-        if (data_select%plot_FEFF) &
-        &    call Write_Column_CSV_By_Region(num_grids, fishing_effort(:), grid(1:num_grids)%lon, 'FEFF', &
-        &    data_dir//'X_Y_FEFF_'//domain_name//trim(buf), .true.)
+    if (data_select%plot_FEFF) &
+    &    call Write_Column_CSV_By_Region(num_grids, fishing_effort(:), grid(1:num_grids)%lon, 'FEFF', &
+    &    data_dir//'X_Y_FEFF_'//domain_name//trim(buf), .true.)
 
-        if (data_select%plot_FMOR) &
-        &    call Write_Column_CSV_By_Region(num_grids, F_mort(:), grid(1:num_grids)%lon, 'FMOR', &
-        &    data_dir//'X_Y_FMOR_'//domain_name//trim(buf), .true.)
+    if (data_select%plot_FMOR) &
+    &    call Write_Column_CSV_By_Region(num_grids, F_mort(:), grid(1:num_grids)%lon, 'FMOR', &
+    &    data_dir//'X_Y_FMOR_'//domain_name//trim(buf), .true.)
 
-        if (data_select%plot_LAND) &
-        &    call Write_Column_CSV_By_Region(num_grids, landings_by_num(:), grid(1:num_grids)%lon, 'LAND', &
-        &    data_dir//'X_Y_LAND_'//domain_name//trim(buf), .true.)
+    if (data_select%plot_LAND) &
+    &    call Write_Column_CSV_By_Region(num_grids, landings_by_num(:), grid(1:num_grids)%lon, 'LAND', &
+    &    data_dir//'X_Y_LAND_'//domain_name//trim(buf), .true.)
 
-        if (data_select%plot_LNDW) &
-        &    call Write_Column_CSV_By_Region(num_grids, landings_wgt_grams(:), grid(1:num_grids)%lon, 'LNDW', &
-        &    data_dir//'X_Y_LNDW_'//domain_name//trim(buf), .true.)
+    if (data_select%plot_LNDW) &
+    &    call Write_Column_CSV_By_Region(num_grids, landings_wgt_grams(:), grid(1:num_grids)%lon, 'LNDW', &
+    &    data_dir//'X_Y_LNDW_'//domain_name//trim(buf), .true.)
 
-        if (data_select%plot_LPUE) &
-        &    call Write_Column_CSV_By_Region(num_grids, lpue(:), grid(1:num_grids)%lon, 'LPUE', &
-        &    data_dir//'X_Y_LPUE_'//domain_name//trim(buf), .true.)
+    if (data_select%plot_LPUE) &
+    &    call Write_Column_CSV_By_Region(num_grids, lpue(:), grid(1:num_grids)%lon, 'LPUE', &
+    &    data_dir//'X_Y_LPUE_'//domain_name//trim(buf), .true.)
 
-    else
-        if (data_select%plot_ABUN) &
-        &    call Write_Column_CSV(num_grids, abundance(:),'ABUN',&
-        &    data_dir//'X_Y_ABUN_'//domain_name//trim(buf)//'.csv', .true.)
-
-        if (data_select%plot_BMMT) &
-        &    call Write_Column_CSV(num_grids, bms(:),'BMMT',&
-        &    data_dir//'X_Y_BMMT_'//domain_name//trim(buf)//'.csv', .true.)
-
-        if (data_select%plot_EBMS) &
-        &    call Write_Column_CSV(num_grids, ebms_mt(:), 'EBMS',&
-        &    data_dir//'X_Y_EBMS_'//domain_name//trim(buf)//'.csv', .true.)
-
-        if (data_select%plot_FEFF) &
-        &    call Write_Column_CSV(num_grids, fishing_effort(1:num_grids), 'FEFF',&
-        &    data_dir//'X_Y_FEFF_'//domain_name//trim(buf)//'.csv', .true.)
-
-        if (data_select%plot_FMOR) &
-        &    call Write_Column_CSV(num_grids, F_mort(1:num_grids), 'FMOR',&
-        &    data_dir//'X_Y_FMOR_'//domain_name//trim(buf)//'.csv', .true.)
-
-        if (data_select%plot_LAND) &
-        &    call Write_Column_CSV(num_grids, landings_by_num(:), 'Landings', &
-        &    data_dir//'X_Y_LAND_'//domain_name//trim(buf)//'.csv', .true.)
-
-        if (data_select%plot_LNDW) &
-        &    call Write_Column_CSV(num_grids, landings_wgt_grams(:), 'LNDW', &
-        &    data_dir//'X_Y_LNDW_'//domain_name//trim(buf)//'.csv', .true.)
-
-        if (data_select%plot_LPUE) &
-        &    call Write_Column_CSV(num_grids, lpue(:), 'LPUE',&
-        &    data_dir//'X_Y_LPUE_'//domain_name//trim(buf)//'.csv', .true.)
-
-    endif
 endif ! if(mod()) = 1
            
 deallocate(abundance)
