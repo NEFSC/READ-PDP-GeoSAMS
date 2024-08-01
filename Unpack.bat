@@ -103,22 +103,19 @@ if "%6" EQU "D" goto continue
     exit /b 14
 
 :continue
-if "%6" EQU "D" (
+@REM Unzip both survey files
 @REM unzip dredge data
 if not exist OriginalData\dredgetowbysize7917.csv (
     cd "OriginalData/"
     "C:\Program Files\7-Zip\7z" e dredgetowbysize7917.zip
     cd ..
 )
-)
 
-if "%6" EQU "H" (
-@REM unzip dredge data
-if not exist OriginalData\Habcam_BySegment_2000_2014-2019.csv (
+@REM unzip HabCam data
+if not exist OriginalData\Habcam_BySegment_2000_2014-2020.csv (
     cd "OriginalData/"
-    "C:\Program Files\7-Zip\7z" e Habcam_BySegment_2000_2014-2019.zip
+    "C:\Program Files\7-Zip\7z" e Habcam_BySegment_2000_2014-2020.zip
     cd ..
-)
 )
 
 @REM Create Directories used by GeoSAMS
@@ -180,7 +177,9 @@ cd ..
 @REM https://gist.githubusercontent.com/mlocati/fdabcaeb8071d5c75a2d51712db24011/raw/b710612d6320df7e146508094e84b92b34c77d48/win10colors.cmd
 
 @REM Pull Out Survey Data --------------------------------------------------------------
-if "%5" EQU "M" if "%6" EQU "D" (
+@REM Always pull dregde data
+@REM if "%5" EQU "M" if "%6" EQU "D" (
+if "%5" EQU "M" (
     @echo [33mmatlab.exe -batch "TrawlData5mmbin(%1, %2, %3, '%4'); exit;"[0m
     matlab.exe -batch "TrawlData5mmbin(%1, %2, %3, '%4'); exit;"
 )
@@ -189,27 +188,33 @@ IF ERRORLEVEL 1 (
     exit 1/b
 )
 
-if "%5" EQU "M" if "%6" EQU "H" (
-    @echo [33mmatlab.exe -batch "HabCamData5mmbin(%1, %2, '%4'); exit;"[0m
-    matlab.exe -batch "HabCamData5mmbin(%1, %2, '%4'); exit;"
+@REM Alwyas pull HabCam data and append to dredge data, appendResults = 'T'
+@REM if "%5" EQU "M" if "%6" EQU "H" (
+if "%5" EQU "M" (
+    @echo [33mmatlab.exe -batch "HabCamData5mmbin(%1, %2, '%4', 'T'); exit;"[0m
+    matlab.exe -batch "HabCamData5mmbin(%1, %2, '%4', 'T'); exit;"
 )
 IF ERRORLEVEL 1 (
     @echo [31mError in MATLAB HabCamData5mmbin. Stopping[0m
     exit 1/b
 )
 
-if "%5" EQU "O" if "%6" EQU "D" (
-    @echo [33moctave PreProcess/TrawlData5mmbin.m $1 $2 $3 $4[0m
-    octave PreProcess/TrawlData5mmbin.m $1 $2 $3 $4
+@REM Alwyas pull dregde data
+@REM if "%5" EQU "O" if "%6" EQU "D" (
+if "%5" EQU "O" (
+    @echo [33moctave PreProcess/TrawlData5mmbin.m $1 $2 $3 $4 T[0m
+    octave PreProcess/TrawlData5mmbin.m $1 $2 $3 $4 'T'
 )
 IF ERRORLEVEL 1 (
     @echo [31mError in Octave TrawlData5mmbin. Stopping[0m
     exit 1/b
 )
 
-if "%5" EQU "O" if "%6" EQU "H" (
-    @echo [33moctave PreProcess/HabCamData5mmbin.m $1 $2 $4[0m
-    octave PreProcess/HabCamData5mmbin.m $1 $2 $4
+@REM Alwyas pull HabCam data and append to dredge data
+@REM if "%5" EQU "O" if "%6" EQU "H" (
+if "%5" EQU "O" (
+    @echo [33moctave PreProcess/HabCamData5mmbin.m $1 $2 $4 'T'[0m
+    octave PreProcess/HabCamData5mmbin.m $1 $2 $4 'T'
 )
 IF ERRORLEVEL 1 (
     @echo [31mError in Octave TrawlData5mmbin. Stopping[0m
@@ -217,6 +222,7 @@ IF ERRORLEVEL 1 (
 )
 
 @REM Pull Out Recruit Data --------------------------------------------------------------
+@REM Pull Out Dredge data then pull out HabCam Data
 if "%6" EQU "H" (
     set hcChar="T"
 )

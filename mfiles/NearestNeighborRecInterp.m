@@ -19,7 +19,7 @@ if ~strcmp(domain, 'GB') & ~strcmp(domain, 'MA') & ~strcmp(domain, 'AL')
     fprintf( "Use: 'MA' or 'GB' or 'AL'\n" )
     return;
 end
-  
+
 fl0=strcat('Data/Recruits',int2str(yrStart),domain,'.csv');
 fl2=strcat('RecruitEstimates/RecruitEstimate',domain,int2str(yrStart),'.txt');
 fl2Rand=strcat('RecruitEstimates/RecruitEstimateRand',domain,int2str(yrStart),'.txt');

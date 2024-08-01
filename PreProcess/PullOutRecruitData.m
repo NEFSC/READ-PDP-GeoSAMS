@@ -8,7 +8,7 @@
 % VIMSRSA ==> 4444
 % NMFSSHRP ==> 5555
 % ALL ==> 0
-function PullOutRecruitData(src, useHabCam)
+function PullOutRecruitData(src, useHabCam, appendResults)
 
 isOctave = (exist('OCTAVE_VERSION', 'builtin') ~= 0);
 
@@ -17,7 +17,8 @@ if isOctave
     arg_list=argv();
     if ~strcmp(arg_list(1), '--gui');
         src = str2num(cell2mat(arg_list(1)));
-        useHabCam = cell2mat(arg_list(2))
+        useHabCam = cell2mat(arg_list(2));
+        appendResults = cell2mat(arg_list(3));
     else
         src = str2num(src);
     end
@@ -49,12 +50,14 @@ else
                "statype","SVGEAR","haul","gearcon","sdefid","newstra","clop","lat","lon","tnms",...
                "setdpth","bottemp","dopdisb","distused","towadj","towdur","sizegrp","catchnu",...
                "catchwt","surv_n","partrecn","fullrecn","surv_b","partrecb","fullrecb","postow",...
-               "datasource","lwarea","SETLW","SVSPP","PropChains","AREAKIND","STRATMAP","SQNM"};
+               "datasource","lwarea","SETLW","SVSPP","PropChains","AREAKIND","STRATMAP","SQNM", "UTM X", "UTM Y"};
     yearCol    = find(strcmpi("year", header), 1);
     monCol     = find(strcmpi("month", header), 1);
     dayCol     = find(strcmpi("day",   header), 1);
     latCol     = find(strcmpi("lat"    , header), 1);
     lonCol     = find(strcmpi("lon"    , header), 1);
+    utmxCol    = find(strcmpi("UTM X"   , header), 1);
+    utmyCol    = find(strcmpi("UTM Y"   , header), 1);
     zCol       = find(strcmpi("setdpth", header), 1);
     sgCol      = find(strcmpi("sizegrp", header), 1);
     svCol      = find(strcmpi("surv_n" , header), 1);
@@ -125,34 +128,21 @@ if srcText == 0
 else
     j=size_grp==4 & dataSrc==srcText;
 end
-if useHC
-    utmX = F(j, utmxCol);
-    utmY = F(j, utmyCol);
-else
-    % Correct sign of longitude
-    F(j,lonCol) = -F(j,lonCol);
-    lon = F(j,lonCol);
-    lat = F(j,latCol);
 
-    utmX = zeros(size(lon,1),1);
-    utmY = zeros(size(lon,1),1);
-
-    for i = 1:size(lon,1)
-        if lon(i)>-70.5
-            zone=19;
-        else
-            zone=18;
-        end
-        [utmX(i),utmY(i)]=ll2utm(lat(i),lon(i),zone);
-    end
-end
-
-M = [F(j,yearCol) F(j,monCol) F(j,dayCol) F(j,latCol) F(j,lonCol) utmX utmY F(j,zCol) recr_t];
+M = [F(j,yearCol) F(j,monCol) F(j,dayCol) F(j,latCol) F(j,lonCol) F(j, utmxCol) F(j, utmyCol) F(j,zCol) recr_t];
 
 flnm = 'OriginalData/NewRecruits.csv';
 
 if isOctave
-  csvwrite(flnm, M);
+    if strcmp(appendResults(1), 'T') && useHC
+        dlmwrite(flnm, M, "-append")
+    else
+        dlmwrite(flnm,M);
+    endif
 else
-  writetable(M,flnm);
+    if strcmp(appendResults(1), 'T') && useHC
+        writematrix(M,flnm,'WriteMode','append')
+    else
+        writematrix(M,flnm);
+    endif
 end

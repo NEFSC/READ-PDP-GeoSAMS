@@ -34,15 +34,14 @@ if sum(ismember(domList, domain)) == 0
 end
 
 if isOctave
-
     M=csvreadK('OriginalData/dredgetowbysize7917.csv');
     mon=M(:,5);
     j=find(mon>0);
     M=M(j,:);
-    %------- new M table ----------------------
 
+    %------- new M table ----------------------
     if ~strcmp(domain, 'AL')
-        lon=-M(:,19);
+        lon=M(:,19);
         if strcmp(domain, 'GB')
             j = lon>-70.5;%GB
             zone=19;
@@ -53,26 +52,6 @@ if isOctave
 
         %------- new M with just MA or GB ----------------------
         M = M(j,:);
-        lat=table2array(M(:,18));
-        lon=-table2array(M(:,19));
-        [xx,yy]=ll2utm(lat,lon,zone);
-
-    else % working with AL
-        lat=M(:,18);
-        lon=-M(:,19);
-        % preallocate
-        xx=lon;
-        yy=lat;
-        n = size(lon,1);
-        for i = 1:n
-            if lon(i)>-70.5
-                zone=19;
-            else
-                zone=18;
-            end
-            if mod(i,10000) == 0; fprintf('i : %d of %d\n', i, n); end
-            [xx(i),yy(i)]=ll2utm(lat(i),lon(i),zone);
-        end
     end
 
     year = M(:,4);
@@ -80,14 +59,13 @@ if isOctave
     dataSrc = M(:,37);
 else % NOT Octave
     M = readtable('OriginalData/dredgetowbysize7917.csv',"FileType","text");
-
     mon=table2array(M(:,5));
     j=mon>0;
     M=M(j,:);
-    %------- new M table ----------------------
 
+    %------- new M table ----------------------
     if ~strcmp(domain, 'AL')
-        lon = -table2array(M(:,19));
+        lon = table2array(M(:,19));
         if strcmp(domain, 'GB')
             j = lon>-70.5;
             zone=19;
@@ -98,24 +76,6 @@ else % NOT Octave
 
         %------- new M with just MA or GB ----------------------
         M = M(j,:);
-        lat=table2array(M(:,18));
-        lon=-table2array(M(:,19));
-        [xx,yy]=ll2utm(lat,lon,zone);
-
-    else % working with AL
-        lat=table2array(M(:,18));
-        lon=-table2array(M(:,19));
-        % preallocate
-        xx=lon;
-        yy=lat;
-        for i = 1:size(lon,1)
-            if lon(i)>-70.5
-                zone=19;
-            else
-                zone=18;
-            end
-            [xx(i),yy(i)]=ll2utm(lat(i),lon(i),zone);
-        end
     end
 
     year = table2array(M(:,4));
@@ -130,7 +90,6 @@ towArea_sqm = 4516.; % nautMile_m * 2.438;
 countPerSqm = detect / towArea_sqm;
 
 for yr=yrStart:yrEnd
-    yr
     X=[];
     %j=and(year==yr,sg==3.);
     if srcText == 0
@@ -153,7 +112,7 @@ for yr=yrStart:yrEnd
             stratum_t = M(j,8);
             is_closed_t = double(M(j,17)>0);
             lat_t = M(j,18);
-            lon_t = -(M(j,19));
+            lon_t = M(j,19);
             mon = M(j,5);
             day = M(j,6);
             yd = 0 * day;
@@ -162,13 +121,13 @@ for yr=yrStart:yrEnd
             end
             DecYr_t = year(j) + yd/365.25;
             z_t = cast(M(j,21),"double");
-            x_t = xx(j);
-            y_t = yy(j);
+            x_t = M(j,45);
+            y_t = M(j,46);
         else
             stratum_t = M(j,8);
             is_closed_t = array2table(int8(table2array(M(j,17)>0)),'VariableNames',{'isClosed'});
-            lat_t = M(j,18);
-            lon_t = array2table(-table2array(M(j,19)),'VariableNames',{'lon'});
+            lat_t = table2array(M(j,18));
+            lon_t = table2array(M(j,19));
             mon = table2array(M(j,5));
             day = table2array(M(j,6));
             yd = 0 * day;
@@ -176,9 +135,9 @@ for yr=yrStart:yrEnd
                 yd(k) = yearday(mon(k),day(k),0);
             end
             DecYr_t = array2table(year(j) + yd/365.25,'VariableNames',{'DecYr'});
-            z_t = M(j,21);
-            x_t = array2table(xx(j),'VariableNames',{'x'});
-            y_t = array2table(yy(j),'VariableNames',{'y'});
+            z_t = table2array(M(j,21));
+            x_t = table2array(M(j,45));
+            y_t = table2array(M(j,46));
         end
 
         n=find(and(year==yr,sg==3.));

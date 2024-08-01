@@ -97,7 +97,6 @@ type(LonLatVector), PRIVATE :: area(max_num_areas)
 integer, PRIVATE :: num_areas ! number of special access areas
 integer, PRIVATE :: num_grids
 logical, PRIVATE :: use_spec_access_data
-logical, PRIVATE :: use_habcam_data
 character(domain_len), PRIVATE :: domain_name
 character(fname_len), PRIVATE :: config_file_name
 character(fname_len), PRIVATE :: init_cond_fname
@@ -139,19 +138,17 @@ endfunction Set_Num_Grids
 !> Initializes growth for startup
 !>
 !==================================================================================================================
-subroutine Set_Grid_Manager(state_mat, grid, ngrids, dom_name, use_hc)
+subroutine Set_Grid_Manager(state_mat, grid, ngrids, dom_name)
 integer, intent(inout) :: ngrids
 real(dp), intent(out):: state_mat(1:ngrids, 1:num_size_classes)
 type(Grid_Data_Class), intent(out) :: grid(*)
 character(domain_len), intent(in) :: dom_name
-logical, intent(in) :: use_hc
 
 integer n, j, k
 character(fname_len) fname
 
 ! set private variables
 domain_name = dom_name
-use_habcam_data = use_hc
 
 ! Used to verify grid in special access area
 fname = 'Results/SurveyLoc.txt'

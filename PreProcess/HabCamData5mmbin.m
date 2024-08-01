@@ -1,4 +1,4 @@
-function HabCamData5mmbin(yrStart, yrEnd, domain)
+function HabCamData5mmbin(yrStart, yrEnd, domain, appendResults)
 
 dataFile = 'OriginalData/Habcam_BySegment_2000_2014-2020.csv';
 
@@ -29,6 +29,7 @@ if isOctave
         yrStart = str2num(cell2mat(arg_list(1)));
         yrEnd = str2num(cell2mat(arg_list(2)));
         domain = cell2mat(arg_list(3));
+        appendResults = cell2mat(arg_list(4));
     else
         yrStart = str2num(yrStart);
         yrEnd = str2num(yrEnd);
@@ -147,12 +148,20 @@ for yr=yrStart:yrEnd
                 end
             end
         end
-        flnm=strcat('Data/HCbin5mm',int2str(yr),domain,'.csv');
+        flnm=strcat('Data/bin5mm',int2str(yr),domain,'.csv');
         fprintf('Size of grid %d\n', size(X,1))
         if isOctave
-            csvwrite(flnm,X);
+            if strcmp(appendResults(1), 'T')
+                dlmwrite(flnm, X, "-append")
+            else
+                dlmwrite(flnm,X);
+            endif
         else
-            writetable(X,flnm,'WriteVariableNames',0);
+            if strcmp(appendResults(1), 'T')
+                writematrix(X,flnm,'WriteMode','append')
+            else
+                writematrix(X,flnm);
+            endif
         end
     end % if sum(j) == 0
 end  % for yr=yrStart:yrEnd

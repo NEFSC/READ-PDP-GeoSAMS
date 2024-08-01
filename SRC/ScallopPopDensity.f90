@@ -262,7 +262,6 @@ character(domain_len) domain_name
 integer start_year, stop_year
 integer num_time_steps
 integer ts_per_year
-logical use_habcam_data
 integer num_years
 integer year
 character(4) buf
@@ -289,7 +288,7 @@ integer pct_comp
 !==================================================================================================================
 !  - I. Read Configuration file 'Scallop.inp'
 !==================================================================================================================
-call Read_Startup_Config(ts_per_year, use_habcam_data, start_year, stop_year, domain_name, plot_data_sel)
+call Read_Startup_Config(ts_per_year, start_year, stop_year, domain_name, plot_data_sel)
 
 !==================================================================================================================
 
@@ -304,11 +303,7 @@ num_time_steps = num_years * ts_per_year + 1 ! +1 to capture last data from last
 ! Force year and domain name given values in scallop configuration file
 ! Data/bin5mmYYYYDN.csv
 write(buf,'(I4)') start_year
-if (use_habcam_data) then
-    file_name = 'Data/HCbin5mm'//buf//domain_name//'.csv'
-else
-    file_name = 'Data/bin5mm'//buf//domain_name//'.csv'
-endif
+file_name = 'Data/bin5mm'//buf//domain_name//'.csv'
 call Set_Init_Cond_File_Name(file_name)
 
 ! First read to see how many records are defined. Read again later in GridManager::Load_Grid_State
@@ -316,7 +311,7 @@ num_grids = Set_Num_Grids()
 allocate(grid(1:num_grids))
 allocate(state(1:num_grids,1:num_size_classes))
 
-call Set_Grid_Manager(state, grid, num_grids, domain_name, use_habcam_data)
+call Set_Grid_Manager(state, grid, num_grids, domain_name)
 
 ! number of grids known, allocated remaining data
 allocate(growth(1:num_grids), mortality(1:num_grids), recruit(1:num_grids) )
@@ -337,7 +332,6 @@ write(*,'(A,I6)') ' Start Year:         ', start_year
 write(*,'(A,I6)') ' Stop Year:          ', stop_year
 write(*,'(A,I6,A,F7.4)') ' Time steps/year:', ts_per_year
 write(*,'(A,I6,A,F7.4)') ' Total number time steps:', num_time_steps
-write(*,*) ' Using HabCam Data:        ', use_habcam_data
 write(*,*) '========================================================'
 
 
@@ -399,7 +393,7 @@ END PROGRAM ScallopPopDensity
 !> @param[out] time_steps_per_year Number of times steps to evaluate growth
 !> @param[out] num_monte_carlo_iter Number of iterations for Monte Carlo simulation
 !-----------------------------------------------------------------------
-subroutine Read_Startup_Config(time_steps_per_year, use_habcam_data, start_year, stop_year, &
+subroutine Read_Startup_Config(time_steps_per_year, start_year, stop_year, &
     & domain_name, plot_data_sel)
     use globals
     use Mortality_Mod, only : Mortality_Set_Config_File_Name => Set_Config_File_Name, DataForPlots, Set_Select_Data
@@ -408,7 +402,6 @@ subroutine Read_Startup_Config(time_steps_per_year, use_habcam_data, start_year,
 
     implicit none
     integer, intent(out) :: time_steps_per_year ! , num_monte_carlo_iter
-    logical, intent(out) :: use_habcam_data
     integer, intent(out) :: start_year, stop_year
     character(domain_len), intent(out) :: domain_name
     type(DataForPlots), intent(out) :: plot_data_sel
@@ -475,9 +468,6 @@ subroutine Read_Startup_Config(time_steps_per_year, use_habcam_data, start_year,
 
             case('Recruit Config File')
                 call Recruit_Set_Config_File_Name(trim(adjustl(value)))
-
-            case('Use HabCam Data')
-                read(value,*) use_habcam_data
 
             case('Select Abundance')
                 plot_data_sel%plot_ABUN = .true.

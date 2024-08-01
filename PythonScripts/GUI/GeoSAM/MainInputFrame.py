@@ -137,15 +137,6 @@ class MainInput(ttk.Frame):
         self.domainNameCombo.current(2)
         self.domainNameCombo.grid(row=3, column=1, sticky='w', pady=5)
         #-------------------------------------------------------------------------------------------
-        self.usingHabCamLabel = ttk.Label(durationFrame, text='Domain Name')
-        self.usingHabCam = tk.BooleanVar(durationFrame, self.friend.useHabCamData)
-        self.usingHabCamLabel = ttk.Label(durationFrame, text='Data Source')
-        self.usingHabCamLabel.grid(row=4, column=0)
-        self.useHabCamRB = ttk.Radiobutton(durationFrame, text='Habcam', value=True, variable=self.usingHabCam, command=None)
-        self.useHabCamRB.grid(row=4, column=1,sticky='w')
-        self.useDredgeRB = ttk.Radiobutton(durationFrame, text='Dredge', value=False, variable=self.usingHabCam, command=None)
-        self.useDredgeRB.grid(row=5, column=1,sticky='w')
-        #-------------------------------------------------------------------------------------------
         durationFrame.grid(row=2, column=1, padx=5, sticky='w')
         # +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
         outputSelFrame = ttk.LabelFrame(self, text='Output Selection', style='SAMS.TFrame')
