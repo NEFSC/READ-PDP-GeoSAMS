@@ -22,6 +22,10 @@ if isOctave
         yrStart = str2num(cell2mat(arg_list(3)));
         tsPerYear = str2num(cell2mat(arg_list(4)));
         domain = cell2mat(arg_list(5));
+    else
+        yrStart = str2num(yrStart)
+        tsPerYear = str2num(tsPerYear)
+        yrSelect = str2num(yrSelect)
     end
 end
 
@@ -228,7 +232,7 @@ end
 % Ready to plot
 %
 if c == 1
-    % then grid file is only a single year 
+    % then grid file is only a single year
     % select offset for survey data
     offset = yrSelect - yrStart + 1;
 else
@@ -364,4 +368,4 @@ else
         f.OuterPosition = [1963.4 -221.4 1000 1087.2];
     end
 end
-end 
+end

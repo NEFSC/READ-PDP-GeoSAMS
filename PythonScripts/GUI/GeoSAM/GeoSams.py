@@ -79,7 +79,6 @@ class MainApplication(tk.Tk):
         self.tsPerYear = 0
         self.paramVal = 0
         self.paramStr = []
-        self.savedByStratum = False
         self.useHabCamData = False
 
         # Sim settings
@@ -166,6 +165,9 @@ class MainApplication(tk.Tk):
     # If it runs successfully then UK interpolation is started
     #
     def Run_Sim(self):
+        # Set Environment Variables
+        self.frame1.SetDredgeFileName()
+        self.frame1.SetHabCamFileName()
         # No check for variables changed, therefore update all configuration files with current values in GUI
         # OR
         # Create new files based on names given by user, or same if not changed
@@ -186,58 +188,45 @@ class MainApplication(tk.Tk):
         
         # Ensure data is available, by first checking if data files have been created.
         # Typical data file name: Data/bin5mm2015AL.csv
-        filesExist = True
-        if self.frame1.usingHabCam.get():
-            prefix = 'HCbin5mm'
-            dataSrcArg = 'H'
+        filesExist = False
+        # Create them
+        if self.frame2.usingMatlab.get():
+            mathArg = 'M'
         else:
-            prefix = 'bin5mm'
-            dataSrcArg = 'D'
-        for yr in range(self.yearStart, self.yearStop+1):
-            dataFName = os.path.join(self.root, 'Data', prefix+str(yr)+self.domainName+'.csv')
-            if not os.path.isfile(dataFName): 
-                filesExist = False
-                break
-        
-        if not filesExist: 
-            # Create them
-            if self.frame2.usingMatlab.get():
-                mathArg = 'M'
-            else:
-                mathArg = 'O'
+            mathArg = 'O'
 
-            if platform.system() == 'Windows':
-                cmd = [os.path.join(self.root, 'Unpack.bat'), startYear, stopYear, '0', self.domainName, mathArg, dataSrcArg]
+        if platform.system() == 'Windows':
+            cmd = [os.path.join(self.root, 'Unpack.bat'), startYear, stopYear, '0', self.domainName, mathArg]
+        else:
+            cmd = [os.path.join(self.root, 'Unpack.sh'), startYear, stopYear, '0', self.domainName, mathArg]
+            subprocess.run(['chmod','744','Unpack.sh']) # make file executable
+        messagebox.showinfo("Unpack", f'Starting Unpack.\nThis could take several minutes, longer if using Octave.\nPlease be patient.')
+        result = subprocess.run(cmd)
+        if result.returncode == 0:
+            messagebox.showinfo("Unpack", f'Completed Successfully\n{result.args}')
+            filesExist = True
+        else:
+            if result.returncode == 1:
+                messagebox.showerror("TrawlData5mmbin", f'Failed\n{result.args}\nReturn Code = {result.returncode}\nSee Monitor for Reason')
+            elif result.returncode == 2:
+                messagebox.showerror("PullOutRecruitData", f'Failed\n{result.args}\nReturn Code = {result.returncode}\nSee Monitor for Reason')
+            elif result.returncode == 3:
+                messagebox.showerror("ProcessRecruitData", f'Failed\n{result.args}\nReturn Code = {result.returncode}\nSee Monitor for Reason')
+            elif result.returncode == 4:
+                messagebox.showerror("NearestNeighborRecInterp", f'Failed\n{result.args}\nReturn Code = {result.returncode}\nSee Monitor for Reason')
             else:
-                cmd = [os.path.join(self.root, 'Unpack.sh'), startYear, stopYear, '0', self.domainName, mathArg, dataSrcArg]
-                subprocess.run(['chmod','744','Unpack.sh']) # make file executable
-            messagebox.showinfo("Unpack", f'Starting Unpack.\nThis could take several minutes, longer if using Octave.\nPlease be patient.')
-            result = subprocess.run(cmd)
-            if result.returncode == 0:
-                messagebox.showinfo("Unpack", f'Completed Successfully\n{result.args}')
-                filesExist = True
-            else:
-                if result.returncode == 1:
-                    messagebox.showerror("TrawlData5mmbin", f'Failed\n{result.args}\nReturn Code = {result.returncode}\nSee Monitor for Reason')
-                elif result.returncode == 2:
-                    messagebox.showerror("PullOutRecruitData", f'Failed\n{result.args}\nReturn Code = {result.returncode}\nSee Monitor for Reason')
-                elif result.returncode == 3:
-                    messagebox.showerror("ProcessRecruitData", f'Failed\n{result.args}\nReturn Code = {result.returncode}\nSee Monitor for Reason')
-                elif result.returncode == 4:
-                    messagebox.showerror("NearestNeighborRecInterp", f'Failed\n{result.args}\nReturn Code = {result.returncode}\nSee Monitor for Reason')
-                else:
-                    messagebox.showerror("Unpack", f'Failed\n{result.args}\nReturn Code = {result.returncode}\nSee Monitor for Reason')
+                messagebox.showerror("Unpack", f'Failed\n{result.args}\nReturn Code = {result.returncode}\nSee Monitor for Reason')
             
         if filesExist:
             # Continue with starting the GeoSAMS simulation ----------------------------------------------------------------------
             # 
             # typical command line:
             # > ./SRC/ScallopPopDensity.exe Scallop.cfg StartYear StopYear Domain
-            ex = os.path.join(self.root, 'SRC', 'ScallopPopDensity')
+            ex = os.path.join('SRC', 'ScallopPopDensity')
             # ScallopPopDensity prepends directory structure to simConfigFile
             cmd = [ex, simConfigFile, startYear, stopYear, self.domainName]
             print(cmd)
-            messagebox.showinfo("GeoSAMS Sim", "Program Started")
+            messagebox.showinfo("GeoSAMS Sim", f"Program Started: {cmd}")
             result = subprocess.run(cmd)
 
             if result.returncode == 0:
@@ -266,7 +255,6 @@ class MainApplication(tk.Tk):
     #    self.yearStop
     #    self.simConfigFile ( in call to ReadSimConfigFile)
     #    self.ukCfgFile
-    #    self.savedByStratum 
     #    self.paramStr
     # 
     # prefix for the concatenated files,  Output file name is in the form:
@@ -300,21 +288,15 @@ class MainApplication(tk.Tk):
         self.ReadSimConfigFile()
 
         # Determine which if any file suffixes are needed
-        if self.domainName=='MA': self.savedByStratum = False
-        if self.savedByStratum:
-            # Only GB and AL use savedByStratum
-            if self.domainName=='GB':
-                # rgn = ['_SW', '_N', '_S', '_W']
-                rgn = ['_GB']
-            else:
-                # This would be AL
-                #rgn = ['_SW', '_N', '_S', '_W', '_MA']
-                rgn = ['_GB', '_MA']
+        if self.domainName=='GB':
+            # rgn = ['_SW', '_N', '_S', '_W']
+            rgn = ['_GB']
+        elif self.domainName=='MA':
+            rgn = ['_MA']
         else:
-            # This would be just MA and, since MA forces savedByStratum to false, it does NOT append the domain suffix
-            # i.e. Data/X_Y_LPUE_MA2015_0_MA.csv
-            #                             ^^
-            rgn = ['']
+            # This would be AL
+            #rgn = ['_SW', '_N', '_S', '_W', '_MA']
+            rgn = ['_GB', '_MA']
 
         # ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
         #  INTERPOLATE AND CONCATENATE REGIONS INTO SINGLE FILE
@@ -395,10 +377,7 @@ class MainApplication(tk.Tk):
                         k  += 1
 
                     # brute force write out results
-                    if self.savedByStratum:
-                        flout = open(pfix + pStr + self.domainName + r + '.csv', 'w')
-                    else:
-                        flout = open(pfix + pStr + self.domainName + '_' + str(self.yearStart) + '_' + str(self.yearStop) + '.csv', 'w')
+                    flout = open(pfix + pStr + self.domainName + r + '.csv', 'w')
                     for row in range(len(col[0][0])):
                         for c in range(ncols):
                             flout.write(col[0][c][row])
@@ -409,25 +388,20 @@ class MainApplication(tk.Tk):
                 # end for pfix
             # end for rgn
 
-            if self.savedByStratum:
-                # now combine all region files into one file
-                for pfix in prefix:
-                    flout = pfix + pStr + self.domainName + '_' + str(self.yearStart) + '_' + str(self.yearStop) + '.csv'
-                    wrFile = open(flout, 'w')
-                    for r in rgn:
-                        flin = pfix + pStr + self.domainName + r + '.csv'
-                        rdFile = open(flin, 'r')
-                        lines = rdFile.readlines()
-                        wrFile.writelines(lines)
-                        rdFile.close()
-                        os.remove(flin)
-                    wrFile.close()
-                    print('Files concatenated to: ',flout)
-                # end for pfix
-            else:
-                print('Files concatenated to: ',flout.name)
-
-            # end savedByStratum
+            # now combine all region files into one file
+            for pfix in prefix:
+                flout = pfix + pStr + self.domainName + '_' + str(self.yearStart) + '_' + str(self.yearStop) + '.csv'
+                wrFile = open(flout, 'w')
+                for r in rgn:
+                    flin = pfix + pStr + self.domainName + r + '.csv'
+                    rdFile = open(flin, 'r')
+                    lines = rdFile.readlines()
+                    wrFile.writelines(lines)
+                    rdFile.close()
+                    os.remove(flin)
+                wrFile.close()
+                print('Files concatenated to: ',flout)
+            # end for pfix
         # end for pStr
 
         # ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++   
@@ -474,8 +448,6 @@ class MainApplication(tk.Tk):
         with open(simCfgFile, 'w') as f:
             f.write('# input file for Scallops \n')
             f.write('Time steps per Year = ' + str(self.frame1.tsPerYear.myEntry.get())+'\n')
-            f.write('Save By Stratum = '     + str(self.frame1.useStratumCombo.get())+'\n')
-            f.write('Use HabCam Data = '     + str(self.frame1.usingHabCam.get())[0]+'\n')
             f.write('# Configuration files are expected to be in the Configuration directory\n')
             f.write('Mortality Config File = '   + self.frame1.mortCfgFile.myEntry.get() + '\n')
             f.write('Recruit Config File = '     + self.frame1.recrCfgFile.myEntry.get() + '\n')
@@ -729,10 +701,6 @@ class MainApplication(tk.Tk):
                 self.paramVal += 256
             elif (tag == 'Time steps per Year'):
                 self.tsPerYear = int(value)
-            elif (tag == 'Save By Stratum'):
-                self.savedByStratum = value[0] == 'T'
-            elif (tag == 'Use HabCam Data'):
-                self.useHabCamData = value[0] == 'T'
 
     ## 
     # Read in the (tag, value) parameters from the UK configuration file.

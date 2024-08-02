@@ -97,7 +97,6 @@ type(LonLatVector), PRIVATE :: area(max_num_areas)
 integer, PRIVATE :: num_areas ! number of special access areas
 integer, PRIVATE :: num_grids
 logical, PRIVATE :: use_spec_access_data
-logical, PRIVATE :: use_habcam_data
 character(domain_len), PRIVATE :: domain_name
 character(fname_len), PRIVATE :: config_file_name
 character(fname_len), PRIVATE :: init_cond_fname
@@ -139,22 +138,20 @@ endfunction Set_Num_Grids
 !> Initializes growth for startup
 !>
 !==================================================================================================================
-subroutine Set_Grid_Manager(state_mat, grid, ngrids, dom_name, use_hc)
+subroutine Set_Grid_Manager(state_mat, grid, ngrids, dom_name)
 integer, intent(inout) :: ngrids
 real(dp), intent(out):: state_mat(1:ngrids, 1:num_size_classes)
 type(Grid_Data_Class), intent(out) :: grid(*)
 character(domain_len), intent(in) :: dom_name
-logical, intent(in) :: use_hc
 
-integer n, j
+integer n, j, k
 character(fname_len) fname
 
 ! set private variables
 domain_name = dom_name
-use_habcam_data = use_hc
 
 ! Used to verify grid in special access area
-fname = 'Results\SurveyLoc.txt'
+fname = 'Results/SurveyLoc.txt'
 open(70, file=trim(fname))
 
 ! default value if 'Special Access Config File' is not specified
@@ -181,14 +178,15 @@ write(*,*) '========================================================'
 do n = 1, num_grids
     ! Check if any grids are in a special access
     j = Is_Grid_In_Special_Access(grid(n)%lon, grid(n)%lat)
+    k = int(Logic_To_Double(grid(n)%lon .LE. ma_gb_border)) + 1
     if (j > 0) then
         grid(n)%special_access_index = j
-        write(70,'(A, I4, A, F5.0, A, F8.3, A, F8.3, A, L1, A, I2)') 'Survey #', n, ' Stratum #', grid(n)%stratum, &
-        &  ' location (lat, lon) (', grid(n)%lat, ',', grid(n)%lon, ' )  Is Closed:', &
+        write(70,'(A, I4, A, F5.0, A, A, A, F8.3, A, F8.3, A, L1, A, I2)') 'Survey #', n, ' Stratum #', grid(n)%stratum, &
+        &  ' Region ', rgn(k), ' location (lat, lon) (', grid(n)%lat, ',', grid(n)%lon, ' )  Is Closed:', &
         &  grid(n)%is_closed, ' and is found in special area ', j
     else
-        write(70,'(A, I4, A, F5.0, A, F8.3, A, F8.3, A, L1)') 'Survey #', n, ' Stratum #', grid(n)%stratum, &
-        &   ' location (lat, lon) (', grid(n)%lat, ',', grid(n)%lon, ' )  Is Closed:', grid(n)%is_closed
+        write(70,'(A, I4, A, F5.0, A, A, A, F8.3, A, F8.3, A, L1)') 'Survey #', n, ' Stratum #', grid(n)%stratum, &
+        &  ' Region ', rgn(k), ' location (lat, lon) (', grid(n)%lat, ',', grid(n)%lon, ' )  Is Closed:', grid(n)%is_closed
     endif
 enddo
 ! Only used for debugging special access settings
@@ -353,7 +351,7 @@ integer function Load_Grid_State(grid, state_mat)
     real(dp), intent(out):: state_mat(1:num_grids, 1:num_size_classes)
 
     character(csv_line_len) input_str
-    integer n, io, is_closed, region
+    integer n, io, is_closed
 
     if (init_cond_fname .eq. "") then
         write(*,*) term_red, '"Initial Conditions" is not defined, Check setting in GridManager.cfg', term_blk
@@ -373,20 +371,8 @@ integer function Load_Grid_State(grid, state_mat)
         read(input_str,*) grid(n)%year, grid(n)%x, grid(n)%y, grid(n)%lat, grid(n)%lon, grid(n)%z, &
         &               is_closed, grid(n)%stratum, state_mat(n,1:num_size_classes)
 
-        ! if region is GB, determine if survey data is in GB region
-        if (grid(n)%lon > ma_gb_border) then
-            region = Get_Region(grid(n)%lat, grid(n)%lon, grid(n)%stratum) 
-            if ((region > region_none) .AND. (region .NE. region_MA )) then
-                grid(n)%is_closed = (is_closed > 0)
-                grid(n)%special_access_index = 0
-            else
-                print *, term_red, n, grid(n)%year, grid(n)%x, grid(n)%y, grid(n)%lat, grid(n)%lon, grid(n)%z, term_blk
-                n = n - 1 ! skip this data
-            endif
-        else
-            grid(n)%is_closed = (is_closed > 0)
-            grid(n)%special_access_index = 0
-        endif
+        grid(n)%is_closed = (is_closed > 0)
+        grid(n)%special_access_index = 0
     end do
     close(63)
     write(*,*) term_blu, 'READ ', n, 'GRIDS', term_blk
@@ -590,92 +576,5 @@ logical function Point_In_Polygon_Vector(polyX, polyY, x, y, nodes)
 
     return
 endfunction Point_In_Polygon_Vector
-
-!--------------------------------------------------------------------------------------------------
-!! Get_Region
-!> Returns a region number based on stratum
-!> 0: not used
-!> 1: region_N North region
-!> 2: region_S South region
-!> 3: region_SW Southwest region
-!> 4: region_W West region
-!> 5: region_MA Entire Mid-Atlantic Region
-!> Inputs:
-!> grid: locations of survey data
-!--------------------------------------------------------------------------------------------------
-! Tom Callaghan
-!--------------------------------------------------------------------------------------------------
-integer function Get_Region(lat, lon, stratum_real)
-use globals
-implicit none
-real(dp), intent(in) :: lat, lon, stratum_real
-
-integer stratum, result
-
-result = region_none
-stratum = int(stratum_real)
-
-! if (use_habcam_data) then
-!     if (stratum<6410) then
-!         result=region_MAB;
-!     elseif (stratum<6860) then
-!         result=region_GBK;
-!     elseif (stratum<6960) then
-!         result=region_MAB;
-!     else
-!         result=region_GBK;
-!     endif
-! else
-    if (stratum < 6400) then
-        result = region_MA
-    elseif( (stratum < 6460) .OR. (stratum .EQ. 6652) .OR. (stratum .EQ. 6662) ) then
-        result = region_none
-    elseif (stratum < 6490) then
-        if ((lat > 40.7_dp) .AND. (lon > -69.35_dp)) then
-            result = region_W
-        else
-            result = region_SW
-        endif
-    elseif (stratum < 6530) then
-        result = region_W
-    elseif (stratum < 6560) then
-        result = region_N
-    elseif (stratum < 6610) then
-        result = region_S
-    elseif (stratum < 6622) then
-        result = region_S
-    elseif (stratum < 6651) then
-        result = region_none
-    elseif (stratum < 6680) then
-        result = region_N
-    elseif (stratum < 6710) then
-        result = region_none
-    elseif (stratum < 6730) then
-        result = region_N
-    elseif (stratum < 6740) then
-        result = region_none
-    elseif (stratum < 6960) then
-        if (stratum .EQ. 6740) then
-            if (lat > 41.5_dp) then
-                if (lon < -67.14) then
-                    result = region_none
-                else
-                    result = region_N
-                endif
-            else 
-                result = region_S
-            endif
-        else
-            result = region_none
-        endif
-    else
-        result = region_none
-    endif
-! endif
-
-Get_Region = result
-
-endfunction Get_Region
-
 
 endmodule Grid_Manager_Mod

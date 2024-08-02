@@ -8,7 +8,7 @@
 % VIMSRSA ==> 4444
 % NMFSSHRP ==> 5555
 % ALL ==> 0
-function PullOutRecruitData(src, useHabCam)
+function PullOutRecruitData(src, useHabCam, appendResults)
 
 isOctave = (exist('OCTAVE_VERSION', 'builtin') ~= 0);
 
@@ -17,7 +17,8 @@ if isOctave
     arg_list=argv();
     if ~strcmp(arg_list(1), '--gui');
         src = str2num(cell2mat(arg_list(1)));
-        useHabCam = cell2mat(arg_list(1));
+        useHabCam = cell2mat(arg_list(2));
+        appendResults = cell2mat(arg_list(3));
     else
         src = str2num(src);
     end
@@ -25,44 +26,105 @@ end
 srcText = src;
 
 useHC = strcmp(useHabCam, 'T');
+
+% Need these header data used by ProcessRecruitData
+% Year Month Day Lat Lon Z recr
 if useHC
+    header = { 'year','month','day','station','lat','lon','xutm','yutm','setdpth','sizegrp','surv_n',...
+                'SQM','NImages','area','stratum','clop'};
+    yearCol    = find(strcmpi('year', header), 1);
+    monCol     = find(strcmpi('month', header), 1);
+    dayCol     = find(strcmpi('day', header), 1);
+    latCol     = find(strcmpi('lat'    , header), 1);
+    lonCol     = find(strcmpi('lon'    , header), 1);
+    utmxCol    = find(strcmpi('xutm'   , header), 1);
+    utmyCol    = find(strcmpi('yutm'   , header), 1);
+    zCol       = find(strcmpi('setdpth', header), 1);
+    sgCol      = find(strcmpi('sizegrp', header), 1);
+    svCol      = find(strcmpi('surv_n' , header), 1);
+    sqmCol     = find(strcmpi('SQM'    , header), 1);
     srcText = 0;
-    sgCol = 10;
-    svCol = 11;
-	srcCol = 16;  % not used for HabCam data
-    flnm = 'OriginalData/Habcam_BySegment_2000_2014-2019.csv';
+    dataFile = getenv('HabCamFile');
+    flnm = ['OriginalData/',dataFile,'.csv'];
 else
-    sgCol = 27;
-    svCol = 30;
-	srcCol = 37;
-    flnm = 'OriginalData/dredgetowbysize7917.csv';
+    dataFile = getenv('DredgeFile');
+    if strcmpi(dataFile, 'NONE')
+        %nothing to do
+        % remove data file so HabCam does not append to old data
+        flnm = 'OriginalData/NewRecruits.csv';
+        if exist(flnm, 'file')==2
+            delete(flnm)
+        end
+        return
+    end
+    header = { 'area','subarea','cruise6','year','month','day','time','stratum','tow','station',...
+               'statype','SVGEAR','haul','gearcon','sdefid','newstra','clop','lat','lon','tnms',...
+               'setdpth','bottemp','dopdisb','distused','towadj','towdur','sizegrp','catchnu',...
+               'catchwt','surv_n','partrecn','fullrecn','surv_b','partrecb','fullrecb','postow',...
+               'datasource','lwarea','SETLW','SVSPP','PropChains','AREAKIND','STRATMAP','SQNM', 'UTM X', 'UTM Y'};
+    yearCol    = find(strcmpi('year', header), 1);
+    monCol     = find(strcmpi('month', header), 1);
+    dayCol     = find(strcmpi('day',   header), 1);
+    latCol     = find(strcmpi('lat'    , header), 1);
+    lonCol     = find(strcmpi('lon'    , header), 1);
+    utmxCol    = find(strcmpi('UTM X'   , header), 1);
+    utmyCol    = find(strcmpi('UTM Y'   , header), 1);
+    zCol       = find(strcmpi('setdpth', header), 1);
+    sgCol      = find(strcmpi('sizegrp', header), 1);
+    svCol      = find(strcmpi('surv_n' , header), 1);
+    srcCol     = find(strcmpi('datasource', header), 1);
+    flnm = ['OriginalData/',dataFile,'.csv'];
 end
-    
+
 
 fprintf('Reading from %s\n', flnm)
 
 if isOctave
-  F=csvreadK(flnm);
-  size_grp = F(:,sgCol);
-  survn = F(:,svCol);
-  dataSrc = F(:,srcCol);
+    F=csvreadK(flnm);
+    size_grp = F(:,sgCol);
+    survn = F(:,svCol);
+    if (useHC)
+        sqm = F(:,sqmCol);
+    else
+        dataSrc = F(:,srcCol);
+    end
 else
-  warning('OFF', 'MATLAB:table:ModifiedAndSavedVarnames')
-  F= readtable(flnm,"FileType","text");
-  size_grp = table2array(F(:,sgCol));
-  survn = table2array(F(:,svCol));
-  dataSrc = table2array(F(:,srcCol));
+    F= readtable(flnm,"FileType","text");
+    size_grp = table2array(F(:,sgCol));
+    survn = table2array(F(:,svCol));
+    if (useHC)
+        sqm = table2array(F(:,sqmCol));
+    else
+        dataSrc = table2array(F(:,srcCol));
+    end
 end
 
-if srcText == 0
+% Area of survey is determined differently between HabCam and Dredge
+% Dredge is a known size determined by width of dredge and tow length
+% HabCam is determined from focal length and captured in the survey file in SQM column
+if useHC
+    survn = survn ./ sqm;
     n=find(size_grp==3);
+    recr = zeros(1, numel(n));
+    for k=1:numel(n)
+        % sum 3cm to 6 cm
+        recr(k) = sum(survn(n(k)+1:n(k)+6));
+    end
 else
-    n=find(size_grp==3 & dataSrc==srcText);
-end
-recr = zeros(1, numel(n));
-for k=1:numel(n)
-    % sum 3cm to 6 cm
-    recr(k) = sum(survn(n(k)+1:n(k)+6));
+    if srcText == 0
+        n=find(size_grp==3);
+    else
+        n=find(size_grp==3 & dataSrc==srcText);
+    end
+    recr = zeros(1, numel(n));
+    for k=1:numel(n)
+        % sum 3cm to 6 cm
+        recr(k) = sum(survn(n(k)+1:n(k)+6));
+    end
+    % convert recruits from count to density per square meters
+    towArea_sqm = 4516;
+    T2M2=1./towArea_sqm;
+    recr = recr * T2M2;
 end
 
 if isOctave
@@ -70,16 +132,27 @@ if isOctave
 else
     recr_t = array2table(transpose(recr),'VariableNames',{'rec'});
 end
+
 if srcText == 0
-    j=size_grp==4; M = [F(j,:) recr_t];
+    j=size_grp==4;
 else
-    j=size_grp==4 & dataSrc==srcText; M = [F(j,:) recr_t];
+    j=size_grp==4 & dataSrc==srcText;
 end
+
+M = [F(j,yearCol) F(j,monCol) F(j,dayCol) F(j,latCol) F(j,lonCol) F(j, utmxCol) F(j, utmyCol) F(j,zCol) recr_t];
 
 flnm = 'OriginalData/NewRecruits.csv';
 
 if isOctave
-  csvwrite(flnm, M);
+    if strcmp(appendResults(1), 'T') && useHC
+        dlmwrite(flnm, M, "-append")
+    else
+        dlmwrite(flnm,M);
+    end
 else
-  writetable(M,flnm);
+    if strcmp(appendResults(1), 'T') && useHC
+        writetable(M,flnm,'WriteVariableNames',0,'WriteMode','append');
+    else
+        writetable(M,flnm,'WriteVariableNames',0);
+    end
 end

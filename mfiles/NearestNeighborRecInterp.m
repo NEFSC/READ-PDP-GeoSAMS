@@ -19,7 +19,7 @@ if ~strcmp(domain, 'GB') & ~strcmp(domain, 'MA') & ~strcmp(domain, 'AL')
     fprintf( "Use: 'MA' or 'GB' or 'AL'\n" )
     return;
 end
-  
+
 fl0=strcat('Data/Recruits',int2str(yrStart),domain,'.csv');
 fl2=strcat('RecruitEstimates/RecruitEstimate',domain,int2str(yrStart),'.txt');
 fl2Rand=strcat('RecruitEstimates/RecruitEstimateRand',domain,int2str(yrStart),'.txt');
@@ -40,7 +40,6 @@ if isOctave
     dlmwrite(fid, r);
     fclose(fid);
 else
-    warning('OFF', 'MATLAB:table:ModifiedAndSavedVarnames')
     D=readtable(fl0,"FileType","spreadsheet");
     dyr0=table2array(D(:,1));
     x0=table2array(D(:,2));

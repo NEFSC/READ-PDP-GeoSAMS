@@ -1,3 +1,4 @@
+warning('OFF', 'MATLAB:table:ModifiedAndSavedVarnames')
 % needed paths
 addpath mfiles\
 addpath mfiles\latlonutm\

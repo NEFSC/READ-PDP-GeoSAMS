@@ -21,11 +21,24 @@
 #    - Lat_Lon_Surv_AAAA_DN_YYYY_scale.pdf
 #       same as above shows the original data plotted at the survey locations.
 
+if [ "'$HabCamFile'" == "''" ]
+then
+    echo [31mEnv Variable Not Set[0m
+    echo "For example > export HabCamFile='Habcam_BySegment_2000_2014-2020'"
+    exit 1
+fi
 
-if [ $# -ne 6 ] 
+if [ "'$DredgeFile'" == "''" ]
+then
+    echo [31mEnv Variable Not Set[0m
+    echo "For example > export DredgeFile='dredgetowbysize7917'"
+    exit 1
+fi
+
+if [ $# -ne 5 ] 
 then
     echo [31mMissing arguments[0m
-    echo Expecting: Unpack.sh YYYYstart YYYYend DataSource# Domain "M|O" "H|D"
+    echo Expecting: Unpack.sh YYYYstart YYYYend DataSource# Domain "M|O"
     echo Data Source
     echo "    NMFS_ALB ==> 1111"
     echo "    CANADIAN ==> 2222"
@@ -40,9 +53,6 @@ then
     echo "Math Args"
     echo "    M: use Matlab"
     echo "    O: use Octave"
-    echo "Data Source Args"
-    echo "    H: pull data from HabCam Data"
-    echo "    D: pull data from Dredge Survey Data"
     exit
 fi
 
@@ -78,29 +88,21 @@ then
     exit
 fi
 
-if [[ "$6" != "H" && "$6" != "D" ]] 
-then
-    echo [31mInvalid Data Source Arg: [0m "$6"
-    echo Math Arg
-    echo "    H: Pull From HabCam Data"
-    echo "    D: Pull From Dredge Survey Data"
-    exit
+# unzip Dredge Data
+if [ "$DredgeFile" != "NONE" ]; then 
+if [ ! -f "OriginalData/$DredgeFile.csv" ]; then
+    cd "OriginalData/"
+    unzip $DredgeFile.zip
+    cd ..
+fi
+fi
+# unzip HabCam Data
+if [ ! -f "OriginalData/$HabCamFile.csv" ]; then
+    cd "OriginalData/"
+    unzip $HabCamFile.zip
+    cd ..
 fi
 
-if [ "$6" == "D" ]; then 
-# unzip dredge data
-if [ ! -f "OriginalData/dredgetowbysize7917.csv" ]; then
-    cd "OriginalData/"
-    unzip dredgetowbysize7917.zip
-    cd ..
-fi
-else
-if [ ! -f "OriginalData/Habcam_BySegment_2000_2014-2019.csv" ]; then
-    cd "OriginalData/"
-    unzip Habcam_BySegment_2000_2014-2019.zip
-    cd ..
-fi
-fi
 # Create Directories used by GeoSAMS
 if [ ! -d "GrowthOutput" ]; then
     mkdir GrowthOutput
@@ -156,73 +158,79 @@ make
 cd ..
 
 # Pull Out Survey Data --------------------------------------------------------------
-if [[ "$5" == "M" && "$6" == "D" ]]; then 
-echo [33mmatlab.exe -batch "TrawlData5mmbin(%1, %2, %3, '%4'); exit;"[0m
-matlab.exe -batch "TrawlData5mmbin(%1, %2, %3, '%4'); exit;"
-fi
-if [ $? != 0 ]; then
-    echo [31mError in Matlab TrawlData5mmbin. Stopping[0m
-    exit 1
-fi
-
-if [[ "$5" == "M" && "$6" == "H" ]]; then 
-echo [33mmatlab.exe -batch "HabCamData5mmbin(%1, %2, '%4'); exit;"[0m
-matlab.exe -batch "HabCamData5mmbin(%1, %2, '%4'); exit;"
-fi
-if [ $? != 0 ]; then
-    echo [31mError in Matlab HabCamData5mmbin. Stopping[0m
-    exit 1
-fi
-
-if [[ "$5" == "O" && "$6" == "D" ]]; then 
-echo [33moctave PreProcess/TrawlData5mmbin.m $1 $2 $3 $4[0m
-octave PreProcess/TrawlData5mmbin.m $1 $2 $3 $4
-fi
-if [ $? != 0 ]; then
-    echo [31mError in Octave TrawlData5mmbin. Stopping[0m
-    exit 1
-fi
-
-if [[ "$5" == "O" && "$6" == "H" ]]; then 
-echo [33moctave PreProcess/HabCamData5mmbin.m $1 $2 $4[0m
-octave PreProcess/HabCamData5mmbin.m $1 $2 $4
-fi
-if [ $? != 0 ]; then
-    echo [31mError in Octave HabCamData5mmbin. Stopping[0m
-    exit 1
-fi
-
-# Pull Out Recruit Data --------------------------------------------------------------
-if [ "$6" == "H" ]; then
-hcChar='T'
-else
-hcChar='F'
-fi
+# Both Dredge and appending HabCan
 if [ "$5" == "M" ]; then 
-echo [33mmatlab.exe -batch "PullOutRecruitData(%3, $hcChar); exit;"[0m
-matlab.exe -batch "PullOutRecruitData(%3); exit;"
-fi
-if [ $? != 0 ]; then
-    echo [31mError in Matlab PullOutRecruitData. Stopping[0m
-    exit 2
-fi
+    echo [33mmatlab.exe -batch "TrawlData5mmbin(%1, %2, %3, '%4'); exit;"[0m
+    matlab.exe -batch "TrawlData5mmbin(%1, %2, %3, '%4'); exit;"
+    if [ $? != 0 ]; then
+        echo [31mError in Matlab TrawlData5mmbin. Stopping[0m
+        exit 1
+    fi
+
+    echo [33mmatlab.exe -batch "HabCamData5mmbin(%1, %2, '%4', 'T'); exit;"[0m
+    matlab.exe -batch "HabCamData5mmbin(%1, %2, '%4', 'T'); exit;"
+    if [ $? != 0 ]; then
+        echo [31mError in Matlab HabCamData5mmbin. Stopping[0m
+        exit 1
+    fi
+fi # end if MATLAB
 
 if [ "$5" == "O" ]; then 
-echo [33moctave PreProcess/PullOutRecruitData.m $3 $hcChar[0m
-octave PreProcess/PullOutRecruitData.m $3 $hcChar
-fi
-if [ $? != 0 ]; then
-    echo [31mError in Octave PullOutRecruitData. Stopping[0m
-    exit 2
-fi
+    echo [33moctave PreProcess/TrawlData5mmbin.m $1 $2 $3 $4[0m
+    octave PreProcess/TrawlData5mmbin.m $1 $2 $3 $4
+    if [ $? != 0 ]; then
+        echo [31mError in Octave TrawlData5mmbin. Stopping[0m
+        exit 1
+    fi
+
+    echo [33moctave PreProcess/HabCamData5mmbin.m $1 $2 $4 T[0m
+    octave PreProcess/HabCamData5mmbin.m $1 $2 $4 T
+    if [ $? != 0 ]; then
+        echo [31mError in Octave HabCamData5mmbin. Stopping[0m
+        exit 1
+    fi
+fi # end using OCTAVE
+
+# Pull Out Recruit Data --------------------------------------------------------------
+if [ "$5" == "M" ]; then 
+    echo [33mmatlab.exe -batch "PullOutRecruitData(%3, 'F', 'F'); exit;"[0m
+    matlab.exe -batch "PullOutRecruitData(%3, 'F', 'F'); exit;"
+    if [ $? != 0 ]; then
+        echo [31mError in Matlab PullOutRecruitData Dredge. Stopping[0m
+        exit 2
+    fi
+
+    echo [33mmatlab.exe -batch "PullOutRecruitData(%3, 'T', 'T'); exit;"[0m
+    matlab.exe -batch "PullOutRecruitData(%3, 'T', 'T'); exit;"
+    if [ $? != 0 ]; then
+        echo [31mError in Matlab PullOutRecruitData HabCam. Stopping[0m
+        exit 2
+    fi
+fi #end if MATLAB
+
+if [ "$5" == "O" ]; then 
+    echo [33moctave PreProcess/PullOutRecruitData.m $3 F F[0m
+    octave PreProcess/PullOutRecruitData.m $3 F F
+    if [ $? != 0 ]; then
+        echo [31mError in Octave PullOutRecruitData. Stopping[0m
+        exit 2
+    fi
+
+    echo [33moctave PreProcess/PullOutRecruitData.m $3 T T[0m
+    octave PreProcess/PullOutRecruitData.m $3 T T
+    if [ $? != 0 ]; then
+        echo [31mError in Octave PullOutRecruitData. Stopping[0m
+        exit 2
+    fi
+fi # end if using OCTAVE
 
 # Process Recruit Data --------------------------------------------------------------
 if [ "$5" == "M" ]; then
-echo [33mmatlab.exe -batch "ProcessRecruitData($1, $2, '$4', $hcChar); exit;"[0m
+echo [33mmatlab.exe -batch "ProcessRecruitData($1, $2, '$4'); exit;"[0m
 matlab.exe -batch "ProcessRecruitData($1, $2, '$4', $hcChar); exit;"
 else
-echo [33moctave PreProcess/ProcessRecruitData.m $1 $2 $4 $hcChar[0m
-octave PreProcess/ProcessRecruitData.m $1 $2 $4 $hcChar
+echo [33moctave PreProcess/ProcessRecruitData.m $1 $2 $4 [0m
+octave PreProcess/ProcessRecruitData.m $1 $2 $4
 fi
 if [ $? != 0 ]; then
     echo [31mError in octave ProcessRecruitData. Stopping[0m

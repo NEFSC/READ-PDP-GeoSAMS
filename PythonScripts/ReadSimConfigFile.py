@@ -39,9 +39,7 @@ def ReadSimConfigFile(simCfgFile):
                     paramStr.append('RECR_')
                 elif (tag == 'Time steps per Year'):
                     tsInYear = int(value)
-                elif (tag == 'Save By Stratum'):
-                    savedByStratum = value[0] == 'T'
 
-    return [paramStr, tsInYear, savedByStratum]
+    return [paramStr, tsInYear]
 
 

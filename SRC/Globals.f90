@@ -80,7 +80,9 @@ character(*), parameter :: config_dir_special = 'Configuration/SpecialAccess/'
 character(*), parameter :: grid_dir = 'Grids/'
 character(*), parameter :: data_dir = 'Data/'
 
-
+integer, parameter :: num_regions = 2
+!character(3) :: rgn(num_regions) = (/ '_N ', '_S ', '_SW', '_W ', '_MA'/)
+character(3) :: rgn(num_regions) = (/ '_GB', '_MA'/)
 
 CONTAINS
 
