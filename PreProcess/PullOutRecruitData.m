@@ -30,39 +30,50 @@ useHC = strcmp(useHabCam, 'T');
 % Need these header data used by ProcessRecruitData
 % Year Month Day Lat Lon Z recr
 if useHC
-    header = { "year","month","day","station","lat","lon","xutm","yutm","setdpth","sizegrp","surv_n",...
-                "SQM","NImages","area","stratum","clop"};
-    yearCol    = find(strcmpi("year", header), 1);
-    monCol     = find(strcmpi("month", header), 1);
-    dayCol     = find(strcmpi("day", header), 1);
-    latCol     = find(strcmpi("lat"    , header), 1);
-    lonCol     = find(strcmpi("lon"    , header), 1);
-    utmxCol    = find(strcmpi("xutm"   , header), 1);
-    utmyCol    = find(strcmpi("yutm"   , header), 1);
-    zCol       = find(strcmpi("setdpth", header), 1);
-    sgCol      = find(strcmpi("sizegrp", header), 1);
-    svCol      = find(strcmpi("surv_n" , header), 1);
-    sqmCol     = find(strcmpi("SQM"    , header), 1);
+    header = { 'year','month','day','station','lat','lon','xutm','yutm','setdpth','sizegrp','surv_n',...
+                'SQM','NImages','area','stratum','clop'};
+    yearCol    = find(strcmpi('year', header), 1);
+    monCol     = find(strcmpi('month', header), 1);
+    dayCol     = find(strcmpi('day', header), 1);
+    latCol     = find(strcmpi('lat'    , header), 1);
+    lonCol     = find(strcmpi('lon'    , header), 1);
+    utmxCol    = find(strcmpi('xutm'   , header), 1);
+    utmyCol    = find(strcmpi('yutm'   , header), 1);
+    zCol       = find(strcmpi('setdpth', header), 1);
+    sgCol      = find(strcmpi('sizegrp', header), 1);
+    svCol      = find(strcmpi('surv_n' , header), 1);
+    sqmCol     = find(strcmpi('SQM'    , header), 1);
     srcText = 0;
-    flnm = 'OriginalData/Habcam_BySegment_2000_2014-2020.csv';
+    dataFile = getenv('HabCamFile');
+    flnm = ['OriginalData/',dataFile,'.csv'];
 else
-    header = { "area","subarea","cruise6","year","month","day","time","stratum","tow","station",...
-               "statype","SVGEAR","haul","gearcon","sdefid","newstra","clop","lat","lon","tnms",...
-               "setdpth","bottemp","dopdisb","distused","towadj","towdur","sizegrp","catchnu",...
-               "catchwt","surv_n","partrecn","fullrecn","surv_b","partrecb","fullrecb","postow",...
-               "datasource","lwarea","SETLW","SVSPP","PropChains","AREAKIND","STRATMAP","SQNM", "UTM X", "UTM Y"};
-    yearCol    = find(strcmpi("year", header), 1);
-    monCol     = find(strcmpi("month", header), 1);
-    dayCol     = find(strcmpi("day",   header), 1);
-    latCol     = find(strcmpi("lat"    , header), 1);
-    lonCol     = find(strcmpi("lon"    , header), 1);
-    utmxCol    = find(strcmpi("UTM X"   , header), 1);
-    utmyCol    = find(strcmpi("UTM Y"   , header), 1);
-    zCol       = find(strcmpi("setdpth", header), 1);
-    sgCol      = find(strcmpi("sizegrp", header), 1);
-    svCol      = find(strcmpi("surv_n" , header), 1);
-    srcCol     = find(strcmpi("datasource", header), 1);
-    flnm = 'OriginalData/dredgetowbysize7917.csv';
+    dataFile = getenv('DredgeFile');
+    if strcmpi(dataFile, 'NONE')
+        %nothing to do
+        % remove data file so HabCam does not append to old data
+        flnm = 'OriginalData/NewRecruits.csv';
+        if exist(flnm, 'file')==2
+            delete(flnm)
+        end
+        return
+    end
+    header = { 'area','subarea','cruise6','year','month','day','time','stratum','tow','station',...
+               'statype','SVGEAR','haul','gearcon','sdefid','newstra','clop','lat','lon','tnms',...
+               'setdpth','bottemp','dopdisb','distused','towadj','towdur','sizegrp','catchnu',...
+               'catchwt','surv_n','partrecn','fullrecn','surv_b','partrecb','fullrecb','postow',...
+               'datasource','lwarea','SETLW','SVSPP','PropChains','AREAKIND','STRATMAP','SQNM', 'UTM X', 'UTM Y'};
+    yearCol    = find(strcmpi('year', header), 1);
+    monCol     = find(strcmpi('month', header), 1);
+    dayCol     = find(strcmpi('day',   header), 1);
+    latCol     = find(strcmpi('lat'    , header), 1);
+    lonCol     = find(strcmpi('lon'    , header), 1);
+    utmxCol    = find(strcmpi('UTM X'   , header), 1);
+    utmyCol    = find(strcmpi('UTM Y'   , header), 1);
+    zCol       = find(strcmpi('setdpth', header), 1);
+    sgCol      = find(strcmpi('sizegrp', header), 1);
+    svCol      = find(strcmpi('surv_n' , header), 1);
+    srcCol     = find(strcmpi('datasource', header), 1);
+    flnm = ['OriginalData/',dataFile,'.csv'];
 end
 
 
@@ -78,7 +89,6 @@ if isOctave
         dataSrc = F(:,srcCol);
     end
 else
-    warning('OFF', 'MATLAB:table:ModifiedAndSavedVarnames')
     F= readtable(flnm,"FileType","text");
     size_grp = table2array(F(:,sgCol));
     survn = table2array(F(:,svCol));
@@ -138,11 +148,11 @@ if isOctave
         dlmwrite(flnm, M, "-append")
     else
         dlmwrite(flnm,M);
-    endif
+    end
 else
     if strcmp(appendResults(1), 'T') && useHC
-        writematrix(M,flnm,'WriteMode','append')
+        writetable(M,flnm,'WriteVariableNames',0,'WriteMode','append');
     else
-        writematrix(M,flnm);
-    endif
+        writetable(M,flnm,'WriteVariableNames',0);
+    end
 end

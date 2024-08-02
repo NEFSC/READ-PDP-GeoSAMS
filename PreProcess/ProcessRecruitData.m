@@ -43,7 +43,6 @@ if isOctave
   mon=F(:,monCol);
   day=F(:,dayCol);
 else
-  warning('OFF', 'MATLAB:table:ModifiedAndSavedVarnames')
   F= readtable(flnm,"FileType","text");
   year=table2array(F(:,yrCol));
   mon=table2array(F(:,monCol));
@@ -122,7 +121,6 @@ fprintf('Reading from to %s\n', flnm)
 if isOctave
     F=csvreadK(flnm);
 else
-    warning('OFF', 'MATLAB:table:ModifiedAndSavedVarnames')
     F=table2array(readtable(flnm,'PreserveVariableNames', true));
 end
 
@@ -198,7 +196,6 @@ if isOctave
     Depth=F(:,6);
     rec=F(:,9);
 else
-    warning('OFF', 'MATLAB:table:ModifiedAndSavedVarnames')
     F=readtable(flnm,"FileType","text");
     DecYr=table2array(F(:,1));
     lat=table2array(F(:,2));
@@ -230,7 +227,6 @@ if isOctave
     F=csvreadK(flnm);
     DecYr=F(:,1);
 else
-    warning('OFF', 'MATLAB:table:ModifiedAndSavedVarnames')
     F=readtable(flnm,"FileType","text");
     DecYr=table2array(F(:,1));
 end

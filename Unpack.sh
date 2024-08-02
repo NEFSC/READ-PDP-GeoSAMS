@@ -21,6 +21,19 @@
 #    - Lat_Lon_Surv_AAAA_DN_YYYY_scale.pdf
 #       same as above shows the original data plotted at the survey locations.
 
+if [ "'$HabCamFile'" == "''" ]
+then
+    echo [31mEnv Variable Not Set[0m
+    echo "For example > export HabCamFile='Habcam_BySegment_2000_2014-2020'"
+    exit 1
+fi
+
+if [ "'$DredgeFile'" == "''" ]
+then
+    echo [31mEnv Variable Not Set[0m
+    echo "For example > export DredgeFile='dredgetowbysize7917'"
+    exit 1
+fi
 
 if [ $# -ne 5 ] 
 then
@@ -76,15 +89,17 @@ then
 fi
 
 # unzip Dredge Data
-if [ ! -f "OriginalData/dredgetowbysize7917.csv" ]; then
+if [ "$DredgeFile" != "NONE" ]; then 
+if [ ! -f "OriginalData/$DredgeFile.csv" ]; then
     cd "OriginalData/"
-    unzip dredgetowbysize7917.zip
+    unzip $DredgeFile.zip
     cd ..
 fi
+fi
 # unzip HabCam Data
-if [ ! -f "OriginalData/Habcam_BySegment_2000_2014-2020.csv" ]; then
+if [ ! -f "OriginalData/$HabCamFile.csv" ]; then
     cd "OriginalData/"
-    unzip Habcam_BySegment_2000_2014-2020.zip
+    unzip $HabCamFile.zip
     cd ..
 fi
 

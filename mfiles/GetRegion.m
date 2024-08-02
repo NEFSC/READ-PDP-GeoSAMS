@@ -17,7 +17,7 @@ else
     stratum = table2array(stratum_t);
 end
 
-if (isnan(stratum))
+if (isnan(stratum) || (stratum == 0))
     x = region_none;
 else
     if (stratum < 6400)

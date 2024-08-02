@@ -32,6 +32,7 @@
 # Thus 9 x 4 x 2 or 72 minutes. GB is proportionately shorter with only 6802 grid locations.
 #
 import os
+import subprocess
 import webbrowser
 import glob
 import tkinter as tk
@@ -58,21 +59,21 @@ class MainInput(ttk.Frame):
         # +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
         simFrame = ttk.LabelFrame(self, text='Simulation Configuration Files', style='SAMS.TFrame')
         self.mortCfgFile = SubFrameElement(self, simFrame, 'Growth Config File   ', 'Growth.cfg',  0, 0, 1, width=20)
-        self.recrCfgFile = SubFrameElement(self, simFrame, 'Recruit Config File  ',      'Recruitment.cfg',1, 0, 1, width=20)
-        self.gmCfgFile   = SubFrameElement(self, simFrame, 'Grid Mgr Config File ',     'GridManager.cfg',2, 0, 1, width=20)
-        self.simCfgFile  = SubFrameElement(self, simFrame, 'Sim Config File      ',       'Scallop.cfg',    3, 0, 1, width=20)
+        self.recrCfgFile = SubFrameElement(self, simFrame, 'Recruit Config File  ', 'Recruitment.cfg',1, 0, 1, width=20)
+        self.gmCfgFile   = SubFrameElement(self, simFrame, 'Grid Mgr Config File ', 'GridManager.cfg',2, 0, 1, width=20)
+        self.simCfgFile  = SubFrameElement(self, simFrame, 'Sim Config File      ', 'Scallop.cfg',    3, 0, 1, width=20)
 
-        self.openMortConfigtButton = ttk.Button(simFrame, text='Change/Save Growth File', style="BtnBluGrn.TLabel", command=self.GetMortConfigFName)
-        self.openMortConfigtButton.grid(row=0, column=3)
+        self.openMortConfigButton = ttk.Button(simFrame, text='Change/Save Growth File', style="BtnBluGrn.TLabel", command=self.GetMortConfigFName)
+        self.openMortConfigButton.grid(row=0, column=3)
         #-------------------------------------------------------------------------------------------
-        self.openRecrConfigtButton = ttk.Button(simFrame, text='Change/Save Recr File', style="BtnBluGrn.TLabel", command=self.GetRecrConfigFName)
-        self.openRecrConfigtButton.grid(row=1, column=3)
+        self.openRecrConfigButton = ttk.Button(simFrame, text='Change/Save Recr File', style="BtnBluGrn.TLabel", command=self.GetRecrConfigFName)
+        self.openRecrConfigButton.grid(row=1, column=3)
         #-------------------------------------------------------------------------------------------
-        self.openGmgrConfigtButton = ttk.Button(simFrame, text='Change/Save GMgr File', style="BtnBluGrn.TLabel", command=self.GetGMgrConfigFName)
-        self.openGmgrConfigtButton.grid(row=2, column=3)
+        self.openGmgrConfigButton = ttk.Button(simFrame, text='Change/Save GMgr File', style="BtnBluGrn.TLabel", command=self.GetGMgrConfigFName)
+        self.openGmgrConfigButton.grid(row=2, column=3)
         #-------------------------------------------------------------------------------------------
-        self.openSimConfigtButton = ttk.Button(simFrame, text='Change/Save Sim File', style="BtnBluGrn.TLabel", command=self.GetSimConfigFName)
-        self.openSimConfigtButton.grid(row=3, column=3)
+        self.openSimConfigButton = ttk.Button(simFrame, text='Change/Save Sim File', style="BtnBluGrn.TLabel", command=self.GetSimConfigFName)
+        self.openSimConfigButton.grid(row=3, column=3)
         #-------------------------------------------------------------------------------------------
         simFrame.grid(row=1, column=0, padx=5, sticky='n')
         # +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
@@ -81,7 +82,7 @@ class MainInput(ttk.Frame):
         self.openUKConfigButton = ttk.Button(interpFrame, text='Change/Save UK File', style="BtnBluGrn.TLabel", command=self.GetUKConfigFName)
         self.openUKConfigButton.grid(row=0, column=3)
         #-------------------------------------------------------------------------------------------
-        interpFrame.grid(row=2, column=0, padx=5, sticky='nw')
+        interpFrame.grid(row=2, column=0, padx=5, pady=0, sticky='nw')
         # +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
         showResultsFrame = ttk.LabelFrame(self, text='View PDF Plots', style='SAMS.TFrame')
         # --------------------------------------------------------------------------------------------------------
@@ -90,6 +91,19 @@ class MainInput(ttk.Frame):
         #-------------------------------------------------------------------------------------------
         showResultsFrame.grid(row=2, column=0, padx=5, sticky='sw')
         # +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+        # +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+        survDataFrame = ttk.LabelFrame(self, text='Survey Data Files, Environment Variables', style='SAMS.TFrame')
+        self.dredgeDataFile = SubFrameElement(self, survDataFrame, 'Dredge Survey Data File', 'dredgetowbysize7917',  0, 0, 1, width=35)
+        self.habCamDataFile = SubFrameElement(self, survDataFrame, 'HabCam Survey Data File', 'Habcam_BySegment_2000_2014-2020',1, 0, 1, width=35)
+        #-------------------------------------------------------------------------------------------
+        survDataFrame.grid(row=3, column=0, padx=5, pady=0, sticky='sw')
+        self.setDredgeDataButton = ttk.Button(survDataFrame, text='Set DredgeData', style="BtnBluGrn.TLabel", command=self.SetDredgeFileName)
+        self.setDredgeDataButton.grid(row=0, column=3)
+        #-------------------------------------------------------------------------------------------
+        self.setHabCamDataButton = ttk.Button(survDataFrame, text='Set HabCamData', style="BtnBluGrn.TLabel", command=self.SetHabCamFileName)
+        self.setHabCamDataButton.grid(row=1, column=3)
+        # +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+
         recruitFrame = ttk.LabelFrame(self, text='Recruitment', style='SAMS.TFrame')
 
         self.monthsArr = ['JAN', 'FEB', 'MAR', 'APR', 'MAY', 'JUN', 'JUL', 'AUG', 'SEP', 'OCT', 'NOV', 'DEC']
@@ -301,6 +315,51 @@ class MainInput(ttk.Frame):
             self.ukCfgFile.myEntry.delete(0,tk.END)
             self.ukCfgFile.myEntry.insert(0,f[-1])
             self.friend.WriteUKConfig()
+
+    ##
+    # 
+    def SetDredgeFileName(self):
+        os.environ["DredgeFile"] = self.dredgeDataFile.myEntry.get()
+        if self.dredgeDataFile.myEntry.get() != 'NONE':
+            # Verify file exists
+            fname = os.path.join('OriginalData', os.environ["DredgeFile"]+'.csv')
+            if not os.path.isfile(fname):
+                # is there a zipfile
+                zipFname = os.environ["DredgeFile"]+'.zip'
+                if os.path.isfile(os.path.join('OriginalData', zipFname)):
+                    #unzip it
+                    if platform.system() == 'Windows':
+                        cmd = ["C:\Program Files\7-Zip\7z e", zipFname]
+                    else:
+                        cmd = ["unzip", zipFname]
+                    os.chdir('OriginalData')
+                    result = subprocess.run(cmd)
+                    os.chdir('..')
+                else:
+                    messagebox.showerror('Set Environment Variable',f'File {zipFname} does not exist')
+            print(fname)
+
+    ##
+    # 
+    def SetHabCamFileName(self):
+        os.environ["HabCamFile"] = self.habCamDataFile.myEntry.get()
+        # Verify file exists
+        fname = os.path.join('OriginalData', os.environ["HabCamFile"]+'.csv')
+        if not os.path.isfile(fname):
+            # is there a zipfile
+            zipFname = os.environ["HabCamFile"]+'.zip'
+            if os.path.isfile(os.path.join('OriginalData', zipFname)):
+                #unzip it
+                if platform.system() == 'Windows':
+                    cmd = ["C:\Program Files\7-Zip\7z e", zipFname]
+                else:
+                    cmd = ["unzip", zipFname]
+                os.chdir('OriginalData')
+                result = subprocess.run(cmd)
+                os.chdir('..')
+            else:
+                messagebox.showerror('Set Environment Variable',f'File {zipFname} does not exist')
+        print(fname)
 
     def OpenPDF(self):
         # Checking to see if processing has been run

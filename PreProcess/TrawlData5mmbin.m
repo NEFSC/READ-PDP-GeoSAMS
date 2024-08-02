@@ -1,3 +1,6 @@
+% The assumption here is that this script is called first before any
+% HabCam scripts. This script would create the Data/bin5mm files and
+% HabCam would append to them
 % src
 %   NMFS_ALB ==> 1111
 %   CANADIAN ==> 2222
@@ -6,6 +9,23 @@
 %   NMFSSHRP ==> 5555
 %   ALL ==> 0
 function TrawlData5mmbin(yrStart, yrEnd, src, domain)
+
+dredgeFile = getenv('DredgeFile');
+if strcmpi(dredgeFile, 'NONE')
+    %Clear files and return
+    for yr=yrStart:yrEnd
+        flnm=strcat('Data/bin5mm',int2str(yr),domain,'.csv');
+        % if file exists remove it. We may not have any data to add.
+        % Nor do we want HabCam to append to an existing file, i.e.
+        % its own previously generated data
+        if exist(flnm, 'file')==2
+            delete(flnm)
+        end
+    end
+    return
+end
+
+dataFile = ['OriginalData/', dredgeFile,'.csv'];
 
 domList = {'MA', 'GB', 'AL'};
 
@@ -34,7 +54,7 @@ if sum(ismember(domList, domain)) == 0
 end
 
 if isOctave
-    M=csvreadK('OriginalData/dredgetowbysize7917.csv');
+    M=csvreadK(dataFile);
     mon=M(:,5);
     j=find(mon>0);
     M=M(j,:);
@@ -58,7 +78,7 @@ if isOctave
     sg = M(:,27);
     dataSrc = M(:,37);
 else % NOT Octave
-    M = readtable('OriginalData/dredgetowbysize7917.csv',"FileType","text");
+    M = readtable(dataFile,"FileType","text");
     mon=table2array(M(:,5));
     j=mon>0;
     M=M(j,:);
@@ -90,6 +110,11 @@ towArea_sqm = 4516.; % nautMile_m * 2.438;
 countPerSqm = detect / towArea_sqm;
 
 for yr=yrStart:yrEnd
+    flnm=strcat('Data/bin5mm',int2str(yr),domain,'.csv');
+    % if file exists remove it. We may not have any data to add.
+    if exist(flnm, 'file')==2
+        delete(flnm)
+    end
     X=[];
     %j=and(year==yr,sg==3.);
     if srcText == 0
@@ -102,9 +127,6 @@ for yr=yrStart:yrEnd
         % no data found
         fprintf( 'Skipping %s Year %d\n',  domain, yr);
         msg = sprintf( 'No Data for %s Year %d',  domain, yr);
-        errorStruct.message = msg;
-        errorStruct.identifier = 'myComponent:inputError';
-        error(errorStruct)
     else
         fprintf( 'Working on %s Year %d\n',  domain, yr);
 
@@ -126,8 +148,8 @@ for yr=yrStart:yrEnd
         else
             stratum_t = M(j,8);
             is_closed_t = array2table(int8(table2array(M(j,17)>0)),'VariableNames',{'isClosed'});
-            lat_t = table2array(M(j,18));
-            lon_t = table2array(M(j,19));
+            lat_t = M(j,18);
+            lon_t = M(j,19);
             mon = table2array(M(j,5));
             day = table2array(M(j,6));
             yd = 0 * day;
@@ -135,9 +157,9 @@ for yr=yrStart:yrEnd
                 yd(k) = yearday(mon(k),day(k),0);
             end
             DecYr_t = array2table(year(j) + yd/365.25,'VariableNames',{'DecYr'});
-            z_t = table2array(M(j,21));
-            x_t = table2array(M(j,45));
-            y_t = table2array(M(j,46));
+            z_t = M(j,21);
+            x_t = M(j,45);
+            y_t = M(j,46);
         end
 
         n=find(and(year==yr,sg==3.));
@@ -163,7 +185,6 @@ for yr=yrStart:yrEnd
                 end
             end
         end
-        flnm=strcat('Data/bin5mm',int2str(yr),domain,'.csv');
         fprintf('Size of grid %d\n', size(X,1))
         if isOctave
             csvwrite(flnm,X);

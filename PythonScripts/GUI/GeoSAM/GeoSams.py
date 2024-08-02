@@ -165,6 +165,9 @@ class MainApplication(tk.Tk):
     # If it runs successfully then UK interpolation is started
     #
     def Run_Sim(self):
+        # Set Environment Variables
+        self.frame1.SetDredgeFileName()
+        self.frame1.SetHabCamFileName()
         # No check for variables changed, therefore update all configuration files with current values in GUI
         # OR
         # Create new files based on names given by user, or same if not changed
@@ -185,52 +188,45 @@ class MainApplication(tk.Tk):
         
         # Ensure data is available, by first checking if data files have been created.
         # Typical data file name: Data/bin5mm2015AL.csv
-        filesExist = True
-        for yr in range(self.yearStart, self.yearStop+1):
-            dataFName = os.path.join(self.root, 'Data', 'bin5mm'+str(yr)+self.domainName+'.csv')
-            if not os.path.isfile(dataFName): 
-                filesExist = False
-                break
-        
-        if not filesExist: 
-            # Create them
-            if self.frame2.usingMatlab.get():
-                mathArg = 'M'
-            else:
-                mathArg = 'O'
+        filesExist = False
+        # Create them
+        if self.frame2.usingMatlab.get():
+            mathArg = 'M'
+        else:
+            mathArg = 'O'
 
-            if platform.system() == 'Windows':
-                cmd = [os.path.join(self.root, 'Unpack.bat'), startYear, stopYear, '0', self.domainName, mathArg]
+        if platform.system() == 'Windows':
+            cmd = [os.path.join(self.root, 'Unpack.bat'), startYear, stopYear, '0', self.domainName, mathArg]
+        else:
+            cmd = [os.path.join(self.root, 'Unpack.sh'), startYear, stopYear, '0', self.domainName, mathArg]
+            subprocess.run(['chmod','744','Unpack.sh']) # make file executable
+        messagebox.showinfo("Unpack", f'Starting Unpack.\nThis could take several minutes, longer if using Octave.\nPlease be patient.')
+        result = subprocess.run(cmd)
+        if result.returncode == 0:
+            messagebox.showinfo("Unpack", f'Completed Successfully\n{result.args}')
+            filesExist = True
+        else:
+            if result.returncode == 1:
+                messagebox.showerror("TrawlData5mmbin", f'Failed\n{result.args}\nReturn Code = {result.returncode}\nSee Monitor for Reason')
+            elif result.returncode == 2:
+                messagebox.showerror("PullOutRecruitData", f'Failed\n{result.args}\nReturn Code = {result.returncode}\nSee Monitor for Reason')
+            elif result.returncode == 3:
+                messagebox.showerror("ProcessRecruitData", f'Failed\n{result.args}\nReturn Code = {result.returncode}\nSee Monitor for Reason')
+            elif result.returncode == 4:
+                messagebox.showerror("NearestNeighborRecInterp", f'Failed\n{result.args}\nReturn Code = {result.returncode}\nSee Monitor for Reason')
             else:
-                cmd = [os.path.join(self.root, 'Unpack.sh'), startYear, stopYear, '0', self.domainName, mathArg]
-                subprocess.run(['chmod','744','Unpack.sh']) # make file executable
-            messagebox.showinfo("Unpack", f'Starting Unpack.\nThis could take several minutes, longer if using Octave.\nPlease be patient.')
-            result = subprocess.run(cmd)
-            if result.returncode == 0:
-                messagebox.showinfo("Unpack", f'Completed Successfully\n{result.args}')
-                filesExist = True
-            else:
-                if result.returncode == 1:
-                    messagebox.showerror("TrawlData5mmbin", f'Failed\n{result.args}\nReturn Code = {result.returncode}\nSee Monitor for Reason')
-                elif result.returncode == 2:
-                    messagebox.showerror("PullOutRecruitData", f'Failed\n{result.args}\nReturn Code = {result.returncode}\nSee Monitor for Reason')
-                elif result.returncode == 3:
-                    messagebox.showerror("ProcessRecruitData", f'Failed\n{result.args}\nReturn Code = {result.returncode}\nSee Monitor for Reason')
-                elif result.returncode == 4:
-                    messagebox.showerror("NearestNeighborRecInterp", f'Failed\n{result.args}\nReturn Code = {result.returncode}\nSee Monitor for Reason')
-                else:
-                    messagebox.showerror("Unpack", f'Failed\n{result.args}\nReturn Code = {result.returncode}\nSee Monitor for Reason')
+                messagebox.showerror("Unpack", f'Failed\n{result.args}\nReturn Code = {result.returncode}\nSee Monitor for Reason')
             
         if filesExist:
             # Continue with starting the GeoSAMS simulation ----------------------------------------------------------------------
             # 
             # typical command line:
             # > ./SRC/ScallopPopDensity.exe Scallop.cfg StartYear StopYear Domain
-            ex = os.path.join(self.root, 'SRC', 'ScallopPopDensity')
+            ex = os.path.join('SRC', 'ScallopPopDensity')
             # ScallopPopDensity prepends directory structure to simConfigFile
             cmd = [ex, simConfigFile, startYear, stopYear, self.domainName]
             print(cmd)
-            messagebox.showinfo("GeoSAMS Sim", "Program Started")
+            messagebox.showinfo("GeoSAMS Sim", f"Program Started: {cmd}")
             result = subprocess.run(cmd)
 
             if result.returncode == 0:

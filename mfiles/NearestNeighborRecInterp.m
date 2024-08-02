@@ -40,7 +40,6 @@ if isOctave
     dlmwrite(fid, r);
     fclose(fid);
 else
-    warning('OFF', 'MATLAB:table:ModifiedAndSavedVarnames')
     D=readtable(fl0,"FileType","spreadsheet");
     dyr0=table2array(D(:,1));
     x0=table2array(D(:,2));
