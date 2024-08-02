@@ -104,6 +104,9 @@ if [ ! -f "OriginalData/$HabCamFile.csv" ]; then
 fi
 
 # Create Directories used by GeoSAMS
+if [ ! -d "Data" ]; then
+    mkdir Data
+fi
 if [ ! -d "GrowthOutput" ]; then
     mkdir GrowthOutput
 fi

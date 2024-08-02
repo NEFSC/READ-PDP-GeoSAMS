@@ -320,45 +320,14 @@ class MainInput(ttk.Frame):
     # 
     def SetDredgeFileName(self):
         os.environ["DredgeFile"] = self.dredgeDataFile.myEntry.get()
-        if self.dredgeDataFile.myEntry.get() != 'NONE':
-            # Verify file exists
-            fname = os.path.join('OriginalData', os.environ["DredgeFile"]+'.csv')
-            if not os.path.isfile(fname):
-                # is there a zipfile
-                zipFname = os.environ["DredgeFile"]+'.zip'
-                if os.path.isfile(os.path.join('OriginalData', zipFname)):
-                    #unzip it
-                    if platform.system() == 'Windows':
-                        cmd = ["C:\Program Files\7-Zip\7z e", zipFname]
-                    else:
-                        cmd = ["unzip", zipFname]
-                    os.chdir('OriginalData')
-                    result = subprocess.run(cmd)
-                    os.chdir('..')
-                else:
-                    messagebox.showerror('Set Environment Variable',f'File {zipFname} does not exist')
-            print(fname)
+        fname = os.path.join('OriginalData', os.environ["DredgeFile"]+'.csv')
+        print(fname)
 
     ##
     # 
     def SetHabCamFileName(self):
         os.environ["HabCamFile"] = self.habCamDataFile.myEntry.get()
-        # Verify file exists
         fname = os.path.join('OriginalData', os.environ["HabCamFile"]+'.csv')
-        if not os.path.isfile(fname):
-            # is there a zipfile
-            zipFname = os.environ["HabCamFile"]+'.zip'
-            if os.path.isfile(os.path.join('OriginalData', zipFname)):
-                #unzip it
-                if platform.system() == 'Windows':
-                    cmd = ["C:\Program Files\7-Zip\7z e", zipFname]
-                else:
-                    cmd = ["unzip", zipFname]
-                os.chdir('OriginalData')
-                result = subprocess.run(cmd)
-                os.chdir('..')
-            else:
-                messagebox.showerror('Set Environment Variable',f'File {zipFname} does not exist')
         print(fname)
 
     def OpenPDF(self):
@@ -460,6 +429,13 @@ Recruitment
 View PDF Plots
     Once START Sim has been executed one can use this button to open and view
     PDF documents showing plots of the Output selections by lat/lon location.
+
+Survey Data Files
+    The GUI sets environement variables such that all scripts, M-files, Python,
+    and shell, access the same data files without having to pass yet another 
+    argument or two. These survey data files are stored in the "OriginalData"
+    subdirectory as zip files. They are too large to be managed in the git
+    repositiory as a CSV file. The scripts then unzip the files as necessary.
 '''
         #about = re.sub("\n\s*", "\n", about) # remove leading whitespace from each line
         popup = tk.Toplevel()

@@ -121,6 +121,9 @@ if not exist OriginalData\%HabCamFile%.csv (
 )
 
 @REM Create Directories used by GeoSAMS
+if not exist Data\ (
+    mkdir Data\
+)
 if not exist GrowthOutput\ (
     mkdir GrowthOutput\
 )
