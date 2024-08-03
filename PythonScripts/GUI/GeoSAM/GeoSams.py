@@ -53,7 +53,10 @@ import os
 import sys
 import platform
 import csv
+import multiprocessing
+import time
 from collections import defaultdict
+from multiprocessing import Process
 
 from MainInputFrame import *
 from GrowthFrame import *
@@ -63,6 +66,18 @@ from SpecialAreaFrame import *
 from FishMortBySpecAcc import *
 from EditMathSetupFrame import *
 from Globals import *
+
+#        ConfigFile Domain  ObservFile                GridFile            ZF0Max
+# [ex,   ukCfgFile,   dn,     obsFile,                  gridFile,           value
+# .\UKsrc\UK UK.cfg GB      X_Y_EBMS_GB2005_0_SW.csv  GBxyzLatLon_SW.csv   0.0 | 70.0
+#  arg#        1     2              3                  4                   5
+def Interpolate(ukCfgFile, domainName, obsFile, gridFile, zArg, procID, retDict):
+    ex = os.path.join('UKsrc', 'UK')
+    outputFile = 'proc'+str(procID)+'.txt'
+    cmd = [ex, ukCfgFile, domainName, obsFile, gridFile, zArg]
+    with open(outputFile, "w") as outfile:
+        result = subprocess.run(cmd, stdout=outfile)
+    retDict[procID] = result.returncode
 
 ##
 # This class is the parent class for the GUI
@@ -186,10 +201,17 @@ class MainApplication(tk.Tk):
         self.yearStart = int(startYear)
         self.yearStop = int(stopYear)
         
-        # Ensure data is available, by first checking if data files have been created.
         # Typical data file name: Data/bin5mm2015AL.csv
+        # Delete any existing files, want a clean slate
+        for yr in range(self.yearStart, self.yearStop+1):
+            dataFName = os.path.join(self.root, 'Data', 'bin5mm'+str(yr)+self.domainName+'.csv')
+            if os.path.isfile(dataFName): 
+                os.remove(dataFName)
+            dataFName = os.path.join(self.root, 'Data', 'Recruits'+str(yr)+self.domainName+'.csv')
+            if os.path.isfile(dataFName): 
+                os.remove(dataFName)
+
         filesExist = False
-        # Create them
         if self.frame2.usingMatlab.get():
             mathArg = 'M'
         else:
@@ -234,17 +256,14 @@ class MainApplication(tk.Tk):
                     f'Completed Successfully\n{result.args}\nStarting UK Interp\nIf all output selected this will run over an hour.\nPlease be patient.')
 
                 # Then Continue with Interpolation and Plotting Results -----------------------------------------------------------
-                (returnCode, args) = self.InterpAndPlotResults()
-                if returnCode == 0:
-                    messagebox.showinfo("GeoSAMS/UK/Plotting", f'ALL DONE\n{args}')
+                (retDict, procID) = self.InterpAndPlotResults()
+                if sum(retDict.values()) == 0:
+                    messagebox.showinfo("GeoSAMS/UK/Plotting", f'ALL DONE\nRan {procID} processes')
                 else:
-                    if returnCode == 99: 
-                        messagebox.showerror("UK", f'Failed\n{args}\nReturn Code = {returnCode}\nMath Failure. Try changing Spatial Functions')
-                    else:
-                        messagebox.showerror("UK", f'Failed\n{args}\nReturn Code = {returnCode}')
+                    messagebox.showerror("InterpAndPlotResults", 'Failed')
             else:
                 messagebox.showerror("GeoSAM Sim", f'Failed\n{result.args}\nReturn Code = {result.returncode}')
-
+    
     ##
     # Interpolates the survey data onto the regional grids and saves results to CSV files. 
     # Concatenates CSV files into a single file. Then uses this file to plot the results
@@ -268,11 +287,10 @@ class MainApplication(tk.Tk):
     #                                                                ...
     #                                                                2017 growth in yearStop
     #                                  ^ Multiplier to normalize data
-    #                                     ^ rgn
+    #                                     ^ region
     #                                        ^ MA is divided into North and South to better display the data
     #
     def InterpAndPlotResults(self):
-        dataDir = 'Data'
         years = range(self.yearStart-1, self.yearStop+1) # year_start-1 is initial state
 
         # set configuration file name for UK.exe
@@ -289,35 +307,35 @@ class MainApplication(tk.Tk):
 
         # Determine which if any file suffixes are needed
         if self.domainName=='GB':
-            # rgn = ['_SW', '_N', '_S', '_W']
-            rgn = ['_GB']
+            # region = ['_SW', '_N', '_S', '_W']
+            region = ['_GB']
         elif self.domainName=='MA':
-            rgn = ['_MA']
+            region = ['_MA']
         else:
             # This would be AL
-            #rgn = ['_SW', '_N', '_S', '_W', '_MA']
-            rgn = ['_GB', '_MA']
+            #region = ['_SW', '_N', '_S', '_W', '_MA']
+            region = ['_GB', '_MA']
+
+        # setting up for muli-core processing
+        numCores = multiprocessing.cpu_count() # number of available cores
+        procNum  = 0                           # number of concurrent processes, i.e. 1 to numCores
+        procID   = 0                           # unique number to identify each independent process
+        procs    = []                          # holds Proccess Class instantiation
+        manager = multiprocessing.Manager()
+        retDict = manager.dict()
+
+        start = time.time()
 
         # ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
         #  INTERPOLATE AND CONCATENATE REGIONS INTO SINGLE FILE
         # ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++   
-        prefix = ['Results/Lat_Lon_Grid_']
-
         for pStr in self.paramStr:
-
             if (pStr == 'RECR_'):
                 zArg = '70.0'
             else:
                 zArg = '0.0'
 
-            ex = os.path.join('UKsrc', 'UK')
-            # Process multiple GB region files
-            #                                                 | --- optional but need both -----|
-            #        ConfigFile Domain  ObservFile                GridFile            ZF0Max
-            # [ex,   ukCfgFile,   dn,     obsFile,                  gridFile,           value
-            # .\UKsrc\UK UK.cfg GB      X_Y_EBMS_GB2005_0_SW.csv  GBxyzLatLon_SW.csv   0.0 | 70.0
-            #  arg#        1     2              3                  4                   5
-            for r in rgn:
+            for r in region:
                 if self.domainName == 'AL':
                     # ALxyzLatLon_MA uses the same grid file as MA, 
                     # and did not want to configuration manage multiple identical files
@@ -336,73 +354,94 @@ class MainApplication(tk.Tk):
                         gridFile = 'GBxyzLatLon.csv'
                         ukCfgFile = 'UK_GB.cfg'
                 else:
-                    # DEPRECATE: if we no longer need to separate GB into sub regions
-                    #gridFile = self.domainName+'xyzLatLon' + r + '.csv'
                     gridFile = self.domainName+'xyzLatLon.csv'
 
                 for year in years:
                     obsFile = 'X_Y_' + pStr + self.domainName + str(year) + r + '.csv'
-                    cmd = [ex, ukCfgFile, self.domainName, obsFile, gridFile, zArg]
-                    result = subprocess.run(cmd)
-                    if (result.returncode != 0):
-                        errorStr = '[31m' + ''.join(str(e)+' ' for e in cmd) + ' error: ' + hex(result.returncode) + '[0m'
-                        print(errorStr)
-                        return (result.returncode, result.args)
-                    print( 'Just Finished: ', cmd)
-                    # Cleanup dataDir
-                    os.remove(os.path.join(dataDir, obsFile))
 
-                for pfix in prefix:
-                    ###########################################################################################
-                    # subprocess.run takes in Data/X_Y_* and creates
-                    #    Results/Lat_Lon_Grid* 
-                    # Concatenate individual year files into a single file
-                    ###########################################################################################
-                    col = [defaultdict(list) for _ in range(nyears)]
-                    k = 0
-                    
-                    # append remaining years as additional columns to first data set
-                    for year in years:
-                        flin = pfix + pStr + self.domainName + str(year) + r + '.csv'
-                        with open(flin) as f:
-                            reader = csv.reader(f)
-                            for row in reader:
-                                for (i,v) in enumerate(row):
-                                    col[k][i].append(v)
-                            f.close()
-                        os.remove(flin)
+                    # result = Interpolate(ukCfgFile, self.domainName, obsFile, gridFile, zArg)
+                    # if (result.returncode != 0):
+                    #     errorStr = '[31m' + ''.join(str(e)+' ' for e in cmd) + ' error: ' + hex(result.returncode) + '[0m'
+                    #     print(errorStr)
+                    #     return (result.returncode, result.args)
+                    # print( 'Just Finished: ', ukCfgFile, self.domainName, obsFile, gridFile, zArg)
+                    # # Cleanup dataDir
+                    # os.remove(os.path.join(dataDir, obsFile))
 
-                        for i in range (len(col[0][0])):    
-                            col[0][k + 2].append(col[k][2][i])
-                        k  += 1
+                    procNum += 1
+                    procID  += 1
+                    proc = Process(target=Interpolate, args=(ukCfgFile, self.domainName, obsFile, gridFile, zArg, procID, retDict))
+                    procs.append(proc)
+                    proc.start()
 
-                    # brute force write out results
-                    flout = open(pfix + pStr + self.domainName + r + '.csv', 'w')
-                    for row in range(len(col[0][0])):
-                        for c in range(ncols):
-                            flout.write(col[0][c][row])
-                            flout.write(',')
-                        flout.write(col[0][ncols][row])
-                        flout.write('\n')
-                    flout.close()
-                # end for pfix
-            # end for rgn
+                    # calls the join() method on each process, which tells Python to wait for the process to terminate. 
+                    if procNum == numCores:
+                        for proc in procs:
+                            proc.join()
+                        procs = []
+                        procNum = 0
+                # end for year in years
+            # end for r in region
+        # end for pStr in paramStr
+
+        # finish up any remaining procs
+        for proc in procs:
+            proc.join()
+
+        # all survey data is now interpolated. Process CSV files to combine the years
+        for pStr in self.paramStr:
+            for r in region:
+                ###########################################################################################
+                # subprocess.run takes in Data/X_Y_* and creates
+                #    Results/Lat_Lon_Grid* 
+                # Concatenate individual year files into a single file
+                ###########################################################################################
+                col = [defaultdict(list) for _ in range(nyears)]
+                k = 0
+                
+                # append remaining years as additional columns to first data set
+                for year in years:
+                    flin = 'Results/Lat_Lon_Grid_' + pStr + self.domainName + str(year) + r + '.csv'
+                    with open(flin) as f:
+                        reader = csv.reader(f)
+                        for row in reader:
+                            for (i,v) in enumerate(row):
+                                col[k][i].append(v)
+                        f.close()
+                    os.remove(flin)
+
+                    for i in range (len(col[0][0])):    
+                        col[0][k + 2].append(col[k][2][i])
+                    k  += 1
+
+                # brute force write out results
+                flout = open('Results/Lat_Lon_Grid_' + pStr + self.domainName + r + '.csv', 'w')
+                for row in range(len(col[0][0])):
+                    for c in range(ncols):
+                        flout.write(col[0][c][row])
+                        flout.write(',')
+                    flout.write(col[0][ncols][row])
+                    flout.write('\n')
+                flout.close()
+            # end for region
 
             # now combine all region files into one file
-            for pfix in prefix:
-                flout = pfix + pStr + self.domainName + '_' + str(self.yearStart) + '_' + str(self.yearStop) + '.csv'
-                wrFile = open(flout, 'w')
-                for r in rgn:
-                    flin = pfix + pStr + self.domainName + r + '.csv'
-                    rdFile = open(flin, 'r')
-                    lines = rdFile.readlines()
-                    wrFile.writelines(lines)
-                    rdFile.close()
-                    os.remove(flin)
-                wrFile.close()
-                print('Files concatenated to: ',flout)
-            # end for pfix
+            flout = 'Results/Lat_Lon_Grid_' + pStr + self.domainName + '_' + str(self.yearStart) + '_' + str(self.yearStop) + '.csv'
+            wrFile = open(flout, 'w')
+            for r in region:
+                flin = 'Results/Lat_Lon_Grid_' + pStr + self.domainName + r + '.csv'
+                rdFile = open(flin, 'r')
+                lines = rdFile.readlines()
+                wrFile.writelines(lines)
+                rdFile.close()
+                os.remove(flin)
+            wrFile.close()
+            print('Files concatenated to: ',flout)
         # end for pStr
+
+        end = time.time()
+
+        print( 'Interpolation exec time: {}'.format(end-start))
 
         # ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++   
         #  PLOTTING
@@ -422,9 +461,10 @@ class MainApplication(tk.Tk):
             if (result.returncode != 0):
                 errorStr = '[31m' + ''.join(str(e)+' ' for e in cmd) + ' error: ' + hex(result.returncode) + '[0m'
                 print(errorStr)
-                return (result.returncode, result.args)
+                procID += 1
+                retDict[procID] = result.returncode
 
-        return (0, '')
+        return (retDict, procID)
 
     ##
     # Save all of the defined configuration files
