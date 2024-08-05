@@ -64,10 +64,8 @@ if isOctave
         lon=M(:,19);
         if strcmp(domain, 'GB')
             j = lon>-70.5;%GB
-            zone=19;
         else
             j = lon<=-70.5;%MA
-            zone=18;
         end
 
         %------- new M with just MA or GB ----------------------
@@ -88,10 +86,8 @@ else % NOT Octave
         lon = table2array(M(:,19));
         if strcmp(domain, 'GB')
             j = lon>-70.5;
-            zone=19;
         else
             j = lon<=-70.5;
-            zone=18;
         end
 
         %------- new M with just MA or GB ----------------------
@@ -109,7 +105,8 @@ detect=.4;
 towArea_sqm = 4516.; % nautMile_m * 2.438;
 countPerSqm = detect / towArea_sqm;
 
-for yr=yrStart:yrEnd
+% We only ever use the Start Year Data
+for yr=yrStart:yrStart
     flnm=strcat('Data/bin5mm',int2str(yr),domain,'.csv');
     % if file exists remove it. We may not have any data to add.
     if exist(flnm, 'file')==2
@@ -126,7 +123,6 @@ for yr=yrStart:yrEnd
     if sum(j) == 0
         % no data found
         fprintf( 'Skipping %s Year %d\n',  domain, yr);
-        msg = sprintf( 'No Data for %s Year %d',  domain, yr);
     else
         fprintf( 'Working on %s Year %d\n',  domain, yr);
 

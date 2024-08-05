@@ -3,6 +3,7 @@ configDir = 'Configuration'
 interCfgDir = 'Interpolation'
 simCfgDir = 'Simulation'
 specAccCfgDir = 'SpecialAccess'
+surveyDataDir = 'OriginalData'
 comboTFStr = ['T', 'F']
 cornerLabelArr = ['Corner', 'Long', 'Lat ', '0.0', '0.0']
 frameWidth = 400

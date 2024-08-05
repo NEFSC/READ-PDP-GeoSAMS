@@ -53,6 +53,7 @@ class MainInput(ttk.Frame):
         self.root = os.getcwd() #os.environ['ROOT']
         self.simStartDir = os.path.join(self.root, configDir, simCfgDir)
         self.interpStartDir = os.path.join(self.root, configDir, interCfgDir)
+        self.surveyStartDir = os.path.join(self.root, surveyDataDir)
         self.friend = friend
         self.maxYears = maxYears
 
@@ -309,7 +310,8 @@ class MainInput(ttk.Frame):
     # Configuration file. It then writes out the defined parameters to this file using the 'tag = value' format. 
     #
     def GetUKConfigFName(self):
-        file_path = filedialog.asksaveasfilename(title="Open Configuration File", filetypes=[("CFG files", "*.cfg")], defaultextension='cfg', initialdir=self.interpStartDir)
+        file_path = filedialog.asksaveasfilename(title="Open Configuration File", filetypes=[("CFG files", 
+                    "*.cfg")], defaultextension='cfg', initialdir=self.interpStartDir)
         f = file_path.split('/')
         if file_path:
             self.ukCfgFile.myEntry.delete(0,tk.END)
@@ -319,6 +321,19 @@ class MainInput(ttk.Frame):
     ##
     # 
     def SetDredgeFileName(self):
+        file_path = filedialog.askopenfilename(title="Set Dredge Survey Data File", filetypes=[("ZIP files", "*.zip")],
+                    initialdir=self.surveyStartDir)
+        f = file_path.split('/')
+        fName = f[-1]
+        end = len(fName) - 4
+        if file_path:
+            self.dredgeDataFile.myEntry.delete(0,tk.END)
+            self.dredgeDataFile.myEntry.insert(0,fName[0:end])
+        self.SetDredgeFileEnvVar()
+
+    ##
+    # 
+    def SetDredgeFileEnvVar(self):
         os.environ["DredgeFile"] = self.dredgeDataFile.myEntry.get()
         fname = os.path.join('OriginalData', os.environ["DredgeFile"]+'.csv')
         print(fname)
@@ -326,16 +341,32 @@ class MainInput(ttk.Frame):
     ##
     # 
     def SetHabCamFileName(self):
+        file_path = filedialog.askopenfilename(title="Set HabCam Survey Data File", filetypes=[("ZIP files", "*.zip")],
+                    initialdir=self.surveyStartDir)
+        f = file_path.split('/')
+        fName = f[-1]
+        end = len(fName) - 4
+        if file_path:
+            self.habCamDataFile.myEntry.delete(0,tk.END)
+            self.habCamDataFile.myEntry.insert(0,fName[0:end])
+        self.SetHabCamFileEnvVar()
+
+    ##
+    # 
+    def SetHabCamFileEnvVar(self):
         os.environ["HabCamFile"] = self.habCamDataFile.myEntry.get()
         fname = os.path.join('OriginalData', os.environ["HabCamFile"]+'.csv')
         print(fname)
 
+    ##
+    # 
     def OpenPDF(self):
         # Checking to see if processing has been run
         fName = os.path.join('Results', 'Lat_Lon_Grid_*.pdf')
         fileList = glob.glob(fName)
         if fileList:
-            fName = filedialog.askopenfilename(title="Open PDF File", filetypes=[("PDF files", "*.pdf")], defaultextension='pdf', initialdir='Results')
+            fName = filedialog.askopenfilename(title="Open PDF File", filetypes=[("PDF files", "*.pdf")],
+                    defaultextension='pdf', initialdir='Results')
             if fName:
                 if platform.system() == 'Windows':
                     # Opens file in default pdf view, i.e. Acrobat
@@ -437,7 +468,6 @@ Survey Data Files
     subdirectory as zip files. They are too large to be managed in the git
     repositiory as a CSV file. The scripts then unzip the files as necessary.
 '''
-        #about = re.sub("\n\s*", "\n", about) # remove leading whitespace from each line
         popup = tk.Toplevel()
         nrows = 35
         ncols = 80

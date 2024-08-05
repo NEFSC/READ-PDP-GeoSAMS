@@ -50,6 +50,7 @@ from tkinter import messagebox
 import subprocess
 import sys
 import os
+import glob
 import sys
 import platform
 import csv
@@ -181,8 +182,8 @@ class MainApplication(tk.Tk):
     #
     def Run_Sim(self):
         # Set Environment Variables
-        self.frame1.SetDredgeFileName()
-        self.frame1.SetHabCamFileName()
+        self.frame1.SetDredgeFileEnvVar()
+        self.frame1.SetHabCamFileEnvVar()
         # No check for variables changed, therefore update all configuration files with current values in GUI
         # OR
         # Create new files based on names given by user, or same if not changed
@@ -317,13 +318,17 @@ class MainApplication(tk.Tk):
             region = ['_GB', '_MA']
 
         # setting up for muli-core processing
-        numCores = multiprocessing.cpu_count() # number of available cores
-        procNum  = 0                           # number of concurrent processes, i.e. 1 to numCores
-        procID   = 0                           # unique number to identify each independent process
-        procs    = []                          # holds Proccess Class instantiation
+        numCores = multiprocessing.cpu_count()
+        if numCores > 3:
+            numCores -= 2      # number of available cores, ran out of memory when using all available
+        procNum  = 0           # number of concurrent processes, i.e. 1 to numCores
+        procID   = 0           # unique number to identify each independent process
+        procs    = []          # holds Proccess Class instantiation
         manager = multiprocessing.Manager()
         retDict = manager.dict()
-
+        # clean up leftover files from prior run
+        for f in glob.glob('proc*.txt'):
+            os.remove(f)
         start = time.time()
 
         # ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++

@@ -89,17 +89,14 @@ else % NOT Octave
     sg = table2array(M(:,sgCol));
 end
 
-for yr=yrStart:yrEnd
+% We only ever use the Start Year Data
+for yr=yrStart:yrStart
     X=[];
     j= year==yr & sg==3.;
 
     if sum(j) == 0
         % no data found
         fprintf( 'Skipping %s Year %d\n',  domain, yr);
-        msg = sprintf( 'No Data for %s Year %d',  domain, yr);
-        errorStruct.message = msg;
-        errorStruct.identifier = 'myComponent:inputError';
-        error(errorStruct)
     else
         fprintf( 'Working on %s Year %d\n',  domain, yr);
 

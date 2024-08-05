@@ -23,9 +23,9 @@ if isOctave
         tsPerYear = str2num(cell2mat(arg_list(4)));
         domain = cell2mat(arg_list(5));
     else
-        yrStart = str2num(yrStart)
-        tsPerYear = str2num(tsPerYear)
-        yrSelect = str2num(yrSelect)
+        yrStart = str2num(yrStart);
+        tsPerYear = str2num(tsPerYear);
+        yrSelect = str2num(yrSelect);
     end
 end
 
