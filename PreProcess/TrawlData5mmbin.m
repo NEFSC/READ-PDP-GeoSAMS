@@ -10,23 +10,6 @@
 %   ALL ==> 0
 function TrawlData5mmbin(yrStart, yrEnd, src, domain)
 
-dredgeFile = getenv('DredgeFile');
-if strcmpi(dredgeFile, 'NONE')
-    %Clear files and return
-    for yr=yrStart:yrEnd
-        flnm=strcat('Data/bin5mm',int2str(yr),domain,'.csv');
-        % if file exists remove it. We may not have any data to add.
-        % Nor do we want HabCam to append to an existing file, i.e.
-        % its own previously generated data
-        if exist(flnm, 'file')==2
-            delete(flnm)
-        end
-    end
-    return
-end
-
-dataFile = ['OriginalData/', dredgeFile,'.csv'];
-
 domList = {'MA', 'GB', 'AL'};
 
 isOctave = (exist('OCTAVE_VERSION', 'builtin') ~= 0);
@@ -46,6 +29,22 @@ if isOctave
     end
 end
 srcText = src;
+
+dredgeFile = getenv('DredgeFile');
+if strcmpi(dredgeFile, 'NONE')
+    %Clear files and return
+    for yr=yrStart:yrEnd
+        flnm=strcat('Data/bin5mm',int2str(yr),domain,'.csv');
+        % if file exists remove it. We may not have any data to add.
+        % Nor do we want HabCam to append to an existing file, i.e.
+        % its own previously generated data
+        if exist(flnm, 'file')==2
+            delete(flnm)
+        end
+    end
+    return
+end
+dataFile = ['OriginalData/', dredgeFile,'.csv'];
 
 if sum(ismember(domList, domain)) == 0
     fprintf( 'Invalid Domain %s\n',  domain);

@@ -1,11 +1,11 @@
 function HabCamData5mmbin(yrStart, yrEnd, domain, appendResults)
 
-habCamFile = getenv('habCamFile');
+habCamFile = getenv('HabCamFile');
 if strcmpi(habCamFile, 'NONE')
     %nothing to do
     return
 end
-dataFile = ['OriginalData/',habCamFile,'.csv'];
+dataFile = ['OriginalData/',abCamFile,'.csv'];
 
 header = { 'year','month','day','station','lat','lon','xutm','yutm','setdpth','sizegrp','surv_n','SQM','NImages','area','stratum','clop'};
 yearCol    = find(strcmpi('year', header), 1);
