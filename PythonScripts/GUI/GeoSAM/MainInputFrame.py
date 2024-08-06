@@ -467,6 +467,9 @@ Survey Data Files
     argument or two. These survey data files are stored in the "OriginalData"
     subdirectory as zip files. They are too large to be managed in the git
     repositiory as a CSV file. The scripts then unzip the files as necessary.
+    Extensions are not specified.
+
+    Use NONE to skip that survey data
 '''
         popup = tk.Toplevel()
         nrows = 35

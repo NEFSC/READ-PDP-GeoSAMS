@@ -162,10 +162,19 @@ class MainApplication(tk.Tk):
         self.notebook.add(self.frame2, text='Math Setup')
         self.notebook.pack()
 
+        self.isSkip = False
+        self.skipStatusMsgs = tk.BooleanVar(self, False)
         ttk.Button(self, text='SHOW Args',    style="BtnGreen.TLabel", command=self.ShowArgs).place(relx=0, rely=1, anchor='sw')
+        self.skipStatusMsgsRB = ttk.Radiobutton(self, text='Skip Status Msgs', value=True, variable=self.skipStatusMsgs, command=self.ToggleSkipStatusMsgs).place(relx=0.35, rely=1, anchor='s')
         ttk.Button(self, text='START Sim',    style="BtnGreen.TLabel", command=self.Run_Sim).place(relx=.25, rely=1, anchor='s')
         ttk.Button(self, text='SAVE ALL Configs', style="BtnGreen.TLabel", command=self.SaveConfigFiles).place(relx=.5, rely=1, anchor='s')
         ttk.Button(self, text= "Help", style="Help.TLabel", command = self.pop_up).place(relx=.75, rely=1, anchor='s')
+
+    ##
+    #
+    def ToggleSkipStatusMsgs(self):
+        self.isSkip = not self.isSkip
+        self.skipStatusMsgs.set(self.isSkip)
 
     ##
     # Display setup limits here
@@ -223,10 +232,10 @@ class MainApplication(tk.Tk):
         else:
             cmd = [os.path.join(self.root, 'Unpack.sh'), startYear, stopYear, '0', self.domainName, mathArg]
             subprocess.run(['chmod','744','Unpack.sh']) # make file executable
-        messagebox.showinfo("Unpack", f'Starting Unpack.\nThis could take several minutes, longer if using Octave.\nPlease be patient.')
+        if not self.skipStatusMsgs.get(): messagebox.showinfo("Unpack", f'Starting Unpack.\nThis could take several minutes, longer if using Octave.\nPlease be patient.')
         result = subprocess.run(cmd)
         if result.returncode == 0:
-            messagebox.showinfo("Unpack", f'Completed Successfully\n{result.args}')
+            if not self.skipStatusMsgs.get(): messagebox.showinfo("Unpack", f'Completed Successfully\n{result.args}')
             filesExist = True
         else:
             if result.returncode == 1:
@@ -249,11 +258,11 @@ class MainApplication(tk.Tk):
             # ScallopPopDensity prepends directory structure to simConfigFile
             cmd = [ex, simConfigFile, startYear, stopYear, self.domainName]
             print(cmd)
-            messagebox.showinfo("GeoSAMS Sim", f"Program Started: {cmd}")
+            if not self.skipStatusMsgs.get(): messagebox.showinfo("GeoSAMS Sim", f"Program Started: {cmd}")
             result = subprocess.run(cmd)
 
             if result.returncode == 0:
-                messagebox.showinfo("GeoSAM Sim", 
+                if not self.skipStatusMsgs.get(): messagebox.showinfo("GeoSAM Sim", 
                     f'Completed Successfully\n{result.args}\nStarting UK Interp\nIf all output selected this will run over an hour.\nPlease be patient.')
 
                 # Then Continue with Interpolation and Plotting Results -----------------------------------------------------------
@@ -482,7 +491,7 @@ class MainApplication(tk.Tk):
         self.WriteUKConfig()
         # cfgFile  = os.path.join(self.root,configDir, interCfgDir, self.frame4.spatCfgFile.myEntry.get())
         # self.WriteSpatialFncsConfig(cfgFile)
-        messagebox.showinfo("Save Files", "Configuration Files Saved")
+        if not self.skipStatusMsgs.get(): messagebox.showinfo("Save Files", "Configuration Files Saved")
 
     ##
     # Saves simulation configuration file. It does so by writeing the parameters for the 
@@ -801,6 +810,10 @@ START Sim
 
     2) This does not save the Special Access File or the Fishing Mort File. 
        See Special Acces Tab and the FishingMort in Special Access Tab
+
+Skip Status Msgs
+    Select to have scripts run straight through without reporting status.
+    Except for last ALL DONE message.
 
 SAVE ALL Configs
     Same as the first step in START Sim
