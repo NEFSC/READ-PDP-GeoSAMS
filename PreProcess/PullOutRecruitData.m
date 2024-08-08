@@ -1,6 +1,7 @@
 % for each location it sums together the scallop density from shell length 3cm to 6 cm,
 % inclusive. It then adds this value as a new column along with the current data for size
 % grp 4 as a single row for the location and writes this out to "OriginalData/NewRecruits.csv".
+% DEPRECATED
 % src
 % NMFS_ALB ==> 1111
 % CANADIAN ==> 2222
@@ -8,7 +9,7 @@
 % VIMSRSA ==> 4444
 % NMFSSHRP ==> 5555
 % ALL ==> 0
-function PullOutRecruitData(src, useHabCam, appendResults)
+function PullOutRecruitData(useHabCam, appendResults)
 
 isOctave = (exist('OCTAVE_VERSION', 'builtin') ~= 0);
 
@@ -16,14 +17,10 @@ if isOctave
     % used if called by command line
     arg_list=argv();
     if ~strcmp(arg_list(1), '--gui');
-        src = str2num(cell2mat(arg_list(1)));
-        useHabCam = cell2mat(arg_list(2));
-        appendResults = cell2mat(arg_list(3));
-    else
-        src = str2num(src);
+        useHabCam = cell2mat(arg_list(1));
+        appendResults = cell2mat(arg_list(2));
     end
 end
-srcText = src;
 
 useHC = strcmp(useHabCam, 'T');
 
@@ -43,7 +40,6 @@ if useHC
     sgCol      = find(strcmpi('sizegrp', header), 1);
     svCol      = find(strcmpi('surv_n' , header), 1);
     sqmCol     = find(strcmpi('SQM'    , header), 1);
-    srcText = 0;
     dataFile = getenv('HabCamFile');
     flnm = ['OriginalData/',dataFile,'.csv'];
 else
@@ -111,11 +107,8 @@ if useHC
         recr(k) = sum(survn(n(k)+1:n(k)+6));
     end
 else
-    if srcText == 0
-        n=find(size_grp==3);
-    else
-        n=find(size_grp==3 & dataSrc==srcText);
-    end
+    % was if srcText != 0 n=find(size_grp==3 & dataSrc==srcText);
+    n=find(size_grp==3);
     recr = zeros(1, numel(n));
     for k=1:numel(n)
         % sum 3cm to 6 cm
@@ -133,11 +126,8 @@ else
     recr_t = array2table(transpose(recr),'VariableNames',{'rec'});
 end
 
-if srcText == 0
-    j=size_grp==4;
-else
-    j=size_grp==4 & dataSrc==srcText;
-end
+% was if srcText != 0 j=size_grp==4 & dataSrc==srcText;
+j=size_grp==4;
 
 M = [F(j,yearCol) F(j,monCol) F(j,dayCol) F(j,latCol) F(j,lonCol) F(j, utmxCol) F(j, utmyCol) F(j,zCol) recr_t];
 

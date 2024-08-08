@@ -260,6 +260,7 @@ integer n !> loop count
 
 character(domain_len) domain_name
 integer start_year, stop_year
+integer recruit_yr_strt, recruit_yr_stop
 integer num_time_steps
 integer ts_per_year
 integer num_years
@@ -288,7 +289,7 @@ integer pct_comp
 !==================================================================================================================
 !  - I. Read Configuration file 'Scallop.inp'
 !==================================================================================================================
-call Read_Startup_Config(ts_per_year, start_year, stop_year, domain_name, plot_data_sel)
+call Read_Startup_Config(ts_per_year, start_year, stop_year, recruit_yr_strt, recruit_yr_stop, domain_name, plot_data_sel)
 
 !==================================================================================================================
 
@@ -320,7 +321,7 @@ allocate(fishing_effort(1:num_grids))
 
 call Set_Growth(growth, grid, shell_length_mm, num_time_steps, ts_per_year, domain_name, domain_area,&
 &              state, weight_grams, num_grids)
-call Set_Recruitment(recruit, num_grids, domain_name, domain_area, &
+call Set_Recruitment(recruit, num_grids, domain_name, domain_area, recruit_yr_strt, recruit_yr_stop,&
 &                    growth(1:num_grids)%L_inf_mu, growth(1:num_grids)%K_mu, shell_length_mm, start_year, stop_year)
 call Set_Mortality(mortality, grid, shell_length_mm, domain_name, domain_area, num_time_steps, &
 &                    ts_per_year, num_grids)
@@ -332,6 +333,8 @@ write(*,'(A,I6)') ' Start Year:         ', start_year
 write(*,'(A,I6)') ' Stop Year:          ', stop_year
 write(*,'(A,I6,A,F7.4)') ' Time steps/year:', ts_per_year
 write(*,'(A,I6,A,F7.4)') ' Total number time steps:', num_time_steps
+write(*,'(A,I6)') ' Recruit Start Year: ', recruit_yr_strt
+write(*,'(A,I6)') ' Recruit Stop Year:  ', recruit_yr_stop
 write(*,*) '========================================================'
 
 
@@ -393,7 +396,7 @@ END PROGRAM ScallopPopDensity
 !> @param[out] time_steps_per_year Number of times steps to evaluate growth
 !> @param[out] num_monte_carlo_iter Number of iterations for Monte Carlo simulation
 !-----------------------------------------------------------------------
-subroutine Read_Startup_Config(time_steps_per_year, start_year, stop_year, &
+subroutine Read_Startup_Config(time_steps_per_year, start_year, stop_year, recruit_yr_strt, recruit_yr_stop,&
     & domain_name, plot_data_sel)
     use globals
     use Mortality_Mod, only : Mortality_Set_Config_File_Name => Set_Config_File_Name, DataForPlots, Set_Select_Data
@@ -403,6 +406,7 @@ subroutine Read_Startup_Config(time_steps_per_year, start_year, stop_year, &
     implicit none
     integer, intent(out) :: time_steps_per_year ! , num_monte_carlo_iter
     integer, intent(out) :: start_year, stop_year
+    integer, intent(out) :: recruit_yr_strt, recruit_yr_stop
     character(domain_len), intent(out) :: domain_name
     type(DataForPlots), intent(out) :: plot_data_sel
 
@@ -418,6 +422,8 @@ subroutine Read_Startup_Config(time_steps_per_year, start_year, stop_year, &
 
     ! default values
     time_steps_per_year = 13
+    recruit_yr_strt = 2012
+    recruit_yr_stop = 2023
     plot_data_sel = DataForPlots(.false.,.false.,.false.,.false.,.false.,.false.,.false.,.false.,.false.)
 
     !----------------------------------------------------------------------------
@@ -459,6 +465,12 @@ subroutine Read_Startup_Config(time_steps_per_year, start_year, stop_year, &
             select case (tag)
             case('Time steps per Year')
                 read(value,*) time_steps_per_year
+
+            case('Recruit Year Strt')
+                read(value,*) recruit_yr_strt
+
+            case('Recruit Year Stop')
+                read(value,*) recruit_yr_stop
 
             case('Grid Manager Config File')
                 call GridMgr_Set_Config_File_Name(trim(adjustl(value)))

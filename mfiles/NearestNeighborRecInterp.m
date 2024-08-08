@@ -1,4 +1,9 @@
-function NearestNeighborRecInterp(yrStart, yrEnd, domain)
+function NearestNeighborRecInterp(yrStart, yrEnd, domain, refYear)
+
+if nargin == 3
+    refYear = 0;
+end
+
 isOctave = (exist('OCTAVE_VERSION', 'builtin') ~= 0);
 
 if isOctave
@@ -8,9 +13,15 @@ if isOctave
     yrStart = str2num(cell2mat(arg_list(1)));
     yrEnd = str2num(cell2mat(arg_list(2)));
     domain = cell2mat(arg_list(3));
+    if nargin > 3
+        refYear = str2num(cell2mat(arg_list(4)));
+    end
   else
     yrStart = str2num(yrStart);
     yrEnd = str2num(yrEnd);
+    if nargin > 3
+        refYear = str2num(refYear);
+    end
   end
 end
 
@@ -20,15 +31,17 @@ if ~strcmp(domain, 'GB') & ~strcmp(domain, 'MA') & ~strcmp(domain, 'AL')
     return;
 end
 
-fl0=strcat('Data/Recruits',int2str(yrStart),domain,'.csv');
+if refYear == 0
+    fl0=strcat('Data/Recruits',int2str(yrStart),domain,'.csv');
+else
+    fl0=strcat('Data/Recruits',int2str(refYear),domain,'.csv');
+end
 fl2=strcat('RecruitEstimates/RecruitEstimate',domain,int2str(yrStart),'.txt');
-fl2Rand=strcat('RecruitEstimates/RecruitEstimateRand',domain,int2str(yrStart),'.txt');
+fl2Rand=strcat('RecruitEstimates/RecruitEstimateNotRand',domain,int2str(yrStart),'.txt');
 if isOctave
     D=csvreadK(fl0);
-    dyr0=D(:,1);
     x0=D(:,2);
     y0=D(:,3);
-    z0=D(:,4);
     recs0=D(:,5);
     r = RandomizeOutput(recs0, yrStart);
     % swapped original and random
@@ -41,10 +54,8 @@ if isOctave
     fclose(fid);
 else
     D=readtable(fl0,"FileType","spreadsheet");
-    dyr0=table2array(D(:,1));
     x0=table2array(D(:,2));
     y0=table2array(D(:,3));
-    z0=table2array(D(:,4));
     recs0=table2array(D(:,5));
     r = RandomizeOutput(recs0, yrStart);
     % swapped original and random
@@ -70,7 +81,7 @@ for yr=yrStart+1:yrEnd
         z=table2array(D(:,4));
         recs=table2array(D(:,5));
     end
-    recs05=NaN(size(x0));
+    recs05=zeros(size(x0));
     for k=1:ngp
         dist=abs( x0(k)+1i*y0(k) - x - 1i*y);
         [m,j]=min(dist);
@@ -94,11 +105,9 @@ for yr=yrStart+1:yrEnd
         writematrix(recs05,fl2Rand)
         writematrix(r, fl2)
     end
+end % yr=yrStart+1:yrEnd
 
-
-end
-
-end
+end % function
 
 function x = RandomizeOutput(M, yr)
     mu = 0.0;

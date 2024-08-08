@@ -44,14 +44,8 @@ goto args_count_ok
 
 :args_count_wrong
     @echo [31mMissing arguments[0m
-    @echo "Expecting: Unpack.bat YYYYstart YYYYend DataSource# Domain [M|O]"
-    @echo "Data Source"
-    @echo "    NMFS_ALB ==> 1111"
-    @echo "    CANADIAN ==> 2222"
-    @echo "    F/V_TRAD ==> 3333"
-    @echo "    VIMSRSA  ==> 4444"
-    @echo "    NMFSSHRP ==> 5555"
-    @echo "    ALL      ==> 0"
+    @echo "Expecting: Unpack.bat  ReferenceYr RecrYrStrt RecrYrStop Domain [M|O]"
+    @REM                             %1           %2         %3       %4     %5
     @echo "Domain"
     @echo "    MA"
     @echo "    GB"
@@ -62,24 +56,6 @@ goto args_count_ok
     exit /b 11
 
 :args_count_ok
-@REM batch does not support AND, OR statements in IF
-if "%3" EQU "1111" goto check_domain_arg
-if "%3" EQU "2222" goto check_domain_arg
-if "%3" EQU "3333" goto check_domain_arg
-if "%3" EQU "4444" goto check_domain_arg
-if "%3" EQU "5555" goto check_domain_arg
-if "%3" EQU "0" goto check_domain_arg
-    @echo [31mInvalid SRC: [0m "%3"
-    @echo "Data Source"
-    @echo "    NMFS_ALB EQU> 1111"
-    @echo "    CANADIAN EQU> 2222"
-    @echo "    F/V_TRAD EQU> 3333"
-    @echo "    VIMSRSA  EQU> 4444"
-    @echo "    NMFSSHRP EQU> 5555"
-    @echo "    ALL      EQU> 0"
-    exit /b 12
-
-:check_domain_arg
 if "%4" EQU "MA" goto check_math_arg
 if "%4" EQU "GB" goto check_math_arg
 if "%4" EQU "AL" goto check_math_arg
@@ -171,24 +147,19 @@ make
 @REM finish with preprocessing
 cd ..
 
-@REM PullOutRecruitData compiles recruit data for all years from the dredge data.
-@REM For Matlab: %3 defines the source data for the dredge
-@REM before 2008 use NMFS_ALB
-@REM 2008 and after use VIMSRSA
-
 @REM Pull Out Survey Data --------------------------------------------------------------
 @REM Always pull dregde data
 @REM if "%5" EQU "M" if "%6" EQU "D" (
 if "%5" EQU "M" (
-    @echo [33mmatlab.exe -batch "TrawlData5mmbin(%1, %2, %3, '%4'); exit;"[0m
-    matlab.exe -batch "TrawlData5mmbin(%1, %2, %3, '%4'); exit;"
+    @echo [33mmatlab.exe -batch "TrawlData5mmbin(%1, '%4'); exit;"[0m
+    matlab.exe -batch "TrawlData5mmbin(%1, '%4'); exit;"
     IF ERRORLEVEL 1 (
         @echo [31mError in MATLAB TrawlData5mmbin. Stopping[0m
         exit 1/b
     )
 
-    @echo [33mmatlab.exe -batch "HabCamData5mmbin(%1, %2, '%4', 'T'); exit;"[0m
-    matlab.exe -batch "HabCamData5mmbin(%1, %2, '%4', 'T'); exit;"
+    @echo [33mmatlab.exe -batch "HabCamData5mmbin(%1, '%4', 'T'); exit;"[0m
+    matlab.exe -batch "HabCamData5mmbin(%1, '%4', 'T'); exit;"
     IF ERRORLEVEL 1 (
         @echo [31mError in MATLAB HabCamData5mmbin. Stopping[0m
         exit 1/b
@@ -198,8 +169,8 @@ if "%5" EQU "M" (
 @REM Always pull dredge data
 @REM if "%5" EQU "O" if "%6" EQU "D" (
 if "%5" EQU "O" (
-    @echo [33moctave PreProcess/TrawlData5mmbin.m $1 $2 $3 $4 T[0m
-    octave PreProcess/TrawlData5mmbin.m $1 $2 $3 $4 'T'
+    @echo [33moctave PreProcess/TrawlData5mmbin.m $1 $4[0m
+    octave PreProcess/TrawlData5mmbin.m $1 $4
     IF ERRORLEVEL 1 (
         @echo [31mError in Octave TrawlData5mmbin. Stopping[0m
         exit 1/b
@@ -207,8 +178,8 @@ if "%5" EQU "O" (
 
     @REM Alwyas pull HabCam data and append to dredge data
     @REM if "%5" EQU "O" if "%6" EQU "H" (
-    @echo [33moctave PreProcess/HabCamData5mmbin.m $1 $2 $4 'T'[0m
-    octave PreProcess/HabCamData5mmbin.m $1 $2 $4 'T'
+    @echo [33moctave PreProcess/HabCamData5mmbin.m $1 $4 'T'[0m
+    octave PreProcess/HabCamData5mmbin.m $1 $4 'T'
     IF ERRORLEVEL 1 (
         @echo [31mError in Octave TrawlData5mmbin. Stopping[0m
         exit 1/b
@@ -218,15 +189,15 @@ if "%5" EQU "O" (
 @REM Pull Out Recruit Data --------------------------------------------------------------
 @REM Pull Out Dredge data then pull out HabCam Data
 if "%5" EQU "M" (
-    @echo [33mmatlab.exe -batch "PullOutRecruitData(%3, 'F', 'F'); exit;"[0m
-    matlab.exe -batch "PullOutRecruitData(%3, 'F', 'F'); exit;"
+    @echo [33mmatlab.exe -batch "PullOutRecruitData('F', 'F'); exit;"[0m
+    matlab.exe -batch "PullOutRecruitData('F', 'F'); exit;"
     IF ERRORLEVEL 1 (
         @echo [31mError in MATLAB PullOutRecruitData. Stopping[0m
         exit 2/b
     )
 
-    @echo [33mmatlab.exe -batch "PullOutRecruitData(%3, 'T', 'T'); exit;"[0m
-    matlab.exe -batch "PullOutRecruitData(%3, 'T', 'T'); exit;"
+    @echo [33mmatlab.exe -batch "PullOutRecruitData('T', 'T'); exit;"[0m
+    matlab.exe -batch "PullOutRecruitData('T', 'T'); exit;"
     IF ERRORLEVEL 1 (
         @echo [31mError in MATLAB PullOutRecruitData. Stopping[0m
         exit 2/b
@@ -234,30 +205,29 @@ if "%5" EQU "M" (
 ) 
 
 if "%5" EQU "O" (
-    @echo [33moctave PreProcess/PullOutRecruitData.m %3 F F[0m
-    octave PreProcess/PullOutRecruitData.m %3 F F
+    @echo [33moctave PreProcess/PullOutRecruitData.m F F[0m
+    octave PreProcess/PullOutRecruitData.m F F
     IF ERRORLEVEL 1 (
         @echo [31mError in Octave PullOutRecruitData. Stopping[0m
         exit 2/b
     )
 
-    @echo [33moctave PreProcess/PullOutRecruitData.m %3 T T[0m
-    octave PreProcess/PullOutRecruitData.m %3 T T
+    @echo [33moctave PreProcess/PullOutRecruitData.m T T[0m
+    octave PreProcess/PullOutRecruitData.m T T
     IF ERRORLEVEL 1 (
         @echo [31mError in Octave PullOutRecruitData. Stopping[0m
         exit 2/b
     )
-
 )
 
 @REM Process Recruit Data --------------------------------------------------------------
 if "%5" EQU "M" (
-    @echo [33mmatlab.exe -batch "ProcessRecruitData(%1, %2, '%4'); exit;"[0m
-    matlab.exe -batch "ProcessRecruitData(%1, %2, '%4'); exit;"
+    @echo [33mmatlab.exe -batch "ProcessRecruitData(%2, %3, '%4'); exit;"[0m
+    matlab.exe -batch "ProcessRecruitData(%2, %3, '%4'); exit;"
 )
 if "%5" EQU "O" (
-    @echo [33mPreProcess/ProcessRecruitData.m %1 %2 %4[0m
-    octave PreProcess/ProcessRecruitData.m %1 %2 %4 
+    @echo [33mPreProcess/ProcessRecruitData.m %2 %3 %4[0m
+    octave PreProcess/ProcessRecruitData.m %2 %3 %4 
 )
 IF ERRORLEVEL 1 (
     @echo [31mError in MATLAB ProcessRecruitData. Stopping[0m
@@ -265,8 +235,8 @@ IF ERRORLEVEL 1 (
 )
 
 @REM Expand Nearest Neighbor to first year Survey Grid----------------------------------
-if "%5" EQU "M" matlab.exe -batch "NearestNeighborRecInterp(%1, %2, '%4'); exit;"
-if "%5" EQU "O" octave mfiles/NearestNeighborRecInterp.m %1 %2 %4
+if "%5" EQU "M" matlab.exe -batch "NearestNeighborRecInterp(%2, %3, '%4', %1); exit;"
+if "%5" EQU "O" octave mfiles/NearestNeighborRecInterp.m %2 %3 %4 %1
 IF ERRORLEVEL 1 (
     @echo [31mError in MATLAB NearestNeighborRecInterp. Stopping[0m
     exit 4/b

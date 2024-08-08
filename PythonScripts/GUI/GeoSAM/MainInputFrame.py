@@ -79,34 +79,32 @@ class MainInput(ttk.Frame):
         simFrame.grid(row=1, column=0, padx=5, sticky='n')
         # +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
         interpFrame = ttk.LabelFrame(self, text='Interpolation Configuration Files', style='SAMS.TFrame')
-        self.ukCfgFile = SubFrameElement(self, interpFrame, 'UK Config File', 'UK.cfg', 0, 0, 1, width=20)
+        self.ukCfgFile = SubFrameElement(self, interpFrame, '', 'UK.cfg', 0, 0, 1, width=20)
         self.openUKConfigButton = ttk.Button(interpFrame, text='Change/Save UK File', style="BtnBluGrn.TLabel", command=self.GetUKConfigFName)
         self.openUKConfigButton.grid(row=0, column=3)
         #-------------------------------------------------------------------------------------------
-        interpFrame.grid(row=2, column=0, padx=5, pady=0, sticky='nw')
+        interpFrame.grid(row=2, column=0, padx=5, pady=0, sticky='w')
         # +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-        showResultsFrame = ttk.LabelFrame(self, text='View PDF Plots', style='SAMS.TFrame')
+        showResultsFrame = ttk.LabelFrame(self, text='View Plots', style='SAMS.TFrame')
         # --------------------------------------------------------------------------------------------------------
         self.openPDFButton = ttk.Button(showResultsFrame, text='Open PDF File', style="BtnGreen.TLabel", command=self.OpenPDF)
-        self.openPDFButton.grid(row=0, column=0, sticky='we')
+        self.openPDFButton.grid(row=0, column=0, padx=10, sticky='we')
         #-------------------------------------------------------------------------------------------
-        showResultsFrame.grid(row=2, column=0, padx=5, sticky='sw')
-        # +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+        showResultsFrame.grid(row=2, column=0, padx=5, sticky='e')
         # +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
         survDataFrame = ttk.LabelFrame(self, text='Survey Data Files, Environment Variables', style='SAMS.TFrame')
         self.dredgeDataFile = SubFrameElement(self, survDataFrame, 'Dredge Survey Data File', 'dredgetowbysize7917',  0, 0, 1, width=35)
-        self.habCamDataFile = SubFrameElement(self, survDataFrame, 'HabCam Survey Data File', 'Habcam_BySegment_2000_2014-2020',1, 0, 1, width=35)
+        self.habCamDataFile = SubFrameElement(self, survDataFrame, 'HabCam Survey Data File', 'Habcam_BySegment_2000_2011-2023',1, 0, 1, width=35)
         #-------------------------------------------------------------------------------------------
-        survDataFrame.grid(row=3, column=0, padx=5, pady=0, sticky='sw')
         self.setDredgeDataButton = ttk.Button(survDataFrame, text='Set DredgeData', style="BtnBluGrn.TLabel", command=self.SetDredgeFileName)
         self.setDredgeDataButton.grid(row=0, column=3)
         #-------------------------------------------------------------------------------------------
         self.setHabCamDataButton = ttk.Button(survDataFrame, text='Set HabCamData', style="BtnBluGrn.TLabel", command=self.SetHabCamFileName)
         self.setHabCamDataButton.grid(row=1, column=3)
+        #-------------------------------------------------------------------------------------------
+        survDataFrame.grid(row=3, column=0, padx=5, pady=0, sticky='sw')
         # +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-
         recruitFrame = ttk.LabelFrame(self, text='Recruitment', style='SAMS.TFrame')
-
         self.monthsArr = ['JAN', 'FEB', 'MAR', 'APR', 'MAY', 'JUN', 'JUL', 'AUG', 'SEP', 'OCT', 'NOV', 'DEC']
         self.startDayLabel = ttk.Label(recruitFrame, text='Start Day')
         self.startDayLabel.grid(row=0, column=0)
@@ -134,23 +132,30 @@ class MainInput(ttk.Frame):
         self.stopDayComboDay.bind('<<ComboboxSelected>>', self.CheckStopDay)
         self.stopDayComboDay.grid(row=1, column=2, padx=5, sticky='e')
         #-------------------------------------------------------------------------------------------
-        recruitFrame.grid(row=2, column=1, padx=5, sticky='e')
+        recruitFrame.grid(row=3, column=1, padx=5, sticky='w')
         # +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
         durationFrame = ttk.LabelFrame(self, text='Duration', style='SAMS.TFrame')
-        self.startYr    = SubFrameElement(self, durationFrame, 'Start Year',       '2015',            0, 0, 1,
+        #-------------------------------------------------------------------------------------------
+        self.startYr    = SubFrameElement(self, durationFrame, 'Start Year',       '2015',       0, 0, 1,
                                           enterCmd=self.EnterKeyClicked, valCmd=numbersCallback)
         #-------------------------------------------------------------------------------------------
-        self.stopYr     = SubFrameElement(self, durationFrame, 'Stop Year ',       '2017',            1, 0, 1,
+        self.stopYr     = SubFrameElement(self, durationFrame, 'Stop Year ',       '2017',       1, 0, 1,
                                           enterCmd=self.EnterKeyClicked, valCmd=numbersCallback)
         #-------------------------------------------------------------------------------------------
-        self.tsPerYear  = SubFrameElement(self, durationFrame, 'Time Steps / Year', str(tsPerYear),   2, 0, 1)
+        self.recrYrStrt = SubFrameElement(self, durationFrame, 'Recruit Yr Start', '2012',      0, 2, 3,
+                                          enterCmd=self.EnterKeyClicked, valCmd=numbersCallback)
+        #-------------------------------------------------------------------------------------------
+        self.recrYrStop = SubFrameElement(self, durationFrame, 'Recruit Yr Stop ', '2023',      1, 2, 3,
+                                          enterCmd=self.EnterKeyClicked, valCmd=numbersCallback)
+        #-------------------------------------------------------------------------------------------
+        self.tsPerYear  = SubFrameElement(self, durationFrame, 'Time Steps / Year', str(tsPerYear), 2, 0, 1)
         #-------------------------------------------------------------------------------------------
         self.domainNameLabel = ttk.Label(durationFrame, text='Domain Name')
-        self.domainNameLabel.grid(row=3, column=0, pady=5)
+        self.domainNameLabel.grid(row=2, column=2, pady=5)
         #-------------------------------------------------------------------------------------------
         self.domainNameCombo = ttk.Combobox(durationFrame, width=3, values=['MA', 'GB', 'AL'])
         self.domainNameCombo.current(2)
-        self.domainNameCombo.grid(row=3, column=1, sticky='w', pady=5)
+        self.domainNameCombo.grid(row=2, column=3, sticky='w', pady=5)
         #-------------------------------------------------------------------------------------------
         durationFrame.grid(row=2, column=1, padx=5, sticky='w')
         # +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
@@ -445,14 +450,12 @@ Duration
     •	1/13 = 0.077 years
     •	0.077 * 365 = 28.077 days or roughly every 4 weeks
 
-    The year range is limited by default to 5 years, e.g. 2015 to 2019.
-    See SHOW Args. The user can modify this on the command line:
-    > python .\\PythonScripts\\GUI\\GeoSAM\\GeoSams.py #Areas #Nodes
-    Default:
-    > python .\\PythonScripts\\GUI\\GeoSAM\\GeoSams.py 25 8
+    The domain name is where the region where the growth takes place, Georges 
+    Bank or Mid-Atlantic, GB or MA, respectively. AL covers both regions. 
 
-    The domain name shows the region where the growth takes place, Georges Bank
-    or Mid-Atlantic, GB or MA, respectively. AL covers both regions. 
+    Recruit Yr Start/Stop specifies which years to pull from the survey data
+    files to model recruitment. These years are randomly selected to serve
+    as a basis for recruitment for each year of the forecast growth.
 
 Recruitment
     Defines the period in which recruitment is used in the growth calculations.

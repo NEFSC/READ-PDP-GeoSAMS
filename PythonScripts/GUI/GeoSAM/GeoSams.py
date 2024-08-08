@@ -74,8 +74,8 @@ from Globals import *
 #  arg#        1     2              3                  4                   5
 def Interpolate(ukCfgFile, domainName, obsFile, gridFile, zArg, procID, retDict):
     ex = os.path.join('UKsrc', 'UK')
-    outputFile = 'proc'+str(procID)+'.txt'
-    cmd = [ex, ukCfgFile, domainName, obsFile, gridFile, zArg]
+    outputFile = 'proc_' + obsFile + '_' + str(procID) +'.txt'
+    cmd = [ex, ukCfgFile, domainName, obsFile + '.csv', gridFile, zArg]
     with open(outputFile, "w") as outfile:
         result = subprocess.run(cmd, stdout=outfile)
     retDict[procID] = result.returncode
@@ -123,6 +123,8 @@ class MainApplication(tk.Tk):
         # Now using cwd assuming python is started from there.
         #   > set ROOT=%CD%
         self.root = os.getcwd() #os.environ['ROOT']
+
+        # Read in Sim Configuration File to set default output selection
         self.simConfigFile  = os.path.join(self.root,configDir, simCfgDir,'Scallop.cfg')
         self.ReadSimConfigFile()
         self.notebook = ttk.Notebook(self)
@@ -135,11 +137,6 @@ class MainApplication(tk.Tk):
         self.gmConfigFile   = os.path.join(self.root,configDir, simCfgDir, self.frame1.gmCfgFile.myEntry.get())
         self.ukConfigFile   = os.path.join(self.root,configDir, interCfgDir, self.frame1.ukCfgFile.myEntry.get())
 
-        # Read in configuration parameters
-        self.ReadSimConfigFile()
-        #
-        # NOTE: MA does not use stratum and forces it to false
-        # 
         self.frame3 = Growth(self.notebook, self.mortConfigFile)
         self.frame4 = UKInterpolation(self.notebook, self, self.frame1)
         self.frame5 = SortByArea(self.notebook, self.frame1, self.maxAreas, self.maxCorners, self.maxYears, self.paramStr)
@@ -207,9 +204,13 @@ class MainApplication(tk.Tk):
         startYear = self.frame1.startYr.myEntry.get()
         stopYear = self.frame1.stopYr.myEntry.get()
         self.domainName = self.frame1.domainNameCombo.get()
+        recruitYrStrt = self.frame1.recrYrStrt.myEntry.get()
+        recruitYrStop = self.frame1.recrYrStop.myEntry.get()
         # check range
         self.yearStart = int(startYear)
         self.yearStop = int(stopYear)
+        self.recruitYrStrt = recruitYrStrt
+        self.recruitYrStop = recruitYrStop
         
         # Typical data file name: Data/bin5mm2015AL.csv
         # Delete any existing files, want a clean slate
@@ -228,9 +229,9 @@ class MainApplication(tk.Tk):
             mathArg = 'O'
 
         if platform.system() == 'Windows':
-            cmd = [os.path.join(self.root, 'Unpack.bat'), startYear, stopYear, '0', self.domainName, mathArg]
+            cmd = [os.path.join(self.root, 'Unpack.bat'), startYear, recruitYrStrt, recruitYrStop, self.domainName, mathArg]
         else:
-            cmd = [os.path.join(self.root, 'Unpack.sh'), startYear, stopYear, '0', self.domainName, mathArg]
+            cmd = [os.path.join(self.root, 'Unpack.sh'), startYear, recruitYrStrt, recruitYrStop, self.domainName, mathArg]
             subprocess.run(['chmod','744','Unpack.sh']) # make file executable
         if not self.skipStatusMsgs.get(): messagebox.showinfo("Unpack", f'Starting Unpack.\nThis could take several minutes, longer if using Octave.\nPlease be patient.')
         result = subprocess.run(cmd)
@@ -371,7 +372,7 @@ class MainApplication(tk.Tk):
                     gridFile = self.domainName+'xyzLatLon.csv'
 
                 for year in years:
-                    obsFile = 'X_Y_' + pStr + self.domainName + str(year) + r + '.csv'
+                    obsFile = 'X_Y_' + pStr + self.domainName + str(year) + r
 
                     # result = Interpolate(ukCfgFile, self.domainName, obsFile, gridFile, zArg)
                     # if (result.returncode != 0):
@@ -502,6 +503,8 @@ class MainApplication(tk.Tk):
         with open(simCfgFile, 'w') as f:
             f.write('# input file for Scallops \n')
             f.write('Time steps per Year = ' + str(self.frame1.tsPerYear.myEntry.get())+'\n')
+            f.write('Recruit Year Strt = ' + str(self.frame1.recrYrStrt.myEntry.get())+'\n')
+            f.write('Recruit Year Stop = ' + str(self.frame1.recrYrStop.myEntry.get())+'\n')
             f.write('# Configuration files are expected to be in the Configuration directory\n')
             f.write('Mortality Config File = '   + self.frame1.mortCfgFile.myEntry.get() + '\n')
             f.write('Recruit Config File = '     + self.frame1.recrCfgFile.myEntry.get() + '\n')

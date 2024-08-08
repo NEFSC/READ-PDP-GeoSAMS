@@ -1,4 +1,4 @@
-function HabCamData5mmbin(yrStart, yrEnd, domain, appendResults)
+function HabCamData5mmbin(refYear, domain, appendResults)
 
 habCamFile = getenv('HabCamFile');
 if strcmpi(habCamFile, 'NONE')
@@ -33,13 +33,11 @@ if isOctave
     % used if called by command line
     arg_list=argv();
     if ~strcmp(arg_list(1), '--gui')
-        yrStart = str2num(cell2mat(arg_list(1)));
-        yrEnd = str2num(cell2mat(arg_list(2)));
-        domain = cell2mat(arg_list(3));
-        appendResults = cell2mat(arg_list(4));
+        refYear = str2num(cell2mat(arg_list(1)));
+        domain = cell2mat(arg_list(2));
+        appendResults = cell2mat(arg_list(3));
     else
-        yrStart = str2num(yrStart);
-        yrEnd = str2num(yrEnd);
+        refYear = str2num(refYear);
     end
 end
 
@@ -89,89 +87,88 @@ else % NOT Octave
     sg = table2array(M(:,sgCol));
 end
 
-% We only ever use the Start Year Data
-for yr=yrStart:yrStart
-    X=[];
-    j= year==yr & sg==3.;
+% 
+yr=refYear;
+X=[];
+j= year==yr & sg==3.;
 
-    if sum(j) == 0
-        % no data found
-        fprintf( 'Skipping %s Year %d\n',  domain, yr);
+if sum(j) == 0
+    % no data found
+    fprintf( 'Skipping %s Year %d\n',  domain, yr);
+else
+    fprintf( 'Working on %s Year %d\n',  domain, yr);
+
+    if isOctave
+        stratum_t = M(j,stratumCol);
+        is_closed_t = M(j,clopCol);
+        lat_t = M(j,latCol);
+        lon_t = M(j,lonCol);
+        mon = M(j,monCol);
+        day = M(j,dayCol);
+        yd = 0 * day;
+        for k=1:length(day)
+            yd(k) = yearday(mon(k),day(k),0);
+        end
+        DecYr_t = year(j) + yd/365.25;
+        z_t = M(j,zCol);
+        xutm_t = M(j,utmxCol);
+        yutm_t = M(j,utmyCol);
     else
-        fprintf( 'Working on %s Year %d\n',  domain, yr);
+        stratum_t = M(j,stratumCol);
+        is_closed_t = M(j,clopCol);
+        lat_t = M(j,latCol);
+        lon_t = M(j,lonCol);
+        mon = table2array(M(j,monCol));
+        day = table2array(M(j,dayCol));
+        yd = 0 * day;
+        for k=1:length(day)
+            yd(k) = yearday(mon(k),day(k),0);
+        end
+        DecYr_t = array2table(year(j) + yd/365.25,'VariableNames',{'DecYr'});
+        z_t = M(j,zCol);
+        xutm_t = M(j,utmxCol);
+        yutm_t = M(j,utmyCol);
+    end
 
-        if isOctave
-            stratum_t = M(j,stratumCol);
-            is_closed_t = M(j,clopCol);
-            lat_t = M(j,latCol);
-            lon_t = M(j,lonCol);
-            mon = M(j,monCol);
-            day = M(j,dayCol);
-            yd = 0 * day;
-            for k=1:length(day)
-                yd(k) = yearday(mon(k),day(k),0);
-            end
-            DecYr_t = year(j) + yd/365.25;
-            z_t = M(j,zCol);
-            xutm_t = M(j,utmxCol);
-            yutm_t = M(j,utmyCol);
-        else
-            stratum_t = M(j,stratumCol);
-            is_closed_t = M(j,clopCol);
-            lat_t = M(j,latCol);
-            lon_t = M(j,lonCol);
-            mon = table2array(M(j,monCol));
-            day = table2array(M(j,dayCol));
-            yd = 0 * day;
-            for k=1:length(day)
-                yd(k) = yearday(mon(k),day(k),0);
-            end
-            DecYr_t = array2table(year(j) + yd/365.25,'VariableNames',{'DecYr'});
-            z_t = M(j,zCol);
-            xutm_t = M(j,utmxCol);
-            yutm_t = M(j,utmyCol);
-        end
-
-        n=find(and(year==yr,sg==3.));
-        for k=1:numel(lat_t)
-            % bring in the surv_n data from size group 3 to 18, centimeters
-            % which is in the 30 rows following sc==3
-            % gather size data 3 - 14.5
-            %               n(k) - n(k+23)
-            % accumulate 15 to 18
-            % sum n(k+24) - n(k+30) into k=25
-            region = GetRegion(isOctave, lat_t(k,:), lon_t(k,:), stratum_t(k,:));
-            if region>0
-                if isOctave
-                    k25 = sum((M(n(k)+24:n(k)+30, svCol)));
-                    density = [(M(n(k):n(k)+23, svCol));k25];
-                    X=[X;DecYr_t(k,:), xutm_t(k,:), yutm_t(k,:), lat_t(k,:), lon_t(k,:), z_t(k,:), is_closed_t(k,:), stratum_t(k,:), transpose(density)];
-                else
-                    k25   = sum(table2array(M(n(k)+24:n(k)+30, svCol)));
-                    density = [table2array(M(n(k):n(k)+23, svCol));k25];
-                    density_t = rows2vars(array2table(density,'VariableNames',{'density'}));
-                    %        A           B            C            D             E         F          G                    H             I
-                    X=[X;DecYr_t(k,:), xutm_t(k,:), yutm_t(k,:), lat_t(k,:), lon_t(k,:), z_t(k,:), is_closed_t(k,:), stratum_t(k,:), density_t(1,2:end)];
-                end
-            end
-        end
-        flnm=strcat('Data/bin5mm',int2str(yr),domain,'.csv');
-        fprintf('Size of grid %d\n', size(X,1))
-        if isOctave
-            if strcmp(appendResults(1), 'T')
-                dlmwrite(flnm, X, "-append")
+    n=find(and(year==yr,sg==3.));
+    for k=1:numel(lat_t)
+        % bring in the surv_n data from size group 3 to 18, centimeters
+        % which is in the 30 rows following sc==3
+        % gather size data 3 - 14.5
+        %               n(k) - n(k+23)
+        % accumulate 15 to 18
+        % sum n(k+24) - n(k+30) into k=25
+        region = GetRegion(isOctave, lat_t(k,:), lon_t(k,:), stratum_t(k,:));
+        if region>0
+            if isOctave
+                k25 = sum((M(n(k)+24:n(k)+30, svCol)));
+                density = [(M(n(k):n(k)+23, svCol));k25];
+                X=[X;DecYr_t(k,:), xutm_t(k,:), yutm_t(k,:), lat_t(k,:), lon_t(k,:), z_t(k,:), is_closed_t(k,:), stratum_t(k,:), transpose(density)];
             else
-                dlmwrite(flnm,X);
-            end
-        else
-            if strcmp(appendResults(1), 'T')
-                writetable(X,flnm,'WriteVariableNames',0,'WriteMode','append');
-            else
-                writetable(X,flnm,'WriteVariableNames',0);
+                k25   = sum(table2array(M(n(k)+24:n(k)+30, svCol)));
+                density = [table2array(M(n(k):n(k)+23, svCol));k25];
+                density_t = rows2vars(array2table(density,'VariableNames',{'density'}));
+                %        A           B            C            D             E         F          G                    H             I
+                X=[X;DecYr_t(k,:), xutm_t(k,:), yutm_t(k,:), lat_t(k,:), lon_t(k,:), z_t(k,:), is_closed_t(k,:), stratum_t(k,:), density_t(1,2:end)];
             end
         end
-    end % if sum(j) == 0
-end  % for yr=yrStart:yrEnd
+    end
+    flnm=strcat('Data/bin5mm',int2str(yr),domain,'.csv');
+    fprintf('Size of grid %d\n', size(X,1))
+    if isOctave
+        if strcmp(appendResults(1), 'T')
+            dlmwrite(flnm, X, "-append")
+        else
+            dlmwrite(flnm,X);
+        end
+    else
+        if strcmp(appendResults(1), 'T')
+            writetable(X,flnm,'WriteVariableNames',0,'WriteMode','append');
+        else
+            writetable(X,flnm,'WriteVariableNames',0);
+        end
+    end
+end % if sum(j) == 0
 end
 
 

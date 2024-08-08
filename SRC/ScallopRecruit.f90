@@ -112,8 +112,10 @@ integer, PRIVATE :: num_grids
 character(domain_len), PRIVATE :: domain_name
 real(dp), PRIVATE :: domain_area_sqm
 
-integer, PRIVATE :: recr_start_year ! historical data interpolated at start
-integer, PRIVATE :: recr_stop_year ! historical data interpolated at stop
+integer, PRIVATE :: recr_start_year ! start of available recruitment data
+integer, PRIVATE :: recr_stop_year  ! end of available recruitment data
+integer, PRIVATE :: sim_start_year  ! start of the growth period
+integer, PRIVATE :: sim_stop_year   ! end of the growth period
 real(dp), PRIVATE :: recr_period_start ! day of year as a fraction of year, Jan 1 is 1/365
 real(dp), PRIVATE :: recr_period_stop  ! day of year as a fraction of year, Apr 10 is 100/365
 
@@ -134,18 +136,21 @@ CONTAINS
 !> @param[in] K_mu Brody growth coefficient K, average
 !> @param[in] shell_length_mm Shell height in millimeters
 !==================================================================================================================
-subroutine Set_Recruitment(recruit, n_grids, dom_name, dom_area, L_inf_mu, K_mu, shell_length_mm, yr_start,  yr_stop)
+subroutine Set_Recruitment(recruit, n_grids, dom_name, dom_area, recruit_yr_strt, recruit_yr_stop, &
+    & L_inf_mu, K_mu, shell_length_mm, yr_start,  yr_stop)
     use globals
     type(Recruitment_Class), intent(inout) :: recruit(*)
     integer, intent(in) :: n_grids
     character(domain_len), intent(in) :: dom_name
     real(dp), intent(in) :: dom_area
+    integer, intent(in) :: recruit_yr_strt, recruit_yr_stop
     real(dp), intent(in) :: L_inf_mu(*)
     real(dp), intent(in) :: K_mu(*)
     real(dp), intent(in) :: shell_length_mm(*)
     integer, intent(in) :: yr_start,  yr_stop
 
-    integer n, j, year, year_index
+    integer n, j, year, year_index, random_year, n_rand_yrs
+    real(dp) rn
     real(dp) tmp(n_grids)
     character(72) buf
     real(dp) L30mm
@@ -158,9 +163,12 @@ subroutine Set_Recruitment(recruit, n_grids, dom_name, dom_area, L_inf_mu, K_mu,
     recr_period_stop = 100./365.
 
     call Read_Configuration()
-    ! recruitment years same as growth years from main command line
-    recr_start_year = yr_start
-    recr_stop_year  = yr_stop
+    ! 
+    sim_start_year = yr_start
+    sim_stop_year  = yr_stop
+    recr_start_year = recruit_yr_strt
+    recr_stop_year  = recruit_yr_stop
+    n_rand_yrs = recr_stop_year - recr_start_year + 1
 
     !! initalize private members
     num_grids = n_grids
@@ -177,13 +185,18 @@ subroutine Set_Recruitment(recruit, n_grids, dom_name, dom_area, L_inf_mu, K_mu,
     !       rec_stop = 100/365, or April 10 
     !-------------------------------------------------------------------------
     year_index = 0
-    do year = recr_start_year, recr_stop_year
+    do year = sim_start_year, sim_stop_year
         year_index = year_index + 1
-        write(buf,'(I6)')year
+
+        call random_number(rn)
+
+        random_year = recr_start_year + int(rn * n_rand_yrs)
+
+        write(buf,'(I6)')random_year
         fname = rec_input_dir//'RecruitEstimate'//domain_name//trim(adjustl(buf))//'.txt'
         inquire(file=fname, exist=exists)
         if (exists) then
-            PRINT *, term_blu, trim(fname), ' FOUND', term_blk
+            PRINT *, term_blu, trim(fname), ' FOUND', term_blk, year, year_index
         else
             PRINT *, term_red, trim(fname), ' NOT FOUND', term_blk
             stop 1
