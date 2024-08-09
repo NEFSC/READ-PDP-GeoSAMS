@@ -1,9 +1,5 @@
 function NearestNeighborRecInterp(yrStart, yrEnd, domain, refYear)
 
-if nargin == 3
-    refYear = 0;
-end
-
 isOctave = (exist('OCTAVE_VERSION', 'builtin') ~= 0);
 
 if isOctave
@@ -13,15 +9,11 @@ if isOctave
     yrStart = str2num(cell2mat(arg_list(1)));
     yrEnd = str2num(cell2mat(arg_list(2)));
     domain = cell2mat(arg_list(3));
-    if nargin > 3
-        refYear = str2num(cell2mat(arg_list(4)));
-    end
+    refYear = str2num(cell2mat(arg_list(4)));
   else
     yrStart = str2num(yrStart);
     yrEnd = str2num(yrEnd);
-    if nargin > 3
-        refYear = str2num(refYear);
-    end
+    refYear = str2num(refYear);
   end
 end
 
@@ -37,18 +29,12 @@ else
     fl0=strcat('Data/Recruits',int2str(refYear),domain,'.csv');
 end
 fl2=strcat('RecruitEstimates/RecruitEstimate',domain,int2str(yrStart),'.txt');
-fl2Rand=strcat('RecruitEstimates/RecruitEstimateNotRand',domain,int2str(yrStart),'.txt');
 if isOctave
     D=csvreadK(fl0);
     x0=D(:,2);
     y0=D(:,3);
     recs0=D(:,5);
     r = RandomizeOutput(recs0, yrStart);
-    % swapped original and random
-    fid=fopen(fl2Rand,'w');
-    dlmwrite(fid, recs0);
-    fclose(fid);
-
     fid=fopen(fl2,'w');
     dlmwrite(fid, r);
     fclose(fid);
@@ -58,8 +44,6 @@ else
     y0=table2array(D(:,3));
     recs0=table2array(D(:,5));
     r = RandomizeOutput(recs0, yrStart);
-    % swapped original and random
-    writematrix(recs0,fl2Rand)
     writematrix(r, fl2)
 end
 fprintf('Writing to %s. Number of records %d\n', fl2, size(r,1))
@@ -88,21 +72,13 @@ for yr=yrStart+1:yrEnd
         recs05(k)=recs(j);
     end
     fl2=strcat('RecruitEstimates/RecruitEstimate',domain,int2str(yr),'.txt');
-    fl2Rand=strcat('RecruitEstimates/RecruitEstimateNotRand',domain,int2str(yr),'.txt');
     r = RandomizeOutput(recs05, yr);
     fprintf('Writing to %s. Number of records %d\n', fl2, size(r,1))
     if isOctave
-        % swapped original and random
-        fid=fopen(fl2Rand,'w');
-        dlmwrite(fid, recs05);
-        fclose(fid);
-
         fid=fopen(fl2,'w');
         dlmwrite(fid, r);
         fclose(fid);
     else
-        % swapped original and random
-        writematrix(recs05,fl2Rand)
         writematrix(r, fl2)
     end
 end % yr=yrStart+1:yrEnd

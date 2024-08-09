@@ -20,7 +20,7 @@ if isOctave
     arg_list=argv();
     if ~strcmp(arg_list(1), '--gui')
         refYear = str2num(cell2mat(arg_list(1)));
-        domain = cell2mat(arg_list(3));
+        domain = cell2mat(arg_list(2));
     else
         refYear = str2num(refYear);
     end
