@@ -63,7 +63,7 @@ class MainInput(ttk.Frame):
         self.recrCfgFile = SubFrameElement(self, simFrame, 'Recruit Config File  ', 'Recruitment.cfg',1, 0, 1, width=20)
         self.gmCfgFile   = SubFrameElement(self, simFrame, 'Grid Mgr Config File ', 'GridManager.cfg',2, 0, 1, width=20)
         self.simCfgFile  = SubFrameElement(self, simFrame, 'Sim Config File      ', 'Scallop.cfg',    3, 0, 1, width=20)
-
+        #-------------------------------------------------------------------------------------------
         self.openMortConfigButton = ttk.Button(simFrame, text='Change/Save Growth File', style="BtnBluGrn.TLabel", command=self.GetMortConfigFName)
         self.openMortConfigButton.grid(row=0, column=3)
         #-------------------------------------------------------------------------------------------
@@ -132,6 +132,12 @@ class MainInput(ttk.Frame):
         self.stopDayComboDay.bind('<<ComboboxSelected>>', self.CheckStopDay)
         self.stopDayComboDay.grid(row=1, column=2, padx=5, sticky='e')
         #-------------------------------------------------------------------------------------------
+        self.recrYrStrt = SubFrameElement(self, recruitFrame, 'Recruit Yr Start', '2012',      0, 3, 4,
+                                          enterCmd=self.EnterKeyClicked, valCmd=numbersCallback)
+        #-------------------------------------------------------------------------------------------
+        self.recrYrStop = SubFrameElement(self, recruitFrame, 'Recruit Yr Stop ', '2023',      1, 3, 4,
+                                          enterCmd=self.EnterKeyClicked, valCmd=numbersCallback)
+        #-------------------------------------------------------------------------------------------
         recruitFrame.grid(row=3, column=1, padx=5, sticky='w')
         # +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
         durationFrame = ttk.LabelFrame(self, text='Duration', style='SAMS.TFrame')
@@ -142,20 +148,14 @@ class MainInput(ttk.Frame):
         self.stopYr     = SubFrameElement(self, durationFrame, 'Stop Year ',       '2017',       1, 0, 1,
                                           enterCmd=self.EnterKeyClicked, valCmd=numbersCallback)
         #-------------------------------------------------------------------------------------------
-        self.recrYrStrt = SubFrameElement(self, durationFrame, 'Recruit Yr Start', '2012',      0, 2, 3,
-                                          enterCmd=self.EnterKeyClicked, valCmd=numbersCallback)
-        #-------------------------------------------------------------------------------------------
-        self.recrYrStop = SubFrameElement(self, durationFrame, 'Recruit Yr Stop ', '2023',      1, 2, 3,
-                                          enterCmd=self.EnterKeyClicked, valCmd=numbersCallback)
-        #-------------------------------------------------------------------------------------------
         self.tsPerYear  = SubFrameElement(self, durationFrame, 'Time Steps / Year', str(tsPerYear), 2, 0, 1)
         #-------------------------------------------------------------------------------------------
         self.domainNameLabel = ttk.Label(durationFrame, text='Domain Name')
-        self.domainNameLabel.grid(row=2, column=2, pady=5)
+        self.domainNameLabel.grid(row=3, column=0, pady=5)
         #-------------------------------------------------------------------------------------------
         self.domainNameCombo = ttk.Combobox(durationFrame, width=3, values=['MA', 'GB', 'AL'])
         self.domainNameCombo.current(2)
-        self.domainNameCombo.grid(row=2, column=3, sticky='w', pady=5)
+        self.domainNameCombo.grid(row=3, column=1, sticky='w', pady=5)
         #-------------------------------------------------------------------------------------------
         durationFrame.grid(row=2, column=1, padx=5, sticky='w')
         # +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++

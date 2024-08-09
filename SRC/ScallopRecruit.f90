@@ -192,11 +192,11 @@ subroutine Set_Recruitment(recruit, n_grids, dom_name, dom_area, recruit_yr_strt
 
         random_year = recr_start_year + int(rn * n_rand_yrs)
 
-        write(buf,'(I6)')random_year
+        write(buf,'(I4)')random_year
         fname = rec_input_dir//'RecruitEstimate'//domain_name//trim(adjustl(buf))//'.txt'
         inquire(file=fname, exist=exists)
         if (exists) then
-            PRINT *, term_blu, trim(fname), ' FOUND', term_blk, year, year_index
+            PRINT *, term_blu, trim(fname), ' FOUND', term_blk, year, year_index, rn
         else
             PRINT *, term_red, trim(fname), ' NOT FOUND', term_blk
             stop 1
