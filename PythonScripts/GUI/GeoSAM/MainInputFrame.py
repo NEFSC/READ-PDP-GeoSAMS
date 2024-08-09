@@ -409,18 +409,6 @@ Interpolation Configuration Files
         namely the form selected. The remaining data is kept in the 
         Spatial Fcn Config File
 
-    Saturate
-        Interpolation can sometimes create excessively large values.
-        To bypass, Use Saturate can be T or F, but set a larger threshold,
-        i.e. 1E309 (Infinity).
-        The user can choose to saturate to the threshold, (T), or 
-        reset the value to 0.0 when exceeded, (F).
-
-    Saturate Threshold
-        Threshold value to use
-        Use Saturate = T, if field > Threshold then field = Threshold
-        Use Saturate = F, if field > Threshold then field = 0.0
-
 Output Selection
     Selects the desired outputs to be analyzed.
     Checkboxes allow the user to select the desired parameters of interest.
@@ -453,12 +441,12 @@ Duration
     The domain name is where the region where the growth takes place, Georges 
     Bank or Mid-Atlantic, GB or MA, respectively. AL covers both regions. 
 
+Recruitment
+    Defines the period in which recruitment is used in the growth calculations.
+
     Recruit Yr Start/Stop specifies which years to pull from the survey data
     files to model recruitment. These years are randomly selected to serve
     as a basis for recruitment for each year of the forecast growth.
-
-Recruitment
-    Defines the period in which recruitment is used in the growth calculations.
 
 View PDF Plots
     Once START Sim has been executed one can use this button to open and view

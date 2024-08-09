@@ -688,13 +688,18 @@ Parameters
             = 0                                                        h = 0
         where Jn is the Bessel function of the first kind
     
-    Use Saturate, Saturate Threshold
-        During the interpolation computations some values may overflow
-        resulting in unrealistic values, greater the 1e12. These values allow
-        the user to either saturate the value or clear it.
+    Saturate
+        Interpolation can sometimes create excessively large values.
+        To bypass, Use Saturate can be T or F, but set a larger threshold,
+        i.e. 1E309 (Infinity).
+        The user can choose to saturate to the threshold, (T), or 
+        reset the value to 0.0 when exceeded, (F).
 
+    Saturate Threshold
+        Threshold value to use
         Use Saturate = T, if field > Threshold then field = Threshold
         Use Saturate = F, if field > Threshold then field = 0.0
+
 
 Spatial Fcn Config File:
     This is the name of the file used to hold the spatial function definitions.
