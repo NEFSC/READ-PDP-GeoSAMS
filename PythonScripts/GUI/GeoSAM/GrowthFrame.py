@@ -103,9 +103,11 @@
 # 
 # @f[ LPUE = min(slope_1, slope_2, LPUE_{limit})  @f]
 #
+import os
 import tkinter as tk
 
 from tkinter import ttk
+from tkinter import filedialog
 
 from Widgets import *
 from GeoSams import MainApplication
@@ -117,9 +119,13 @@ class Growth(ttk.Frame, MainApplication):
     ##
     # Constructor for Growth Class
     #
-    def __init__(self, container, fName):
+    def __init__(self, container, friend):
         super().__init__()
+        self.root = os.getcwd() #os.environ['ROOT']
+        self.growthStartDir = os.path.join(self.root, configDir, simCfgDir)
+
         # default values should file get corrupted
+        self.friend = friend
         self.fmortStr = '0.4'
         self.alphStr = '1.0'
         self.maCullStr = '90.0'
@@ -138,7 +144,7 @@ class Growth(ttk.Frame, MainApplication):
         self.gbIncidStr = '0.1'
         self.maLen0Str = '65.0'
         self.gbLen0Str = '70.0'
-        self.fmorFileStr = None
+        self.fmortFileName = None
         self.lpueSlStr = '0.6556'
         self.lpueSl2Str = '2.3'
         self.lpueIntcStr = '1094'
@@ -146,10 +152,6 @@ class Growth(ttk.Frame, MainApplication):
         self.maxTimeStr = '19'
         self.dredgeWdStr = '9.144'
         self.towSpdStr = '4.8'
-
-        self.cfgFname = fName
-
-        self.UpdateValues(fName)
 
         # ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
         fishingFrame= ttk.LabelFrame(self, text='Mortality', style='SAMS.TFrame')
@@ -225,15 +227,53 @@ class Growth(ttk.Frame, MainApplication):
         discardFrame.grid(row=2, column=1, columnspan=2, padx=10)
         # ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
         # ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+        growthFrame = ttk.LabelFrame(self, text='Growth Configuration Files', style='SAMS.TFrame')
+        self.growthCfgFile = SubFrameElement(self, growthFrame, 'Growth Config File   ', 'Growth.cfg',  0, 0, 1, width=20)
+        #-------------------------------------------------------------------------------------------
+        self.saveGrowthConfigButton = ttk.Button(growthFrame, text='Change/Save Growth File', style="BtnBluGrn.TLabel", command=self.GetGrowthConfigFName)
+        self.saveGrowthConfigButton.grid(row=0, column=3)
+        #-------------------------------------------------------------------------------------------
+        self.loadGrowthConfigButton = ttk.Button(growthFrame, text='Load Growth Data', style="BtnGreen.TLabel", command=self.LoadGrowthData)
+        self.loadGrowthConfigButton.grid(row=1, column=3)
+        #-------------------------------------------------------------------------------------------
+        growthFrame.grid(row=3, column=0, columnspan=2, padx=10)
+        # ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
         helpButton = ttk.Button(self, text= "Growth Help", style="Help.TLabel", command = self.pop_up)
         helpButton.grid(row=0, column=1)
+
+        self.UpdateValues()
 
         self.bind("<Visibility>", self.on_visibility)
 
     ##
     #
     def on_visibility(self, event):
-        self.UpdateValues(self.cfgFname)
+        self.UpdateValues()
+        self.UpdateWidgets()
+
+    ## 
+    # Calls the filedialog method asksaveasfilename to name a file to be used for the Mortality Configuration
+    # file. It then writes out the defined parameters to this file using the 'tag = value' format. 
+    #
+    def GetGrowthConfigFName(self):
+        file_path = filedialog.asksaveasfilename(title="Open Growth Config File", filetypes=[("CFG files", "*.cfg")],
+                                                 defaultextension='cfg', initialdir=self.growthStartDir)
+        f = file_path.split('/')
+        if file_path:
+            self.growthCfgFile.myEntry.delete(0,tk.END)
+            self.growthCfgFile.myEntry.insert(0,f[-1])
+            self.friend.WriteGrowthConfig()
+
+    ##
+    #
+    def LoadGrowthData(self):
+        filePath = filedialog.askopenfilename(title="Load Growth Config File", filetypes=[("CFG files", "*.cfg")],
+                                             defaultextension='cfg', initialdir=self.growthStartDir)
+        f = filePath.split('/')
+        if filePath:
+            self.growthCfgFile.myEntry.delete(0,tk.END)
+            self.growthCfgFile.myEntry.insert(0,f[-1])
+        self.UpdateValues()
         self.UpdateWidgets()
 
     ##
@@ -318,7 +358,8 @@ class Growth(ttk.Frame, MainApplication):
     ##
     # Method to read Mortality Configuration file and set values accordingly
     #
-    def UpdateValues(self, fName):
+    def UpdateValues(self):
+        fName = os.path.join(self.root,configDir, simCfgDir, self.growthCfgFile.myEntry.get())
         # read current settings
         tags = self.ReadConfigFile(fName)
         for (tag, value) in tags:
@@ -341,7 +382,7 @@ class Growth(ttk.Frame, MainApplication):
             elif tag == 'GB Incidental':      self.gbIncidStr = value
             elif tag == 'MA Length_0':        self.maLen0Str = value
             elif tag == 'GB Length_0':        self.gbLen0Str = value
-            elif tag == 'Fishing Mortality File': self.fmorFileStr = value
+            elif tag == 'Fishing Mortality File': self.fmortFileName = value
             elif tag == 'LPUE Slope':         self.lpueSlStr = value
             elif tag == 'LPUE Slope2':        self.lpueSl2Str = value
             elif tag == 'LPUE Intercept':     self.lpueIntcStr = value

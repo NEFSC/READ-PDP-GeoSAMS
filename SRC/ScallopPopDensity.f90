@@ -289,7 +289,7 @@ integer pct_comp
 !==================================================================================================================
 !  - I. Read Configuration file 'Scallop.inp'
 !==================================================================================================================
-call Read_Startup_Config(ts_per_year, start_year, stop_year, recruit_yr_strt, recruit_yr_stop, domain_name, plot_data_sel)
+call Read_Startup_Config(ts_per_year, start_year, stop_year, domain_name, plot_data_sel)
 
 !==================================================================================================================
 
@@ -396,7 +396,7 @@ END PROGRAM ScallopPopDensity
 !> @param[out] time_steps_per_year Number of times steps to evaluate growth
 !> @param[out] num_monte_carlo_iter Number of iterations for Monte Carlo simulation
 !-----------------------------------------------------------------------
-subroutine Read_Startup_Config(time_steps_per_year, start_year, stop_year, recruit_yr_strt, recruit_yr_stop,&
+subroutine Read_Startup_Config(time_steps_per_year, start_year, stop_year,&
     & domain_name, plot_data_sel)
     use globals
     use Mortality_Mod, only : Mortality_Set_Config_File_Name => Set_Config_File_Name, DataForPlots, Set_Select_Data
@@ -406,7 +406,6 @@ subroutine Read_Startup_Config(time_steps_per_year, start_year, stop_year, recru
     implicit none
     integer, intent(out) :: time_steps_per_year ! , num_monte_carlo_iter
     integer, intent(out) :: start_year, stop_year
-    integer, intent(out) :: recruit_yr_strt, recruit_yr_stop
     character(domain_len), intent(out) :: domain_name
     type(DataForPlots), intent(out) :: plot_data_sel
 
@@ -422,8 +421,6 @@ subroutine Read_Startup_Config(time_steps_per_year, start_year, stop_year, recru
 
     ! default values
     time_steps_per_year = 13
-    recruit_yr_strt = 2012
-    recruit_yr_stop = 2023
     plot_data_sel = DataForPlots(.false.,.false.,.false.,.false.,.false.,.false.,.false.,.false.,.false.)
 
     !----------------------------------------------------------------------------
@@ -465,12 +462,6 @@ subroutine Read_Startup_Config(time_steps_per_year, start_year, stop_year, recru
             select case (tag)
             case('Time steps per Year')
                 read(value,*) time_steps_per_year
-
-            case('Recruit Year Strt')
-                read(value,*) recruit_yr_strt
-
-            case('Recruit Year Stop')
-                read(value,*) recruit_yr_stop
 
             case('Grid Manager Config File')
                 call GridMgr_Set_Config_File_Name(trim(adjustl(value)))

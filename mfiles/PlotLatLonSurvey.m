@@ -102,7 +102,7 @@ for i=1:numCol
         s=geoscatter(lat, lon, field(:,i), field(:,i), "filled");
         geobasemap bluegreen;
         title([fname '_' int2str(year)], 'Interpreter', 'none');
-        s.SizeData = 25; % size of dots
+        s.SizeData = 5; % size of dots
         c=hot(100);
         colormap(c);
         c = colorbar;

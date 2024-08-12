@@ -112,8 +112,8 @@ integer, PRIVATE :: num_grids
 character(domain_len), PRIVATE :: domain_name
 real(dp), PRIVATE :: domain_area_sqm
 
-integer, PRIVATE :: recr_start_year ! start of available recruitment data
-integer, PRIVATE :: recr_stop_year  ! end of available recruitment data
+integer, PRIVATE :: recruit_yr_strt ! start of available recruitment data
+integer, PRIVATE :: recruit_yr_stop  ! end of available recruitment data
 integer, PRIVATE :: sim_start_year  ! start of the growth period
 integer, PRIVATE :: sim_stop_year   ! end of the growth period
 real(dp), PRIVATE :: recr_period_start ! day of year as a fraction of year, Jan 1 is 1/365
@@ -136,14 +136,14 @@ CONTAINS
 !> @param[in] K_mu Brody growth coefficient K, average
 !> @param[in] shell_length_mm Shell height in millimeters
 !==================================================================================================================
-subroutine Set_Recruitment(recruit, n_grids, dom_name, dom_area, recruit_yr_strt, recruit_yr_stop, &
+subroutine Set_Recruitment(recruit, n_grids, dom_name, dom_area, recr_yr_strt, recr_yr_stop, &
     & L_inf_mu, K_mu, shell_length_mm, yr_start,  yr_stop)
     use globals
     type(Recruitment_Class), intent(inout) :: recruit(*)
     integer, intent(in) :: n_grids
     character(domain_len), intent(in) :: dom_name
     real(dp), intent(in) :: dom_area
-    integer, intent(in) :: recruit_yr_strt, recruit_yr_stop
+    integer, intent(out) :: recr_yr_strt, recr_yr_stop
     real(dp), intent(in) :: L_inf_mu(*)
     real(dp), intent(in) :: K_mu(*)
     real(dp), intent(in) :: shell_length_mm(*)
@@ -158,17 +158,13 @@ subroutine Set_Recruitment(recruit, n_grids, dom_name, dom_area, recruit_yr_strt
     character(fname_len) fname
     logical exists
 
-    ! set default values
-    recr_period_start = 0./365.
-    recr_period_stop = 100./365.
-
     call Read_Configuration()
     ! 
     sim_start_year = yr_start
     sim_stop_year  = yr_stop
-    recr_start_year = recruit_yr_strt
-    recr_stop_year  = recruit_yr_stop
-    n_rand_yrs = recr_stop_year - recr_start_year + 1
+    recr_yr_strt = recruit_yr_strt
+    recr_yr_stop = recruit_yr_stop
+    n_rand_yrs = recruit_yr_stop - recruit_yr_strt + 1
 
     !! initalize private members
     num_grids = n_grids
@@ -190,7 +186,7 @@ subroutine Set_Recruitment(recruit, n_grids, dom_name, dom_area, recruit_yr_strt
 
         call random_number(rn)
 
-        random_year = recr_start_year + int(rn * n_rand_yrs)
+        random_year = recruit_yr_strt + int(rn * n_rand_yrs)
 
         write(buf,'(I4)')random_year
         fname = rec_input_dir//'RecruitEstimate'//domain_name//trim(adjustl(buf))//'.txt'
@@ -218,14 +214,6 @@ subroutine Set_Recruitment(recruit, n_grids, dom_name, dom_area, recruit_yr_strt
     
     recruit(1:num_grids)%n_year = year_index
     !-------------------------------------------------------------------------
-
-    ! year_index = 0
-    ! do year = recr_start_year,recr_stop_year
-    !     year_index = year_index + 1
-    !     write(buf,'(I6)')year
-    !     tmp(1:num_grids) = recruit(1:num_grids)%Recruitment(year_index)
-    !     call Write_Vector_Scalar_Field(num_grids,tmp,rec_output_dir//'RecruitFieldIn'//trim(adjustl(buf))//'.txt')
-    ! enddo
 
     ! quantize recruitment
     ! open(write_dev,file = init_cond_dir//'RecIndx.txt')
@@ -278,6 +266,13 @@ subroutine Read_Configuration()
     character(value_len) value
     integer j, k, io
 
+    ! set default values
+    recr_period_start = 0./365.
+    recr_period_stop = 100./365.
+
+    recruit_yr_strt = 2012
+    recruit_yr_stop = 2023
+
     write(*,*) 'READING IN ', config_file_name
 
     open(read_dev,file = config_file_name)
@@ -302,6 +297,12 @@ subroutine Read_Configuration()
             case('Stop Period')
                 read(value, *) recr_period_stop
                 recr_period_stop = recr_period_stop / 365._dp
+
+            case('Recruit Year Strt')
+                read(value,*) recruit_yr_strt
+
+            case('Recruit Year Stop')
+                read(value,*) recruit_yr_stop
 
             case default
                 write(*,*) term_red, 'Unrecognized line in ',config_file_name

@@ -57,8 +57,12 @@ from Globals import *
 # in these areas of interest
 #
 class SpecialArea(ttk.Frame):
-    def __init__(self, container, maxAreas, maxCorners):
+    def __init__(self, container, friend, maxAreas, maxCorners):
         super().__init__()
+
+        self.friend = friend
+        self.root = os.getcwd() #os.environ['ROOT']
+        self.simStartDir = os.path.join(self.root, configDir, simCfgDir)
         
         self.root = os.getcwd() #os.environ['ROOT']
         self.startDir = os.path.join(self.root, configDir, specAccCfgDir)
@@ -81,22 +85,27 @@ class SpecialArea(ttk.Frame):
         self.numAreasEntry.insert(0, str(self.numAreas))
         reg=self.numAreasEntry.register(numbersCallback)
         self.numAreasEntry.configure(validate='key', validatecommand=(reg, '%P'))
-        self.numAreasEntry.grid(row=1, column=0, sticky='n', padx=5)
         self.numAreasEntry.bind('<Return>', self.EnterKeyClicked)
         self.numAreasEntry.bind('<FocusOut>', self.EnterKeyClicked)
+        self.numAreasEntry.grid(row=1, column=0, sticky='n', padx=5)
         # --------------------------------------------------------------------------------------------------------
-        self.specAccFile  = SubFrameElement(self, specialAreaFrame, 'Special Access File', '', 0, 1, 2, width=20)
-        self.specAccFileLabel  = ttk.Label(specialAreaFrame, text='Set to NONE if not used\nAlso blocks Fish Mort File')
-        self.specAccFileLabel.grid(row=1, column=2)
+        self.gmCfgFile   = SubFrameElement(self, specialAreaFrame, 'Grid Mgr Config File ', 'GridManager.cfg',0, 1, 2, width=20)
+        #-------------------------------------------------------------------------------------------
+        self.openGmgrConfigButton = ttk.Button(specialAreaFrame, text='Change/Save GMgr File', style="BtnBluGrn.TLabel", command=self.GetGMgrConfigFName)
+        self.openGmgrConfigButton.grid(row=0, column=3)
         # --------------------------------------------------------------------------------------------------------
         self.openAreaFileButton = ttk.Button(specialAreaFrame, text='Load Special Area File', style="BtnGreen.TLabel", command=self.GetAreaFile)
-        self.openAreaFileButton.grid(row=0, column=3)
+        self.openAreaFileButton.grid(row=1, column=3)
+        # --------------------------------------------------------------------------------------------------------
+        self.specAccFile  = SubFrameElement(self, specialAreaFrame, 'Special Access File', '', 1, 1, 2, width=20)
+        self.specAccFileLabel  = ttk.Label(specialAreaFrame, text='Set to NONE if not used\nAlso blocks Fish Mort File')
+        self.specAccFileLabel.grid(row=2, column=2)
         # --------------------------------------------------------------------------------------------------------
         self.saveAreaFileButton = ttk.Button(specialAreaFrame, text='Save Special Area File', style="BtnBluGrn.TLabel", command=self.SaveAreaFile)
-        self.saveAreaFileButton.grid(row=1, column=3)
+        self.saveAreaFileButton.grid(row=2, column=3)
         # --------------------------------------------------------------------------------------------------------
         self.areaMgr = AreaManager(self, specialAreaFrame, self.numAreasMax, self.numCornersMax,
-                                   elementRow=2, elementCol=0, cornerRow=0, cornerColumn=0, labelArr=cornerLabelArr)
+                                   elementRow=3, elementCol=0, cornerRow=0, cornerColumn=0, labelArr=cornerLabelArr)
 
         # now hide
         for a in range(self.numAreas, self.numAreasMax):
@@ -123,6 +132,18 @@ class SpecialArea(ttk.Frame):
     # --------------------------------------------------------------------------------------------------------
     def EnterKeyClicked(self, event):
         self.NumAreasUpdate()
+
+    ## 
+    # Calls the filedialog method asksaveasfilename to name a file to be used for the Grid Manager Configuration
+    # file. It then writes out the defined parameters to this file using the 'tag = value' format. 
+    #
+    def GetGMgrConfigFName(self):
+        file_path = filedialog.asksaveasfilename(title="Open Grid Manager Config File", filetypes=[("CFG files", "*.cfg")], defaultextension='cfg', initialdir=self.simStartDir)
+        f = file_path.split('/')
+        if file_path:
+            self.gmCfgFile.myEntry.delete(0,tk.END)
+            self.gmCfgFile.myEntry.insert(0,f[-1])
+            self.friend.WriteGridMgrConfig()
 
     # --------------------------------------------------------------------------------------------------------
     # --------------------------------------------------------------------------------------------------------
@@ -152,7 +173,7 @@ class SpecialArea(ttk.Frame):
         self.areaMgr.UpdateWidgets()
 
     def GetAreaFile(self):
-        self.areaFName = filedialog.askopenfilename(title="Open CSV File", filetypes=[("CSV files", "*.csv")],
+        self.areaFName = filedialog.askopenfilename(title="Open Special Area CSV File", filetypes=[("CSV files", "*.csv")],
                                                     defaultextension='csv', initialdir=self.startDir)
         if self.areaFName:
             self.UpdateWidgets()
@@ -161,7 +182,7 @@ class SpecialArea(ttk.Frame):
             self.specAccFile.myEntry.insert(0, f[-1])
     
     def SaveAreaFile(self):
-        self.areaFName = filedialog.asksaveasfilename(title="Save CSV File", filetypes=[("CSV files", "*.csv")],
+        self.areaFName = filedialog.asksaveasfilename(title="Save Special Area CSV File", filetypes=[("CSV files", "*.csv")],
                                                       defaultextension='csv', initialdir=self.startDir)
         if self.areaFName:
             self.areaMgr.SaveSpecialAreaData(self.areaFName, int(self.numAreasEntry.get()))

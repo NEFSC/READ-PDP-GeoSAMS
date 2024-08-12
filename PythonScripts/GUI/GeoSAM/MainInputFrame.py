@@ -59,22 +59,14 @@ class MainInput(ttk.Frame):
 
         # +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
         simFrame = ttk.LabelFrame(self, text='Simulation Configuration Files', style='SAMS.TFrame')
-        self.mortCfgFile = SubFrameElement(self, simFrame, 'Growth Config File   ', 'Growth.cfg',  0, 0, 1, width=20)
         self.recrCfgFile = SubFrameElement(self, simFrame, 'Recruit Config File  ', 'Recruitment.cfg',1, 0, 1, width=20)
-        self.gmCfgFile   = SubFrameElement(self, simFrame, 'Grid Mgr Config File ', 'GridManager.cfg',2, 0, 1, width=20)
-        self.simCfgFile  = SubFrameElement(self, simFrame, 'Sim Config File      ', 'Scallop.cfg',    3, 0, 1, width=20)
-        #-------------------------------------------------------------------------------------------
-        self.openMortConfigButton = ttk.Button(simFrame, text='Change/Save Growth File', style="BtnBluGrn.TLabel", command=self.GetMortConfigFName)
-        self.openMortConfigButton.grid(row=0, column=3)
+        self.simCfgFile  = SubFrameElement(self, simFrame, 'Sim Config File      ', 'Scallop.cfg',    2, 0, 1, width=20)
         #-------------------------------------------------------------------------------------------
         self.openRecrConfigButton = ttk.Button(simFrame, text='Change/Save Recr File', style="BtnBluGrn.TLabel", command=self.GetRecrConfigFName)
         self.openRecrConfigButton.grid(row=1, column=3)
         #-------------------------------------------------------------------------------------------
-        self.openGmgrConfigButton = ttk.Button(simFrame, text='Change/Save GMgr File', style="BtnBluGrn.TLabel", command=self.GetGMgrConfigFName)
-        self.openGmgrConfigButton.grid(row=2, column=3)
-        #-------------------------------------------------------------------------------------------
         self.openSimConfigButton = ttk.Button(simFrame, text='Change/Save Sim File', style="BtnBluGrn.TLabel", command=self.GetSimConfigFName)
-        self.openSimConfigButton.grid(row=3, column=3)
+        self.openSimConfigButton.grid(row=2, column=3)
         #-------------------------------------------------------------------------------------------
         simFrame.grid(row=1, column=0, padx=5, sticky='n')
         # +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
@@ -263,23 +255,11 @@ class MainInput(ttk.Frame):
         return value
 
     ## 
-    # Calls the filedialog method asksaveasfilename to name a file to be used for the Mortality Configuration
-    # file. It then writes out the defined parameters to this file using the 'tag = value' format. 
-    #
-    def GetMortConfigFName(self):
-        file_path = filedialog.asksaveasfilename(title="Open Configuration File", filetypes=[("CFG files", "*.cfg")], defaultextension='cfg', initialdir=self.simStartDir)
-        f = file_path.split('/')
-        if file_path:
-            self.mortCfgFile.myEntry.delete(0,tk.END)
-            self.mortCfgFile.myEntry.insert(0,f[-1])
-            self.friend.WriteGrowthConfig()
-
-    ## 
     # Calls the filedialog method asksaveasfilename to name a file to be used for the Recruitment Configuration
     # file. It then writes out the defined parameters to this file using the 'tag = value' format. 
     #
     def GetRecrConfigFName(self):
-        file_path = filedialog.asksaveasfilename(title="Open Configuration File", filetypes=[("CFG files", "*.cfg")], defaultextension='cfg', initialdir=self.simStartDir)
+        file_path = filedialog.asksaveasfilename(title="Open Recruit Config File", filetypes=[("CFG files", "*.cfg")], defaultextension='cfg', initialdir=self.simStartDir)
         f = file_path.split('/')
         if file_path:
             self.recrCfgFile.myEntry.delete(0,tk.END)
@@ -287,23 +267,11 @@ class MainInput(ttk.Frame):
             self.friend.WriteRecruitmentConfig()
 
     ## 
-    # Calls the filedialog method asksaveasfilename to name a file to be used for the Grid Manager Configuration
-    # file. It then writes out the defined parameters to this file using the 'tag = value' format. 
-    #
-    def GetGMgrConfigFName(self):
-        file_path = filedialog.asksaveasfilename(title="Open Configuration File", filetypes=[("CFG files", "*.cfg")], defaultextension='cfg', initialdir=self.simStartDir)
-        f = file_path.split('/')
-        if file_path:
-            self.gmCfgFile.myEntry.delete(0,tk.END)
-            self.gmCfgFile.myEntry.insert(0,f[-1])
-            self.friend.WriteGridMgrConfig()
-
-    ## 
     # Calls the filedialog method asksaveasfilename to name a file to be used for the Simulation Configuration
     # file. It then writes out the defined parameters to this file using the 'tag = value' format. 
     #
     def GetSimConfigFName(self):
-        file_path = filedialog.asksaveasfilename(title="Open Configuration File", filetypes=[("CFG files", "*.cfg")], defaultextension='cfg', initialdir=self.simStartDir)
+        file_path = filedialog.asksaveasfilename(title="Open Simulation Config File", filetypes=[("CFG files", "*.cfg")], defaultextension='cfg', initialdir=self.simStartDir)
         f = file_path.split('/')
         if file_path:
             self.simCfgFile.myEntry.delete(0,tk.END)

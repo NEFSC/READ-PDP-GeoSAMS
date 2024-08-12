@@ -463,7 +463,6 @@ real(dp), intent(in) :: eps(*), beta(*), Cbeta(num_spat_fcns,*), SF, alpha_obs! 
 real(dp), intent(inout) :: Ceps(num_points,*)
 integer n 
 real(dp) trend(num_points), V(num_points), Fg(num_points, num_spat_fcns)
-real(dp) logf(num_points)
 logical, parameter :: save_data = .true.
 
 write(*,*)'output SF, A=', SF, one_scallop_per_tow
@@ -472,16 +471,12 @@ do n=1, num_points
 enddo
 grid%field(1:num_points) = grid%field(1:num_points)**(1._dp/alpha_obs)
 
-logf(1:num_points) = grid%field(1:num_points)
-!if(IsLogT) 
 grid%field(1:num_points) = SF * exp( grid%field(1:num_points) + V(1:num_points)/2. ) - one_scallop_per_tow  ! adjusted inverse log(one_scallop_per_tow+f)
-!if(IsHiLimit) call LSF_Limit_Z(num_points, grid%field, grid%z, fmax, grid%lon)
 call Write_Vector_Scalar_Field(num_points, grid%field, 'KrigingEstimate.txt')
 
 Fg = Krig_Eval_Spatial_Function(grid, num_spat_fcns, num_points, nlsf, save_data)
 trend(1:num_points) = matmul( Fg(1:num_points, 1:num_spat_fcns), beta(1:num_spat_fcns)) 
 
-!if(IsLogT) 
 trend(1:num_points) = SF*exp(trend(1:num_points))-one_scallop_per_tow
 call Write_Vector_Scalar_Field(num_points, trend, 'SpatialTrend.txt')
 
@@ -497,9 +492,8 @@ Ceps(1:num_points, 1:num_points) = Ceps(1:num_points, 1:num_points)&
 do n=1, num_points
    V(n) = Ceps(n, n)
 enddo
-!if(IsLogT) 
+
 call Write_Vector_Scalar_Field(num_points, SF*exp(sqrt(V(1:num_points)))-one_scallop_per_tow, 'KrigSTD.txt')
-!if(.not.IsLogT) call Write_Vector_Scalar_Field(num_points, sqrt(V(1:num_points)), 'KrigSTD.txt')
 
 endsubroutine OutputUK
 
@@ -541,7 +535,8 @@ if (sum(grid%field(1:num_points)) .NE. 0.0) then
         V(n)=Ceps(n, n)
     enddo
     grid%field(1:num_points) = grid%field(1:num_points)**(1./alpha_obs)    
-    grid%field(1:num_points) = SF * exp( grid%field(1:num_points) + V(1:num_points)/2. ) - one_scallop_per_tow  ! adjusted inverse log(one_scallop_per_tow+f)
+!!!!    grid%field(1:num_points) = SF * exp( grid%field(1:num_points) + V(1:num_points)/2. ) - one_scallop_per_tow  ! adjusted inverse log(one_scallop_per_tow+f)
+    grid%field(1:num_points) = SF * exp( grid%field(1:num_points) ) - one_scallop_per_tow  ! adjusted inverse log(one_scallop_per_tow+f)
     write(*,'(A,A,2F12.6,A)') term_blu, 'output SF, A=', SF, one_scallop_per_tow, term_blk
 endif
 fname = GridMgr_Get_Obs_Data_File_Name()

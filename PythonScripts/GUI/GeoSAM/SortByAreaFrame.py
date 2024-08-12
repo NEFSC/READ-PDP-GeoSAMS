@@ -220,6 +220,8 @@ class SortByArea(ttk.Frame):
         #               Lat_Lon_Grid_ABUN_AL_2015_2017
         paramFName = os.path.join(self.root, 'Results', 'Lat_Lon_Grid_' + 
              desiredParam + self.domainName + '_' + str(self.yearStart) + '_' + str(self.yearStop) + '.csv')
+        fileName = os.path.join('Results', 'Lat_Lon_Grid_' + 
+             desiredParam + self.domainName + '_' + str(self.yearStart) + '_' + str(self.yearStop) + '.csv')
         
         # The data structure is used with InPolygon algorithm to check 
         # if grid parameter is within area of interest
@@ -277,7 +279,7 @@ class SortByArea(ttk.Frame):
                     self.areas.areaSubFrame[i].results[j].myEntry.insert(0, str(y))
 
         else:
-            messagebox.showerror("Reading Parameter File", f'No data for '+desiredParam+'\nHas Simulation been run?\nAre years correct?')
+            messagebox.showerror("Reading Parameter File", f'No data for '+fileName+'\nHas Simulation been run?\nAre years correct?')
             runSortErrors = 1
 
         return runSortErrors

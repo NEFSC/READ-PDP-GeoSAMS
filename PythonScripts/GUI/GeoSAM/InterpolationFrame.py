@@ -193,7 +193,7 @@ class UKInterpolation(ttk.Frame):
         self.maFuncFrame.grid(row=0, column=1, rowspan=3, sticky='n')
         # +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
         # +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-        self.gbFuncFrame = ttk.LabelFrame(scrollFrame.viewPort, text='GBSpatial Functions', style='SAMS.TFrame', width=frameWidth, height=frameHeight)
+        self.gbFuncFrame = ttk.LabelFrame(scrollFrame.viewPort, text='GB Spatial Functions', style='SAMS.TFrame', width=frameWidth, height=frameHeight)
         # --------------------------------------------------------------------------------------------------------
         self.gbNumFncsLabel = ttk.Label(self.gbFuncFrame, text='# of Functions')
         self.gbNumFncsLabel.grid(row=0, column=0, sticky='w')

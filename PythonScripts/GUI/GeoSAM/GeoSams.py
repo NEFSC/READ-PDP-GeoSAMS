@@ -132,21 +132,20 @@ class MainApplication(tk.Tk):
         self.frame1 = MainInput(self.notebook, self, self.tsPerYear, self.paramVal, self.maxYears)
         # NOTE: These will still be default values as the user would not as yet entered anything!!
         self.simConfigFile  = os.path.join(self.root,configDir, simCfgDir, self.frame1.simCfgFile.myEntry.get())
-        self.mortConfigFile = os.path.join(self.root,configDir, simCfgDir, self.frame1.mortCfgFile.myEntry.get())
-        self.recrConfigFile = os.path.join(self.root,configDir, simCfgDir, self.frame1.recrCfgFile.myEntry.get())
-        self.gmConfigFile   = os.path.join(self.root,configDir, simCfgDir, self.frame1.gmCfgFile.myEntry.get())
         self.ukConfigFile   = os.path.join(self.root,configDir, interCfgDir, self.frame1.ukCfgFile.myEntry.get())
 
-        self.frame3 = Growth(self.notebook, self.mortConfigFile)
+        self.frame3 = Growth(self.notebook, self)
         self.frame4 = UKInterpolation(self.notebook, self, self.frame1)
         self.frame5 = SortByArea(self.notebook, self.frame1, self.maxAreas, self.maxCorners, self.maxYears, self.paramStr)
-        self.frame6 = SpecialArea(self.notebook, self.maxAreas, self.maxCorners)
+        self.frame6 = SpecialArea(self.notebook, self, self.maxAreas, self.maxCorners)
         self.frame7 = FishMortBySpecAcc(self.notebook, self.maxAreas, self.maxCorners)
         self.frame2 = EditMathSetup(self.notebook)
         self.ReadUKConfigFile()
 
+        self.gmConfigFile = os.path.join(self.root,configDir, simCfgDir, self.frame6.gmCfgFile.myEntry.get())
+
         # Update strings based on given configuration files
-        self.frame7.fishMortFile.myEntry.insert(0, self.frame3.fmorFileStr)
+        self.frame7.fishMortFile.myEntry.insert(0, self.frame3.fmortFileName)
         self.ReadGridMgrConfigFile()
         self.frame6.specAccFile.myEntry.insert(0, self.specAccFileStr)
 
@@ -395,6 +394,7 @@ class MainApplication(tk.Tk):
                             proc.join()
                         procs = []
                         procNum = 0
+                        print('Finished set through {}\n'.format(procID))
                 # end for year in years
             # end for r in region
         # end for pStr in paramStr
@@ -503,12 +503,10 @@ class MainApplication(tk.Tk):
         with open(simCfgFile, 'w') as f:
             f.write('# input file for Scallops \n')
             f.write('Time steps per Year = ' + str(self.frame1.tsPerYear.myEntry.get())+'\n')
-            f.write('Recruit Year Strt = ' + str(self.frame1.recrYrStrt.myEntry.get())+'\n')
-            f.write('Recruit Year Stop = ' + str(self.frame1.recrYrStop.myEntry.get())+'\n')
             f.write('# Configuration files are expected to be in the Configuration directory\n')
-            f.write('Mortality Config File = '   + self.frame1.mortCfgFile.myEntry.get() + '\n')
+            f.write('Mortality Config File = '   + self.frame3.growthCfgFile.myEntry.get() + '\n')
             f.write('Recruit Config File = '     + self.frame1.recrCfgFile.myEntry.get() + '\n')
-            f.write('Grid Manager Config File = '+ self.frame1.gmCfgFile.myEntry.get()   + '\n')
+            f.write('Grid Manager Config File = '+ self.frame6.gmCfgFile.myEntry.get()   + '\n')
             f.write('# The following items determine the parameters for output and plotting\n')
             f.write('# One need only select the desired parameters, the default is to not show them\n')
             f.write('# Anything after = is ignored.\n')
@@ -571,14 +569,16 @@ class MainApplication(tk.Tk):
                 f.write('# configuration file for Recruitment\n')
                 f.write('Start Period = '+str(startPeriod)+'  # Jan 1 is 0\n')
                 f.write('Stop Period = '+str(stopPeriod)  +' # converted to fraction of year, i.e. /365\n')
+                f.write('Recruit Year Strt = ' + str(self.frame1.recrYrStrt.myEntry.get())+'\n')
+                f.write('Recruit Year Stop = ' + str(self.frame1.recrYrStop.myEntry.get())+'\n')
                 f.close()
             
     ##
     # Saves mortality parameters to a configuration file.
     #
     def WriteGrowthConfig(self):
-        simCfgFile  = os.path.join(self.root,configDir, simCfgDir, self.frame1.mortCfgFile.myEntry.get())
-        with open(simCfgFile, 'w') as f:
+        configFile  = os.path.join(self.root,configDir, simCfgDir, self.frame3.growthCfgFile.myEntry.get())
+        with open(configFile, 'w') as f:
             f.write('# Was configuration file for mortality\n')
             f.write('# Actually contains parameters that define both Growth and Mortality\n')
             f.write('#\n')
@@ -619,7 +619,7 @@ class MainApplication(tk.Tk):
     # Saves grid manager parameters to a configuration file.
     #
     def WriteGridMgrConfig(self):
-        cfgFile  = os.path.join(self.root,configDir, simCfgDir, self.frame1.gmCfgFile.myEntry.get())
+        cfgFile  = os.path.join(self.root,configDir, simCfgDir, self.frame6.gmCfgFile.myEntry.get())
         with open(cfgFile, 'w') as f:
             f.write('# configuration file for GridManager\n')
             f.write('# The following is the file name with corner coordinates associated with Special Access Areas.\n')

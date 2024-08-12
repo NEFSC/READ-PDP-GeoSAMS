@@ -210,6 +210,10 @@ class AreaManager(ttk.Frame):
     #------------------------------------------------------------------------------------------------
     def SaveSpecialAreaData(self, fname, numAreas):
         with open(fname, 'w') as f:
+            f.write('# This file contains the vertices for special area polygons which are entered\n')
+            f.write('# as a vector of longitude coordinates followed by a vector of latitude coordinates.\n')
+            f.write('# The length of each vector must be the same that is same number of comma separated values not characters\n')
+            f.write('# Lines starting with # are ignored.\n')
             for i in range(numAreas):
                 # write comment
                 f.write('# '+self.areaSubFrame[i].comment+'\n')
