@@ -114,10 +114,14 @@ real(dp), PRIVATE :: domain_area_sqm
 
 integer, PRIVATE :: recruit_yr_strt ! start of available recruitment data
 integer, PRIVATE :: recruit_yr_stop  ! end of available recruitment data
+integer, PRIVATE :: n_rand_yrs
 integer, PRIVATE :: sim_start_year  ! start of the growth period
 integer, PRIVATE :: sim_stop_year   ! end of the growth period
 real(dp), PRIVATE :: recr_period_start ! day of year as a fraction of year, Jan 1 is 1/365
 real(dp), PRIVATE :: recr_period_stop  ! day of year as a fraction of year, Apr 10 is 100/365
+
+real(dp), PRIVATE, allocatable :: weights(:)
+real(dp), PRIVATE :: wsum          ! sum of weights array
 
 CONTAINS
 
@@ -149,14 +153,30 @@ subroutine Set_Recruitment(recruit, n_grids, dom_name, dom_area, recr_yr_strt, r
     real(dp), intent(in) :: shell_length_mm(*)
     integer, intent(in) :: yr_start,  yr_stop
 
-    integer n, j, year, year_index, random_year, n_rand_yrs
-    real(dp) rn
+    integer n, j, year, year_index, random_year
     real(dp) tmp(n_grids)
     character(72) buf
     real(dp) L30mm
 
     character(fname_len) fname
     logical exists
+
+    ! Used to define weighting
+    !
+    !       |
+    ! sill  +                =========
+    !       |             //!
+    !       |           //  !
+    !       |         //    !
+    !       |       //      !
+    !       |     //        !
+    !       |   //          !
+    !       | //            !
+    !       ----------------+----------
+    !                      range
+    real(dp) range
+    real(dp) sill
+    integer rand_idx
 
     call Read_Configuration()
     ! 
@@ -165,6 +185,21 @@ subroutine Set_Recruitment(recruit, n_grids, dom_name, dom_area, recr_yr_strt, r
     recr_yr_strt = recruit_yr_strt
     recr_yr_stop = recruit_yr_stop
     n_rand_yrs = recruit_yr_stop - recruit_yr_strt + 1
+
+    allocate(weights(1:n_rand_yrs))
+
+    ! setting up spherical weighting
+    range = 0.9D0 * n_rand_yrs
+    sill = n_rand_yrs
+
+    do j = 1, n_rand_yrs
+        if (j <= range) then
+            weights(j) = sill * (1.5 * (j/range) - 0.5 * (j/range)**3)
+        else
+            weights(j) = sill
+        endif
+    enddo
+    wsum = sum( weights )
 
     !! initalize private members
     num_grids = n_grids
@@ -184,15 +219,14 @@ subroutine Set_Recruitment(recruit, n_grids, dom_name, dom_area, recr_yr_strt, r
     do year = sim_start_year, sim_stop_year
         year_index = year_index + 1
 
-        call random_number(rn)
-
-        random_year = recruit_yr_strt + int(rn * n_rand_yrs)
+        rand_idx = random_index()
+        random_year = recruit_yr_strt - 1 + rand_idx
 
         write(buf,'(I4)')random_year
         fname = rec_input_dir//'RecruitEstimate'//domain_name//trim(adjustl(buf))//'.txt'
         inquire(file=fname, exist=exists)
         if (exists) then
-            PRINT *, term_blu, trim(fname), ' FOUND', term_blk, year, year_index, rn
+            PRINT *, term_blu, trim(fname), ' FOUND', term_blk, year, year_index, rand_idx
         else
             PRINT *, term_red, trim(fname), ' NOT FOUND', term_blk
             stop 1
@@ -226,8 +260,28 @@ subroutine Set_Recruitment(recruit, n_grids, dom_name, dom_area, recr_yr_strt, r
     enddo
     ! close(write_dev)
 
+    deallocate(weights)
+
     return
 endsubroutine Set_Recruitment
+
+!! 
+!> @brief Defines a weighted distribution as defined in weights
+!> @returns a value 1 <= x <= n_rand_yrs
+integer function Random_Index()
+    integer :: idx
+
+    real(dp) x, prob
+
+    call random_number( x )
+
+    prob = 0
+    do idx = 1, n_rand_yrs
+        prob = prob + weights( idx ) / wsum   !! 0 < prob < 1
+        if ( x <= prob ) exit
+    enddo
+    Random_Index = idx
+endfunction
     
 !-----------------------------------------------------------------------------------------------
 !! @public @memberof Recruitment_Class
