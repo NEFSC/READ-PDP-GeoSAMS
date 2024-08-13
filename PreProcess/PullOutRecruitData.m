@@ -104,7 +104,7 @@ if useHC
     recr = zeros(1, numel(n));
     for k=1:numel(n)
         % sum 3cm to 6 cm
-        recr(k) = sum(survn(n(k)+1:n(k)+6));
+        recr(k) = sum(survn(n(k):n(k)+6));
     end
 else
     % was if srcText != 0 n=find(size_grp==3 & dataSrc==srcText);
@@ -112,7 +112,7 @@ else
     recr = zeros(1, numel(n));
     for k=1:numel(n)
         % sum 3cm to 6 cm
-        recr(k) = sum(survn(n(k)+1:n(k)+6));
+        recr(k) = sum(survn(n(k):n(k)+6));
     end
     % convert recruits from count to density per square meters
     towArea_sqm = 4516;
