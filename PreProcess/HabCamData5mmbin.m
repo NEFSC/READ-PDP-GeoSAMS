@@ -133,7 +133,7 @@ else
     n=find(and(year==yr,sg==3.));
     for k=1:numel(lat_t)
         % bring in the surv_n data from size group 3 to 18, centimeters
-        % which is in the 30 rows following sc==3
+        % which is in the 30 rows following sg==3
         % gather size data 3 - 14.5
         %               n(k) - n(k+23)
         % accumulate 15 to 18

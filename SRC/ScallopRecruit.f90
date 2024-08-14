@@ -2,90 +2,11 @@
 !> @page page2 Recruit_Mod
 !>
 !> @section Rsec1 Recruitment Class
-!> Recruitment is treated as a spatially correlated random variable.  Recruit estimates at each node are read in from 
-!> files stored in directories RecruitEstimates/RecruitEstimateDNYYYY.txt, where DN is ['MA', 'GB'] and YY is the
-!> year 1979 - 2019
-!> 
-!> Within the Population Dynamics portion 
-!> 
-!> @subsection Rsubsec2 Interpolation Algorithm
-!> The interpolation of recruit data is carried out with a Universal Kriging (UK) algorithm allowing for sampling from 
-!> the posterior distribution. 
-!>
-!> @subsubsection Rsubsubsec1 Universal Kriging
-!> Universal Kriging (UK) is a generalization of ordinary kriging in which a set of spatial functions are used to model 
-!> the trend of a set of point observations.  The underlying model is:
-!>
-!> @f[
-!> f(x,y,H(x,y),\lambda)=\sum_{k=1}^{n_f} f_k(x,y,H(x,y),\lambda_k) +\epsilon(x,y) 
-!> @f]
-!>
-!> where @f$f_k@f$ are the known spatial functions and @f$\epsilon(x,y)@f$ is a zero mean, spatially correlated, 
-!> stationary random process with semi-variogram @f$\gamma(s)@f$. For a summary of UK see Cressie 1993, pages 151 -180.
-!> The spatially variable @f$x@f$ here is taken to include latitude, longitude and, bathymetric depth
-!> (@f$x=[lat,lon,z(lat,lon)]@f$).
-!> 
-!> @subsubsection Rsubsubsec2 Spatial functions
-!> The spatial functions (SF) used here are  a set of one dimensional, bounded, C-infinity functions with two parameters,
-!> \\
-!> Gaussian Bump:
-!> @f[
-!> f_a (s,\lambda,x_0) = \exp( - \left(\frac{s-x_0}{\lambda}\right)^2 )
-!> @f]
-!> Logistic curve:
-!> @f[
-!> f_b (s,\lambda,x_0) = \frac{1}{1+\exp( -\frac{s-x_0}{\lambda} ) }
-!> @f]
-!> ''Sin Exp" curve:
-!> @f[
-!> f_c (s,\lambda,x_0) = \sin(\frac{s-x_0}{\lambda})\exp( - \left(\frac{s-x_0}{\lambda}\right)^2 )
-!> @f]
-!> ''Cos Exp" curve:
-!> @f[
-!> f_c (s,\lambda,x_0) = \cos(\frac{s-x_0}{\lambda})\exp( - \left(\frac{s-x_0}{\lambda}\right)^2 )
-!> @f]
-!> In all of the function form @f$\lambda@f$ controls the width of the transition and $x_0$ the transition point. 
-!> 
-!> After fitting these to the bathymetric variable (H) we can introduce interaction. Allowing interaction terms for the spatial
-!> functions depending on bathymetry only we can define, @f$g_j(x,H,\lambda^j,{x_0}^j,\lambda_k,{x_0}^k)=f_j(x)f_k ( H )@f$
-!> @f[
-!> f(x,y,H)=\sum_i f_i(H,\lambda^i,z_0^i) + \sum_j f_{j_x}(x,\lambda^{j_x},x_0^{j_x}) f_k(z,\lambda^k,x_0^k)+ \sum_j f_{j_y}(y,\lambda^{j_y},x_0^{j_y}) f_k(z,\lambda^k,x_0^k)
-!> @f]
-!> Some parametric functions for spatial fitting on the continental shelf.
-!> Here @f$z@f$ is bathymetric depth. We start by fitting nonlinear parameters @f$\lambda^{c,s}@f$ and @f$x_0^{c,s}@f$ to log recruitment for "cross shelf" structure.  
-!> The non linear fitting is done with standard linear regression. i.e.
-!> @f[
-!> %(\hat{\lambda},\hat{x}_0)=argmin\left( \sum_i \left(A + B f(s_i ,\lambda,x_0) - d_i\right)^2 \right)
-!> @f]
-!> @f[
-!> f(x,y,z)=\beta_0+\sum_i \beta_i f_i(z) + \sum_j \beta_j g_j(x,z)+\sum_k \beta_k g_k(y,z)+ \epsilon
-!> @f]
-!> where @f$\beta_i@f$ are coefficients for the spatial functions and @f$\epsilon@f$ is the zero mean noise process associated with UK.
-!> 
-!> @subsubsection Rsubsubsec3 Fitting non-linear parameters
-!> A brute force approach is taken to fitting the nonlinear parameters @f$x_0@f$ and @f$\lambda@f$.  A search range is determined based on
-!> the geographic range of the observations.  The parameters are then fit to minimize the misfit to observations.   
-!>  subroutine @f${\it NLSF_Fit_Function}@f$ parameter np).  The nonlinear parameters are fit by minimizing RMS misfit to the simple least squares 
-!> fit with a smoothness penalty,
-!> @f[
-!> J(x_0,\lambda)=\sqrt{ \frac{1}{n} \sum_i (d_i-a - b f(x_i|\lambda,x_0))^2 }+S(\lambda,x_0)
-!> @f]
-!> Where @f$S(\lambda,x_0)=\int_{-\infty}^\infty f''(x) ^2 d x= S(\lambda)@f$ is a roughness penalty, @f$a@f$ and @f$b@f$ are temporarily 
-!> assigned (by least squares) constants fit to minimize @f$J@f$.  @f$S@f$ is proportional to @f$\lambda^{-3}@f$ for all examples used here 
-!> (see subroutine @f${\it NLSFuncPen}@f$).  Other one dimensional function forms can be added to the software in subroutine NLSF_Eval_Semivariance and 
-!> NLSFFuncPen.
-!> 
-!> A smoothness penalty is imposed for each function based on the analytic 
-!> 
-!> @subsection Rsubsec3 Residual process
-!> After performing an ordinary least squares fit for the SF coeficients, @f$\beta@f$, we have an estimate of @f$\epsilon@f$. 
-!> An empirical variogram is computed subroutine @f${\it variogramF}@f$, and variogram parameters are fit (again by brute force).  
-!> The variogram forms allowed are "spherical", "exponential", and "gaussian".  The form is hard-coded in the main program, 
-!> UniversalKriging.f90.
-!>
-!> @subsubsection Rsubsubsec4 Posterior sampling
-!> With the fitting of the residual we have a covariance for @f$\epsilon@f$ and the estimation problem becomes one of Generalized Least 
-!> Squares (LSF_Generalized_Least_Squares).  Posterior sampling is then conducted  achieved posterior sampling is Treating the 
+!> An array of weights is computed based on the number of recruitment years that favors more recent recruit estimates. The weighting is then used to randomly choose an index into the available recruit data. This index is used to preload the recruit data into the Recruitment Class structure.
+!> - recruitment() = data read in from randomly chosen recruit file
+!> - year() = simulation year
+!> - rec_start = a decimal value given as day of the year divided by 365.25. Typically 0, which would be January 1
+!> - rec_stop = decimal value given as day of the year divided by 365.25. Typically 100/365.25, which is April 10th.
 !>
 !>---------------------------------------------------------------------------------------------------------------------
 module Recruit_Mod
@@ -135,10 +56,13 @@ CONTAINS
 !>             MA MidAtlantic or 
 !>             GB GeorgesBank
 !> @param[in] dom_area the total area in square meters, sets domain_area_sqm
-!> @param[in] num_sz_classes
 !> @param[in] L_inf_mu asymptotic size, average
 !> @param[in] K_mu Brody growth coefficient K, average
 !> @param[in] shell_length_mm Shell height in millimeters
+!> @param[out] recr_yr_strt year start of available data
+!> @param[out] recr_yr_stop year stop of available data
+!> @param[in] yr_start simulation start year
+!> @param[in] yr_stop simulation end year
 !==================================================================================================================
 subroutine Set_Recruitment(recruit, n_grids, dom_name, dom_area, recr_yr_strt, recr_yr_stop, &
     & L_inf_mu, K_mu, shell_length_mm, yr_start,  yr_stop)

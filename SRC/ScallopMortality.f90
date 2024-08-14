@@ -1,11 +1,11 @@
 !>----------------------------------------------------------------------------------------------------------------
 !> @page page3 Mortality_Mod
 !>
-!> @section p3p1 Mortality Class
 !> The methods in this class are used to determine the selectiviy and discard of the scallops based on shell
 !> length and location.
 !>
-!> @subsection p3p1p1 Set_Mortality
+!> Set_Mortality
+!>
 !> Instantiates private members for this class. 
 !>   - Reads in its configuration parameters and stores to private members.
 !>   - Loads Fishing Mortalities, if enabled by GridManager
@@ -13,30 +13,37 @@
 !>   - Loads historical data for Fishing Effort
 !>   - Set selectivity as computed by Ring_Size_Selectivity based on shell length and grid location
 !>
-!> @subsection p3p1p2 Read_Configuration
+!> @section p3p1 Read_Configuration
 !> Opens the configuration file specified in the simulation configuration file and as set by @a Set_Config_File_Name
 !>
-!> @subsection p3p1p3 Load_Fishing_Mortalities
+!> @section p3p2 Load_Fishing_Mortalities
 !> Opens the configuration file specified in the Mortality configuration file and as set by @a Set_Fishing_Mortality
 !> 
-!> @subsection p3p1p4 Ring_Size_Selectivity
+!> @section p3p3 Set Mortality
+!> Mortality = @f$Mortality_{adult}@f$ 
+!>
+!> @section p3p4 Compute Alpha
+!> @f[
+!> Alpha_{mortality} =  1.0  - \frac{1.0}{( 1.0 + exp( - (shell_{lengths}(:) – length_0) /10.0 ) )}
+!> @f]
+!> 
+!> @section p3p5 Compute Selectivity
 !> Assign size class fishing selectivity based on increasing logistic function
 !> @f[
-!> Selectivity = \frac{1}{ 1 + e^{ a - b * length_{shell}}}
+!> selectivity = \frac{1}{ 1 + exp(F_{sel_a} - F_{sel_b} * (shell_{len} + shell_{len_{delta}}/2.0))}
 !> @f]
 !>
-!> @subsection p3p1p5 Set_Fishing_Effort
-!> @subsection p3p1p7 Scallops_To_Counts
-!> @subsection p3p1p8 Set_Fishing_Effort_Weight_USD
-!> @subsection p3p1p9 Set_Fishing_Effort_Weight_BMS
-!> @subsection p3p1p11 Compute_Natural_Mortality
-!> @subsection p3p1p12 Set_Fishing_Mortality
-!> @subsection p3p1p13 Set_Config_File_Name
-!> @subsection p3p1p14 Set_Fishing_Mort_File_Name
-!> @subsection p3p1p15 Mortality_Write_At_Timestep
-!> @subsection p3p1p16 Set_Discard
+!> @section p3p6 Compute Discard
 !>
-!>----------------------------------------------------------------------------------------------------------------
+!> @f[
+!> Discard = \begin{cases} 
+!> 0.0, & \text{if } length > cullSize\text{ or gridIsClosed} \\
+!> discard_{region} * selectivity,                                   & \text{otherwise}
+!> \end{cases}
+!> @f]
+!>
+!> @section p3p7 Mortality_Write_At_Timestep
+!>
 module Mortality_Mod
 use globals
 use Grid_Manager_Mod, only : Grid_Data_Class, Get_Num_Of_Areas
@@ -51,8 +58,6 @@ type Mortality_Class
     real(dp) incidental
     real(dp) discard(num_size_classes)
     real(dp) selectivity(num_size_classes)
-    real(dp) selectivity_open(num_size_classes)
-    real(dp) selectivity_closed(num_size_classes)
     real(dp) natural_mort_adult, natural_mort_juv
     real(dp) alpha(1:num_size_classes)
 end type Mortality_Class
@@ -127,18 +132,13 @@ real(dp), PRIVATE, allocatable :: expl_biomass_gpsqm(:)
 real(dp), PRIVATE, allocatable :: expl_scallops_psqm(:)
 real(dp), PRIVATE, allocatable :: expl_num(:)
 real(dp), PRIVATE, allocatable :: F_mort(:)
-real(dp), PRIVATE, allocatable :: F_mort_raw(:)
 real(dp), PRIVATE, allocatable :: landings_by_num(:)
 real(dp), PRIVATE, allocatable :: landings_wgt_grams(:)
-real(dp), PRIVATE, allocatable :: landings_wgt_grams_open(:)
-real(dp), PRIVATE, allocatable :: landings_wgt_grams_closed(:)
 real(dp), PRIVATE, allocatable :: lpue(:) !, dredge_time(:), dredge_area(:)
 real(dp), PRIVATE, allocatable :: fishing_effort(:)
 
 real(dp), PRIVATE :: expl_scallops_psqm_at_size(num_size_classes)
 real(dp), PRIVATE :: landings_at_size(num_size_classes)
-real(dp), PRIVATE :: landings_at_size_open(num_size_classes)
-real(dp), PRIVATE :: landings_at_size_closed(num_size_classes)
 
 type(DataForPlots), PRIVATE :: data_select
 
@@ -158,12 +158,9 @@ subroutine Destructor()
     deallocate(expl_scallops_psqm)
     deallocate(expl_num)
     deallocate(F_mort)
-    deallocate(F_mort_raw)
 
     deallocate(landings_by_num)
     deallocate(landings_wgt_grams)
-    deallocate(landings_wgt_grams_open)
-    deallocate(landings_wgt_grams_closed)
     deallocate(lpue) !, dredge_time, dredge_area)
     deallocate(fishing_effort)
 endsubroutine Destructor
@@ -235,14 +232,11 @@ subroutine Set_Mortality(mortality, grid, shell_lengths, dom_name, dom_area, num
     allocate(expl_scallops_psqm(num_grids))
     allocate(expl_num(num_grids))
     allocate(F_mort(num_grids))
-    allocate(F_mort_raw(num_grids))
     allocate(lpue(num_grids)) !, dredge_time(num_grids), dredge_area(num_grids))
     allocate(fishing_effort(num_grids))
 
     allocate(landings_by_num(num_grids))
     allocate(landings_wgt_grams(num_grids))
-    allocate(landings_wgt_grams_open(num_grids))
-    allocate(landings_wgt_grams_closed(num_grids))
 
     !---------------------------------------------------
     ! Set mortality parameters
@@ -271,8 +265,6 @@ subroutine Set_Mortality(mortality, grid, shell_lengths, dom_name, dom_area, num
         &    1._dp  - 1._dp / ( 1._dp + exp( - (shell_lengths(1:num_size_classes) - length_0) /10._dp ) )
 
         mortality(j)%selectivity = Ring_Size_Selectivity(shell_lengths(1:num_size_classes), grid(j)%is_closed, grid(j)%lon) 
-        mortality(j)%selectivity_open = mortality(j)%selectivity * Logic_To_Double(.NOT. grid(j)%is_closed)
-        mortality(j)%selectivity_closed = mortality(j)%selectivity * Logic_To_Double(grid(j)%is_closed)
 
         mortality(j)%discard(1:num_size_classes) = Set_Discard(shell_lengths(1:num_size_classes), &
         &             mortality(j)%selectivity(1:num_size_classes), cull_size, discard, this_grid_is_closed)
@@ -423,8 +415,6 @@ function Set_Fishing_Effort(year, ts, state_mat, weight_grams, mortality, grid)
         &                                      weight_grams(loc,1:num_size_classes))
     enddo
 
-    F_mort_raw(:) = Set_Fishing_Mortality(grid(1:num_grids), year, .false., 0._dp)
-
     ! So for open areas, an overall fishing mortality F_avg would be specified and then F at each location
     ! would be computed so that:
     !  (1) The weighted (by exploitable numbers) average F over all locations is equal to F_avg and 
@@ -446,21 +436,11 @@ function Set_Fishing_Effort(year, ts, state_mat, weight_grams, mortality, grid)
         landings_at_size(:) = (1._dp - exp(-F_mort(loc) * delta_time)) &
         &    * state_mat(loc, 1:num_size_classes) * grid_area_sqm&
         &    * mortality(loc)%selectivity(1:num_size_classes)
-        landings_at_size_open(:) = (1._dp - exp(-F_mort(loc)  * delta_time)) &
-        &    * state_mat(loc, 1:num_size_classes) * grid_area_sqm&
-        &    * mortality(loc)%selectivity_open(1:num_size_classes)
-        landings_at_size_closed(:) = (1._dp - exp(-F_mort(loc)  * delta_time)) &
-        &    * state_mat(loc, 1:num_size_classes) * grid_area_sqm&
-        &    * mortality(loc)%selectivity_closed(1:num_size_classes)
     
         ! (1._dp - exp(-F * delta_time))
         ! * dot_product(selectivity * state * grid_area_sqm, weight)
         landings_wgt_grams(loc)        =&
         &    dot_product(landings_at_size(:),        weight_grams(loc,1:num_size_classes))
-        landings_wgt_grams_open(loc)   =&
-        &    dot_product(landings_at_size_open(:),   weight_grams(loc,1:num_size_classes))
-        landings_wgt_grams_closed(loc) =&
-        &    dot_product(landings_at_size_closed(:), weight_grams(loc,1:num_size_classes))
     
         ! (1._dp - exp(-F * delta_time)) * selectivity * state * grid_area_sqm
         landings_by_num(loc) = sum(landings_at_size(:))
@@ -509,66 +489,23 @@ endfunction Set_Fishing_Effort
 
 !==================================================================================================================
 !! @public @memberof Mortality_Class
-!> Purpose: Convert Scallop density by shell height and meat wieght to count data.  The count data 
-!> are divided into 
-!> cnt10- 10 or less scallops per pound.
-!> cnt10to20 10-20 scallops per pound.
-!> cnt20to30 20-30 scallops per pound.
-!> cnt30+ 30 or more scallops per pound.
-!>
-!> @param[in]  meat_weight_grams (real) length num_size_classes vector of weight of individual scallops by size class
-!>
-!> @param[out] cnt10 number of scallops wich get binned into U10
-!> @param[out] cnt10to20 number of scallops wich get binned into U10-20
-!> @param[out] cnt20to30 number of scallops wich get binned into U20-30
-!> @param[out] cnt30 number of scallops wich get binned into U30+
-!==================================================================================================================
-subroutine Scallops_To_Counts(meat_weight_grams, cnt10, cnt10to20, cnt20to30, cnt30plus)
-    implicit none
-    real(dp), intent(in):: meat_weight_grams(*)
-    real(dp), intent(out):: cnt10, cnt10to20, cnt20to30, cnt30plus
-    real(dp) PoundsPerScallop(num_size_classes)
-    integer j
-    PoundsPerScallop(1:num_size_classes) = meat_weight_grams(1:num_size_classes)/grams_per_pound
-    cnt10 = 0.
-    cnt10to20 = 0.
-    cnt20to30 = 0.
-    cnt30plus = 0.
-    do j = 1, num_size_classes
-        if( PoundsPerScallop(j).gt. 1._dp/10._dp ) then
-            cnt10 = cnt10 + expl_scallops_psqm_at_size(j)
-        elseif (PoundsPerScallop(j) .gt. 1._dp/20._dp) then
-            cnt10to20 = cnt10to20 + expl_scallops_psqm_at_size(j)
-        elseif (PoundsPerScallop(j).gt. 1._dp/30._dp) then
-            cnt20to30 = cnt20to30 + expl_scallops_psqm_at_size(j)
-        else
-            cnt30plus = cnt30plus + expl_scallops_psqm_at_size(j)
-        endif
-    enddo
-
-    return
-endsubroutine Scallops_To_Counts
-
-!==================================================================================================================
-!! @public @memberof Mortality_Class
 !>
 !> Computes the total number of scallops, <b>S</b>, in millions. 
 !> Then recomputes juvenile mortality as a function of S.
 !> @f[
 !> M_{juv} = \begin{cases} 
-!>         e^{1.093 * log(S) - 9.701}, & \text{if } S > 1400 \text{ million (2030?)} \\
-!>         M_{adult},                                   & \text{otherwise}
+!>         exp(1.093 * log(S) - 9.701), & \text{if } S > 1400 \text{ million (2030?)} \\
+!>         0.25,                                   & \text{otherwise}
 !> \end{cases}
 !> @f]
 !> 
 !> A similar formula for GB Open:
 !> @f[
 !> M_{juv} = \begin{cases} 
-!>         e^{(1.226*log(S)-10.49)}, &  \text{if } S > 1400 \text{ million (2030?)} \\
-!>         M_{adult},                                  & \text{otherwise}
+!>         exp((1.226*log(S)-10.49)), &  \text{if } S > 1400 \text{ million (2030?)} \\
+!>         0.2,                                  & \text{otherwise}
 !> \end{cases}
 !> @f]
-!> where @f$M_{adult}@f$ is 0.25 if MA or 0.2 if GB
 !>
 !> TODO: At present the computation does not use the conditional but rather whichever is greater
 !>
@@ -965,7 +902,7 @@ endsubroutine Mortality_Write_At_Timestep
 !! @public @memberof Mortality_Class
 !> Computes element of discard vector
 !> @param[in] length, vector element for shell length
-!> @parma[in] cull_size, determins shell length below which are discarded
+!> @param[in] cull_size, determins shell length below which are discarded
 !> @param[in] discard, percentage of selectivity that will be discarded
 !> @param[in] selectivity, vector element that determines scallops harvested
 !==================================================================================================================
@@ -982,8 +919,8 @@ endfunction Set_Discard
 !==================================================================================================================
 !! @public @memberof Mortality_Class
 !> Computes catch as pounds per day
-!> @parma[in]  expl_biomass          !  Expl biomass
-!> @parma[in]  expl_scallops         !  Expl Number of Scallops
+!> @param[in]  expl_biomass          !  Expl biomass
+!> @param[in]  expl_scallops         !  Expl Number of Scallops
 !> @param[out] dredge_time_hrs       !  dredge bottom time
 !> @param[out] dredge_area_sqnm      !  area swept per day
 !>

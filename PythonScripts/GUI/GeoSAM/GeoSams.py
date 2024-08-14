@@ -134,12 +134,12 @@ class MainApplication(tk.Tk):
         self.simConfigFile  = os.path.join(self.root,configDir, simCfgDir, self.frame1.simCfgFile.myEntry.get())
         self.ukConfigFile   = os.path.join(self.root,configDir, interCfgDir, self.frame1.ukCfgFile.myEntry.get())
 
+        self.frame2 = EditMathSetup(self.notebook)
         self.frame3 = Growth(self.notebook, self)
         self.frame4 = UKInterpolation(self.notebook, self, self.frame1)
         self.frame5 = SortByArea(self.notebook, self.frame1, self.maxAreas, self.maxCorners, self.maxYears, self.paramStr)
         self.frame6 = SpecialArea(self.notebook, self, self.maxAreas, self.maxCorners)
         self.frame7 = FishMortBySpecAcc(self.notebook, self.maxAreas, self.maxCorners)
-        self.frame2 = EditMathSetup(self.notebook)
         self.ReadUKConfigFile()
 
         self.gmConfigFile = os.path.join(self.root,configDir, simCfgDir, self.frame6.gmCfgFile.myEntry.get())
@@ -149,13 +149,13 @@ class MainApplication(tk.Tk):
         self.ReadGridMgrConfigFile()
         self.frame6.specAccFile.myEntry.insert(0, self.specAccFileStr)
 
+        self.notebook.add(self.frame2, text='Math Setup')
         self.notebook.add(self.frame1, text='Main')
         self.notebook.add(self.frame3, text='Growth')
         self.notebook.add(self.frame6, text='Special Access')
         self.notebook.add(self.frame7, text='Fishing Mort in\n Special Access')
         self.notebook.add(self.frame5, text='SortByArea')
         self.notebook.add(self.frame4, text='UKInterpolation')
-        self.notebook.add(self.frame2, text='Math Setup')
         self.notebook.pack()
 
         self.isSkip = False

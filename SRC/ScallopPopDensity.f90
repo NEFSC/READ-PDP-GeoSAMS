@@ -1,5 +1,6 @@
 PROGRAM ScallopPopDensity
 !> @mainpage Scallop Population Density
+!!
 !! This program is used to compute Scallop Density after a given growth period
 !!
 !! @section ms1 Initialize Simulation Parameters
@@ -38,15 +39,15 @@ PROGRAM ScallopPopDensity
 !! @paragraph ms1p2p2p2 Weigth in grams
 !! GB
 !! @f{eqnarray*}{
-!! ShellToWeight = exp( &-& 6.69 + 2.878 * log(shellLengthmm) \\
+!! ShellToWeight = exp( &-& 6.69 + 2.878 * log(shell_{length}) \\
 !!                      &-& 0.0073 * depth - 0.073 * latitude \\
-!!                      &+& (1.28 - 0.25 * log(shellLengthmm)) * isClosed )
+!!                      &+& (1.28 - 0.25 * log(shell_{length}) * isClosed )
 !! @f}
 !!
 !!
 !! MA\n
 !! @f{eqnarray*}{
-!! ShellToWeight = exp( &-& 9.713394 + 2.62025 * log(shell_length_mm) \\
+!! ShellToWeight = exp( &-& 9.713394 + 2.62025 * log(shell_{length}) \\
 !!                      &-& 0.004665 * depth + 0.021 * latitude \\
 !!                      &-& 0.031 * isClosed)
 !! @f}
@@ -167,38 +168,17 @@ PROGRAM ScallopPopDensity
 !! FishingEffort = \frac{ \vec{EBMS} * catch / \vec{scallops}}{rms * gridArea}
 !! @f]
 !!
-!! @paragraph ms1p4p2p4 CAS Fishing Effort
-!! Fishing effort is defined by year and region 
-!! from past history @a Data/FYrGBcGBoMA.csv. Otherwise, fishing effort is computed. 
-!! 
-!! <table>
-!! <caption id="multi_row">Fishing Effort (partial)</caption>
-!! <tr><th>Year<th>GB Closed<th>GB Open<th>MA
-!! <tr><td>2005<td>0.14<td>0.36<td>0.55
-!! <tr><td>2006<td>0.24<td>0.94<td>0.25
-!! <tr><td>2007<td>0.15<td>0.76<td>0.5
-!! <tr><td>2008<td>0.07<td>0.73<td>0.57
-!! <tr><td>2009<td>0.05<td>0.55<td>0.61
-!! <tr><td>2010<td>0.09<td>0.28<td>0.53
-!! <tr><td>2011<td>0.21<td>0.19<td>0.54
-!! <tr><td>2012<td>0.31<td>0.44<td>0.43
-!! <tr><td>2013<td>0.1 <td>0.85<td>0.26
-!! <tr><td>2014<td>0.07<td>0.48<td>0.33
-!! <tr><td>2015<td>0   <td>0.75<td>0.36
-!! <tr><td>2016<td>0   <td>0.51<td>0.4
-!! <tr><td>2017<td>0.11<td>0.17<td>0.34
-!! </table>
-!!
 !! @section ms2 Main Loop
 !! 
 !! @subsection ms2p1 For each time step
 !!
 !! @subsubsection mss2p1p1 Set Fishing Effort
+!!
 !! Here there is defined a fishing effort that is independent of mortality. 
 !! Whereas the mortality fishing effort is a function of region and historical data, 
 !! this fishing effort is a function of cost, biomass or as a spatial constant within region. 
 !!
-!! @subsubsection mss2p1p2 For each grid
+!! @subsection ms2p2 For each grid
 !!
 !! @paragraph mss2p1p2p1 Compute natural mortality
 !! Determine the number of scallops in millions, S, given the current state
@@ -210,19 +190,19 @@ PROGRAM ScallopPopDensity
 !! Mid-Atlantic:
 !! @f[
 !! M_{juv} = \begin{cases} 
-!!         e^{1.093 * log(S) - 9.701}, & \text{if } S > 1400 \text{ million} \\
-!!         M_{adult},                                   & \text{otherwise}
+!!         exp(1.093 * log(S) - 9.701), & \text{if } S > 1400 \text{ million} \\
+!!         0.25,                                   & \text{otherwise}
 !! \end{cases}
 !! @f]
 !! 
 !! Georges Bank:
 !! @f[
 !! M_{juv} = \begin{cases} 
-!!         e^{(1.226*log(S)-10.49)}, &  \text{if } S > 1400 \text{ million} \\
-!!         M_{adult},                                  & \text{otherwise}
+!!         exp((1.226*log(S)-10.49)), &  \text{if } S > 1400 \text{ million} \\
+!!         0.2,                                  & \text{otherwise}
 !! \end{cases}
 !! @f]
-!! where @f$M_{adult}@f$ is 0.25 if MA or 0.2 if GB\n
+!!
 !! Finally
 !! @f[
 !! M_{nat} = \alpha * M_{juv} + (1-\alpha) M_{adult}
