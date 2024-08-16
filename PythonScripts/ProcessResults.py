@@ -111,7 +111,7 @@ for pStr in paramStr:
                         for (i,v) in enumerate(row):
                             col[k][i].append(v)
                     f.close()
-                os.remove(flin)
+###                os.remove(flin)
 
                 for i in range (len(col[0][0])):    
                     col[0][k + 2].append(col[k][2][i])
@@ -139,7 +139,7 @@ for pStr in paramStr:
             lines = rdFile.readlines()
             wrFile.writelines(lines)
             rdFile.close()
-            os.remove(flin)
+###            os.remove(flin)
         wrFile.close()
         print('Files concatenated to: ',flout)
     # end for pfix

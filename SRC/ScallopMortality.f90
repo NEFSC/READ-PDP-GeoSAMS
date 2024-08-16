@@ -426,7 +426,7 @@ function Set_Fishing_Effort(year, ts, state_mat, weight_grams, mortality, grid)
     !call  Calc_LPUE(expl_biomass_gpsqm, expl_scallops_psqm, lpue, dredge_time, dredge_area)
     lpue = Calc_LPUE(expl_biomass_gpsqm, expl_scallops_psqm)
 
-    c_mort = fishing_mort * sum(expl_num) / dot_product(expl_num, lpue**alpha_mort) 
+    c_mort = fishing_mort * sum(expl_num(:)) / dot_product(expl_num(:), lpue(:)**alpha_mort) 
     F_mort(:) = c_mort * lpue(:)**alpha_mort
     F_mort(:) = Set_Fishing_Mortality(grid(1:num_grids), year, .true., F_mort(:))
 

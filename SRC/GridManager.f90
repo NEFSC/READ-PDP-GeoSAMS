@@ -42,7 +42,7 @@
 !> Sets @a init_cond_fname for @a @b Load_Grid_State
 !>
 !> @subsection p4p2p3 Set_Special_Access_File_Name
-!> @section p4p3 Point In Polygon
+!> @section p4p4 Point In Polygon
 !> The Point_In_Polygon_Vector method is used to find if a point is in a polygon. The @a @b Grid_Manager also supports 
 !> polygon data representation as an array of LonLatPoint points vial @a @b Point_In_Polygon_Points or as a 
 !> n by 2, 2-dimensional array, where n is a maximum of @a max_sides edges.

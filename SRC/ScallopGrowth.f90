@@ -102,7 +102,7 @@
 !> @f$\phi_N@f$ denotes the normal <b>density</b> function.
 !>
 !> @f[
-!> H_{MN18}(x, \sigma, \omega) = \frac{1}{\omega}\left[x\Phi_N(x,0,\sigma^2) + \sigma^2\phi_N(x,0,\sigma^2)\right]
+!> H_{MN18}(x, \sigma, \omega) = \frac{1}{\omega}\bigg(x\Phi_N(x,0,\sigma^2) + \sigma^2\phi_N(x,0,\sigma^2)\bigg)
 !> @f]
 !>
 !> WAS

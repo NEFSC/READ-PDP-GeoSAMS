@@ -5,9 +5,9 @@ PROGRAM ScallopPopDensity
 !!
 !! @section ms1 Initialize Simulation Parameters
 !! @subsection ms1p1 Read Input
-!! Values are read in from file name given on command line, e.g. ScallopPopDensity.exe @b Scallop.cfg
+!! Values are read in from file name given on command line, e.g.\n
+!!  ScallopPopDensity.exe @b Scallop.cfg
 !!  - Time steps per Year: number of time steps each year
-!!  - Save By Stratum: Used in GB to make break up region into smoother shapes, i.e. rather than clover leaf.
 !!
 !! The following are used to name configuration files used by other modules
 !!  - Mortality Config File
@@ -17,26 +17,31 @@ PROGRAM ScallopPopDensity
 !! Additional parameters are placed on the command line to facilitate batch processing
 !! - Start Year
 !! - Stop Year
-!! - Domain Abbreviation
-!!   - MA, or
+!! - Domain Name
+!!   - MA
 !!   - GB
+!!   - AL, for both MA and GB
 !!
-!! @subsection ms1p2 Instantiate Growth Module
-!! The simulation then instantiates parameters that define how growth occurs
-!!
-!! @subsubsection ms1p2p1 Load Grid and Initial State
-!! The initial state is defined by a hardcode data file named as follows:
+!! @section ms2 Set Grid Manager
+!! @subsection ms2p1 Load Grid and Initial State
+!! The initial state is defined by a hardcoded data file named as follows:
 !! - Data/bin5mmYYYY[MA|GB].csv\n
-!!  where the year, YYYY, is defined by the Start Year and MA or GB is specified by the given domain name.
+!!  where the year, YYYY, is defined by the Start Year and MA or GB is specified by the given domain name.\n
 !! The data in each file, Data/bin5mmYYYY[MA|GB].csv has grid information for where each grid is located and its depth. 
 !! Data in the same row is used for the initial state, in units of scallop count per square for each size classs.
 !!
-!! @subsubsection ms1p2p2 For each class: Define shell_lengths weight conversion
-!! @paragraph ms1p2p2p1 Shell Length
+!! @subsection ms2p2 Load Area Coordinates
+!! After the initial state has been loaded, GeoSAMS will check if any of the grid locations are in a special access area. 
+!! This will be used later to set fishing mortality based on these location settings.
+!!
+!! @section ms3 Set Growth
+!! The simulation then instantiates parameters that define how growth occurs
+!!
+!! @subsection ms3p1 Shell Length
 !! Starting at 30mm to 150mm inclusive, in 5 mm steps.\n
 !! That is (150 - 30) / 5 + 1, or 25 size classes
 !!
-!! @paragraph ms1p2p2p2 Weigth in grams
+!! @subsection ms3p2 Shell to Weigth, in grams
 !! GB
 !! @f{eqnarray*}{
 !! ShellToWeight = exp( &-& 6.69 + 2.878 * log(shell_{length}) \\
@@ -54,42 +59,42 @@ PROGRAM ScallopPopDensity
 !!
 !! where @a isClosed is 1 if closed or 0 if open
 !!
-!! @subsubsection ms1p2p3 Compute Growth Parameters, given depth, latitude, and isClosed
+!! @subsection ms3p3 Compute Growth Parameters, given depth, latitude, and isClosed
 !! - @f$L_{\infty_\mu}@f$
 !! - @f$L_{\infty_\sigma}@f$
 !! - @f$K_\mu@f$
 !! - @f$K_\sigma@f$
 !!
-!! @subsubsection ms1p2p4 Compute G matrix for given growth parameters
+!! @subsection ms3p4 Compute G matrix for given growth parameters
 !!
-!> From MN18 p. 1312, 1313
+!! From MN18 p. 1312, 1313, where @f$ len = shell_{length}@f$
 !! @f[
-!! c = 1.0 - e^{-K_{\mu} * \delta_t}
+!! c = 1.0 - exp(-K_{\mu} * \delta_t)
 !! @f]
 !! @f[
 !! \eta = c * L_{{\infty}_\mu}
 !! @f]
 !! For each size class, @a k
 !! @f[
-!! \omega_k = l_k - l_{k-1}
+!! \omega_k = len_k - len_{k-1}, \text{typically 5mm}
 !! @f]
 !! @f[
-!! \omega_{k_{avg}} = \frac{l_k + l_{k-1}}{2}
+!! \omega_{k_{avg}} = \frac{len_k + len_{k-1}}{2}, \text{typically 2.5mm}
 !! @f]
 !! @f[
 !! \Omega = (1 - c) \omega_k
 !! @f]
 !! @f[
-!! X(y,k) = l_y - \eta - (1-c)l_{k}
+!! X(y,k) = len_y - \eta - (1-c)len_{k}
 !! @f]
 !! @f[
-!! \Phi(x,\mu,\sigma) = \frac{1}{2}(1+Erf(\frac{x-\mu}{\sigma\sqrt{2}}))
+!! \Phi(x,\mu,\sigma) = \frac{1}{2}\biggl(1+Erf(\frac{x-\mu}{\sigma\sqrt{2}})\biggr)
 !! @f]
 !! @f[
-!! \phi(x,\mu,\sigma) = \frac{1}{\sigma\sqrt{2\pi}}e^{-\frac{(x-\mu)^2}{2\sigma^2}}
+!! \phi(x,\mu,\sigma) = \frac{1}{\sigma\sqrt{2\pi}}exp\bigg(-\frac{(x-\mu)^2}{2\sigma^2}\bigg)
 !! @f]
 !! @f[
-!! H_{MN18}(x, \sigma, \omega) = \frac{1}{\omega}\left[x\Phi_N(x,0,\sigma^2) + \sigma^2\phi_N(x,0,\sigma^2)\right]
+!! H_{MN18}(x, \sigma, \omega) = \frac{1}{\omega}\bigg(x\Phi_N(x,0,\sigma^2) + \sigma^2\phi_N(x,0,\sigma^2)\bigg)
 !! @f]
 !!
 !! @f[
@@ -97,29 +102,29 @@ PROGRAM ScallopPopDensity
 !!                           - H_{MN18}(X(y,k),   \sigma, \Omega)
 !! @f]
 !! 
-!! @subsection ms1p3 Instantiate Recruitment
+!! @section ms4 Set Recruitment
 !!
 !! The simulation next instantiates how recruitment will be handled.
-!! @subsubsection ms1p3p1 Recruitment data
-!! @paragraph ms1p3p1p1 For years start_year to stop_year
-!! Data is read in from RecruitEstimates/RecruitEstimateDNYYYY.txt
+!! @subsection m4p1 For years start_year to stop_year
+!! Data is read randomly chosen from from RecruitEstimates/RecruitEstimateDNYYYY.txt.
+!! YYYY is the range of years of available recruit information as pulled from the survey data file.
 !!
-!! @subsubsection ms1p3p2 This method is effectively setting
+!! @subsection ms4p2 This method is effectively setting
 !! For year in start_year to stop_year
 !!  - Year_index = year - start_year + 1
 !!  - for year_index in [1..max]\n
-!!      -recruitment(year_index) = RecruitEstimate
+!!      - recruitment(year_index) = RecruitEstimate(random year index)
 !!      - year(year_index) = year
 !!      - rec_start = Start Period, typically 0/365, or January 1st
 !!      - rec_stop = Stop Period, typically 100/365, or April 10
 !!
-!! @subsubsection ms1p3p3 It then quantizes recruitment,
+!! @subsection ms4p3 It then quantizes recruitment,
 !! For each grid, n
-!!  - L30mm = (@f$L_{\infty_\mu}@f$(n) - 30) * exp(-@f$K_\mu@f$(n))
+!!  - @f$L30mm = \bigg(L_{\infty_\mu}(n) - 30\bigg) * exp(-K_\mu(n))@f$
 !!  - For each class, j
 !!      - If (length(n) <= L30mm) recruit(n).max_rec_ind = j
 !!
-!! @subsection ms1p4 Instantiate Mortality
+!! @section ms5 Set Mortality
 !! The simulation next sets mortality values.
 !!
 !! <table>
@@ -128,14 +133,14 @@ PROGRAM ScallopPopDensity
 !! <tr><td>MA<td>25%<td>5%<td>65.0
 !! <tr><td>GB<td>20%<td>10%<td>70.0
 !! </table>
-!! @subsubsection ms1p4p1 Compute alpha
+!! @subsection ms5p1 Compute alpha
 !! @f[
-!! \alpha(l) = 1-\frac{1}{1+e^{-(l-l_0)/10.0}}
+!! \alpha(shell_{length}) = 1-\frac{1}{1+exp(-(shell_{length}-length_0)/10.0)}
 !! @f]
 !!
-!! @subsubsection ms1p4p2 Compute Fishing Effort
+!! @subsection ms5p2 Compute Fishing Effort
 !!
-!! @paragraph ms1p4p2p1 Compute landings at size for each grid location
+!! @subsubsection ms5p2p1 Compute landings at size for each grid location
 !!
 !! Given
 !! The number of scallops per square meter:
@@ -148,17 +153,17 @@ PROGRAM ScallopPopDensity
 !! @f]
 !!
 !! @f[
-!! \vec{landings_{size}} = (1.0 - e^{(-F_{{mort}_{loc}} * \delta_))} * \vec{state_{loc}} * gridArea * \vec{selectivity_{loc}}
+!! \vec{landings_{size}} = (1.0 - exp((-F_{{mort}_{loc}} * \delta_))) * \vec{state_{loc}} * gridArea * \vec{selectivity_{loc}}
 !! @f]
 !!
-!! @paragraph ms1p4p2p2 Compute landings by weight
+!! @subsubsection ms5p2p2 Compute landings by weight
 !!
 !! @f[
 !! \vec{landings_{wgt}} = \vec{landings_{size}} \cdot \vec{weight} = catch
 !! @f]
 !! This is also considered total_catch
 !!
-!! @paragraph ms1p4p2p3 Total catch is used compute fishing effort
+!! @subsubsection ms5p2p3 Total catch is used compute fishing effort
 !!
 !! @f[
 !! rms = \sum_{loc=1}^{n} \frac{EBMS(loc)^2}{scallops(loc))}
@@ -168,19 +173,19 @@ PROGRAM ScallopPopDensity
 !! FishingEffort = \frac{ \vec{EBMS} * catch / \vec{scallops}}{rms * gridArea}
 !! @f]
 !!
-!! @section ms2 Main Loop
+!! @section ms6 Main Loop
 !! 
-!! @subsection ms2p1 For each time step
+!! @subsection ms6p1 For each time step
 !!
-!! @subsubsection mss2p1p1 Set Fishing Effort
+!! @subsubsection ms6p1p1 Set Fishing Effort
 !!
 !! Here there is defined a fishing effort that is independent of mortality. 
 !! Whereas the mortality fishing effort is a function of region and historical data, 
 !! this fishing effort is a function of cost, biomass or as a spatial constant within region. 
 !!
-!! @subsection ms2p2 For each grid
+!! @subsection ms6p2 For each grid
 !!
-!! @paragraph mss2p1p2p1 Compute natural mortality
+!! @subsubsection ms6p2p1 Compute natural mortality
 !! Determine the number of scallops in millions, S, given the current state
 !! @f[
 !! S = state * domainArea
@@ -198,7 +203,7 @@ PROGRAM ScallopPopDensity
 !! Georges Bank:
 !! @f[
 !! M_{juv} = \begin{cases} 
-!!         exp((1.226*log(S)-10.49)), &  \text{if } S > 1400 \text{ million} \\
+!!         exp((1.226 * log(S)-10.49)), &  \text{if } S > 1400 \text{ million} \\
 !!         0.2,                                  & \text{otherwise}
 !! \end{cases}
 !! @f]
@@ -208,21 +213,21 @@ PROGRAM ScallopPopDensity
 !! M_{nat} = \alpha * M_{juv} + (1-\alpha) M_{adult}
 !! @f]
 !! 
-!! @paragraph mss2p1p2p2 Adjust population state based on von Bertalanffy growth
+!! @subsubsection ms6p2p3 Adjust population state based on von Bertalanffy growth
 !! @f[
 !! \vec{S} = \left| G \right| \times \vec{S} 
 !! @f]
 !!
-!! @paragraph mss2p1p2p3 Compute increase in population due to recruitment, R
+!! @subsubsection ms6p2p3 Compute increase in population due to recruitment, R
 !! If within recruitment period, i.e. Jan 1st to April 10th
 !! @f[
 !! \vec{S} = \vec{S} + \delta_t\frac{\vec{R}}{RecruitDuration}
 !! @f]
-!! @paragraph mss2p1p2p4 Compute Overall Mortality
+!!@subsubsection ms6p2p4 Compute Overall Mortality
 !! @f[
-!! \vec{M} = \vec{M}_{nat} + Fishing *( \vec{M}_{selectivity} + \vec{M}_{incidental} + \vec{M}_{discard})
+!! \vec{M} = \vec{M}_{nat} + Fishing * ( \vec{M}_{selectivity} + \vec{M}_{incidental} + \vec{M}_{discard})
 !! @f]
-!! @paragraph mss2p1p2p5 Compute effect of mortality to arrive at new state
+!! @subsubsection ms6p2p5 Compute effect of mortality to arrive at new state
 !! @f[
 !! \vec{S}_{t+1} = \vec{S}_t * (1- \delta_t * \vec{M})
 !! @f]

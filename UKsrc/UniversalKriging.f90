@@ -12,19 +12,19 @@
 !>
 !> This file is specified on the command line. It has the following parameters
 !> * Kriging variogram form
-!> * Log Transform
-!> * Power Transform Parameter
 !> * NLS Spatial Fcn File Name
 !> * Save Data
+!> * Use Saturate
+!> * Overflow Threshold
 !> 
-!> @subsubsection m0p1p1p1 High Limit Factor
+!> @subsubsection m0p1p1p1 High Limit Factor DEPRECATED
 !> 
 !> This configuration item is used to set an upper limit for the observed data. That is,
 !> * fmax = fmax_multiplier * maxval(observed data)\n
 !> Used with logical IsHighLimit. IsHighLimit is the inverse of Log Transform. Typically runs as false. 
 !> Not fully tested.
 !>
-!> @subsubsection m0p1p1p3 Kriging variogram form
+!> @subsubsection m0p1p1p2 Kriging variogram form
 !> * 'spherical'
 !> * 'exponential'
 !> * 'gaussian'
@@ -32,14 +32,14 @@
 !>
 !> Default value is 'spherical' with no entry in configuration file
 !>
-!> @subsubsection m0p1p1p4 Log Transform
+!> @subsubsection m0p1p1p3 Log Transform
 !> If set to true, interpolation uses the log of the input data instead of linear transform.
 !>
-!> @subsubsection m0p1p1p6 NLS Spatial Fcn File Name
+!> @subsubsection m0p1p1p4 NLS Spatial Fcn File Name
 !> The name of the file that defines the spatial functions. 
 !> Configuration files are expected to be in the <em><b>./Configuration</b></em> subdirectory
 !>
-!> @subsubsection m0p1p1p7 Save Data
+!> @subsubsection m0p1p1p5 Save Data
 !> This configuration item determines where the output is saved.
 !>
 !> F: Written to the root directory\n
@@ -52,8 +52,20 @@
 !> * DN: Domain Name
 !>   - MA: Mid Atlantic
 !>   - GB: Georges Bank
+!>   - AL: Both of the above
 !>
-!-----------------------------------------------------------------------
+!> @subsubsection m0p1p1p7 Use Saturate
+!> Interpolation can sometimes create excessively large values.
+!> To bypass, Use Saturate can be T or F, but set a larger threshold, i.e. 1E309 (Infinity).
+!> The user can choose to saturate to the threshold, (T), or 
+!> reset the value to 0.0 when exceeded, (F).
+!>
+!> @subsubsection m0p1p1p8 Overflow Threshold
+!> Threshold value to use
+!> Use Saturate = T, if field > Threshold then field = Threshold
+!> Use Saturate = F, if field > Threshold then field = 0.0
+
+
 program UKsimulation
 use globals
 use Grid_Manager_Mod
