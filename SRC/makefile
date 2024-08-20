@@ -20,7 +20,16 @@ FC = gfortran
 #-fno-automatic
 # -fcheck=all -fcheck-array-temporaries-fno-automatic -fmax-stack-var-size=100000 
 #FFLAGS = -O3  -mcmodel=medium -funroll-all-loops -ffast-math -msse -msse2 -m3dnow -m64
-FFLAGS = -g -Wall -std=f95 -fall-intrinsics 
+
+# -cpp C preprocessor that will accept macros, i.e. 
+FFLAGS = -cpp
+# #ifdef USE_FIXED_RAND uses the same vs random index for each run to show consistent output
+# #ifdef ACCUM_LANDINGS then landing values are accumulated for the year rather than just the last timestep period
+#
+FFLAGS += -DUSE_FIXED_RAND -UACCUM_LANDINGS
+# other
+FFLAGS += -g -Wall -std=f95 -fall-intrinsics 
+
 SRC_DIRS = .
 
 # Find all the f90 files we want to compile
@@ -29,7 +38,7 @@ SRCS = Globals.f90 GridManager.f90 ScallopMortality.f90 ScallopRecruit.f90 Scall
 #SRCS += $(shell find $(SRC_DIRS) -name '*.f90' | grep -v 'Globals\|DataPoint\|ScallopGrowth\|ScallopRecruit')
 SRCS += ScallopPopDensity.f90 IORoutines.f90 
 
-#LINUX, WIN?
+#LINUX, WIN? removed need for lapack and blas
 #LIBS = -L/usr/lib/x86_64-linux-gnu -llapack -lblas
 #MAC
 #LIBS = -L/usr/lib -llapack -lblas

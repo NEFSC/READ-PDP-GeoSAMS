@@ -134,8 +134,13 @@ real(dp), PRIVATE, allocatable :: expl_num(:)
 real(dp), PRIVATE, allocatable :: F_mort(:)
 real(dp), PRIVATE, allocatable :: landings_by_num(:)
 real(dp), PRIVATE, allocatable :: landings_wgt_grams(:)
-real(dp), PRIVATE, allocatable :: lpue(:) !, dredge_time(:), dredge_area(:)
+real(dp), PRIVATE, allocatable :: lpue(:)
 real(dp), PRIVATE, allocatable :: fishing_effort(:)
+#ifdef ACCUM_LANDINGS
+real(dp), PRIVATE, allocatable :: landings_accum(:)
+real(dp), PRIVATE, allocatable :: landings_wgt_accum(:)
+real(dp), PRIVATE, allocatable :: lpue_accum(:)
+#endif
 
 real(dp), PRIVATE :: expl_scallops_psqm_at_size(num_size_classes)
 real(dp), PRIVATE :: landings_at_size(num_size_classes)
@@ -161,8 +166,11 @@ subroutine Destructor()
 
     deallocate(landings_by_num)
     deallocate(landings_wgt_grams)
-    deallocate(lpue) !, dredge_time, dredge_area)
+    deallocate(lpue)
     deallocate(fishing_effort)
+#ifdef ACCUM_LANDINGS
+    deallocate(landings_accum, landings_wgt_accum, lpue_accum)
+#endif
 endsubroutine Destructor
 
 !==================================================================================================================
@@ -232,12 +240,25 @@ subroutine Set_Mortality(mortality, grid, shell_lengths, dom_name, dom_area, num
     allocate(expl_scallops_psqm(num_grids))
     allocate(expl_num(num_grids))
     allocate(F_mort(num_grids))
-    allocate(lpue(num_grids)) !, dredge_time(num_grids), dredge_area(num_grids))
+    allocate(lpue(num_grids))
     allocate(fishing_effort(num_grids))
 
     allocate(landings_by_num(num_grids))
     allocate(landings_wgt_grams(num_grids))
+#ifdef ACCUM_LANDINGS
+    allocate(landings_wgt_accum(num_grids), lpue_accum(num_grids), landings_accum(num_grids))
 
+    landings_accum(:) = 0.D0
+    landings_wgt_accum(:) = 0.D0
+    lpue_accum(:) = 0.D0
+#endif
+
+
+#ifdef ACCUM_LANDINGS
+    write(*,*) term_yel, 'Mortality: Accumulating landing values', term_blk
+#else
+    write(*,*) term_yel, 'Mortality: Landing values at timestep', term_blk
+#endif
     !---------------------------------------------------
     ! Set mortality parameters
     !---------------------------------------------------
@@ -425,8 +446,11 @@ function Set_Fishing_Effort(year, ts, state_mat, weight_grams, mortality, grid)
     
     !call  Calc_LPUE(expl_biomass_gpsqm, expl_scallops_psqm, lpue, dredge_time, dredge_area)
     lpue = Calc_LPUE(expl_biomass_gpsqm, expl_scallops_psqm)
+#ifdef ACCUM_LANDINGS
+    lpue_accum(:) = lpue_accum(:) + lpue(:)
+#endif
 
-    c_mort = fishing_mort * sum(expl_num(:)) / dot_product(expl_num(:), lpue(:)**alpha_mort) 
+    c_mort = fishing_mort * sum(expl_biomass_gpsqm(:)) / dot_product(expl_biomass_gpsqm(:), lpue(:)**alpha_mort) 
     F_mort(:) = c_mort * lpue(:)**alpha_mort
     F_mort(:) = Set_Fishing_Mortality(grid(1:num_grids), year, .true., F_mort(:))
 
@@ -434,23 +458,20 @@ function Set_Fishing_Effort(year, ts, state_mat, weight_grams, mortality, grid)
 
         ! (1._dp - exp(-F * delta_time)) * state * grid_area_sqm  * selectivity
         landings_at_size(:) = (1._dp - exp(-F_mort(loc) * delta_time)) &
-        &    * state_mat(loc, 1:num_size_classes) * grid_area_sqm&
-        &    * mortality(loc)%selectivity(1:num_size_classes)
+        &    * state_mat(loc, :) * grid_area_sqm * mortality(loc)%selectivity(:)
     
         ! (1._dp - exp(-F * delta_time))
         ! * dot_product(selectivity * state * grid_area_sqm, weight)
-        landings_wgt_grams(loc)        =&
-        &    dot_product(landings_at_size(:),        weight_grams(loc,1:num_size_classes))
-    
+        landings_wgt_grams(loc) = dot_product(landings_at_size(:), weight_grams(loc,:))
+
         ! (1._dp - exp(-F * delta_time)) * selectivity * state * grid_area_sqm
         landings_by_num(loc) = sum(landings_at_size(:))
+
+#ifdef ACCUM_LANDINGS
+        landings_wgt_accum(loc) = landings_wgt_accum(loc) + landings_wgt_grams(loc)
+        landings_accum(loc) = landings_accum(loc) + landings_by_num(loc)
+#endif
     enddo
-
-    !=============================================================
-    ! originally in metric tons, Set_Fishing_Effort_Weight_xx modified to accept grams
-    total_catch = sum(landings_wgt_grams)
-    !=============================================================
-
 
     ! Report current timestep results
     call Mortality_Write_At_Timestep(year, ts, state_mat, weight_grams, mortality, grid)
@@ -467,6 +488,7 @@ function Set_Fishing_Effort(year, ts, state_mat, weight_grams, mortality, grid)
             endif
         enddo
         ! 
+        total_catch = sum(landings_wgt_grams)
         if (expl_scallops_psqm(loc) .EQ. 0._DP) then
             ! if expl_scallops_psqm(n) is 0 then stands to reason that there would 
             ! be zero biomass as well and thus no fishing effort.
@@ -838,18 +860,34 @@ if (data_select%plot_FMOR) &
 &    call Write_Column_CSV(num_grids, F_mort(1:num_grids), 'FMORT',&
 &    output_dir//'Lat_Lon_Surv_FMOR_'//domain_name//'.csv',.true.)
 
+! landings_accum or landings_by_num
+! landings_wgt_accum or landings_wgt_grams
+! lpue_accum or lpue
+#ifdef ACCUM_LANDINGS
+if (data_select%plot_LAND) &
+&    call Write_Column_CSV(num_grids, landings_accum(:), 'Landings', & 
+&    output_dir//'Lat_Lon_Surv_LAND_'//domain_name//'.csv',.true.)
+
+if (data_select%plot_LNDW) & 
+&    call Write_Column_CSV(num_grids, landings_wgt_accum(:), 'LNDW', & 
+&    output_dir//'Lat_Lon_Surv_LNDW_'//domain_name//'.csv',.true.)
+
+if (data_select%plot_LPUE) &
+&    call Write_Column_CSV(num_grids, lpue_accum(:), 'LPUE',&          
+&    output_dir//'Lat_Lon_Surv_LPUE_'//domain_name//'.csv',.true.)
+#else
 if (data_select%plot_LAND) &
 &    call Write_Column_CSV(num_grids, landings_by_num(:), 'Landings', &
 &    output_dir//'Lat_Lon_Surv_LAND_'//domain_name//'.csv',.true.)
 
-if (data_select%plot_LNDW) &
+if (data_select%plot_LNDW) & 
 &    call Write_Column_CSV(num_grids, landings_wgt_grams(:), 'LNDW', &
 &    output_dir//'Lat_Lon_Surv_LNDW_'//domain_name//'.csv',.true.)
 
 if (data_select%plot_LPUE) &
 &    call Write_Column_CSV(num_grids, lpue(:), 'LPUE',&
 &    output_dir//'Lat_Lon_Surv_LPUE_'//domain_name//'.csv',.true.)
-
+#endif
 ! write annual results, i.e. every ts_per_year
 ! This data is later interpolated to MA or GB Grid
 if (mod(ts, ts_per_year) .eq. 1) then
@@ -879,6 +917,28 @@ if (mod(ts, ts_per_year) .eq. 1) then
     &    call Write_Column_CSV_By_Region(num_grids, F_mort(:), grid(1:num_grids)%lon, 'FMOR', &
     &    data_dir//'X_Y_FMOR_'//domain_name//trim(buf), .true.)
 
+! landings_accum or landings_by_num
+! landings_wgt_accum or landings_wgt_grams
+! lpue_accum or lpue
+#ifdef ACCUM_LANDINGS
+    if (data_select%plot_LAND) then
+        call Write_Column_CSV_By_Region(num_grids, landings_accum(:), grid(1:num_grids)%lon, 'LAND', &
+        &    data_dir//'X_Y_LAND_'//domain_name//trim(buf), .true.)
+        landings_accum(:) = 0.D0
+    endif
+
+    if (data_select%plot_LNDW) then
+        call Write_Column_CSV_By_Region(num_grids, landings_wgt_accum(:), grid(1:num_grids)%lon, 'LNDW', &
+        &    data_dir//'X_Y_LNDW_'//domain_name//trim(buf), .true.)
+        landings_wgt_accum(:) = 0.D0
+    endif
+
+    if (data_select%plot_LPUE) then 
+        call Write_Column_CSV_By_Region(num_grids, lpue_accum(:), grid(1:num_grids)%lon, 'LPUE', &
+        &    data_dir//'X_Y_LPUE_'//domain_name//trim(buf), .true.)
+        lpue_accum(:) = 0.D0
+    endif
+#else
     if (data_select%plot_LAND) &
     &    call Write_Column_CSV_By_Region(num_grids, landings_by_num(:), grid(1:num_grids)%lon, 'LAND', &
     &    data_dir//'X_Y_LAND_'//domain_name//trim(buf), .true.)
@@ -890,6 +950,7 @@ if (mod(ts, ts_per_year) .eq. 1) then
     if (data_select%plot_LPUE) &
     &    call Write_Column_CSV_By_Region(num_grids, lpue(:), grid(1:num_grids)%lon, 'LPUE', &
     &    data_dir//'X_Y_LPUE_'//domain_name//trim(buf), .true.)
+#endif
 
 endif ! if(mod()) = 1
            

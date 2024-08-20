@@ -29,15 +29,15 @@ else
     fl0=strcat('Data/Recruits',int2str(refYear),domain,'.csv');
 end
 fl2=strcat('RecruitEstimates/RecruitEstimate',domain,int2str(yrStart),'.txt');
+fl2CSV=strcat('RecruitEstimates/RecruitEstimate',domain,int2str(yrStart),'.csv');
 if isOctave
     D=csvreadK(fl0);
     x0=D(:,2);
     y0=D(:,3);
     recs0=D(:,5);
     r = RandomizeOutput(recs0, yrStart);
-    fid=fopen(fl2,'w');
-    dlmwrite(fid, r);
-    fclose(fid);
+    dlmwrite(fl2, r);
+    dlmwrite(fl2CSV,[x0, y0, r]);
 else
     D=readtable(fl0,"FileType","spreadsheet");
     x0=table2array(D(:,2));
@@ -45,6 +45,8 @@ else
     recs0=table2array(D(:,5));
     r = RandomizeOutput(recs0, yrStart);
     writematrix(r, fl2)
+    M = array2table([x0, y0, r],'VariableNames',{'X', 'Y','RECR'});
+    writetable(M,fl2CSV,'WriteVariableNames',0);
 end
 fprintf('Writing to %s. Number of records %d\n', fl2, size(r,1))
 
@@ -72,14 +74,16 @@ for yr=yrStart+1:yrEnd
         recs05(k)=recs(j);
     end
     fl2=strcat('RecruitEstimates/RecruitEstimate',domain,int2str(yr),'.txt');
+    fl2CSV=strcat('RecruitEstimates/RecruitEstimate',domain,int2str(yr),'.csv');
     r = RandomizeOutput(recs05, yr);
     fprintf('Writing to %s. Number of records %d\n', fl2, size(r,1))
+    M = array2table([x0, y0, r],'VariableNames',{'X', 'Y','RECR'});
     if isOctave
-        fid=fopen(fl2,'w');
-        dlmwrite(fid, r);
-        fclose(fid);
+        dlmwrite(fl2, r);
+        dlmwrite(fl2CSV,[x0, y0, r]);
     else
         writematrix(r, fl2)
+        writetable(M,fl2CSV,'WriteVariableNames',0);
     end
 end % yr=yrStart+1:yrEnd
 

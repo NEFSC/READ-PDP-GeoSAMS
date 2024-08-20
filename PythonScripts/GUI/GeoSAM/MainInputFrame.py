@@ -86,7 +86,7 @@ class MainInput(ttk.Frame):
         # +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
         survDataFrame = ttk.LabelFrame(self, text='Survey Data Files, Environment Variables', style='SAMS.TFrame')
         self.dredgeDataFile = SubFrameElement(self, survDataFrame, 'Dredge Survey Data File', 'dredgetowbysize7917',  0, 0, 1, width=35)
-        self.habCamDataFile = SubFrameElement(self, survDataFrame, 'HabCam Survey Data File', 'Habcam_BySegment_2000_2011-2023',1, 0, 1, width=35)
+        self.habCamDataFile = SubFrameElement(self, survDataFrame, 'HabCam Survey Data File', 'Habcam_BySegment_2000_2011-2023_v2',1, 0, 1, width=35)
         #-------------------------------------------------------------------------------------------
         self.setDredgeDataButton = ttk.Button(survDataFrame, text='Set DredgeData', style="BtnBluGrn.TLabel", command=self.SetDredgeFileName)
         self.setDredgeDataButton.grid(row=0, column=3)

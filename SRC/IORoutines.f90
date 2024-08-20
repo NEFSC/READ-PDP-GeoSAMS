@@ -303,43 +303,6 @@ endif
 
 endsubroutine Write_Column_CSV
     
-!--------------------------------------------------------------------------------------------------
-!--------------------------------------------------------------------------------------------------
-!subroutine Write_CSV_H(n,m,f,file_name,nndim)
-! Purpose: Write values of a matrrix (f) to a csv file in exponential format.
-! Inputs:
-!  n (integer) number of rows in f 
-!  m (integer) number of columns in f
-! f (real(dp)) values to write to csv file
-! file_name (character(72)) filename to write f to in csv format
-!--------------------------------------------------------------------------------------------------
-! Keston Smith (IBSS corp) June-July 2021
-!--------------------------------------------------------------------------------------------------
-subroutine Write_CSV_H(n,m,f,file_name,nndim,header)
-    use globals
-    implicit none
-    integer, intent(in):: n,m,nndim
-    real(dp), intent(in):: f(nndim,*)
-    character(*), intent(in)::file_name,header
-    integer  k
-    character(fname_len) buf,fmtstr
-    k=m-1
-    write(buf,'(I6)')k
-    !
-    ! format for exponential format
-    !
-    fmtstr='('//trim(adjustl(buf))//'(ES14.7 : ", ") (ES14.7 : ))'
-    !fmtstr='('//trim(adjustl(buf))//'(E : ", ") (E : ))'
-    open(write_dev,file=file_name)
-    write(write_dev,'(A)') trim(adjustl( header))
-    do k=1,n
-    !write(write_dev,trim(fmtstr)) f(k,1:m)
-    write(write_dev,fmtstr) f(k,1:m)
-    enddo
-    close(write_dev)
-endsubroutine Write_CSV_H
-!--------------------------------------------------------------------------------------------------
-
 
 !--------------------------------------------------------------------------------------------------
 ! subroutine Read_CSV

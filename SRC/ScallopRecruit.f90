@@ -85,6 +85,15 @@ subroutine Set_Recruitment(recruit, n_grids, dom_name, dom_area, recr_yr_strt, r
     character(fname_len) fname
     logical exists
 
+#ifdef USE_FIXED_RAND
+    ! Run with the same "random data" files to produce same results for evaluating output data
+    ! Assumes working with
+    ! * Ten years in duration, e.g. 2022 - 2031
+    ! * Recruit Yr 2012 - 2023
+    ! * HabCam Data Habcam_BySegment_2000_2011-2023 (could also pick Habcam_BySegment_2000_2011-2023_v2)
+    integer, parameter ::  rand_idx_debug(10) = (/4, 12, 8, 3, 8, 10, 12, 10, 4, 2/)
+#endif
+
     ! Used to define weighting
     !
     !       |
@@ -102,6 +111,11 @@ subroutine Set_Recruitment(recruit, n_grids, dom_name, dom_area, recr_yr_strt, r
     real(dp) sill
     integer rand_idx
 
+#ifdef USE_FIXED_RAND
+    write(*,*) term_yel, 'Recruit: Using fixed "random" index', term_blk
+#else
+    write(*,*) term_yel, 'Recruit: Using random "random" index', term_blk
+#endif
     call Read_Configuration()
     ! 
     sim_start_year = yr_start
@@ -143,7 +157,11 @@ subroutine Set_Recruitment(recruit, n_grids, dom_name, dom_area, recr_yr_strt, r
     do year = sim_start_year, sim_stop_year
         year_index = year_index + 1
 
+#ifdef USE_FIXED_RAND
+        rand_idx = rand_idx_debug(year_index)
+#else
         rand_idx = random_index()
+#endif
         random_year = recruit_yr_strt - 1 + rand_idx
 
         write(buf,'(I4)')random_year

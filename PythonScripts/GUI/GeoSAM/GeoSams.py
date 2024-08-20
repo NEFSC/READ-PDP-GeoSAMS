@@ -74,7 +74,7 @@ from Globals import *
 #  arg#        1     2              3                  4                   5
 def Interpolate(ukCfgFile, domainName, obsFile, gridFile, zArg, procID, retDict):
     ex = os.path.join('UKsrc', 'UK')
-    outputFile = 'proc_' + obsFile + '_' + str(procID) +'.txt'
+    outputFile = 'proc_' + obsFile + '_' + str(procID).zfill(3) +'.txt'
     cmd = [ex, ukCfgFile, domainName, obsFile + '.csv', gridFile, zArg]
     with open(outputFile, "w") as outfile:
         result = subprocess.run(cmd, stdout=outfile)

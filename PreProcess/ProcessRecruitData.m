@@ -81,7 +81,7 @@ M=M(j,:);
 flnm='Data/RecruitsUnadjusted.csv';
 header='"decimal year", "latitude", "longitude", "UTM x", "UTM y", "bottom depth(m)","recruits per m^2"';
 fprintf('Writing to %s\n\n', flnm)
-writecsv(M,flnm,['%g, %g, %g, %g, %g, %g, %e'],header);
+writecsv(M,flnm,['%f, %f, %f, %f, %f, %f, %e'],header);
 
 
 %XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX
@@ -157,7 +157,7 @@ j=find(~isnan(sum(M')));
 M=M(j,:);
 flnm='Data/RecruitsRockStrataAdjustment.csv';
 header='"decimal year", "latitude", "longitude", "UTM x", "UTM y","bottom depth(m)","recruits per sq m raw","Is Rock Strata","recruits per sq m adjusted"';
-writecsv(M,flnm,['%g, %g, %g, %g, %g, %g, %e, %i ,%e' ],header);
+writecsv(M,flnm,['%f, %f, %f, %f, %f, %f, %e, %i ,%e' ],header);
 fprintf('Writing to %s\n\n', flnm)
 
 close all;
@@ -220,7 +220,7 @@ end
 flnm=['Data/Recruits', domain, '.csv'];
 header='"decimal year", "utm x", "utm y", "bottom depth(m)","recruits per sq m"';
 fprintf('Writing to %s\n', flnm)
-writecsv(M,flnm,'%g, %f, %f, %f, %e',header);
+writecsv(M,flnm,'%f, %f, %f, %f, %e',header);
 
 fprintf('Reading from %s\n', flnm);
 if isOctave
@@ -242,7 +242,7 @@ if yrStart >= yearMin && yrEnd <= yearMax
         end
         flnm=['Data/Recruits',int2str(yr),domain,'.csv'];
         header='"decimal year", "utm x", "utm y", "bottom depth(m)","recruits per sq m"';
-        writecsv(M,flnm,'%g, %f, %f, %f, %e',header);
+        writecsv(M,flnm,'%f, %f, %f, %f, %e',header);
         fprintf('Writing to %s. Number of records %d\n', flnm, size(M,1))
     end
 else

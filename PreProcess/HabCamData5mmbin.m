@@ -139,7 +139,7 @@ else
         % accumulate 15 to 18
         % sum n(k+24) - n(k+30) into k=25
         region = GetRegion(isOctave, lat_t(k,:), lon_t(k,:), stratum_t(k,:));
-        if region>0
+        if region >= 0  % TODO filtering does not match recruit as it does no filtering, use all regions
             if isOctave
                 k25 = sum((M(n(k)+24:n(k)+30, svCol)));
                 density = [(M(n(k):n(k)+23, svCol));k25];
