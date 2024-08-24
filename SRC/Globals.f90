@@ -7,6 +7,7 @@
 !--------------------------------------------------------------------------------------------------
 module globals
 implicit none
+
 integer, parameter :: sp = selected_real_kind(6, 37)
 integer, parameter :: dp = selected_real_kind(15, 307)
 integer, parameter :: qp = selected_real_kind(33, 4931)
@@ -60,6 +61,12 @@ real(dp), parameter :: grid_area_sqm = meters_per_naut_mile**2
 real(dp), parameter :: tow_area_sqm = 4516._dp
 real(dp), parameter :: one_scallop_per_tow = 1.D0 / tow_area_sqm ! 1 scallop per tow, prevents log(0)
 real(dp), parameter :: ma_gb_border = -70.5
+! Adding a leap year every 4 years adds 1/4 to the 365-day year 
+!     or increases the average year-length by 0.25 days.
+! Omitting a leap year every 100 years subtracts 1/100 = 0.01 days from the 365-day year.
+! Adding a leap year every 400 years adds 1/400 = 0.0025 days to the 365-day year.
+!
+real(dp), parameter :: days_in_year=365+0.25-0.01+0.0025
 
 ! colors taken from https://i.stack.imgur.com/9UVnC.png
 character(*), parameter :: term_red = ''//achar(27)//'[31m'
@@ -174,6 +181,53 @@ function matrixinv(x,n)
         write(*,*) term_red, 'matrixinv FAILED', term_blk
         STOP 99
     endif 
-    endfunction matrixinv
+endfunction matrixinv
+
+!=============================================================================================
+! Adding a leap year every 4 years adds 1/4 to the 365-day year 
+!      or increases the average year-length by 0.25 days.
+! Omitting a leap year every 100 years subtracts 1/100 = 0.01 days from the 365-day year.
+! Adding a leap year every 400 years adds 1/400 = 0.0025 days to the 365-day year.
+! When these are combined, the corrected average year-length is 
+!     365 + 0.25 - 0.01 + 0.0025 = 365.2425 days/year.
+!=============================================================================================
+logical function Leap_Year(year)
+    integer year
+    if ((DivBy(year,400) .OR. .NOT. DivBy(year,100)) .AND. DivBy(year,4)) then
+        Leap_Year = .TRUE.
+    else
+        Leap_Year = .FALSE.
+    endif
+endfunction Leap_Year
+
+!=============================================================================================
+! Instead of MOD explicity state if Divisible By
+!=============================================================================================
+logical function DivBy(y,val)
+    integer y, val
+    DivBy = mod(y,val) == 0
+endfunction
+
+!=============================================================================================
+! Computes day of year given month, day, if year is a Leap Year
+! Converts day of year to Growth year starting May 31 at 2400
+! Leap year is handled in Main Loop as determined by current year
+!=============================================================================================
+integer function DayOfYear(m, d)
+    integer, intent(in) :: m, d
+    integer day
+    integer, parameter :: dayInYear(12) = (/0, 31, 59, 90, 120, 151, 181, 212, 243, 273, 304, 334/)
+
+    day = dayInYear(m) + d
+    ! 
+    ! Apply offset for Growth Year starting May 31 @ 2400
+    if (day - dayInYear(6) > 0) then 
+        day = day - dayInYear(6)
+    else
+        day = day - dayInYear(6) + 365
+    endif
+    DayOfYear = day
+
+endfunction DayOfYear
 
 end module globals

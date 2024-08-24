@@ -71,7 +71,7 @@ endtype FishingMortality
 
 type DataForPlots
     logical plot_ABUN ! abundance scallops per square meter
-    logical plot_BMMT ! biomass in metric tons
+    logical plot_BIOM ! biomass in gpsm
     logical plot_EBMS ! exploitable biomass in metric tons
     logical plot_FEFF ! Fishing Effort
     logical plot_FMOR ! Fishing Mortality
@@ -832,7 +832,7 @@ do loc = 1, num_grids
     & + mortality(loc)%incidental + mortality(loc)%discard(1:num_size_classes) )
 
     abundance(loc) = sum(state_mat(loc,1:num_size_classes))*grid_area_sqm ! scallops
-    bms(loc) = dot_product(state_mat(loc,1:num_size_classes), weight_grams(loc,1:num_size_classes) / grams_per_metric_ton) ! metric tons per sq meter
+    bms(loc) = dot_product(state_mat(loc,1:num_size_classes), weight_grams(loc,1:num_size_classes) ) !/ grams_per_metric_ton) ! metric tons per sq meter
 enddo
 
 
@@ -844,9 +844,9 @@ if (data_select%plot_ABUN) &
 &    call Write_Column_CSV(num_grids, abundance(:), 'ABUN', &
 &    output_dir//'Lat_Lon_Surv_ABUN_'//domain_name//'.csv',.true.)
 
-if (data_select%plot_BMMT) &
-&    call Write_Column_CSV(num_grids, bms(:), 'BMMT',&
-&    output_dir//'Lat_Lon_Surv_BMMT_'//domain_name//'.csv',.true.)
+if (data_select%plot_BIOM) &
+&    call Write_Column_CSV(num_grids, bms(:), 'BIOM',&
+&    output_dir//'Lat_Lon_Surv_BIOM_'//domain_name//'.csv',.true.)
 
 if (data_select%plot_EBMS) &
 &    call Write_Column_CSV(num_grids, ebms_mt(:), 'EBMS', &
@@ -901,9 +901,9 @@ if (mod(ts, ts_per_year) .eq. 1) then
     &    call Write_Column_CSV_By_Region(num_grids, abundance(:), grid(1:num_grids)%lon, 'ABUN', &
     &    data_dir//'X_Y_ABUN_'//domain_name//trim(buf), .true.)
 
-    if (data_select%plot_BMMT) &
-    &    call Write_Column_CSV_By_Region(num_grids, bms(:), grid(1:num_grids)%lon, 'BMMT', &
-    &    data_dir//'X_Y_BMMT_'//domain_name//trim(buf), .true.)
+    if (data_select%plot_BIOM) &
+    &    call Write_Column_CSV_By_Region(num_grids, bms(:), grid(1:num_grids)%lon, 'BIOM', &
+    &    data_dir//'X_Y_BIOM_'//domain_name//trim(buf), .true.)
 
     if (data_select%plot_EBMS) &
     &    call Write_Column_CSV_By_Region(num_grids, ebms_mt(:), grid(1:num_grids)%lon, 'EBMS', &

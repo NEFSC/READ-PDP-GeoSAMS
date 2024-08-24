@@ -37,7 +37,7 @@
 !> 
 !> We begin by determining the scallop time to grow for a given year: 
 !> Computes the overall growth of the scallop population over a time period of (num_time_steps * delta_time) 
-!> in units of years, typically one year with delta_time as a decimal year, e.g. one day = 1/365 = 0.00274
+!> in units of years, typically one year with delta_time as a decimal year, e.g. one day = 1/365.2425 = 0.00274
 !>
 !> For each time step, @f$\delta_t@f$
 !>  - Computes mortality based on current state_vector.
@@ -158,6 +158,7 @@ real(dp), PRIVATE :: domain_area_sqm
 integer, PRIVATE :: num_time_steps
 integer, PRIVATE :: time_steps_year
 real(dp), PRIVATE :: delta_time
+logical, PRIVATE :: show_recruits_msg
 
 CONTAINS
 
@@ -202,6 +203,7 @@ subroutine Set_Growth(growth, grid, shell_lengths, num_ts, ts_per_year, dom_name
     delta_time = 1._dp / dfloat(ts_per_year)
     time_steps_year = ts_per_year
     num_grids = ngrids
+    show_recruits_msg = .TRUE.
 
     dom_area = float(num_grids) * grid_area_sqm
     domain_area_sqm = dom_area
@@ -756,11 +758,11 @@ function Time_To_Grow(ts, growth, mortality, recruit, state_vector, fishing_effo
     real(dp), intent(in) :: fishing_effort, longitude
     real(dp) t
     integer Rindx
-    real(dp), allocatable :: M(:), Rec(:)
+    real(dp), allocatable :: M(:), recruits(:)
 
     real(dp) recr_steps
 
-    allocate(M(1:num_size_classes), Rec(1:num_size_classes))
+    allocate(M(1:num_size_classes), recruits(1:num_size_classes))
 
     ! Compute natural mortality based on current state_vector
     mortality%natural_mortality(1:num_size_classes) = &
@@ -772,17 +774,25 @@ function Time_To_Grow(ts, growth, mortality, recruit, state_vector, fishing_effo
     ! adjust population state_vector based on recruitment
     ! we want 100% of the recruitment added over the recruitment period
     recr_steps = floor((recruit%rec_stop - recruit%rec_start) / delta_time) ! number of time steps in recruitment period
+    !
+    ! The Growth year starts on June 1st, actually May 31 at 2400
     ! no recruitment in the first year
-    if (ts .GE. time_steps_year) then
+    if (ts > time_steps_year) then
         t = dfloat(mod(ts-1,time_steps_year)) * delta_time
         ! Compute increase due to recruitment
         ! find location of current year
         Rindx = minloc( abs(recruit%year(1:recruit%n_year) - year), 1)
-        Rec(1:num_size_classes) = 0.D0
-        Rec(1:recruit%max_rec_ind) = recruit%recruitment(Rindx)
+        recruits(1:num_size_classes) = 0.D0
+        recruits(1:recruit%max_rec_ind) = recruit%recruitment(Rindx)
     
         if ( ( t .gt. recruit%rec_start ) .and. ( t .le. recruit%rec_stop) ) then
-            state_vector(1:num_size_classes) = state_vector(1:num_size_classes) +  Rec(1:num_size_classes) / recr_steps
+            if (show_recruits_msg) then
+                write(*,*) term_blu, 'ADDING IN RECRUITS', term_blk, year
+                show_recruits_msg = .FALSE.
+            endif
+            state_vector(1:num_size_classes) = state_vector(1:num_size_classes) +  recruits(1:num_size_classes) / recr_steps
+        else
+            show_recruits_msg = .TRUE.
         endif
     endif
 
@@ -794,7 +804,7 @@ function Time_To_Grow(ts, growth, mortality, recruit, state_vector, fishing_effo
     ! Apply mortality and compute new state_vector
     Time_To_Grow(1:num_size_classes) = state_vector(1:num_size_classes) * (1.D0- delta_time * M(1:num_size_classes))
 
-    deallocate(M, Rec)
+    deallocate(M, recruits)
     
     return
 endfunction Time_To_Grow

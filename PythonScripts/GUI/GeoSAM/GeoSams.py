@@ -512,8 +512,8 @@ class MainApplication(tk.Tk):
             f.write('# Anything after = is ignored.\n')
             if(self.frame1.abunVar.get()):     f.write('Select Abundance          =# ABUN abundance scallops per square meter\n')
             if(not self.frame1.abunVar.get()): f.write('# Select Abundance          =# ABUN abundance scallops per square meter\n')
-            if(self.frame1.bmsVar.get()):      f.write('Select BMS                =# BMMT biomass in metric tons\n')
-            if(not self.frame1.bmsVar.get()):  f.write('# Select BMS                =# BMMT biomass in metric tons\n')
+            if(self.frame1.bmsVar.get()):      f.write('Select BMS                =# BIOM biomass in gpsm\n')
+            if(not self.frame1.bmsVar.get()):  f.write('# Select BMS                =# BIOM biomass in gpsm\n')
             if(self.frame1.ebmsVar.get()):     f.write('Select Expl BMS           =# EBMS exploitable biomass in metric tons\n')
             if(not self.frame1.ebmsVar.get()): f.write('# Select Expl BMS           =# EBMS exploitable biomass in metric tons\n')
             if(self.frame1.feffVar.get()):     f.write('Select Fishing Effort     =# FEFF Fishing Effort\n')
@@ -533,16 +533,38 @@ class MainApplication(tk.Tk):
     ##
     # This method is used to converty the recruitment start and stop dates from a string month 
     # numerical day into days in a year. Changed entry to combo box to guarantee format
-    # @param monthDayStr string that holds month and day as either alpha format.
-    # That is 'JAN 01', or '01/01'
+    # @param monthDayStr string that holds month and day in alpha format.
+    # That is 'JAN 01'
     #
+    # The Growth year starts on June 1st, actually May 31 at 2400
+    # Jun  1st @ 0600 is day 0.25 which is = 0.25   /365.2425 = 0.00068 years
+    # June 1st @ 1200 is day 0.50 which is = 0.50   /365.2425 = 0.00137      
+    # June 1st @ 1800 is day 0.75 which is = 0.75   /365.2425 = 0.00205      
+    # June 1st @ 2359 is day 0.99 which is = 0.99931/365.2425 = 0.002736     
+    # Jun2 2nd @ 0000 is day   1  which is = 1.00000/365.2425 = 0.00274      
+    # Jun2 2nd @ 2400 is day   2  which is = 2.00000/365.2425 = 0.00548      
+    # Dec 31st @ 2400 is day 214  which is = 214.   /365.2425 = 0.58591      
+    # Jan  1st @ 2400 is day 215  which is = 215.   /365.2425 = 0.58865      
+    #         = 1 + DayOfYear(12,31) - DayOfYear(5,31)
+    # Apr 10   @ 2400 is day 314 which is  = 314.   /365.2425 = 0.85970      
+    #     if leap year       315 which is  = 315.   /365.2425 = 0.86244
+    #     However, leap year is handled in the main loop 
+    #     in which it is considered only for the current year
     def ConvertMonthDayToDayOfYr(self, monthDayStr):
         monDict = {'JAN':0, 'FEB':1, 'MAR':2, 'APR':3, 'MAY':4, 'JUN':5, 'JUL':6, 'AUG':7, 'SEP':8, 'OCT':9, 'NOV':10, 'DEC':11} 
         daysInYear = [0, 31, 59, 90, 120, 151, 181, 212, 243, 273, 304, 334]
         parseArr = [s.strip() for s in monthDayStr.split(' ')]
         month = parseArr[0]
         day = int(parseArr[1])
-        return daysInYear[monDict[month]] + day - 1
+
+        dayOfYear = daysInYear[monDict[month]] + day
+        # 
+        # Apply offset for Growth Year starting May 31 @ 2400, or Jun1 1 @ 0000
+        if dayOfYear - daysInYear[monDict['JUN']] > 0: 
+            dayOfYear = dayOfYear - daysInYear[monDict['JUN']]
+        else:
+            dayOfYear = dayOfYear - daysInYear[monDict['JUN']] + 365
+        return dayOfYear
 
     ##
     # Saves recruitment parameters to a configuration file.
@@ -554,24 +576,24 @@ class MainApplication(tk.Tk):
         periodDayStr = self.frame1.startDayComboDay.get()
         periodStr = periodMonthStr+' '+periodDayStr
         startPeriod = self.ConvertMonthDayToDayOfYr(periodStr)
-        startMonIndx = self.frame1.monthsArr.index(periodMonthStr)
 
         periodMonthStr = self.frame1.stopDayComboMonth.get()
         periodDayStr = self.frame1.stopDayComboDay.get()
         periodStr = periodMonthStr+' '+periodDayStr
         stopPeriod = self.ConvertMonthDayToDayOfYr(periodStr)
-        stopMonIndx = self.frame1.monthsArr.index(periodMonthStr)
 
-        if startMonIndx > stopMonIndx:
-            messagebox.showerror("Recruitment", f'Start Month is > Stop Month\nPlease Fix\nFile NOT saved')
-        else:
-            with open(cfgFile, 'w') as f:
-                f.write('# configuration file for Recruitment\n')
-                f.write('Start Period = '+str(startPeriod)+'  # Jan 1 is 0\n')
-                f.write('Stop Period = '+str(stopPeriod)  +' # converted to fraction of year, i.e. /365\n')
-                f.write('Recruit Year Strt = ' + str(self.frame1.recrYrStrt.myEntry.get())+'\n')
-                f.write('Recruit Year Stop = ' + str(self.frame1.recrYrStop.myEntry.get())+'\n')
-                f.close()
+        with open(cfgFile, 'w') as f:
+            f.write('# configuration file for Recruitment\n')
+            f.write('###############################\n')
+            f.write('# Start of Growth Year is June 1 at 00:00\n')
+            f.write('# Period in Day of Year should already have offset computed\n')
+            f.write('# Period is converted to fraction of year by GeoSAMS\n')
+            f.write('Start Period = {}\n'.format(startPeriod))
+            f.write('Stop Period = {}\n'.format(stopPeriod))
+            f.write('###############################\n')
+            f.write('Recruit Year Strt = {}\n'.format(self.frame1.recrYrStrt.myEntry.get()))
+            f.write('Recruit Year Stop = {}\n'.format(self.frame1.recrYrStop.myEntry.get()))
+            f.close()
             
     ##
     # Saves mortality parameters to a configuration file.
@@ -733,7 +755,7 @@ class MainApplication(tk.Tk):
                 self.paramStr.append('ABUN_')
                 self.paramVal += 8
             elif (tag == 'Select BMS'):
-                self.paramStr.append('BMMT_')
+                self.paramStr.append('BIOM_')
                 self.paramVal += 4
             elif (tag == 'Select Expl BMS'):
                 self.paramStr.append('EBMS_')

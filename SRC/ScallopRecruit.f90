@@ -5,8 +5,8 @@
 !> An array of weights is computed based on the number of recruitment years that favors more recent recruit estimates. The weighting is then used to randomly choose an index into the available recruit data. This index is used to preload the recruit data into the Recruitment Class structure.
 !> - recruitment() = data read in from randomly chosen recruit file
 !> - year() = simulation year
-!> - rec_start = a decimal value given as day of the year divided by 365.25. Typically 0, which would be January 1
-!> - rec_stop = decimal value given as day of the year divided by 365.25. Typically 100/365.25, which is April 10th.
+!> - rec_start = a decimal value given as day of the year divided by 365.2425. Typically 0, which would be January 1
+!> - rec_stop = decimal value given as day of the year divided by 365.2425. Typically 100/365.2425, which is April 10th.
 !>
 !>---------------------------------------------------------------------------------------------------------------------
 module Recruit_Mod
@@ -263,8 +263,8 @@ subroutine Read_Configuration()
     integer j, k, io
 
     ! set default values
-    recr_period_start = 0./365.
-    recr_period_stop = 100./365.
+    recr_period_start = DayOfYear(12, 31) / days_in_year
+    recr_period_stop = DayOfYear(4, 10) / days_in_year
 
     recruit_yr_strt = 2012
     recruit_yr_stop = 2023
@@ -288,11 +288,11 @@ subroutine Read_Configuration()
             select case (tag)
             case('Start Period')
                 read(value, *) recr_period_start
-                recr_period_start = recr_period_start / 365._dp
+                recr_period_start = recr_period_start / days_in_year
 
             case('Stop Period')
                 read(value, *) recr_period_stop
-                recr_period_stop = recr_period_stop / 365._dp
+                recr_period_stop = recr_period_stop / days_in_year
 
             case('Recruit Year Strt')
                 read(value,*) recruit_yr_strt

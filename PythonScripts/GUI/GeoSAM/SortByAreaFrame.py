@@ -176,7 +176,7 @@ class SortByArea(ttk.Frame):
         # ordering of string may not matter. The user ultimately selects the desired vale
         if parmVal & 1: self.paramStr.append('LPUE_')
         if parmVal & 2: self.paramStr.append('EBMS_')
-        if parmVal & 4: self.paramStr.append('BMMT_')
+        if parmVal & 4: self.paramStr.append('BIOM_')
         if parmVal & 8: self.paramStr.append('ABUN_')
         if parmVal & 16: self.paramStr.append('LNDW_')
         if parmVal & 32: self.paramStr.append('LAND_')

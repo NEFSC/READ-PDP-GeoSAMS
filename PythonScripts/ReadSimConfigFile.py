@@ -22,7 +22,7 @@ def ReadSimConfigFile(simCfgFile):
                 if (tag == 'Select Abundance'):
                     paramStr.append('ABUN_')
                 elif (tag == 'Select BMS'):
-                    paramStr.append('BMMT_')
+                    paramStr.append('BIOM_')
                 elif (tag == 'Select Expl BMS'):
                     paramStr.append('EBMS_')
                 elif (tag == 'Select Fishing Effort'):

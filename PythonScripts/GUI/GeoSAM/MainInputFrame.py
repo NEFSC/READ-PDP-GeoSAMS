@@ -102,7 +102,7 @@ class MainInput(ttk.Frame):
         self.startDayLabel.grid(row=0, column=0)
         #-------------------------------------------------------------------------------------------
         self.startDayComboMonth = ttk.Combobox(recruitFrame, width=4, values=self.monthsArr)
-        self.startDayComboMonth.current(0)
+        self.startDayComboMonth.current(self.monthsArr.index('JUN'))
         self.startDayComboMonth.bind('<<ComboboxSelected>>', self.CheckStartDay)
         self.startDayComboMonth.grid(row=0, column=1, padx=5, sticky='w')
         #-------------------------------------------------------------------------------------------
@@ -115,12 +115,12 @@ class MainInput(ttk.Frame):
         self.stopDayLabel.grid(row=1, column=0)
         #-------------------------------------------------------------------------------------------
         self.stopDayComboMonth = ttk.Combobox(recruitFrame, width=4, values=self.monthsArr)
-        self.stopDayComboMonth.current(3)
+        self.stopDayComboMonth.current(self.monthsArr.index('SEP'))
         self.stopDayComboMonth.bind('<<ComboboxSelected>>', self.CheckStopDay)
         self.stopDayComboMonth.grid(row=1, column=1, padx=5, sticky='w')
         #-------------------------------------------------------------------------------------------
         self.stopDayComboDay = ttk.Combobox(recruitFrame, width=2, values=[str(i) for i in range(1,32)])
-        self.stopDayComboDay.current(10)
+        self.stopDayComboDay.current(9)
         self.stopDayComboDay.bind('<<ComboboxSelected>>', self.CheckStopDay)
         self.stopDayComboDay.grid(row=1, column=2, padx=5, sticky='e')
         #-------------------------------------------------------------------------------------------
@@ -133,21 +133,23 @@ class MainInput(ttk.Frame):
         recruitFrame.grid(row=3, column=1, padx=5, sticky='w')
         # +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
         durationFrame = ttk.LabelFrame(self, text='Duration', style='SAMS.TFrame')
+        #------------------------------------------------------------------------------------------
+        ttk.Label(durationFrame, text='Growth Year Starts June 1 @ 00:00').grid(row=0, column=0, padx=20)
         #-------------------------------------------------------------------------------------------
-        self.startYr    = SubFrameElement(self, durationFrame, 'Start Year',       '2015',       0, 0, 1,
+        self.startYr    = SubFrameElement(self, durationFrame, 'Start Year',       '2015',       1, 0, 1,
                                           enterCmd=self.EnterKeyClicked, valCmd=numbersCallback)
         #-------------------------------------------------------------------------------------------
-        self.stopYr     = SubFrameElement(self, durationFrame, 'Stop Year ',       '2017',       1, 0, 1,
+        self.stopYr     = SubFrameElement(self, durationFrame, 'Stop Year ',       '2017',       2, 0, 1,
                                           enterCmd=self.EnterKeyClicked, valCmd=numbersCallback)
         #-------------------------------------------------------------------------------------------
-        self.tsPerYear  = SubFrameElement(self, durationFrame, 'Time Steps / Year', str(tsPerYear), 2, 0, 1)
+        self.tsPerYear  = SubFrameElement(self, durationFrame, 'Time Steps / Year', str(tsPerYear), 3, 0, 1)
         #-------------------------------------------------------------------------------------------
         self.domainNameLabel = ttk.Label(durationFrame, text='Domain Name')
-        self.domainNameLabel.grid(row=3, column=0, pady=5)
+        self.domainNameLabel.grid(row=4, column=0, pady=5)
         #-------------------------------------------------------------------------------------------
         self.domainNameCombo = ttk.Combobox(durationFrame, width=3, values=['MA', 'GB', 'AL'])
         self.domainNameCombo.current(2)
-        self.domainNameCombo.grid(row=3, column=1, sticky='w', pady=5)
+        self.domainNameCombo.grid(row=4, column=1, sticky='w', pady=5)
         #-------------------------------------------------------------------------------------------
         durationFrame.grid(row=2, column=1, padx=5, sticky='w')
         # +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
@@ -390,7 +392,7 @@ Output Selection
     GB is proportionately shorter with only 6802 grid locations.
 
     •	ABUN: abundance in scallops per square meter
-    •	BMMT: biomass in metric tons
+    •	BIOM: biomass in gpsm
     •	EBMS: exploitable biomass in metric tons
     •	FEFF: Fishing Effort
     •	FMOR: Fishing Mortality

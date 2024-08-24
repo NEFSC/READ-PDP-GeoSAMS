@@ -2,6 +2,19 @@ PROGRAM ScallopPopDensity
 !> @mainpage Scallop Population Density
 !!
 !! This program is used to compute Scallop Density after a given growth period
+!!  The Growth year starts on June 1st, actually May 31 at 2400
+!!  - Jun  1st @ 0600 is day 0.25 which is = 0.25   /365.2425 = 0.00068 years
+!!  - June 1st @ 1200 is day 0.50 which is = 0.50   /365.2425 = 0.00137      
+!!  - June 1st @ 1800 is day 0.75 which is = 0.75   /365.2425 = 0.00205      
+!!  - June 1st @ 2359 is day 0.99 which is = 0.99931/365.2425 = 0.002736     
+!!  - Jun2 2nd @ 0000 is day   1  which is = 1.00000/365.2425 = 0.00274      
+!!  - Jun2 2nd @ 2400 is day   2  which is = 2.00000/365.2425 = 0.00548      
+!!  - Dec 31st @ 2400 is day 214  which is = 214.   /365.2425 = 0.58591      
+!!  - Jan  1st @ 2400 is day 215  which is = 215.   /365.2425 = 0.58865      
+!!  -         = 1 + DayOfYear(12,31) - DayOfYear(5,31)
+!!  - Apr 10   @ 2400 is day 314 which is  = 314.   /365.2425 = 0.85970      
+!!  -     if leap year       315 which is  = 315.   /365.2425 = 0.86244
+!!  However, leap year will be handled in the main loop in which it is considered only for the current year
 !!
 !! @section ms1 Initialize Simulation Parameters
 !! @subsection ms1p1 Read Input
@@ -115,8 +128,8 @@ PROGRAM ScallopPopDensity
 !!  - for year_index in [1..max]\n
 !!      - recruitment(year_index) = RecruitEstimate(random year index)
 !!      - year(year_index) = year
-!!      - rec_start = Start Period, typically 0/365, or January 1st
-!!      - rec_stop = Stop Period, typically 100/365, or April 10
+!!      - rec_start = Start Period, typically 0/365.2425, or January 1st
+!!      - rec_stop = Stop Period, typically 100/365.2425, or April 10
 !!
 !! @subsection ms4p3 It then quantizes recruitment,
 !! For each grid, n
@@ -460,7 +473,7 @@ subroutine Read_Startup_Config(time_steps_per_year, start_year, stop_year,&
             case('Select Abundance')
                 plot_data_sel%plot_ABUN = .true.
             case('Select BMS')
-                plot_data_sel%plot_BMMT = .true.
+                plot_data_sel%plot_BIOM = .true.
             case('Select Expl BMS')
                 plot_data_sel%plot_EBMS = .true.
             case('Select Fishing Effort')
@@ -677,7 +690,7 @@ real(dp) yr_offset
 
 ! write latitude and longitude out for later use by Matlab Geographic Scatter Plot ------------------------------ 
 if (plot_data_sel%plot_ABUN) call Write_Lat_Lon_Preamble(num_grids, grid, output_dir//'Lat_Lon_Surv_ABUN_'//domain_name//'.csv')
-if (plot_data_sel%plot_BMMT) call Write_Lat_Lon_Preamble(num_grids, grid, output_dir//'Lat_Lon_Surv_BMMT_'//domain_name//'.csv')
+if (plot_data_sel%plot_BIOM) call Write_Lat_Lon_Preamble(num_grids, grid, output_dir//'Lat_Lon_Surv_BIOM_'//domain_name//'.csv')
 if (plot_data_sel%plot_EBMS) call Write_Lat_Lon_Preamble(num_grids, grid, output_dir//'Lat_Lon_Surv_EBMS_'//domain_name//'.csv')
 if (plot_data_sel%plot_FEFF) call Write_Lat_Lon_Preamble(num_grids, grid, output_dir//'Lat_Lon_Surv_FEFF_'//domain_name//'.csv')
 if (plot_data_sel%plot_FMOR) call Write_Lat_Lon_Preamble(num_grids, grid, output_dir//'Lat_Lon_Surv_FMOR_'//domain_name//'.csv')
@@ -694,8 +707,8 @@ do n = start_year-1, stop_year
     if (plot_data_sel%plot_ABUN) &
     &    call Write_X_Y_Preamble(num_grids, grid, yr_offset, data_dir//'X_Y_ABUN_'//domain_name//buf//'.csv')
 
-    if (plot_data_sel%plot_BMMT) &
-    &    call Write_X_Y_Preamble(num_grids, grid, yr_offset, data_dir//'X_Y_BMMT_'//domain_name//buf//'.csv')
+    if (plot_data_sel%plot_BIOM) &
+    &    call Write_X_Y_Preamble(num_grids, grid, yr_offset, data_dir//'X_Y_BIOM_'//domain_name//buf//'.csv')
 
     if (plot_data_sel%plot_EBMS) &
     &    call Write_X_Y_Preamble(num_grids, grid, yr_offset, data_dir//'X_Y_EBMS_'//domain_name//buf//'.csv')
