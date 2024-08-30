@@ -1,4 +1,4 @@
-  function yd=yearday(mon,day,h,leapyr)
+function yd=yearday(mon,day,h,leapyr)
 % YEARDAY: converts calender month, day, and hour into
 %  fractional value of days since beginning of the year (0-364.9999)
 % yd = YEARDAY(mon,day,leapyr) converts calender month and day into yearday.

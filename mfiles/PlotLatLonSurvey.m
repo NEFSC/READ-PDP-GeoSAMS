@@ -73,9 +73,9 @@ end
 for k=1:numCol
 for n=1:r
     % geoscatter does not accept 0.0, must be positive or NaN
-    if field(n,k)<=0 ; field(n,k) = 1e-6; end
+    if field(n,k)<=0 ; field(n,k) = NaN; end
     % saturate values
-    if field(n,k)> saturate; field(n,k) = 1e-6; end
+    if field(n,k)> saturate; field(n,k) = NaN; end
 end
 end
 

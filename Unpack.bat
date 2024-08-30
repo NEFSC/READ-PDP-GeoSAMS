@@ -109,9 +109,6 @@ if not exist Results\ (
 if not exist RecruitField\ (
     mkdir RecruitField\
 )
-if not exist KrigingEstimates\ (
-    mkdir KrigingEstimates\
-)
 if not exist RecruitEstimates\ (
     mkdir RecruitEstimates\
 )
@@ -186,51 +183,17 @@ if "%5" EQU "O" (
     )
 )
 
-@REM Pull Out Recruit Data --------------------------------------------------------------
-@REM Pull Out Dredge data then pull out HabCam Data
-if "%5" EQU "M" (
-    @echo [33mmatlab.exe -batch "PullOutRecruitData('F', 'F'); exit;"[0m
-    matlab.exe -batch "PullOutRecruitData('F', 'F'); exit;"
-    IF ERRORLEVEL 1 (
-        @echo [31mError in MATLAB PullOutRecruitData. Stopping[0m
-        exit 2/b
-    )
-
-    @echo [33mmatlab.exe -batch "PullOutRecruitData('T', 'T'); exit;"[0m
-    matlab.exe -batch "PullOutRecruitData('T', 'T'); exit;"
-    IF ERRORLEVEL 1 (
-        @echo [31mError in MATLAB PullOutRecruitData. Stopping[0m
-        exit 2/b
-    )
-) 
-
-if "%5" EQU "O" (
-    @echo [33moctave PreProcess/PullOutRecruitData.m F F[0m
-    octave PreProcess/PullOutRecruitData.m F F
-    IF ERRORLEVEL 1 (
-        @echo [31mError in Octave PullOutRecruitData. Stopping[0m
-        exit 2/b
-    )
-
-    @echo [33moctave PreProcess/PullOutRecruitData.m T T[0m
-    octave PreProcess/PullOutRecruitData.m T T
-    IF ERRORLEVEL 1 (
-        @echo [31mError in Octave PullOutRecruitData. Stopping[0m
-        exit 2/b
-    )
-)
-
 @REM Process Recruit Data --------------------------------------------------------------
 if "%5" EQU "M" (
-    @echo [33mmatlab.exe -batch "ProcessRecruitData(%2, %3, '%4'); exit;"[0m
-    matlab.exe -batch "ProcessRecruitData(%2, %3, '%4'); exit;"
+    @echo [33mmatlab.exe -batch "PullOutProcessRecruitData(%2, %3, '%4'); exit;"[0m
+    matlab.exe -batch "PullOutProcessRecruitData(%2, %3, '%4'); exit;"
 )
 if "%5" EQU "O" (
-    @echo [33mPreProcess/ProcessRecruitData.m %2 %3 %4[0m
-    octave PreProcess/ProcessRecruitData.m %2 %3 %4 
+    @echo [33mPreProcess/PullOutProcessRecruitData.m %2 %3 %4[0m
+    octave PreProcess/PullOutProcessRecruitData.m %2 %3 %4 
 )
 IF ERRORLEVEL 1 (
-    @echo [31mError in MATLAB ProcessRecruitData. Stopping[0m
+    @echo [31mError in MATLAB PullOutProcessRecruitData. Stopping[0m
     exit 3/b
 )
 

@@ -96,9 +96,6 @@ fi
 if [ ! -d "RecruitField" ]; then
     mkdir RecruitField
 fi
-if [ ! -d "KrigingEstimates" ]; then
-    mkdir KrigingEstimates
-fi
 if [ ! -d "RecruitEstimates" ]; then
     mkdir RecruitEstimates
 fi
@@ -174,49 +171,16 @@ if [ "$5" == "O" ]; then
     fi
 fi # end using OCTAVE
 
-# Pull Out Recruit Data --------------------------------------------------------------
-if [ "$5" == "M" ]; then 
-    echo [33mmatlab.exe -batch "PullOutRecruitData('F', 'F'); exit;"[0m
-    matlab.exe -batch "PullOutRecruitData('F', 'F'); exit;"
-    if [ $? != 0 ]; then
-        echo [31mError in Matlab PullOutRecruitData Dredge. Stopping[0m
-        exit 2
-    fi
-
-    echo [33mmatlab.exe -batch "PullOutRecruitData('T', 'T'); exit;"[0m
-    matlab.exe -batch "PullOutRecruitData('T', 'T'); exit;"
-    if [ $? != 0 ]; then
-        echo [31mError in Matlab PullOutRecruitData HabCam. Stopping[0m
-        exit 2
-    fi
-fi #end if MATLAB
-
-if [ "$5" == "O" ]; then 
-    echo [33moctave PreProcess/PullOutRecruitData.m F F[0m
-    octave PreProcess/PullOutRecruitData.m F F
-    if [ $? != 0 ]; then
-        echo [31mError in Octave PullOutRecruitData. Stopping[0m
-        exit 2
-    fi
-
-    echo [33moctave PreProcess/PullOutRecruitData.m T T[0m
-    octave PreProcess/PullOutRecruitData.m T T
-    if [ $? != 0 ]; then
-        echo [31mError in Octave PullOutRecruitData. Stopping[0m
-        exit 2
-    fi
-fi # end if using OCTAVE
-
 # Process Recruit Data --------------------------------------------------------------
 if [ "$5" == "M" ]; then
-echo [33mmatlab.exe -batch "ProcessRecruitData($2, $3, '$4'); exit;"[0m
-matlab.exe -batch "ProcessRecruitData($2, $3, '$4', $hcChar); exit;"
+echo [33mmatlab.exe -batch "PullOutProcessRecruitData($2, $3, '$4'); exit;"[0m
+matlab.exe -batch "PullOutProcessRecruitData($2, $3, '$4', $hcChar); exit;"
 else
-echo [33moctave PreProcess/ProcessRecruitData.m $2 $3 $4 [0m
-octave PreProcess/ProcessRecruitData.m $2 $3 $4
+echo [33moctave PreProcess/PullOutProcessRecruitData.m $2 $3 $4 [0m
+octave PreProcess/PullOutProcessRecruitData.m $2 $3 $4
 fi
 if [ $? != 0 ]; then
-    echo [31mError in octave ProcessRecruitData. Stopping[0m
+    echo [31mError in octave PullOutProcessRecruitData. Stopping[0m
     exit 3
 fi
 

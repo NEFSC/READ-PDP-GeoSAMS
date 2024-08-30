@@ -99,7 +99,7 @@ end
 % Dredge is a known size determined by width of dredge and tow length
 % HabCam is determined from focal length and captured in the survey file in SQM column
 if useHC
-    survn = survn ./ sqm;
+    survn = survn ./ sqm; % convert count to density
     n=find(size_grp==3);
     recr = zeros(1, numel(n));
     for k=1:numel(n)
@@ -107,17 +107,15 @@ if useHC
         recr(k) = sum(survn(n(k):n(k)+6));
     end
 else
+    towArea_sqm = 4516;
+    T2M2=1./towArea_sqm;
     % was if srcText != 0 n=find(size_grp==3 & dataSrc==srcText);
     n=find(size_grp==3);
     recr = zeros(1, numel(n));
     for k=1:numel(n)
         % sum 3cm to 6 cm
-        recr(k) = sum(survn(n(k):n(k)+6));
+        recr(k) = sum(survn(n(k):n(k)+6)) * T2M2; % convert count to density
     end
-    % convert recruits from count to density per square meters
-    towArea_sqm = 4516;
-    T2M2=1./towArea_sqm;
-    recr = recr * T2M2;
 end
 
 if isOctave

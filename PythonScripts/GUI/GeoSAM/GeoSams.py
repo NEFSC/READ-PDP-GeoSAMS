@@ -240,10 +240,8 @@ class MainApplication(tk.Tk):
         else:
             if result.returncode == 1:
                 messagebox.showerror("TrawlData5mmbin", f'Failed\n{result.args}\nReturn Code = {result.returncode}\nSee Monitor for Reason')
-            elif result.returncode == 2:
-                messagebox.showerror("PullOutRecruitData", f'Failed\n{result.args}\nReturn Code = {result.returncode}\nSee Monitor for Reason')
             elif result.returncode == 3:
-                messagebox.showerror("ProcessRecruitData", f'Failed\n{result.args}\nReturn Code = {result.returncode}\nSee Monitor for Reason')
+                messagebox.showerror("PullOutProcessRecruitData", f'Failed\n{result.args}\nReturn Code = {result.returncode}\nSee Monitor for Reason')
             elif result.returncode == 4:
                 messagebox.showerror("NearestNeighborRecInterp", f'Failed\n{result.args}\nReturn Code = {result.returncode}\nSee Monitor for Reason')
             else:

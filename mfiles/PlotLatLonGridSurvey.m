@@ -98,7 +98,7 @@ end
 for k=1:c
 for n=1:r
     % geoscatter does not accept 0.0, must be positive or NaN
-    if grid(n,k)<=0 ; grid(n,k) = 1e-6; end
+    if grid(n,k)<=0 ; grid(n,k) = NaN; end
     % saturate values
     if grid(n,k)> saturate; grid(n,k) = saturate; end
 end
@@ -147,7 +147,7 @@ end
 for k=1:numCol
 for n=1:rSurvey
     % geoscatter does not accept 0.0, must be positive or NaN
-    if survey(n,k)<=0 ; survey(n,k) = 1e-6; end
+    if survey(n,k)<=0 ; survey(n,k) = NaN; end
 end
 end
 

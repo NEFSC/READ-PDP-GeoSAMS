@@ -398,7 +398,7 @@ subroutine Get_Growth_MA(depth, lat, is_closed, L_inf_mu, K_mu, L_inf_sd, K_sd)
     real(dp) mean_start_shell_length, mean_depth, mean_lat, mean_ring2
 
     parameter(mean_start_shell_length = 85.74,  mean_depth = 52.79,  mean_lat = 38.99,  mean_ring2 = 106.17 )
-            fixed_coef = (/0.951,48.333,-9.53,-37.51,-2.31 /)  !fixed effects coef
+    fixed_coef = (/0.951,48.333,-9.53,-37.51,-2.31 /)  !fixed effects coef
     ! intercept, slope, coef of depth, latitude, closed/open for intercept term
     random_eff = (/38.35,13.27,-20.77 /)  !random effects, intercept, slope, cov 
     depth_norm = depth / mean_depth
@@ -783,14 +783,15 @@ function Time_To_Grow(ts, growth, mortality, recruit, state_vector, fishing_effo
         ! find location of current year
         Rindx = minloc( abs(recruit%year(1:recruit%n_year) - year), 1)
         recruits(1:num_size_classes) = 0.D0
-        recruits(1:recruit%max_rec_ind) = recruit%recruitment(Rindx)
+        ! adjust amount to total for the recruitment period and average over number of sizes
+        recruits(1:recruit%max_rec_ind) = recruit%recruitment(Rindx)  / (recr_steps * recruit%max_rec_ind)
     
         if ( ( t .gt. recruit%rec_start ) .and. ( t .le. recruit%rec_stop) ) then
             if (show_recruits_msg) then
-                write(*,*) term_blu, 'ADDING IN RECRUITS', term_blk, year
+                write(*,*) term_blu, 'ADDING IN RECRUITS FOR YEAR ', term_blk, year, Rindx
                 show_recruits_msg = .FALSE.
             endif
-            state_vector(1:num_size_classes) = state_vector(1:num_size_classes) +  recruits(1:num_size_classes) / recr_steps
+            state_vector(1:num_size_classes) = state_vector(1:num_size_classes) +  recruits(1:num_size_classes)
         else
             show_recruits_msg = .TRUE.
         endif

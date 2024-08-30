@@ -91,7 +91,7 @@ subroutine Set_Recruitment(recruit, n_grids, dom_name, dom_area, recr_yr_strt, r
     ! * Ten years in duration, e.g. 2022 - 2031
     ! * Recruit Yr 2012 - 2023
     ! * HabCam Data Habcam_BySegment_2000_2011-2023 (could also pick Habcam_BySegment_2000_2011-2023_v2)
-    integer, parameter ::  rand_idx_debug(10) = (/4, 12, 8, 3, 8, 10, 12, 10, 4, 2/)
+    integer, parameter ::  rand_idx_debug(10) = (/4, 8, 10, 12, 8, 10, 12, 10, 4, 2/)
 #endif
 
     ! Used to define weighting

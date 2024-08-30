@@ -1,3 +1,6 @@
+%----------------------------------------------------------
+% This only applies to data collected from a Dredge Survey
+%----------------------------------------------------------
 function ProcessRecruitData(yrStart, yrEnd, domain)
 
 isOctave = (exist('OCTAVE_VERSION', 'builtin') ~= 0);
@@ -22,8 +25,6 @@ end
 
 Detect=.4;
 DetectRS=.27;
-DetectHD=.13;
-DetectHDThreshold=2;%scallops/m^2
 
 flnm = 'OriginalData/NewRecruits.csv';
 yrCol    = 1;
@@ -57,7 +58,7 @@ for n=1:N
   yd(n) = yearday(mon(n),day(n),0);%ignore leap years
 end
 yd=yd(:);
-DecYr=year(:)+( yd(:)/365.25 );
+DecYr=year(:)+( yd(:)/365.2425 );
 
 if isOctave
   lat=F(:,latCol);
@@ -79,10 +80,9 @@ M=[DecYr(:),lat(:),lon(:),utmx(:),utmy(:),Depth(:),RecM2(:)];
 j=find(~isnan(sum(M')));
 M=M(j,:);
 flnm='Data/RecruitsUnadjusted.csv';
-header='"decimal year", "latitude", "longitude", "UTM x", "UTM y", "bottom depth(m)","recruits per m^2"';
+header='decimal year,latitude,longitude,UTM x,UTM y,bottom depth(m),recruits per m^2';
 fprintf('Writing to %s\n\n', flnm)
-writecsv(M,flnm,['%f, %f, %f, %f, %f, %f, %e'],header);
-
+writecsv(M,flnm,'%f, %f, %f, %f, %f, %f, %e',header);
 
 %XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX
 %adjust data for 40 percent detection rate,  27 percent in rock strata
@@ -124,14 +124,30 @@ else
     F=table2array(readtable(flnm,'PreserveVariableNames', true));
 end
 
+segments = strings(0);
+remain = header;
+while (remain ~= "")
+   [token,remain] = strtok(remain, ',');
+   segments = [segments ; token];
+end
+
+yearCol = find(strcmpi('decimal year', segments), 1);
+latCol  = find(strcmpi('latitude', segments), 1);
+lonCol  = find(strcmpi('longitude', segments), 1);
+utmxCol = find(strcmpi('UTM x', segments), 1);
+utmyCol = find(strcmpi('UTM y', segments), 1);
+zCol    = find(strcmpi('bottom depth(m)', segments), 1);
+recCol  = find(strcmpi('recruits per m^2', segments), 1);
+
 [N,five]=size(F);
-DecYr=F(:,1);
-lat=F(:,2);
-lon=F(:,3);
-utmx=F(:,4);
-utmy=F(:,5);
-Depth=F(:,6);
-Rec=F(:,7);
+DecYr=F(:,yearCol);
+lat=F(:,latCol);
+lon=F(:,lonCol);
+utmx=F(:,utmxCol);
+utmy=F(:,utmyCol);
+Depth=F(:,zCol);
+Rec=F(:,recCol);
+
 G = shaperead('ShapeFiles/Shellfish_Strata.shp');
 IsRock=zeros(size(lat));
 for k=1:NRS
@@ -156,7 +172,7 @@ M=[DecYr(:),lat(:),lon(:),utmx(:),utmy(:),Depth(:),Rec(:),IsRock(:),RecA(:)];
 j=find(~isnan(sum(M')));
 M=M(j,:);
 flnm='Data/RecruitsRockStrataAdjustment.csv';
-header='"decimal year", "latitude", "longitude", "UTM x", "UTM y","bottom depth(m)","recruits per sq m raw","Is Rock Strata","recruits per sq m adjusted"';
+header='decimal year,latitude,longitude,UTM x,UTM y,bottom depth(m),recruits per sq m raw,Is Rock Strata,recruits per sq m adjusted';
 writecsv(M,flnm,['%f, %f, %f, %f, %f, %f, %e, %i ,%e' ],header);
 fprintf('Writing to %s\n\n', flnm)
 
@@ -184,26 +200,41 @@ close all;
 
 %XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX
 
+segments = strings(0);
+remain = header;
+while (remain ~= "")
+   [token,remain] = strtok(remain, ',');
+   segments = [segments ; token];
+end
+
+yearCol = find(strcmpi('decimal year', segments), 1);
+latCol  = find(strcmpi('latitude', segments), 1);
+lonCol  = find(strcmpi('longitude', segments), 1);
+utmxCol = find(strcmpi('UTM x', segments), 1);
+utmyCol = find(strcmpi('UTM y', segments), 1);
+zCol    = find(strcmpi('bottom depth(m)', segments), 1);
+recCol  = find(strcmpi('recruits per sq m adjusted', segments), 1);
+
 flnm='Data/RecruitsRockStrataAdjustment.csv';
 fprintf('Reading from %s\n', flnm)
 if isOctave
     F=csvreadK(flnm);
-    DecYr=F(:,1);
-    lat=F(:,2);
-    lon=F(:,3);
-    utmx=F(:,4);
-    utmy=F(:,5);
-    Depth=F(:,6);
-    rec=F(:,9);
+    DecYr= F(:,yearCol);
+    lat=   F(:,latCol);
+    lon=   F(:,lonCol);
+    utmx=  F(:,utmxCol);
+    utmy=  F(:,utmyCol);
+    Depth= F(:,zCol);
+    rec=   F(:,recCol);
 else
     F=readtable(flnm,"FileType","text");
-    DecYr=table2array(F(:,1));
-    lat=table2array(F(:,2));
-    lon=table2array(F(:,3));
-    utmx=table2array(F(:,4));
-    utmy=table2array(F(:,5));
-    Depth=table2array(F(:,6));
-    rec=table2array(F(:,9));
+    DecYr=table2array(F(:,yearCol));
+    lat  =table2array(F(:,latCol));
+    lon  =table2array(F(:,lonCol));
+    utmx =table2array(F(:,utmxCol));
+    utmy =table2array(F(:,utmyCol));
+    Depth=table2array(F(:,zCol));
+    rec  =table2array(F(:,recCol));
 end
 
 if ~strcmp(domain, 'AL')
@@ -212,23 +243,22 @@ if ~strcmp(domain, 'AL')
     else
         j = lon<=-70.5;
     end
-    M=[DecYr(j), utmx(j), utmy(j), Depth(j), rec(j)];
+    M=[DecYr(j),lat(j),lon(j),utmx(j),utmy(j),Depth(j),rec(j)];
 else
-    M=[DecYr, utmx, utmy, Depth, rec];
+    M=[DecYr, lat, lon, utmx, utmy, Depth, rec];
 end
 
 flnm=['Data/Recruits', domain, '.csv'];
-header='"decimal year", "utm x", "utm y", "bottom depth(m)","recruits per sq m"';
+header='decimal year,latitude,longitude,utm x,utm y,bottom depth(m),recruits per sq m';
 fprintf('Writing to %s\n', flnm)
-writecsv(M,flnm,'%f, %f, %f, %f, %e',header);
-
+writecsv(M,flnm,'%f, %f, %f, %f, %f, %f, %e',header);
 fprintf('Reading from %s\n', flnm);
 if isOctave
     F=csvreadK(flnm);
-    DecYr=F(:,1);
+    DecYr=F(:,yearCol);
 else
     F=readtable(flnm,"FileType","text");
-    DecYr=table2array(F(:,1));
+    DecYr=table2array(F(:,yearCol));
 end
 yearMin = min(floor(DecYr));
 yearMax = max(floor(DecYr));
@@ -241,8 +271,7 @@ if yrStart >= yearMin && yrEnd <= yearMax
             M=table2array(F(j,:));
         end
         flnm=['Data/Recruits',int2str(yr),domain,'.csv'];
-        header='"decimal year", "utm x", "utm y", "bottom depth(m)","recruits per sq m"';
-        writecsv(M,flnm,'%f, %f, %f, %f, %e',header);
+        writecsv(M,flnm,'%f, %f, %f, %f, %f, %f, %e',header);
         fprintf('Writing to %s. Number of records %d\n', flnm, size(M,1))
     end
 else

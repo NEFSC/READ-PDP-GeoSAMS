@@ -332,15 +332,15 @@ subroutine Read_CSV(num_rows, num_cols, file_name, M, nndim)
     n=0
     do
         n = n + 1
-        if (n > nndim) then
-            n = n - 1
-            PRINT '(A,A,I7,A,A,A)', term_yel,' *** WARNING:  Stopped at', n, ' rows ',term_blk, file_name
-            exit
-        endif
         read(read_dev,*,iostat=io) tmp(1:num_cols)
         if (io.lt.0) then
             if (n .EQ. 1) PRINT '(A,A,I7,A,A,A)', term_red,' *** FILE IO ERROR', io, ' reading file: ', term_blk, file_name
             n = n - 1
+            exit
+        endif
+        if (n > nndim) then
+            n = n - 1
+            PRINT '(A,A,I7,A,A,A)', term_yel,' *** WARNING:  Stopped at', n, ' rows ',term_blk, file_name
             exit
         endif
         M(n,1:num_cols) = tmp(1:num_cols)

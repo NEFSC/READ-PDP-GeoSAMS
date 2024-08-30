@@ -17,7 +17,7 @@ if isOctave
   end
 end
 
-if ~strcmp(domain, 'GB') & ~strcmp(domain, 'MA') & ~strcmp(domain, 'AL')
+if ~strcmp(domain, 'GB') && ~strcmp(domain, 'MA') && ~strcmp(domain, 'AL')
     fprintf( 'Invalid Domain %s\n',  domain);
     fprintf( "Use: 'MA' or 'GB' or 'AL'\n" )
     return;
@@ -30,22 +30,34 @@ else
 end
 fl2=strcat('RecruitEstimates/RecruitEstimate',domain,int2str(yrStart),'.txt');
 fl2CSV=strcat('RecruitEstimates/RecruitEstimate',domain,int2str(yrStart),'.csv');
+latCol  = 2;
+lonCol  = 3;
+utmxCol = 4;
+utmyCol = 5;
+recCol  = 7;
+
+fprintf('Reading from %s\n', fl0)
+
 if isOctave
     D=csvreadK(fl0);
-    x0=D(:,2);
-    y0=D(:,3);
-    recs0=D(:,5);
+    lat0=D(:,latCol);
+    lon0=D(:,lonCol);
+    x0=D(:,utmxCol);
+    y0=D(:,utmyCol);
+    recs0=D(:,recCol);
     r = RandomizeOutput(recs0, yrStart);
     dlmwrite(fl2, r);
-    dlmwrite(fl2CSV,[x0, y0, r]);
+    dlmwrite(fl2CSV,[lat0, lon0, x0, y0, r]);
 else
     D=readtable(fl0,"FileType","spreadsheet");
-    x0=table2array(D(:,2));
-    y0=table2array(D(:,3));
-    recs0=table2array(D(:,5));
+    lat0=table2array(D(:,latCol));
+    lon0=table2array(D(:,lonCol));
+    x0=table2array(D(:,utmxCol));
+    y0=table2array(D(:,utmyCol));
+    recs0=table2array(D(:,recCol));
     r = RandomizeOutput(recs0, yrStart);
     writematrix(r, fl2)
-    M = array2table([x0, y0, r],'VariableNames',{'X', 'Y','RECR'});
+    M = array2table([lat0, lon0, x0, y0, r],'VariableNames',{'LAT','LON','X','Y','RECR'});
     writetable(M,fl2CSV,'WriteVariableNames',0);
 end
 fprintf('Writing to %s. Number of records %d\n', fl2, size(r,1))
@@ -56,16 +68,14 @@ for yr=yrStart+1:yrEnd
     fl=strcat('Data/Recruits',int2str(yr),domain,'.csv');
     if isOctave
         D=csvreadK(fl);
-        x=D(:,2);
-        y=D(:,3);
-        z=D(:,4);
-        recs=D(:,5);
+        x=D(:,utmxCol);
+        y=D(:,utmyCol);
+        recs=D(:,recCol);
     else
         D=readtable(fl,"FileType","spreadsheet");
-        x=table2array(D(:,2));
-        y=table2array(D(:,3));
-        z=table2array(D(:,4));
-        recs=table2array(D(:,5));
+        x=table2array(D(:,utmxCol));
+        y=table2array(D(:,utmyCol));
+        recs=table2array(D(:,recCol));
     end
     recs05=zeros(size(x0));
     for k=1:ngp
@@ -77,10 +87,10 @@ for yr=yrStart+1:yrEnd
     fl2CSV=strcat('RecruitEstimates/RecruitEstimate',domain,int2str(yr),'.csv');
     r = RandomizeOutput(recs05, yr);
     fprintf('Writing to %s. Number of records %d\n', fl2, size(r,1))
-    M = array2table([x0, y0, r],'VariableNames',{'X', 'Y','RECR'});
+    M = array2table([lat0, lon0, x0, y0, r],'VariableNames',{'LAT','LON','X','Y','RECR'});
     if isOctave
         dlmwrite(fl2, r);
-        dlmwrite(fl2CSV,[x0, y0, r]);
+        dlmwrite(fl2CSV,[lat0, lon0, x0, y0, r]);
     else
         writematrix(r, fl2)
         writetable(M,fl2CSV,'WriteVariableNames',0);

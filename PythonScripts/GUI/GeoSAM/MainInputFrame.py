@@ -136,10 +136,10 @@ class MainInput(ttk.Frame):
         #------------------------------------------------------------------------------------------
         ttk.Label(durationFrame, text='Growth Year Starts June 1 @ 00:00').grid(row=0, column=0, padx=20)
         #-------------------------------------------------------------------------------------------
-        self.startYr    = SubFrameElement(self, durationFrame, 'Start Year',       '2015',       1, 0, 1,
+        self.startYr    = SubFrameElement(self, durationFrame, 'Start Year',       '2022',       1, 0, 1,
                                           enterCmd=self.EnterKeyClicked, valCmd=numbersCallback)
         #-------------------------------------------------------------------------------------------
-        self.stopYr     = SubFrameElement(self, durationFrame, 'Stop Year ',       '2017',       2, 0, 1,
+        self.stopYr     = SubFrameElement(self, durationFrame, 'Stop Year ',       '2025',       2, 0, 1,
                                           enterCmd=self.EnterKeyClicked, valCmd=numbersCallback)
         #-------------------------------------------------------------------------------------------
         self.tsPerYear  = SubFrameElement(self, durationFrame, 'Time Steps / Year', str(tsPerYear), 3, 0, 1)

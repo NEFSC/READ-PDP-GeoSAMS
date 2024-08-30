@@ -135,7 +135,7 @@ PROGRAM ScallopPopDensity
 !! For each grid, n
 !!  - @f$L30mm = \bigg(L_{\infty_\mu}(n) - 30\bigg) * exp(-K_\mu(n))@f$
 !!  - For each class, j
-!!      - If (length(n) <= L30mm) recruit(n).max_rec_ind = j
+!!      - If (length(j) <= L30mm) recruit(n).max_rec_ind = j
 !!
 !! @section ms5 Set Mortality
 !! The simulation next sets mortality values.
@@ -768,5 +768,5 @@ endif
 ! Write data for survey grid
 file_name = output_dir//'Lat_Lon_Surv_RECR_'//domain_name//'.csv'
 call Write_Column_CSV(num_grids, recruit(1:num_grids)%recruitment(recr_idx), 'Recruitment', file_name, .true.)
-        
+
 endsubroutine Write_Recruit_Estimates

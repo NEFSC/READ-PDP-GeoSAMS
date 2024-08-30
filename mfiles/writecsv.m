@@ -1,5 +1,4 @@
 function writecsv (M,flnm,fmt,header)
-%function writecsv (M,flnm,header)
 
 [n,m]=size(M);
 fp=fopen(flnm,'w');
