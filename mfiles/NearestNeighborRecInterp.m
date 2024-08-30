@@ -87,12 +87,12 @@ for yr=yrStart+1:yrEnd
     fl2CSV=strcat('RecruitEstimates/RecruitEstimate',domain,int2str(yr),'.csv');
     r = RandomizeOutput(recs05, yr);
     fprintf('Writing to %s. Number of records %d\n', fl2, size(r,1))
-    M = array2table([lat0, lon0, x0, y0, r],'VariableNames',{'LAT','LON','X','Y','RECR'});
     if isOctave
         dlmwrite(fl2, r);
         dlmwrite(fl2CSV,[lat0, lon0, x0, y0, r]);
     else
         writematrix(r, fl2)
+        M = array2table([lat0, lon0, x0, y0, r],'VariableNames',{'LAT','LON','X','Y','RECR'});
         writetable(M,fl2CSV,'WriteVariableNames',0);
     end
 end % yr=yrStart+1:yrEnd
