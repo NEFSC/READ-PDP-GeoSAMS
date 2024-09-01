@@ -100,6 +100,8 @@ else
 
     if isOctave
         stratum_t = M(j,stratumCol);
+        % Use NaN instead of NA, NA breaks read in GridManager.f90
+        k = isnan(stratum_t); stratum_t(k) = NaN; 
         is_closed_t = M(j,clopCol);
         lat_t = M(j,latCol);
         lon_t = M(j,lonCol);
