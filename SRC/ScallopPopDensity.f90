@@ -752,8 +752,12 @@ type(Recruitment_Class), intent(in) :: recruit(*)
 character(4) buf
 integer recr_idx
 character(fname_len) file_name
+real(dp) recruits(1:num_grids)
+real(dp) recr_steps
+real(dp) delta_time, t
 
 recr_idx = year - start_year + 1
+delta_time = 1._dp / dfloat(ts_per_year)
 
 if (mod(ts, ts_per_year) .eq. 1) then
     if (ts .eq. 1) then
@@ -767,6 +771,17 @@ endif
 
 ! Write data for survey grid
 file_name = output_dir//'Lat_Lon_Surv_RECR_'//domain_name//'.csv'
-call Write_Column_CSV(num_grids, recruit(1:num_grids)%recruitment(recr_idx), 'Recruitment', file_name, .true.)
+!!!!call Write_Column_CSV(num_grids, recruit(1:num_grids)%recruitment(recr_idx), 'Recruitment', file_name, .true.)
+recr_steps = floor((recruit(1)%rec_stop - recruit(1)%rec_start) / delta_time) ! number of time steps in recruitment period
+t = dfloat(mod(ts-1,ts_per_year)) * delta_time
+
+if ( ( t .gt. recruit(1)%rec_start ) .and. ( t .le. recruit(1)%rec_stop) ) then
+    ! adjust amount to total for the recruitment period and average over number of sizes
+    recruits(1:num_grids) = recruit(1:num_grids)%recruitment(recr_idx)  / recr_steps
+    call Write_Column_CSV(num_grids, recruits(1:num_grids), 'Recruitment', file_name, .true.)    
+else
+    recruits(1:num_grids) = 0.D0
+    call Write_Column_CSV(num_grids, recruits(1:num_grids), 'Recruitment', file_name, .true.)    
+endif
 
 endsubroutine Write_Recruit_Estimates

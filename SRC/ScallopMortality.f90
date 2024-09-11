@@ -474,7 +474,7 @@ function Set_Fishing_Effort(year, ts, state_mat, weight_grams, mortality, grid)
     enddo
 
     ! Report current timestep results
-    call Mortality_Write_At_Timestep(year, ts, state_mat, weight_grams, mortality, grid)
+    call Mortality_Write_At_Timestep(year, ts, state_mat, weight_grams, grid)
 
     do loc = 1, num_grids
         tmp = 0._dp
@@ -806,17 +806,15 @@ end subroutine Read_Configuration
 !> Initializes growth for startup
 !>
 !==================================================================================================================
-subroutine Mortality_Write_At_Timestep(year, ts, state_mat, weight_grams, mortality, grid)
+subroutine Mortality_Write_At_Timestep(year, ts, state_mat, weight_grams, grid)
 integer, intent(in) :: year, ts
 real(dp), intent(in) :: state_mat(1:num_grids, 1:num_size_classes)
 ! weight_grams is allocated once the number of grids is known
 real(dp), intent(in) :: weight_grams(1:num_grids, 1:num_size_classes)
-type(Mortality_Class), intent(in):: mortality(*)
 type(Grid_Data_Class), intent(in) :: grid(*)
 
 integer loc
 ! character(20) buf
-real(dp) :: M(num_size_classes)
 real(dp), allocatable :: abundance(:)
 real(dp), allocatable :: bms(:)
 real(dp), allocatable :: ebms_mt(:)
@@ -826,17 +824,10 @@ allocate(abundance(num_grids))
 allocate(bms(num_grids), ebms_mt(num_grids))
 
 do loc = 1, num_grids
-    ! Compute overall mortality
-    M(1:num_size_classes) = mortality(loc)%natural_mortality(1:num_size_classes) &
-    & + fishing_effort(loc) * ( mortality(loc)%selectivity(1:num_size_classes) &
-    & + mortality(loc)%incidental + mortality(loc)%discard(1:num_size_classes) )
-
     abundance(loc) = sum(state_mat(loc,1:num_size_classes))*grid_area_sqm ! scallops
     bms(loc) = dot_product(state_mat(loc,1:num_size_classes), weight_grams(loc,1:num_size_classes) ) !/ grams_per_metric_ton) ! metric tons per sq meter
+    ebms_mt(loc) = expl_biomass_gpsqm(loc)*grid_area_sqm/grams_per_metric_ton
 enddo
-
-
-ebms_mt(1:num_grids) = expl_biomass_gpsqm(1:num_grids)*grid_area_sqm/grams_per_metric_ton
 
 ! This data is on the survey grid
 ! (lat,lon) by ts

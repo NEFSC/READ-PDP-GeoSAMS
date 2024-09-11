@@ -1,5 +1,7 @@
 function HabCamData5mmbin(refYear, domain, appendResults)
 
+UNDEF_REGION = 9999;
+
 habCamFile = getenv('HabCamFile');
 if strcmpi(habCamFile, 'NONE')
     %nothing to do
@@ -100,8 +102,9 @@ else
 
     if isOctave
         stratum_t = M(j,stratumCol);
-        % Use NaN instead of NA, NA breaks read in GridManager.f90
-        k = isnan(stratum_t); stratum_t(k) = NaN; 
+        % Setting to INTEGER, Fortran read is expecting integer anyway
+        % Changing NaN to UNDEFINED
+        k = isnan(stratum_t); stratum_t(k) = UNDEF_REGION; 
         is_closed_t = M(j,clopCol);
         lat_t = M(j,latCol);
         lon_t = M(j,lonCol);
@@ -117,6 +120,12 @@ else
         yutm_t = M(j,utmyCol);
     else
         stratum_t = M(j,stratumCol);
+        % Setting to INTEGER, Fortran read is expecting integer anyway
+        % Changing NaN to UNDEFINED
+        stratum=table2array(stratum_t);
+        k = isnan(stratum); 
+        stratum(k) = UNDEF_REGION;
+        stratum_t=array2table(stratum,'VariableNames',{'stratum'});
         is_closed_t = M(j,clopCol);
         lat_t = M(j,latCol);
         lon_t = M(j,lonCol);

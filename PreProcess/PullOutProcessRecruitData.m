@@ -11,11 +11,14 @@
 %
 function PullOutProcessRecruitData(yrStart, yrEnd, domain)
 
+maxDredge=0;
+maxHC=0;
+
 isOctave = (exist('OCTAVE_VERSION', 'builtin') ~= 0);
 if isOctave
   % used if called by command line, or gui
   arg_list=argv();
-  if ~strcmp(arg_list(1), '--gui');
+  if ~strcmp(arg_list(1), '--gui')
     yrStart = str2num(cell2mat(arg_list(1)));
     yrEnd = str2num(cell2mat(arg_list(2)));
     domain = cell2mat(arg_list(3));
@@ -32,7 +35,6 @@ if ~strcmp(domain, 'GB') && ~strcmp(domain, 'MA') && ~strcmp(domain, 'AL')
 end
 
 isOctave = (exist('OCTAVE_VERSION', 'builtin') ~= 0);
-
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%% DREDGE DATA %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 % First consider dredge data
@@ -79,6 +81,7 @@ recr = zeros(1, numel(n));
 for k=1:numel(n)
     % sum 3cm to 6 cm
     recr(k) = sum(survn(n(k):n(k)+6)) * T2M2; % convert count to density
+    if recr(k) > maxDredge, maxDredge = recr(k); end
 end
 
 if isOctave
@@ -91,7 +94,7 @@ j=size_grp==4;
 
 MDredge = [F(j,yearCol) F(j,monCol) F(j,dayCol) F(j,latCol) F(j,lonCol) F(j, utmxCol) F(j, utmyCol) F(j,zCol) recr_t];
 
-
+fprintf('Max dredge before adjustment %f\n', maxDredge)
 %
 % We now have the recruit estimate information for Dredge data in recr_t as scallops/m^2
 %
@@ -194,7 +197,9 @@ MDredge = [decYr(:), lat(:), lon(:), utmx(:), utmy(:), depth(:), recA(:)];
 j=find(~isnan(sum(MDredge')));
 MDredge = MDredge(j,:);
 
-end
+fprintf('Max dredge after adjustment %f\n', max(recA))
+
+end % if strcmpi(dataFile, 'NONE')
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%% HABCAM DATA %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 % Now consider HabCam data
@@ -295,6 +300,8 @@ end
 yd=yd(:);
 decYr=year(:)+( yd(:)/365.2425 );
 MHC=[decYr(:), lat(:), lon(:), utmx(:), utmy(:), depth(:), recM2(:)];
+
+fprintf('Max HabCam %f\n', max(recM2))
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 % Continue processing for both HabCam and Dredge

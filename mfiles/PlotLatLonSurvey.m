@@ -16,6 +16,7 @@ end
 
 n=size(fname,2);
 domain = fname(n-1:n);
+param = fname(n-6:n-3);
 
 if isOctave
     D=csvreadK([fname '.csv']);
@@ -34,7 +35,22 @@ if isOctave
     lon=D(:,2);
     n=1;
     for k=1:tsPerYear:c
-        field(:,n) = D(:,k+2);
+        if strcmp(param,'RECR')
+            % Recruitment is precomputed and stored for each timestep
+            % Need to sum for the year to get complete view of recruitment.
+            % k = 1, 14, 27, ...
+            % field(:,1) = D(:,3);
+            % field(:,2) = sum(D(:,4:16));
+            % field(:,3) = sum(D(:,17:29));
+            % ...
+            if k == 1
+                field(:,n) = D(:,k+2);
+            else
+                field(:,n) = sum(D(:,k-10:k+2),2);
+            end
+        else
+            field(:,n) = D(:,k+2);
+        end
         n=n+1;
     end
 else
@@ -42,7 +58,22 @@ else
     lon=table2array(D(:,2));
     n=1;
     for k=1:tsPerYear:c
-        field(:,n) =table2array(D(:,k+2));
+        if strcmp(param,'RECR')
+            % Recruitment is precomputed and stored for each timestep
+            % Need to sum for the year to get complete view of recruitment.
+            % k = 1, 14, 27, ...
+            % field(:,1) =table2array(D(:,3));
+            % field(:,2) =sum(table2array(D(:,4:16));
+            % field(:,3) =sum(table2array(D(:,17:29));
+            % ...
+            if k == 1
+                field(:,n) = table2array(D(:,k+2));
+            else
+                field(:,n) = sum(table2array(D(:,k-10:k+2)),2);
+            end
+        else
+            field(:,n) = table2array(D(:,k+2));
+        end
         n=n+1;
     end
 end

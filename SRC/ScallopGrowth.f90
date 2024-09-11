@@ -784,11 +784,12 @@ function Time_To_Grow(ts, growth, mortality, recruit, state_vector, fishing_effo
         Rindx = minloc( abs(recruit%year(1:recruit%n_year) - year), 1)
         recruits(1:num_size_classes) = 0.D0
         ! adjust amount to total for the recruitment period and average over number of sizes
-        recruits(1:recruit%max_rec_ind) = recruit%recruitment(Rindx)  / (recr_steps * recruit%max_rec_ind)
+        recruits(1:recruit%max_rec_ind) = recruit%recruitment(Rindx)  / (recr_steps * float(recruit%max_rec_ind))
     
         if ( ( t .gt. recruit%rec_start ) .and. ( t .le. recruit%rec_stop) ) then
             if (show_recruits_msg) then
-                write(*,*) term_blu, 'ADDING IN RECRUITS FOR YEAR ', term_blk, year, Rindx
+                write(*,'(A,A,A,I5,A,A,A,I5)') term_blu, 'ADDING IN RECRUITS FOR YEAR', term_blk, year, term_blu, &
+                &     ' USING RECR YR', term_blk, recruit%est_year_src(Rindx)
                 show_recruits_msg = .FALSE.
             endif
             state_vector(1:num_size_classes) = state_vector(1:num_size_classes) +  recruits(1:num_size_classes)

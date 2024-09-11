@@ -114,6 +114,9 @@ cutWE = -70.5;
 %----------------------------------------------------------------------------
 % Gather Survey Data
 %----------------------------------------------------------------------------
+n=size(surveyFname,2);
+param = surveyFname(n-6:n-3);
+
 if isOctave
     D=csvreadK([surveyFname '.csv']);
 else
@@ -131,7 +134,22 @@ if isOctave
     lonSurvey=D(:,2);
     n=1;
     for k=1:tsPerYear:cSurvey
-        survey(:,n) = D(:,k+2);
+        if strcmp(param,'RECR')
+            % Recruitment is precomputed and stored for each timestep
+            % Need to sum for the year to get complete view of recruitment.
+            % k = 1, 14, 27, ...
+            % field(:,1) = (D(:,3));
+            % field(:,2) =sum( (D(:,4:16));
+            % field(:,3) =sum( (D(:,17:29));
+            % ...
+            if k == 1
+                survey(:,n) = D(:,k+2);
+            else
+                survey(:,n) = sum(D(:,k-10:k+2),2);
+            end
+        else
+            survey(:,n) = D(:,k+2);
+        end
         n=n+1;
     end
 else
@@ -139,7 +157,22 @@ else
     lonSurvey=table2array(D(:,2));
     n=1;
     for k=1:tsPerYear:cSurvey
-        survey(:,n) =table2array(D(:,k+2));
+        if strcmp(param,'RECR')
+            % Recruitment is precomputed and stored for each timestep
+            % Need to sum for the year to get complete view of recruitment.
+            % k = 1, 14, 27, ...
+            % field(:,1) =table2array(D(:,3));
+            % field(:,2) =sum(table2array(D(:,4:16));
+            % field(:,3) =sum(table2array(D(:,17:29));
+            % ...
+            if k == 1
+                survey(:,n) = table2array(D(:,k+2));
+            else
+                survey(:,n) = sum(table2array(D(:,k-10:k+2)),2);
+            end
+        else
+            survey(:,n) = table2array(D(:,k+2));
+        end
         n=n+1;
     end
 end

@@ -22,6 +22,7 @@ type Recruitment_Class
     real(dp) rec_start
     real(dp) rec_stop
     integer year(max_n_year)
+    integer est_year_src(max_n_year)
     integer n_year
     !! max_rec_ind is the largest size class treated as a recruit
     integer max_rec_ind
@@ -181,8 +182,14 @@ subroutine Set_Recruitment(recruit, n_grids, dom_name, dom_area, recr_yr_strt, r
             STOP 1
         endif
         do j = 1,num_grids
-            recruit(j)%recruitment(year_index) = tmp(j)
+            if (year_index > 1) then
+                recruit(j)%recruitment(year_index) = tmp(j)
+            else
+                ! recruitment is already accounted for in the first year
+                recruit(j)%recruitment(year_index) = 0._dp
+            endif
             recruit(j)%year(year_index) = year
+            recruit(j)%est_year_src(year_index) = random_year
             recruit(j)%rec_start = recr_period_start
             recruit(j)%rec_stop = recr_period_stop
         enddo
