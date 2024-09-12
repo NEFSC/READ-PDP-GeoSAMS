@@ -11,6 +11,9 @@ if isOctave
         fname = cell2mat(arg_list(1));
         tsPerYear = str2num(cell2mat(arg_list(2)));
         yearStart = str2num(cell2mat(arg_list(3)));
+    else
+        yearStart = str2num(yearStart);
+        tsPerYear = str2num(tsPerYear);
     end
 end
 
