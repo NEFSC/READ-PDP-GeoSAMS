@@ -199,6 +199,30 @@ MDredge = MDredge(j,:);
 
 fprintf('Max dredge after adjustment %f\n', max(recA))
 
+% %XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX
+% j0=find(isRock==0);
+% j1=find(isRock==1);
+% plot(lon(j0),lat(j0),'c.',lon(j1),lat(j1),'r.');
+% hold on;
+% for k=1:length(G)
+%    lonStrat=G(k).X;
+%    latStrat=G(k).Y;
+%    plot(lonStrat,latStrat,'k');hold on;
+% end
+% for k=1:nrs
+%    lonStrat=G(rsi(k)).X;
+%    latStrat=G(rsi(k)).Y;
+%    plot(lonStrat,latStrat,'r');
+% end
+% if isOctave % Octave did not need 3rd term
+%    daspect([1,cos(mean(lat)*pi/180)]);
+% else
+%    daspect([1,cos(mean(lat)*pi/180), 1]);
+% end
+% print -djpeg RockStrata.jpg
+% %XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX
+
+
 end % if strcmpi(dataFile, 'NONE')
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%% HABCAM DATA %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%

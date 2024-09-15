@@ -130,7 +130,6 @@ real(dp), PRIVATE :: towing_speed_knots
 
 real(dp), PRIVATE, allocatable :: expl_biomass_gpsqm(:)
 real(dp), PRIVATE, allocatable :: expl_scallops_psqm(:)
-real(dp), PRIVATE, allocatable :: expl_num(:)
 real(dp), PRIVATE, allocatable :: F_mort(:)
 real(dp), PRIVATE, allocatable :: landings_by_num(:)
 real(dp), PRIVATE, allocatable :: landings_wgt_grams(:)
@@ -161,7 +160,6 @@ subroutine Destructor()
     deallocate(expl_biomass_gpsqm)
 
     deallocate(expl_scallops_psqm)
-    deallocate(expl_num)
     deallocate(F_mort)
 
     deallocate(landings_by_num)
@@ -238,7 +236,6 @@ subroutine Set_Mortality(mortality, grid, shell_lengths, dom_name, dom_area, num
 
     allocate(expl_biomass_gpsqm(num_grids))
     allocate(expl_scallops_psqm(num_grids))
-    allocate(expl_num(num_grids))
     allocate(F_mort(num_grids))
     allocate(lpue(num_grids))
     allocate(fishing_effort(num_grids))
@@ -426,9 +423,6 @@ function Set_Fishing_Effort(year, ts, state_mat, weight_grams, mortality, grid)
         expl_scallops_psqm(loc) = & 
         &    dot_product(mortality(loc)%selectivity(1:num_size_classes), state_mat(loc,1:num_size_classes))
 
-        ! dot_product(selectivity, state) * grid_area_sqm
-        expl_num(loc) = expl_scallops_psqm(loc) * grid_area_sqm
-
         ! selectivity * state - at this location
         expl_scallops_psqm_at_size(1:num_size_classes) = mortality(loc)%selectivity(:) * state_mat(loc,1:num_size_classes) 
         ! dot_product(selectivity * state, weight)
@@ -442,9 +436,7 @@ function Set_Fishing_Effort(year, ts, state_mat, weight_grams, mortality, grid)
     !  (2) F at each location is proportional to LPUE^alpha. 
     ! This would also apply to special access areas, but each one would have their own specified F, 
     ! and the average would only be for those points within that access area.
-    !f_avg = dot_product(expl_num, F_mort_raw) / sum(expl_num)
     
-    !call  Calc_LPUE(expl_biomass_gpsqm, expl_scallops_psqm, lpue, dredge_time, dredge_area)
     lpue = Calc_LPUE(expl_biomass_gpsqm, expl_scallops_psqm)
 #ifdef ACCUM_LANDINGS
     lpue_accum(:) = lpue_accum(:) + lpue(:)
@@ -477,23 +469,23 @@ function Set_Fishing_Effort(year, ts, state_mat, weight_grams, mortality, grid)
     call Mortality_Write_At_Timestep(year, ts, state_mat, weight_grams, grid)
 
     do loc = 1, num_grids
-        tmp = 0._dp
-        do n = 1, num_grids
-            if (expl_scallops_psqm(n).eq.0.0) then
-                ! if expl_scallops_psqm(n) is 0 then stands to reason that there would 
-                ! be zero biomass as well
-                ! tmp = tmp + 0, i.e. no change
-            else
-                tmp = tmp + expl_biomass_gpsqm(n) * expl_biomass_gpsqm(n) / expl_scallops_psqm(n)
-            endif
-        enddo
-        ! 
-        total_catch = sum(landings_wgt_grams)
-        if (expl_scallops_psqm(loc) .EQ. 0._DP) then
-            ! if expl_scallops_psqm(n) is 0 then stands to reason that there would 
-            ! be zero biomass as well and thus no fishing effort.
+        ! if expl_scallops_psqm(loc) is 0 then stands to reason that there would 
+        ! be zero biomass as well and thus no fishing effort.
+        if (grid(loc)%is_closed .OR. (expl_scallops_psqm(loc) .EQ. 0._dp)) then
             fishing_effort(loc) = 0._dp
         else
+            tmp = 0._dp
+            do n = 1, num_grids
+                if (expl_scallops_psqm(n).eq.0.0) then
+                    ! if expl_scallops_psqm(n) is 0 then stands to reason that there would 
+                    ! be zero biomass as well
+                    ! tmp = tmp + 0, i.e. no change
+                else
+                    tmp = tmp + expl_biomass_gpsqm(n) * expl_biomass_gpsqm(n) / expl_scallops_psqm(n)
+                endif
+            enddo
+            ! 
+            total_catch = sum(landings_wgt_grams)
             tmp = (expl_biomass_gpsqm(loc) * total_catch / expl_scallops_psqm(loc) ) / (tmp  * grid_area_sqm)
             if (isnan(tmp)) then
                 write(*,*) term_red, 'Set_Fishing_Effort_Weight_BMS FAILED; Divide by 0?', term_blk
