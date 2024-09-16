@@ -18,8 +18,6 @@ zg1 = M1(:,3);
 N1 = length(G1);
 for k=1:N1, [G1(k).lat,G1(k).lon]=utm2ll(G1(k).X,G1(k).Y,19); end
 
-latg = [latg0;latg1];
-long = [long0;long1];
 
 close all;
 
@@ -34,7 +32,6 @@ patch(long0(E0'),latg0(E0'),-zg0(E0')); shading interp; colormap('jet');
 
 patch(long1(E1'),latg1(E1'),-zg1(E1')); shading interp; colormap('jet');
 
-%axis([min(long),max(long),min(latg),max(latg)])
 text(-72,42,['F: ',int2str(2024)])
 %set(gca,'visible','off')
 daspect([1, cos(mean([latg0;latg1])*pi/180), 1]);
