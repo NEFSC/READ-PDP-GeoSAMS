@@ -63,6 +63,7 @@ from MainInputFrame import *
 from GrowthFrame import *
 from InterpolationFrame import *
 from SortByAreaFrame import *
+from SortByRegionFrame import *
 from SpecialAreaFrame import *
 from FishMortBySpecAcc import *
 from EditMathSetupFrame import *
@@ -140,6 +141,7 @@ class MainApplication(tk.Tk):
         self.frame5 = SortByArea(self.notebook, self.frame1, self.maxAreas, self.maxCorners, self.maxYears, self.paramStr)
         self.frame6 = SpecialArea(self.notebook, self, self.maxAreas, self.maxCorners)
         self.frame7 = FishMortBySpecAcc(self.notebook, self.maxAreas, self.maxCorners)
+        self.frame8 = SortByRegion(self.notebook, self.frame1, self.maxCorners, self.maxYears, self.paramStr)
         self.ReadUKConfigFile()
 
         self.gmConfigFile = os.path.join(self.root,configDir, simCfgDir, self.frame6.gmCfgFile.myEntry.get())
@@ -155,6 +157,7 @@ class MainApplication(tk.Tk):
         self.notebook.add(self.frame6, text='Special Access')
         self.notebook.add(self.frame7, text='Fishing Mort in\n Special Access')
         self.notebook.add(self.frame5, text='SortByArea')
+        self.notebook.add(self.frame8, text='SortByRegion')
         self.notebook.add(self.frame4, text='UKInterpolation')
         self.notebook.pack()
 
@@ -857,7 +860,7 @@ SAVE ALL Configs
 #
 def main():
     nargs = len(sys.argv)
-    maxYears = 5 # this can change as user enters a greater range, start year to stop year
+    maxYears = 15 # this can change as user enters a greater range, start year to stop year
     if (nargs != 4):
         maxAreas = 25
         maxCorners = 8

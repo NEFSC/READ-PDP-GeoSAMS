@@ -4,6 +4,16 @@
 % Extension is added to fname in script
 function PlotLatLonGrid(fname, yrStart, domain)
 
+%------------------SHAPE DATA --------------------------------------------
+shapeMA = shaperead('ShapeFiles/MAB_Estimation_Areas_2024_UTM18_PDT.shp');
+shapeGB = shaperead('ShapeFiles/GB_Estimation_Areas_2024_UTM19_PDT.shp');
+
+shapeMAlen = length(shapeMA);
+for k=1:shapeMAlen, [shapeMA(k).lat,shapeMA(k).lon] = utm2ll(shapeMA(k).X,shapeMA(k).Y,18); end
+
+shapeGBlen = length(shapeGB);
+for k=1:shapeGBlen, [shapeGB(k).lat,shapeGB(k).lon] = utm2ll(shapeGB(k).X,shapeGB(k).Y,19); end
+%-------------------------------------------------------------------------
 isOctave = (exist('OCTAVE_VERSION', 'builtin') ~= 0);
 if isOctave
     % used if called by command line
@@ -79,7 +89,8 @@ end
 
 for i=1:c
     year = yrStart + i - 2;
-    thisTitle = [useTitle int2str(year) '_' int2str(saturate)];
+    %thisTitle = [useTitle int2str(year) '_' int2str(saturate)];
+    thisTitle = [useTitle int2str(year)];
     if isOctave
         f = figure('Name', thisTitle);
         s=scatter(lon, lat, field(:,i), field(:,i), "filled");
@@ -130,6 +141,9 @@ for i=1:c
             p.PaperPosition = [.1 .1 10 16];
         end
     end
+    hold on
+    PlotRegion(isOctave, 'GB', 0, 0)
+    PlotRegion(isOctave, 'MA', 0, 0)
 
     saveas(gcf,[thisTitle '.pdf'])
 end

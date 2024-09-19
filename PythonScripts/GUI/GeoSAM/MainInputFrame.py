@@ -96,6 +96,23 @@ class MainInput(ttk.Frame):
         #-------------------------------------------------------------------------------------------
         survDataFrame.grid(row=3, column=0, padx=5, pady=0, sticky='sw')
         # +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+        shapeFileFrame = ttk.LabelFrame(self, text='Shape Files', style='SAMS.TFrame')
+        # --------------------------------------------------------------------------------------------------------
+        self.maShapeFileEntry = self.myEntry=ttk.Entry(shapeFileFrame, width=40)
+        self.maShapeFileEntry.insert(0, 'MAB_Estimation_Areas_2019_UTM18_PDT.shp')
+        self.maShapeFileEntry.grid(row=0, column=1, sticky='w', padx=5)
+        self.gbShapeFileEntry = self.myEntry=ttk.Entry(shapeFileFrame, width=40)
+        self.gbShapeFileEntry.insert(0, 'GB_Estimation_Areas_2024_UTM19_PDT.shp')
+        self.gbShapeFileEntry.grid(row=1, column=1, sticky='w', padx=5)
+        # --------------------------------------------------------------------------------------------------------
+        self.setMaShapeFiletButton = ttk.Button(shapeFileFrame, text='Set MA Shape File', style="BtnBluGrn.TLabel", command=self.SetMaShapeFile)
+        self.setMaShapeFiletButton.grid(row=0, column=2, sticky='e')
+        # --------------------------------------------------------------------------------------------------------
+        self.setGbShapeFiletButton = ttk.Button(shapeFileFrame, text='Set GB Shape File', style="BtnBluGrn.TLabel", command=self.SetGbShapeFile)
+        self.setGbShapeFiletButton.grid(row=1, column=2, sticky='e')
+        #-------------------------------------------------------------------------------------------
+        shapeFileFrame.grid(row=4, column=0, padx=5, pady=0, sticky='sw')
+        # +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
         recruitFrame = ttk.LabelFrame(self, text='Recruitment', style='SAMS.TFrame')
         self.monthsArr = ['JAN', 'FEB', 'MAR', 'APR', 'MAY', 'JUN', 'JUL', 'AUG', 'SEP', 'OCT', 'NOV', 'DEC']
         self.startDayLabel = ttk.Label(recruitFrame, text='Start Day')
@@ -139,7 +156,7 @@ class MainInput(ttk.Frame):
         self.startYr    = SubFrameElement(self, durationFrame, 'Start Year',       '2022',       1, 0, 1,
                                           enterCmd=self.EnterKeyClicked, valCmd=numbersCallback)
         #-------------------------------------------------------------------------------------------
-        self.stopYr     = SubFrameElement(self, durationFrame, 'Stop Year ',       '2025',       2, 0, 1,
+        self.stopYr     = SubFrameElement(self, durationFrame, 'Stop Year ',       '2031',       2, 0, 1,
                                           enterCmd=self.EnterKeyClicked, valCmd=numbersCallback)
         #-------------------------------------------------------------------------------------------
         self.tsPerYear  = SubFrameElement(self, durationFrame, 'Time Steps / Year', str(tsPerYear), 3, 0, 1)
@@ -356,6 +373,28 @@ class MainInput(ttk.Frame):
                     c.open_new_tab('file://'+fName)
         else:
             messagebox.showerror("Open PDF File", 'There are no PDF files to open. START Sim to create files.')
+
+    ##
+    #
+    def SetMaShapeFile(self):
+        file_path = filedialog.askopenfilename(title="Open SHP File", filetypes=[("SHP files", "*.shp")], defaultextension='csv', initialdir=self.startDir)
+        if file_path:
+            self.areaFName = file_path
+            self.UpdateWidgets()
+            self.maShapeFileEntry.delete(0,tk.END)
+            f = file_path.split('/')
+            self.maShapeFileEntry.insert(0, f[-1])
+    
+    ##
+    #
+    def SetGbShapeFile(self):
+        file_path = filedialog.askopenfilename(title="Open SHP File", filetypes=[("SHP files", "*.shp")], defaultextension='csv', initialdir=self.startDir)
+        if file_path:
+            self.areaFName = file_path
+            self.UpdateWidgets()
+            self.gbShapeFileEntry.delete(0,tk.END)
+            f = file_path.split('/')
+            self.gbShapeFileEntry.insert(0, f[-1])
 
     ## 
     #

@@ -12,17 +12,6 @@
 
 function PlotLatLonGridSurvey(surveyFname, gridFname, yrStart, tsPerYear, domain, yrSelect)
 
-%------------------SHAPE DATA --------------------------------------------
-shapeMA = shaperead('ShapeFiles/MAB_Estimation_Areas_2024_UTM18_PDT.shp');
-shapeGB = shaperead('ShapeFiles/GB_Estimation_Areas_2024_UTM19_PDT.shp');
-
-shapeMAlen = length(shapeMA);
-for k=1:shapeMAlen, [shapeMA(k).lat,shapeMA(k).lon] = utm2ll(shapeMA(k).X,shapeMA(k).Y,18); end
-
-shapeGBlen = length(shapeGB);
-for k=1:shapeGBlen, [shapeGB(k).lat,shapeGB(k).lon] = utm2ll(shapeGB(k).X,shapeGB(k).Y,19); end
-%-------------------------------------------------------------------------
-
 isOctave = (exist('OCTAVE_VERSION', 'builtin') ~= 0);
 if isOctave
     % used if called by command line
@@ -251,19 +240,19 @@ if or(strcmp(domain, 'MA'), strcmp(domain, 'AL'))
     if strcmp(domain, 'AL')
         mxSurvey = max(survey_NE);
         mxGrid = max(grid_NE);
-        mx = mxGrid ./ mxSurvey;
-        grid_NE = grid_NE ./ mx;
+        mx_NE = mxGrid ./ mxSurvey;
+        grid_NE = grid_NE ./ mx_NE;
     end
 
     mxSurvey = max(survey_N);
     mxGrid = max(grid_N);
-    mx = mxGrid ./ mxSurvey;
-    grid_N = grid_N ./ mx;
+    mx_N = mxGrid ./ mxSurvey;
+    grid_N = grid_N ./ mx_N;
 
     mxSurvey = max(survey_S);
     mxGrid = max(grid_S);
-    mx = mxGrid ./ mxSurvey;
-    grid_S = grid_S ./ mx;
+    mx_S = mxGrid ./ mxSurvey;
+    grid_S = grid_S ./ mx_S;
 else
     mxSurvey = max(survey);
     mxGrid = max(grid);
@@ -287,10 +276,9 @@ end
 % plot figure for each year
 for i=1:c
     year = yrStart + i - 2 + offset;
-    thisTitle = [useTitle int2str(year) '_' int2str(saturate)];
-    if or(strcmp(domain, 'MA'), strcmp(domain, 'AL')); thisTitle = [thisTitle '_MA_North']; end
-
+    
     if or(strcmp(domain, 'MA'), strcmp(domain, 'AL'))
+        thisTitle = [useTitle int2str(year) '_' int2str(100./mx_N(i)) '_MA_North'];
         surveyLon = lonSurvey_N;
         surveyLat = latSurvey_N;
         if isOctave
@@ -302,6 +290,7 @@ for i=1:c
         gridLat = latGrid_N;
         gridData = grid_N(:,i);
     else
+        thisTitle = [useTitle int2str(year) '_' int2str(100./mx(i))];
         surveyLon = lonSurvey;
         surveyLat = latSurvey;
         if isOctave
@@ -314,22 +303,18 @@ for i=1:c
         gridData = grid(:,i);
     end
     PlotGrid(domain, thisTitle, isOctave, surveyLon, surveyLat, surveyData, gridLon, gridLat, gridData)
-    PlotRegion(isOctave, shapeMA, shapeMAlen, 'MA_North', cutNS)
-    if or(strcmp(domain, 'MA'), strcmp(domain, 'AL'))
-        title([useTitle int2str(year) '_MA_North'], 'Interpreter', 'none');
-    else
-        title([useTitle int2str(year)], 'Interpreter', 'none');
-    end
+    PlotRegion(isOctave, 'MA_North', cutNS, 1)
+    title(thisTitle, 'Interpreter', 'none');
     SetColorbar(isOctave)
     SizePaper(domain, isOctave)
     saveas(gcf,[thisTitle '.pdf'])
 
     % Plot lower data
     if or(strcmp(domain, 'MA'), strcmp(domain, 'AL'))
-        thisTitle = [useTitle int2str(year) '_' int2str(saturate) '_MA_South'];
+        thisTitle = [useTitle int2str(year) '_' int2str(100./mx_S(i)) '_MA_South'];
         PlotGrid(domain, thisTitle, isOctave, lonSurvey_S, latSurvey_S, survey_S(:,i), lonGrid_S, latGrid_S, grid_S(:,i))
-        PlotRegion(isOctave, shapeMA, shapeMAlen, 'MA_South', cutNS)
-        title([useTitle int2str(year) '_MA_South'], 'Interpreter', 'none');
+        PlotRegion(isOctave, 'MA_South', cutNS, 1)
+        title(thisTitle, 'Interpreter', 'none');
         SetColorbar(isOctave)
         SizePaper(domain, isOctave)
         saveas(gcf,[thisTitle '.pdf'])
@@ -337,10 +322,10 @@ for i=1:c
 
     % Plot NE, i.e. GB data
     if strcmp(domain, 'AL')
-        thisTitle = [useTitle int2str(year) '_' int2str(saturate) '_GB'];
+        thisTitle = [useTitle int2str(year) '_' int2str(100./mx_NE(i)) '_GB'];
         PlotGrid(domain, thisTitle, isOctave, lonSurvey_NE, latSurvey_NE, survey_NE(:,i), lonGrid_NE, latGrid_NE, grid_NE(:,i))
-        PlotRegion(isOctave, shapeGB, shapeGBlen, 'GB', cutNS)
-        title([useTitle int2str(year) '_GB'], 'Interpreter', 'none');
+        PlotRegion(isOctave, 'GB', cutNS, 1)
+        title(thisTitle, 'Interpreter', 'none');
         SetColorbar(isOctave)
         SizePaper(domain, isOctave)
         saveas(gcf,[thisTitle '.pdf'])
@@ -418,87 +403,3 @@ else
     end
 end
 end
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-function PlotRegion(isOctave, shape, shapeLen, region, cutNS)
-if strcmp(region, 'GB')
-    for k=1:shapeLen
-        if isOctave
-            plot(shape(k).lon,shape(k).lat,'color','k');
-        else
-            geoplot(shape(k).lat,shape(k).lon,'r');
-        end
-        maxLon = max(shape(k).lon);
-        minLon = min(shape(k).lon);
-        maxLat = max(shape(k).lat);
-        minLat = min(shape(k).lat);
-        posnLon = (maxLon + minLon) / 2.0;
-        posnLat = (maxLat + minLat) / 2.0;
-        if isOctave
-            text(posnLon, posnLat, shape(k).SAMS,'Color','k','FontSize',10,'FontWeight', 'bold');
-        else
-            text(posnLat, posnLon, shape(k).SAMS,'Color',"#A2142F",'FontSize',10,'FontWeight', 'bold');
-        end
-    end
-else
-    for k=1:shapeLen
-        maxLon = -360.0;
-        minLon = 360.0;
-        maxLat = -360.0;
-        minLat = 360.0;
-        for n=1:length(shape(k).lat)-1
-            if ...
-            strcmp(region, 'MA_South') && shape(k).lat(n) < cutNS && shape(k).lat(n+1) < cutNS ...
-            || ...
-            strcmp(region, 'MA_North') && shape(k).lat(n) >= cutNS && shape(k).lat(n+1) >= cutNS
-                if isOctave
-                    plot(shape(k).lon(n:n+1),shape(k).lat(n:n+1),'color','k');
-                else
-                    geoplot(shape(k).lat(n:n+1),shape(k).lon(n:n+1),'r');
-                end
-                if shape(k).lat(n) > maxLat, maxLat=shape(k).lat(n); end
-                if shape(k).lat(n) < minLat, minLat=shape(k).lat(n); end
-                if shape(k).lon(n) > maxLon, maxLon=shape(k).lon(n); end
-                if shape(k).lon(n) < minLon, minLon=shape(k).lon(n); end
-            end
-        end
-        %plot to edge, a straight line above cutNS to below cutNS
-        if k==4
-            if strcmp(region, 'MA_North')
-                p1 = [shape(k).lat(89), cutNS];
-                p2 = [shape(k).lon(89), cutNS-112];
-            else
-                p1 = [shape(k).lat(91), cutNS];
-                p2 = [shape(k).lon(91), cutNS-112];
-            end
-            if isOctave
-                plot(p2, p1, 'color', 'k')
-            else
-                geoplot(p1, p2, 'r')
-            end
-            if p1(2) > maxLat, maxLat=p1(2); end
-            if p1(2) < minLat, minLat=p1(2); end
-            if p2(2) > maxLon, maxLon=p2(2); end
-            if p2(2) < minLon, minLon=p2(2); end
-        end
-
-        if maxLon + minLon ~= 0.0
-            posnLon = (maxLon + minLon) / 2.0;
-            posnLat = (maxLat + minLat) / 2.0;
-            if isOctave
-                if length(shape(k).SAMS)>3
-                    text(posnLon, posnLat-0.05, shape(k).SAMS,'Color','k','FontSize',10,'FontWeight', 'bold');
-                else
-                    text(posnLon, posnLat, shape(k).SAMS,'Color','k','FontSize',10,'FontWeight', 'bold');
-                end
-            else
-                if length(shape(k).SAMS)>3
-                    text(posnLat-0.05, posnLon, shape(k).SAMS,'Color',"#A2142F",'FontSize',10,'FontWeight', 'bold');
-                else
-                    text(posnLat, posnLon, shape(k).SAMS,'Color',"#A2142F",'FontSize',10,'FontWeight', 'bold');
-                end
-            end
-        end
-    end
-end
-end % function
