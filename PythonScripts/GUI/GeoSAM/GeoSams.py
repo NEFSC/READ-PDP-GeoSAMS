@@ -141,7 +141,7 @@ class MainApplication(tk.Tk):
         self.frame5 = SortByArea(self.notebook, self.frame1, self.maxAreas, self.maxCorners, self.maxYears, self.paramStr)
         self.frame6 = SpecialArea(self.notebook, self, self.maxAreas, self.maxCorners)
         self.frame7 = FishMortBySpecAcc(self.notebook, self.maxAreas, self.maxCorners)
-        self.frame8 = SortByRegion(self.notebook, self.frame1, self.maxCorners, self.maxYears, self.paramStr)
+        self.frame8 = SortByRegion(self.notebook, self.frame1, self.maxAreas, self.maxYears, self.paramStr)
         self.ReadUKConfigFile()
 
         self.gmConfigFile = os.path.join(self.root,configDir, simCfgDir, self.frame6.gmCfgFile.myEntry.get())
@@ -345,7 +345,7 @@ class MainApplication(tk.Tk):
         #  INTERPOLATE AND CONCATENATE REGIONS INTO SINGLE FILE
         # ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++   
         for pStr in self.paramStr:
-            if (pStr == 'RECR_'):
+            if (pStr == RECR):
                 zArg = '70.0'
             else:
                 zArg = '0.0'
@@ -753,31 +753,31 @@ class MainApplication(tk.Tk):
         for (tag, value) in tags:
             # Python 3.8 does not have match/case so using if elif
             if (tag == 'Select Abundance'):
-                self.paramStr.append('ABUN_')
+                self.paramStr.append(ABUN)
                 self.paramVal += 8
             elif (tag == 'Select BMS'):
-                self.paramStr.append('BIOM_')
+                self.paramStr.append(BIOM)
                 self.paramVal += 4
             elif (tag == 'Select Expl BMS'):
-                self.paramStr.append('EBMS_')
+                self.paramStr.append(EBMS)
                 self.paramVal += 2
             elif (tag == 'Select Fishing Effort'):
-                self.paramStr.append('FEFF_')
+                self.paramStr.append(FEFF)
                 self.paramVal += 64
             elif (tag == 'Select Fishing Mortality'):
-                self.paramStr.append('FMOR_')
+                self.paramStr.append(FMOR)
                 self.paramVal += 128
             elif (tag == 'Select Landings by Number'):
-                self.paramStr.append('LAND_')
+                self.paramStr.append(LAND)
                 self.paramVal += 32
             elif (tag == 'Select Landings by Weight'):
-                self.paramStr.append('LNDW_')
+                self.paramStr.append(LNDW)
                 self.paramVal += 16
             elif (tag == 'Select LPUE'):
-                self.paramStr.append('LPUE_')
+                self.paramStr.append(LPUE)
                 self.paramVal += 1
             elif (tag == 'Select RECR'):
-                self.paramStr.append('RECR_')
+                self.paramStr.append(RECR)
                 self.paramVal += 256
             elif (tag == 'Time steps per Year'):
                 self.tsPerYear = int(value)

@@ -1,47 +1,37 @@
-## @page Sort Sort By Area Frame
+## @page SortRegion  Sort By Area Frame
 # Assists the user in defining areas of interest to assess accumulated parameters located
 # in these areas of interest.
 #
-# @section Sortp1 Number of Areas
-#
-# The number of defined areas. This is limited by Max Areas of Interest. See SHOW Args button
-# The # of Areas is limited by default to 25. See SHOW Args for current values.
-# The user can modify this on the command line:
-# > python .\\PythonScripts\\GUI\\GeoSAM\\GeoSams.py Areas Nodes
-#
-# Default (same as started with no arguments):\n
-# > python .\\PythonScripts\\GUI\\GeoSAM\\GeoSams.py 25 8
-#
-# @section Sortp2 Output Parameters
+# @section SortRegion p2 Output Parameters
 #
 # This is a dropbox of the selected output parameters on the main tab. After 
 # a simulation and interpolation have been run, the user would select one of
 # these output, click Run Sort, and the amount of that output in each of the
 # defined areas is accumulated by year to the left of each area.
 #
-# @section Sortp3 Load and Save Data Sort Files
+# @section SortRegion p3 Load and Save Data Sort Files
 # These buttons allow the user to load a predefined set of areas or to save
 # the current set to the named file.
 #
-# @section Sortp4 Run Sort
+# @section SortRegion p4 Run Sort
 # This will start the program to check if a region grid value for a given 
 # year is within one of the specified area and if so accumulate the year
 # sum with that value.
 #
-# @section Sortp5 Area SubFrames
-# @subsection Sortp5p1 YYYY
+# @section SortRegion p5 Area SubFrames
+# @subsection SortRegion p5p1 YYYY
 # For each year, from Start Year to Stop Year as given in the Main tab
 # an entry box is provided to store the accumulated parameter for that year.
 # These are not populated until after the Run Sort button has been clicked.
 #
-# @subsection Sortp5p2 Comment
+# @subsection SortRegion p5p2 Comment
 # Optional. Enter a comment to describe the area being specfied.
 #
-# @subsection Sortp5p3 # Corners
+# @subsection SortRegion p5p3 # Corners
 #  Also called nodes or sides. This is limited by Max Nodes in Area. 
 # See SHOW Args for current values. This can be changed on the command line. See above
 #
-# @subsection Sortp5p5 Corner N
+# @subsection SortRegion p5p5 Corner N
 # These are the coordinates of the area vertices. Enter the Longitude and Latitude of the 
 # vertices for the area. It is up to the user to ensure that a closed shape is defined.
 #
@@ -50,7 +40,6 @@ import sys
 sys.path.append("PythonScripts\GUI\GeoSAM\PyshpMaster")
 import shapefile
 import utm
-import shutil
 
 from tkinter import ttk
 from tkinter import messagebox
@@ -87,16 +76,17 @@ class GeoShape:
 # @param paramStr defined at start up for the desired outputs
 # 
 class SortByRegion(ttk.Frame):
-    def __init__(self, container, friend, maxCorners, maxYears, paramStr):
+    def __init__(self, container, friend, maxAreas, maxYears, paramStr):
         super().__init__()
         
         self.root = os.getcwd() #os.environ['ROOT']
         self.startDir = os.path.join(self.root, 'Shapefiles')
+        self.resultsDir = os.path.join(self.root, 'Results')
         self.exportFileName = ''
         self.friend = friend
         self.areaFName = None
 
-        self.numCornersMax = maxCorners
+        self.maxAreas = maxAreas
         self.maxYears = maxYears
         self.numAreas = 1
         self.numCorners = 1
@@ -117,7 +107,7 @@ class SortByRegion(ttk.Frame):
         self.comboParameter.grid(row=1, column=0)
         # --------------------------------------------------------------------------------------------------------
         self.runSortButton = ttk.Button(self.sortAreaFrame, text='Run Sort', command=self.RunSort)
-        self.runSortButton.grid(row=0, column=1)
+        self.runSortButton.grid(row=1, column=1)
         # --------------------------------------------------------------------------------------------------------
         # +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
         exportFrame = ttk.LabelFrame(self.sortAreaFrame, text='Export Results', style='SAMS.TFrame')
@@ -130,7 +120,7 @@ class SortByRegion(ttk.Frame):
         self.exportFileLabel = ttk.Label(exportFrame, text='Export File Name')
         self.exportFileLabel.grid(row=0, column=2, sticky='n')
         # --------------------------------------------------------------------------------------------------------
-        self.exportFileEntry = self.myEntry=ttk.Entry(exportFrame, width=25)
+        self.exportFileEntry = self.myEntry=ttk.Entry(exportFrame, width=15)
         self.exportFileEntry.insert(0, self.exportFileName)
         self.exportFileEntry.grid(row=0, column=2, sticky='s', padx=5)
         # --------------------------------------------------------------------------------------------------------
@@ -138,7 +128,7 @@ class SortByRegion(ttk.Frame):
         self.browseExportButton.grid(row=0, column=3, sticky='w')
         # --------------------------------------------------------------------------------------------------------
 
-        exportFrame.grid(row=3, column=0, columnspan=3, sticky='we')
+        exportFrame.grid(row=3, column=0, columnspan=6, sticky='we')
         # +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
         # --------------------------------------------------------------------------------------------------------
         self.shape = []
@@ -146,12 +136,17 @@ class SortByRegion(ttk.Frame):
         self.shapeLenGB = 0
         self.numAreas = self.GetShapeData() 
 
-        self.areas = AreaManager(self, self.sortAreaFrame, self.numAreas, self.numCornersMax,
-                                   elementRow=4, elementCol=0, cornerRow=0, cornerColumn=0, labelArr=cornerLabelArr,
-                                   includeYears=True, numYearsMax=self.maxYears, yearStart=self.yearStart, yearStop=self.yearStop)
-
-        for i in range(self.numAreas):
-            self.areas.areaSubFrame[i].comment = self.shape[i].NewSAMS
+        # code for creating table
+        self.table = [[0 for _ in range(self.maxYears+1)] for _ in range(self.maxAreas+1)]
+        for row in range(self.maxAreas+1):
+            for col in range(self.maxYears+1):
+                self.table[row][col] = ttk.Entry(self.sortAreaFrame, width=15)
+                self.table[row][col].grid(row=row+4, column=col)
+#                self.e.insert'end', lst[i][j])
+        for row in range(self.numAreas):
+            self.table[row+1][0].insert(0,self.shape[row].NewSAMS)
+        for col in range(self.numYears):
+            self.table[0][col+1].insert(0,str(self.yearStart+col))
 
         self.sortAreaFrame.grid(row=4, column=0, columnspan=10, padx=5)
         self.sortAreaFrame.grid_columnconfigure(0,weight=2)
@@ -160,7 +155,7 @@ class SortByRegion(ttk.Frame):
         # +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
         self.scrollFrame.grid(row=1, column=0, sticky='nsew')
         # +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-        helpButton = ttk.Button(self, text= "Sort By Area Help", style="Help.TLabel", command = self.pop_up)
+        helpButton = ttk.Button(self, text= "Sort By Region Help", style="Help.TLabel", command = self.pop_up)
         helpButton.grid(row=0, column=0)
 
         self.bind("<Visibility>", self.on_visibility)
@@ -170,16 +165,16 @@ class SortByRegion(ttk.Frame):
     def on_visibility(self, event):
         self.paramStr = []
         parmVal = self.friend.GetSelectedOutputs()
-        # ordering of string may not matter. The user ultimately selects the desired vale
-        if parmVal & 1: self.paramStr.append('LPUE_')
-        if parmVal & 2: self.paramStr.append('EBMS_')
-        if parmVal & 4: self.paramStr.append('BIOM_')
-        if parmVal & 8: self.paramStr.append('ABUN_')
-        if parmVal & 16: self.paramStr.append('LNDW_')
-        if parmVal & 32: self.paramStr.append('LAND_')
-        if parmVal & 64: self.paramStr.append('FEFF_')
-        if parmVal & 128: self.paramStr.append('FMOR_')
-        if parmVal & 256: self.paramStr.append('RECR_')
+        # ordering of string may not matter. The user ultimately selects the desired value
+        if parmVal & 1: self.paramStr.append(LPUE)
+        if parmVal & 2: self.paramStr.append(EBMS)
+        if parmVal & 4: self.paramStr.append(BIOM)
+        if parmVal & 8: self.paramStr.append(ABUN)
+        if parmVal & 16: self.paramStr.append(LNDW)
+        if parmVal & 32: self.paramStr.append(LAND)
+        if parmVal & 64: self.paramStr.append(FEFF)
+        if parmVal & 128: self.paramStr.append(FMOR)
+        if parmVal & 256: self.paramStr.append(RECR)
         self.comboParameter.configure(values=self.paramStr)
         self.comboParameter.current(0)
 
@@ -187,22 +182,40 @@ class SortByRegion(ttk.Frame):
         self.yearStop = int(self.friend.stopYr.myEntry.get())
         self.domainName = self.friend.domainNameCombo.get()
         self.numYears = self.yearStop - self.yearStart + 1
-        for i in range(self.numAreas):
-            for j in range(self.numYears):
-                self.areas.areaSubFrame[i].results[j].myEntry.grid()
-                self.areas.areaSubFrame[i].results[j].myLabel.grid()
-                self.areas.areaSubFrame[i].results[j].myLabel.config(text = str(self.yearStart+j))
-            for j in range(self.numYears, self.maxYears):
-                self.areas.areaSubFrame[i].results[j].myEntry.grid_remove()
-                self.areas.areaSubFrame[i].results[j].myLabel.grid_remove()
-        self.UpdateWidgets()
 
-    ##
-    #
-    def AppendYears(self, addYears):
-        for i in range(self.numAreas):
-            self.areas.areaSubFrame[i].AppendResults(addYears)
-        self.maxYears = self.maxYears+addYears
+        self.numAreas = self.GetShapeData() 
+
+        for row in range(self.numAreas):
+            for col in range(self.numYears):
+                self.table[row+1][col+1].grid()
+        for row in range(self.numAreas):
+            self.table[row+1][0].delete(0,tk.END)
+            self.table[row+1][0].insert(0,self.shape[row].NewSAMS)
+
+        # remove unused columns
+        for row in range(self.numAreas):
+            for col in range(self.numYears, self.maxYears):
+                self.table[row+1][col+1].grid_remove()
+
+        # remove unused rows
+        for row in range(self.numAreas, self.maxAreas):
+            for col in range(self.maxYears):
+                self.table[row+1][col+1].grid_remove()
+
+        # restore row header
+        for col in range(self.numYears):
+            self.table[0][col+1].grid()
+        # clear col header
+        for col in range(self.numYears, self.maxYears):
+            self.table[0][col+1].grid_remove()
+        # restore row header
+        for row in range(self.numAreas):
+            self.table[row+1][0].grid()
+        # clear row header
+        for row in range(self.numAreas, self.maxAreas):
+            self.table[row+1][0].grid_remove()
+
+        self.UpdateWidgets()
 
     ##
     #
@@ -212,6 +225,8 @@ class SortByRegion(ttk.Frame):
         rows = self.numAreas
         cols = self.numYears
         accumParamData = [[0.0 for _ in range(cols)] for _ in range(rows)] # accumulated data if in region
+        # Used to compute average of data
+        countData = [[0.0 for _ in range(cols)] for _ in range(rows)]  # data read in from file
         desiredParam = self.comboParameter.get()
         # typical name: Lat_Lon_Grid_EBMS_MA_2015_2017
         #               Lat_Lon_Grid_ABUN_AL_2015_2017
@@ -221,8 +236,6 @@ class SortByRegion(ttk.Frame):
              desiredParam + self.domainName + '_' + str(self.yearStart) + '_' + str(self.yearStop) + '.csv')
         
         if os.path.isfile(paramFName):
-            ####of = open('temp.txt', 'w')
-            grid = 1
             with open(paramFName, 'r') as f:
                 while True:
                     # Read in a line from paramFName
@@ -252,76 +265,110 @@ class SortByRegion(ttk.Frame):
                             # if so accumulate parameter data
                             for j in range(self.numYears):
                                 accumParamData[i][j] += paramData[j]
-                            ####of.write('Grid #{} found in area{}\n'.format(grid,i+1))
-                    grid += 1
-            ####of.close()
+                                if paramData[j] > 0:
+                                    countData[i][j] += 1
 
             # display results
-            for i in range(self.numAreas):
-                for j in range(self.numYears):
-                    self.areas.areaSubFrame[i].results[j].myEntry.delete(0,tk.END)
+            # Display Units
+            # Python 3.8 does not have match/case so using if elif
+            if desiredParam == ABUN:
+                self.UpdateEntry(self.table[0][0], 'K COUNT')
+                scale = 1e-3
+            if desiredParam == BIOM:
+                self.UpdateEntry(self.table[0][0], 'K metric tons')
+                scale = 1e-3
+            if desiredParam == EBMS:
+                self.UpdateEntry(self.table[0][0], 'metric tons')
+                scale = 1.0
+            if desiredParam == FEFF:
+                self.UpdateEntry(self.table[0][0], 'average')
+                scale = 1.0
+            if desiredParam == FMOR:
+                self.UpdateEntry(self.table[0][0], 'average')
+                scale = 1.0
+            if desiredParam == LAND:
+                self.UpdateEntry(self.table[0][0], 'COUNT')
+                scale = 1.0
+            if desiredParam == LNDW:
+                self.UpdateEntry(self.table[0][0], 'grams')
+                scale = 1.0
+            if desiredParam == LPUE:
+                self.UpdateEntry(self.table[0][0], 'land/day')
+                scale = 1.0
+            if desiredParam == RECR:
+                self.UpdateEntry(self.table[0][0], 'g/m2' )
+                scale = 1.0
+
+            for row in range(self.numAreas):
+                for col in range(self.numYears):
+                    self.table[row+1][col+1].delete(0,tk.END)
                     # round to 4 decimal places
                     # round(x,4) can have unpredicable results, use simple math instead
                     r = 1e4
-                    y = int(accumParamData[i][j] * r + 0.5) / r
-                    self.areas.areaSubFrame[i].results[j].myEntry.insert(0, str(y))
+                    if desiredParam == BIOM:
+                        # convert to metric tons = 1e6 grams
+                        # BIOM is in g/m2
+                        # g/m2 * km2 * (1e6 m2/km2) / 1e6
+                        # mt = g/m2 * km2
+                        areaKm2 = self.shape[row].areaKm2
+                        accumParamData[row][col] = accumParamData[row][col] * areaKm2 
+                    
+                    if desiredParam == FEFF or desiredParam == FMOR:
+                        # compute averate
+                        y = int((accumParamData[row][col] * r * scale / countData[row][col]) + 0.5) / r
+                    else:
+                        y = int((accumParamData[row][col] * r * scale) + 0.5) / r
+                    self.table[row+1][col+1].insert(0, str(y))
 
         else:
             messagebox.showerror("Reading Parameter File", f'No data for '+fileName+'\nHas Simulation been run?\nAre years correct?')
             runSortErrors = 1
 
         return runSortErrors
+    
+    ##
+    #
+    def UpdateEntry(self, entry, val):
+        entry.delete(0,tk.END)
+        entry.insert(0, val)
 
     ##
     #
     def UpdateWidgets(self):
-        self.exportFileEntry.delete(0,tk.END)
         f = self.exportFileName.split('/')
-        self.exportFileEntry.delete(0,tk.END)
-        self.exportFileEntry.insert(0, f[-1])
-
-        self.NumAreasUpdate()
-        self.areas.UpdateWidgets()
+        self.UpdateEntry(self.exportFileEntry, f[-1])
 
     ##
     #
     def BrowseExportFile(self):
-        file_path = filedialog.asksaveasfilename(title="Open CSV File", filetypes=[("CSV files", "*.csv")], defaultextension='csv', initialdir=self.startDir)
+        # Note extension is not included so that output parameter name can be appende
+        file_path = filedialog.asksaveasfilename(title="Open CSV File", filetypes=[("CSV files", "*.csv")], initialdir=self.resultsDir)
         if file_path:
             f = file_path.split('/')
-            self.exportFileEntry.delete(0,tk.END)
-            self.exportFileEntry.insert(0, f[-1])
+            self.UpdateEntry(self.exportFileEntry, f[-1])
             self.exportFileName = file_path
 
-    ## This method exports the current page of data, just a single output parameter
-    #
-    # First row :
-    #  AREA     YEAR        PARAMETER
-    #   1       StartYear     
-    #   1       ...
-    #   1       StopYear
-    #  ...      ...
-    #   N       StartYear     
-    #   N       ...
-    #   N       StopYear     
+    ## This method exports ouput parameter table to its own file name
     #
     def ExportThis(self, nomsg=False):
         if self.exportFileName != '':
+            if not nomsg: messagebox.showinfo('Export This', f'Starting Export')
             # Ensure data is up to date
             err = self.RunSort()
 
             if err == 0:
                 # get current parameter
                 outStr = self.comboParameter.get()
-                with open(self.exportFileName, 'w') as f:
-                    f.write('AREA,YEAR,'+outStr+'\n')
-
-                    for a in range(self.numAreas):
-                        for yr in range(self.numYears):
-                            f.write(str(a+1) + ',' + str(yr+self.yearStart) + ',' + self.areas.areaSubFrame[a].results[yr].myEntry.get() + '\n')
-
+                print('Sorting: ', outStr)
+                exportFileName = self.exportFileName + '_' + outStr + '.csv'
+                with open(exportFileName, 'w') as f:
+                    # +1 is to include column and row headers
+                    for a in range(self.numAreas+1):
+                        for yr in range(self.numYears+1):
+                            f.write(self.table[a][yr].get() + ',')
+                        f.write('\n')
                     f.close()
-                if not nomsg: messagebox.showinfo('Export This', f'FILE SAVED: {self.exportFileName}')
+                if not nomsg: messagebox.showinfo('Export This', f'FILE SAVED: {exportFileName}')
         else:
             messagebox.showerror('Export This', 'File Name has not been defined.')
 
@@ -342,33 +389,11 @@ class SortByRegion(ttk.Frame):
                     break
 
             if filesExist:
-                # Create Initial File
-                self.comboParameter.current(0)
-                self.RunSort()
-                self.ExportThis(True)
-
-                # now append remaining outputs
-                scratchFName = os.path.join('Results', 'TEMP.TXT')
-                for i in range(1,n):
-                    of = open(scratchFName, 'w')
-                    with open(self.exportFileName, 'r') as f:
-                        self.comboParameter.current(i)
-                        self.RunSort()
-                        # read header
-                        line = f.readline()
-                        line = line.strip()+','+self.paramStr[i]+'\n'
-                        of.write(line)
-
-                        for a in range(self.numAreas):
-                            for yr in range(self.numYears):
-                                line = f.readline()
-                                line = line.strip()+','+self.areas.areaSubFrame[a].results[yr].myEntry.get()+'\n'
-                                of.write(line)
-                    of.close()
-                    f.close()
-                    shutil.move(scratchFName, self.exportFileName)
-                
-                messagebox.showinfo('Export This', f'FILE SAVED: {self.exportFileName}')
+                messagebox.showinfo('Export ALL', f'Starting Export')
+                for cb in range(n):
+                    self.comboParameter.current(cb)
+                    self.ExportThis(True)
+                messagebox.showinfo('Export ALL', f'Complete')
 
             else: # data files have not yet been generated.
                  messagebox.showerror('Export All', 'Data Files do not exist. START Sim')
@@ -377,19 +402,10 @@ class SortByRegion(ttk.Frame):
             messagebox.showerror('Export All', 'File Name has not been defined.')
 
     ##
+    # @brief Gets shape data and places it into a array of GeoShape
     #
-    def EnterKeyClicked(self, event):
-        self.NumAreasUpdate()
-
-    ##
-    #
-    def NumAreasUpdate(self):
-        """ Updates the number of areas functions. """
-        # for i in range(self.numAreas):
-        #     self.areas.areaSubFrame[i].areaFrame.grid_remove()
-
-        self.areas.NumAreasUpdate(self.numAreas)
-
+    # MA regions, if selected, are first placed into array followed by GB regions, selected.
+    # Logic will always have either MA, GB, or both
     def GetShapeData(self):
         self.domainName = self.friend.domainNameCombo.get()
         self.shapeLenMA = 0
@@ -447,24 +463,11 @@ class SortByRegion(ttk.Frame):
     ## Help Window for Sort By Area
     #
     def pop_up(self):
-        about = '''Sort By Area
+        about = '''Sort By Region
     (This frame is scrollable, use mouse wheel)
     This frame allows the user to determine the amount of a given parameter
-    that is located in a specific area defined by long, lat coordinates of the
-    vertices or corners.
-    1) The areas must first be defined by specifyin the number of areas, update
-    2) For each area
-       a) Enter the number of corners
-
-# of Areas
-    The number of areas as determined by the user. This is limited by 
-    Max Areas of Interest. See SHOW Args button
-
-    The # of Areas is limited by default to 25. See SHOW Args for current values.
-    The user can modify this on the command line:
-    > python .\\PythonScripts\\GUI\\GeoSAM\\GeoSams.py #Areas #Nodes
-    Default:
-    > python .\\PythonScripts\\GUI\\GeoSAM\\GeoSams.py 25 8
+    that is located in a specific area defined by long, lat coordinates 
+    provided in the shape files defined on the Main Tab
 
 Output Parameters
     This is a dropbox of the selected output parameters on the main tab. After 
@@ -472,61 +475,28 @@ Output Parameters
     these output, click Run Sort, and the amount of that output in each of the
     defined areas is accumulated by year to the left of each area.
 
-Areas of Interest File Name
-    The name of the file whose data is currently loaded. There is a default
-    file included with the installed files
-
-Load and Save Data Sort Files
-    These buttons allow the user to load a predefined set of areas or to 
-    save the current set to the named file.
-
 Run Sort
     This will start the program to check if a region grid value for a given 
     year is within one of the specified area and if so accumulate the year
     sum with that value.
 
 Export Results
-    These buttons will export the data to a CSV file using the following format
-
-            AREA  YEAR       LPUE_  ... 
-            1     StartYear  xxxx
-            1     ...
-            1     StopYear   xxxx
-            ...
-            N     StartYear  xxxx
-            N     ...
-            N     StopYear   xxxx
+    These buttons will export data to a CSV file formated the same as the table
 
     Export This
         This button will export the data set to the file name in Export File.
         It will first call the RunSort method to enure the data is up to date.
-        There will only be one column of data as given by the current combo box
-        setting.
+        Just this data with file appended the current combo box setting
 
     Export All
         This button will step through each of the Output Parameters given in 
         the combo box, call RunSort for that parameter, and then export the
-        parameter data as columns in a CSV file.
+        parameter CSV file.
 
     Browse For Export File
         Allows user to select an existing file name or enter their own. The
         file is not saved until one of the Export buttons is clicked.
 
-Area N
-    YYYY: For each year, from Start Year to Stop Year as given in the Main tab
-    an entry box is provided to store the accumulated parameter for that year.
-    These are not populated until after the Run Sort button has been clicked.
-
-    Comment: Optional. Enter a comment to describe the area being specfied.
-
-    # Corners: Also called nodes or sides. 
-        This is limited by Max Nodes in Area. See SHOW Args for current values.
-        This can be changed on the command line. See above
-               
-    Corner N
-        These are the coordinates of the area vertices. Enter the Longitude and
-        Latitude of the vertices for the area. It is up to the user to ensure 
-        that a closed shape is defined.
 '''
         #about = re.sub("\n\s*", "\n", about) # remove leading whitespace from each line
         popup = tk.Toplevel()

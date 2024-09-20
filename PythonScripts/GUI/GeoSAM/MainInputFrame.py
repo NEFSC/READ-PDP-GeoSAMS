@@ -99,7 +99,7 @@ class MainInput(ttk.Frame):
         shapeFileFrame = ttk.LabelFrame(self, text='Shape Files', style='SAMS.TFrame')
         # --------------------------------------------------------------------------------------------------------
         self.maShapeFileEntry = self.myEntry=ttk.Entry(shapeFileFrame, width=40)
-        self.maShapeFileEntry.insert(0, 'MAB_Estimation_Areas_2019_UTM18_PDT.shp')
+        self.maShapeFileEntry.insert(0, 'MAB_Estimation_Areas_2024_UTM18_PDT.shp')
         self.maShapeFileEntry.grid(row=0, column=1, sticky='w', padx=5)
         self.gbShapeFileEntry = self.myEntry=ttk.Entry(shapeFileFrame, width=40)
         self.gbShapeFileEntry.insert(0, 'GB_Estimation_Areas_2024_UTM19_PDT.shp')
