@@ -156,7 +156,7 @@ class MainInput(ttk.Frame):
         self.startYr    = SubFrameElement(self, durationFrame, 'Start Year',       '2022',       1, 0, 1,
                                           enterCmd=self.EnterKeyClicked, valCmd=numbersCallback)
         #-------------------------------------------------------------------------------------------
-        self.stopYr     = SubFrameElement(self, durationFrame, 'Stop Year ',       '2031',       2, 0, 1,
+        self.stopYr     = SubFrameElement(self, durationFrame, 'Stop Year ',       '2025',       2, 0, 1,
                                           enterCmd=self.EnterKeyClicked, valCmd=numbersCallback)
         #-------------------------------------------------------------------------------------------
         self.tsPerYear  = SubFrameElement(self, durationFrame, 'Time Steps / Year', str(tsPerYear), 3, 0, 1)
@@ -226,6 +226,7 @@ class MainInput(ttk.Frame):
         if numYears > self.maxYears:
             addYears = numYears - self.maxYears
             self.friend.frame5.AppendYears(addYears)
+            self.friend.frame8.AppendYears(numYears)
             self.maxYears = numYears
 
     ## 

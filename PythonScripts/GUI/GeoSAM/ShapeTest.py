@@ -1,5 +1,5 @@
 import sys
-sys.path.append("PythonScripts\GUI\GeoSAM\PyshpMaster")
+sys.path.append("PythonScripts/GUI/GeoSAM/PyshpMaster")
 import shapefile
 import utm
 

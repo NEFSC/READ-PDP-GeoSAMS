@@ -7,37 +7,16 @@
 # This is a dropbox of the selected output parameters on the main tab. After 
 # a simulation and interpolation have been run, the user would select one of
 # these output, click Run Sort, and the amount of that output in each of the
-# defined areas is accumulated by year to the left of each area.
-#
-# @section SortRegion p3 Load and Save Data Sort Files
-# These buttons allow the user to load a predefined set of areas or to save
-# the current set to the named file.
+# shapefile regions is accumulated by year.
 #
 # @section SortRegion p4 Run Sort
 # This will start the program to check if a region grid value for a given 
 # year is within one of the specified area and if so accumulate the year
 # sum with that value.
 #
-# @section SortRegion p5 Area SubFrames
-# @subsection SortRegion p5p1 YYYY
-# For each year, from Start Year to Stop Year as given in the Main tab
-# an entry box is provided to store the accumulated parameter for that year.
-# These are not populated until after the Run Sort button has been clicked.
-#
-# @subsection SortRegion p5p2 Comment
-# Optional. Enter a comment to describe the area being specfied.
-#
-# @subsection SortRegion p5p3 # Corners
-#  Also called nodes or sides. This is limited by Max Nodes in Area. 
-# See SHOW Args for current values. This can be changed on the command line. See above
-#
-# @subsection SortRegion p5p5 Corner N
-# These are the coordinates of the area vertices. Enter the Longitude and Latitude of the 
-# vertices for the area. It is up to the user to ensure that a closed shape is defined.
-#
 import os
 import sys
-sys.path.append("PythonScripts\GUI\GeoSAM\PyshpMaster")
+sys.path.append("PythonScripts/GUI/GeoSAM/PyshpMaster")
 import shapefile
 import utm
 
@@ -142,7 +121,6 @@ class SortByRegion(ttk.Frame):
             for col in range(self.maxYears+1):
                 self.table[row][col] = ttk.Entry(self.sortAreaFrame, width=15)
                 self.table[row][col].grid(row=row+4, column=col)
-#                self.e.insert'end', lst[i][j])
         for row in range(self.numAreas):
             self.table[row+1][0].insert(0,self.shape[row].NewSAMS)
         for col in range(self.numYears):
@@ -199,8 +177,8 @@ class SortByRegion(ttk.Frame):
 
         # remove unused rows
         for row in range(self.numAreas, self.maxAreas):
-            for col in range(self.maxYears):
-                self.table[row+1][col+1].grid_remove()
+            for col in range(self.maxYears+1):
+                self.table[row+1][col].grid_remove()
 
         # restore row header
         for col in range(self.numYears):
@@ -216,6 +194,24 @@ class SortByRegion(ttk.Frame):
             self.table[row+1][0].grid_remove()
 
         self.UpdateWidgets()
+
+    ##
+    # @brief Max Number of years has increased, need to add additional columns
+    def AppendYears(self, numYears):
+        addYears = numYears - self.maxYears
+        for row in range(self.maxAreas+1):
+            for col in range(addYears):
+                self.table[row].append(ttk.Entry(self.sortAreaFrame, width=15))
+                self.table[row][self.maxYears+col+1].grid(row=row+4, column=self.maxYears+col+1)
+        for col in range(self.numYears, self.maxYears+addYears):
+            self.table[0][col+1].insert(0,str(self.yearStart+col))
+
+        self.maxYears = numYears
+        self.numYears = numYears
+        # ensure all cells are now visible
+        for row in range(self.numAreas+1):
+            for col in range(self.maxYears+1):
+                self.table[row][col].grid()
 
     ##
     #
@@ -272,8 +268,8 @@ class SortByRegion(ttk.Frame):
             # Display Units
             # Python 3.8 does not have match/case so using if elif
             if desiredParam == ABUN:
-                self.UpdateEntry(self.table[0][0], 'K COUNT')
-                scale = 1e-3
+                self.UpdateEntry(self.table[0][0], 'M Scallops/m2')
+                scale = 1e-6
             if desiredParam == BIOM:
                 self.UpdateEntry(self.table[0][0], 'K metric tons')
                 scale = 1e-3
@@ -287,7 +283,7 @@ class SortByRegion(ttk.Frame):
                 self.UpdateEntry(self.table[0][0], 'average')
                 scale = 1.0
             if desiredParam == LAND:
-                self.UpdateEntry(self.table[0][0], 'COUNT')
+                self.UpdateEntry(self.table[0][0], 'Scallops')
                 scale = 1.0
             if desiredParam == LNDW:
                 self.UpdateEntry(self.table[0][0], 'grams')
@@ -296,7 +292,7 @@ class SortByRegion(ttk.Frame):
                 self.UpdateEntry(self.table[0][0], 'land/day')
                 scale = 1.0
             if desiredParam == RECR:
-                self.UpdateEntry(self.table[0][0], 'g/m2' )
+                self.UpdateEntry(self.table[0][0], 'scallops/m2' )
                 scale = 1.0
 
             for row in range(self.numAreas):
@@ -424,6 +420,9 @@ class SortByRegion(ttk.Frame):
             self.shapeLenGB = len(sfGB)
 
         numRegions = self.shapeLenMA + self.shapeLenGB
+        if numRegions > self.maxAreas:
+            messagebox.showerror("Number of Areas ", f'Max is {self.maxAreas} Shapefiles need {numRegions}\nRestart GUI with {numRegions} 8')
+            quit()
         self.shape = [ GeoShape() for _ in range(numRegions)]
 
         for n in range(self.shapeLenMA):
@@ -495,7 +494,9 @@ Export Results
 
     Browse For Export File
         Allows user to select an existing file name or enter their own. The
-        file is not saved until one of the Export buttons is clicked.
+        file is not saved until one of the Export buttons is clicked. The 
+        parameter is appended to the name chosen by the user and csv extension.
+        For example: <UserName>_ABUN_.csv
 
 '''
         #about = re.sub("\n\s*", "\n", about) # remove leading whitespace from each line

@@ -860,8 +860,8 @@ SAVE ALL Configs
 #
 def main():
     nargs = len(sys.argv)
-    maxYears = 15 # this can change as user enters a greater range, start year to stop year
-    if (nargs != 4):
+    maxYears = 5 # this can change as user enters a greater range, start year to stop year
+    if (nargs != 3):
         maxAreas = 25
         maxCorners = 8
         print ("Missing command line arguments. Expecting: ")
