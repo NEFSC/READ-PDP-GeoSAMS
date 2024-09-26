@@ -521,8 +521,6 @@ endfunction Set_Fishing_Effort
 !> \end{cases}
 !> @f]
 !>
-!> TODO: At present the computation does not use the conditional but rather whichever is greater
-!>
 !> Decreasing logistic function,
 !> @f[
 !> \alpha(length) = 1-\frac{1}{1+e^{-length_0[length-a]}}
@@ -558,11 +556,21 @@ function Compute_Natural_Mortality(max_rec_ind, mortality, state_vector, longitu
     ! recruits is the number of scallops in millions
 
     !!!!recruits = sum(state_vector(1:max_rec_ind)) * domain_area_sqm/(10.**6)
+    ! Above equation causes state values to go negative resulting in negative output values
+    ! Furthermore, state_vector() is scallop density by size at a given location, not the whole region
     recruits = sum(state_vector(1:max_rec_ind)) * grid_area_sqm/(10.**6)
     if (longitude > ma_gb_border) then ! GB
-        mortality%natural_mort_juv = max( mortality%natural_mort_adult , exp(1.226_dp * log(recruits) - 10.49_dp ))
+        if (recruits > 1400._dp) then
+            mortality%natural_mort_juv = max( mortality%natural_mort_adult , exp(1.226_dp * log(recruits) - 10.49_dp ))
+        else
+            mortality%natural_mort_juv = 0.2_dp
+        endif
     else
-        mortality%natural_mort_juv = max( mortality%natural_mort_adult , exp(1.093_dp * log(recruits) - 9.701_dp) )
+        if (recruits > 1400._dp) then
+            mortality%natural_mort_juv = max( mortality%natural_mort_adult , exp(1.093_dp * log(recruits) - 9.701_dp) )
+        else
+            mortality%natural_mort_juv = 0.25_dp
+        endif
     endif
 
     Compute_Natural_Mortality(1:num_size_classes) = mortality%alpha(1:num_size_classes) * mortality%natural_mort_juv &
