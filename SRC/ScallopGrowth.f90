@@ -788,8 +788,7 @@ function Time_To_Grow(ts, growth, mortality, recruit, state_vector, fishing_effo
     
         if ( ( t .gt. recruit%rec_start ) .and. ( t .le. recruit%rec_stop) ) then
             if (show_recruits_msg) then
-                write(*,'(A,A,A,I5,A,A,A,I5)') term_blu, 'ADDING IN RECRUITS FOR YEAR', term_blk, year, term_blu, &
-                &     ' USING RECR YR', term_blk, recruit%est_year_src(Rindx)
+                write(*,'(A,I5)') term_blu//'ADDING IN RECRUITS FOR YEAR'//term_blk, year
                 show_recruits_msg = .FALSE.
             endif
             state_vector(1:num_size_classes) = state_vector(1:num_size_classes) +  recruits(1:num_size_classes)

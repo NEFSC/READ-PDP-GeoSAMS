@@ -78,7 +78,7 @@ type DataForPlots
     logical plot_LAND ! Landings by number of scallops
     logical plot_LNDW ! Landings by weight in grams
     logical plot_LPUE ! Landing Per Unit Effort, (per day)
-    logical plot_RECR ! Recruitment
+    logical plot_RECR ! Recruitment in scallops per square meter
 endtype DataForPlots
 
 ! @private @memberof Mortality_Class
@@ -131,7 +131,7 @@ real(dp), PRIVATE :: towing_speed_knots
 real(dp), PRIVATE, allocatable :: expl_biomass_gpsqm(:)
 real(dp), PRIVATE, allocatable :: expl_scallops_psqm(:)
 real(dp), PRIVATE, allocatable :: F_mort(:)
-real(dp), PRIVATE, allocatable :: landings_by_num(:)
+real(dp), PRIVATE, allocatable :: landings_by_num(:) !TODO not really used for other computations
 real(dp), PRIVATE, allocatable :: landings_wgt_grams(:)
 real(dp), PRIVATE, allocatable :: lpue(:)
 real(dp), PRIVATE, allocatable :: fishing_effort(:)
@@ -978,7 +978,7 @@ endfunction Set_Discard
 !>
 !>  EBiomass/ENumber = ESize
 !>  Total Weight of a Tow / Number of scallops caught = mean weight of individual scallop
-!>  expl_biomass_gpsqm(grid) * 4516 / expl_scallops_psqm(grid) * 4516 = expl_weight_g
+!>  expl_biomass_gpsqm(grid) * 4516 / expl_scallops_psqm(grid) * 4516 = mean_expl_wght_g
 !>                             xxxx                                     xxxx
 !>
 !==================================================================================================================
@@ -990,17 +990,17 @@ elemental real(dp) function Calc_LPUE(expl_biomass, expl_scallops)
     ! real(dp), intent(out) :: dredge_time_hrs       !  dredge bottom time
     ! real(dp), intent(out) :: dredge_area_sqnm      !  area swept per day
     real(dp) lpue1_ppd, lpue_limit_ppd
-    real(dp) expl_weight_g, expl_biomass_gptow
+    real(dp) mean_expl_wght_g, expl_biomass_g_in_tow
 
     if ( expl_scallops > 0._dp) then
-        expl_weight_g = expl_biomass / expl_scallops    ! mean weight of individual expl scallop
+        mean_expl_wght_g = expl_biomass / expl_scallops    ! mean weight of individual expl scallop
     else
-        expl_weight_g = 0._dp
+        mean_expl_wght_g = 0._dp
     endif
-    expl_biomass_gptow = expl_biomass * tow_area_sqm ! exploitable biomass in tow
+    expl_biomass_g_in_tow = expl_biomass * tow_area_sqm ! exploitable biomass in tow
 
-    lpue1_ppd = min(lpue_slope2 * expl_biomass_gptow, lpue_slope * expl_biomass_gptow + lpue_intercept)  !piecewise linear relationship between exploitable biomass and lpue_ppd
-    lpue_limit_ppd = max_per_day * expl_weight_g / grams_per_pound !Max weight of scallops that can be shucked in one day
+    lpue1_ppd = min(lpue_slope2 * expl_biomass_g_in_tow, lpue_slope * expl_biomass_g_in_tow + lpue_intercept)  !piecewise linear relationship between exploitable biomass and lpue_ppd
+    lpue_limit_ppd = max_per_day * mean_expl_wght_g / grams_per_pound !Max weight of scallops that can be shucked in one day
     Calc_LPUE = min(lpue1_ppd, lpue_limit_ppd) !Calc_LPUE is constrained by shucking limit
     ! if (lpue1_ppd > 0._dp) then
     !     dredge_time_hrs = max_time_hpd * Calc_LPUE / lpue1_ppd  !Time dredge on bottom in hours

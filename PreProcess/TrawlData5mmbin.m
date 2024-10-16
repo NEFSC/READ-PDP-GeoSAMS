@@ -96,7 +96,7 @@ detect=.4;
 %  standard tow length of 1 nautical mile by 8 ft, or 2.4384 m, wide dredge
 % nautMile_m = 1852.;
 towArea_sqm = 4516.; % nautMile_m * 2.438;
-countPerSqm = detect / towArea_sqm;
+countPerSqm = 1.0 / (towArea_sqm * detect);
 
 yr=refYear;
 flnm=strcat('Data/bin5mm',int2str(yr),domain,'.csv');

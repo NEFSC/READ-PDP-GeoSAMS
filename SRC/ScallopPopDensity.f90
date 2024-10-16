@@ -263,6 +263,7 @@ integer num_time_steps
 integer ts_per_year
 integer num_years
 integer year
+integer recruit_avg_num
 character(4) buf
 character(fname_len) file_name
 
@@ -319,7 +320,7 @@ allocate(fishing_effort(1:num_grids))
 
 call Set_Growth(growth, grid, shell_length_mm, num_time_steps, ts_per_year, domain_name, domain_area,&
 &              state, weight_grams, num_grids)
-call Set_Recruitment(recruit, num_grids, domain_name, domain_area, recruit_yr_strt, recruit_yr_stop,&
+call Set_Recruitment(recruit, num_grids, domain_name, domain_area, recruit_yr_strt, recruit_yr_stop, recruit_avg_num,&
 &                    growth(1:num_grids)%L_inf_mu, growth(1:num_grids)%K_mu, shell_length_mm, start_year, stop_year)
 call Set_Mortality(mortality, grid, shell_length_mm, domain_name, domain_area, num_time_steps, &
 &                    ts_per_year, num_grids)
@@ -333,6 +334,7 @@ write(*,'(A,I6,A,F7.4)') ' Time steps/year:', ts_per_year
 write(*,'(A,I6,A,F7.4)') ' Total number time steps:', num_time_steps
 write(*,'(A,I6)') ' Recruit Start Year: ', recruit_yr_strt
 write(*,'(A,I6)') ' Recruit Stop Year:  ', recruit_yr_stop
+write(*,'(A,I2,A)') ' Averaging Recruitment over: ', recruit_avg_num, ' years'
 write(*,*) '========================================================'
 
 
@@ -394,15 +396,14 @@ END PROGRAM ScallopPopDensity
 !> @param[out] time_steps_per_year Number of times steps to evaluate growth
 !> @param[out] num_monte_carlo_iter Number of iterations for Monte Carlo simulation
 !-----------------------------------------------------------------------
-subroutine Read_Startup_Config(time_steps_per_year, start_year, stop_year,&
-    & domain_name, plot_data_sel)
+subroutine Read_Startup_Config(time_steps_per_year, start_year, stop_year, domain_name, plot_data_sel)
     use globals
     use Mortality_Mod, only : Mortality_Set_Config_File_Name => Set_Config_File_Name, DataForPlots, Set_Select_Data
     use Recruit_Mod, only : Recruit_Set_Config_File_Name => Set_Config_File_Name
     use Grid_Manager_Mod, only : GridMgr_Set_Config_File_Name => Set_Config_File_Name
 
     implicit none
-    integer, intent(out) :: time_steps_per_year ! , num_monte_carlo_iter
+    integer, intent(out) :: time_steps_per_year
     integer, intent(out) :: start_year, stop_year
     character(domain_len), intent(out) :: domain_name
     type(DataForPlots), intent(out) :: plot_data_sel

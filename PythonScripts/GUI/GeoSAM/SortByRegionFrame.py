@@ -26,7 +26,6 @@ from tkinter import filedialog
 
 from Widgets import *
 from PointInPolygon import *
-from AreaManager import *
 from Globals import *
 
 ##
@@ -113,18 +112,28 @@ class SortByRegion(ttk.Frame):
         self.shape = []
         self.shapeLenMA = 0
         self.shapeLenGB = 0
-        self.numAreas = self.GetShapeData() 
+        self.numAreas = self.GetShapeData()
+
+        self.tableRows = self.maxAreas+1 # number of areas plus header
+        self.tableCols = self.maxYears+3 # one for each year, +1 for header, +1 for area,, +1 for initial state
+        self.tableNumYears = self.numYears + 1 # to include inital state
 
         # code for creating table
-        self.table = [[0 for _ in range(self.maxYears+1)] for _ in range(self.maxAreas+1)]
-        for row in range(self.maxAreas+1):
-            for col in range(self.maxYears+1):
-                self.table[row][col] = ttk.Entry(self.sortAreaFrame, width=15)
+        #                   +1 for row header, +1 for region area     +1 for column header
+        self.table = [[0 for _ in range(self.tableCols)] for _ in range(self.tableRows)]
+        for row in range(self.tableRows):
+            for col in range(self.tableCols):
+                if col==0: self.table[row][col] = ttk.Entry(self.sortAreaFrame, width=15)
+                elif row==0: self.table[row][col] = ttk.Entry(self.sortAreaFrame, width=15, justify='center')
+                else: self.table[row][col] = ttk.Entry(self.sortAreaFrame, width=15, justify='right')
                 self.table[row][col].grid(row=row+4, column=col)
         for row in range(self.numAreas):
             self.table[row+1][0].insert(0,self.shape[row].NewSAMS)
+            self.table[row+1][1].insert(0,f'{self.shape[row].areaKm2:.4f}')
+        self.table[0][1].insert(0,'Area (Km^2)')
         for col in range(self.numYears):
-            self.table[0][col+1].insert(0,str(self.yearStart+col))
+            self.table[0][col+3].insert(0,str(self.yearStart+col))
+        self.table[0][2].insert(0, 'Initial State')
 
         self.sortAreaFrame.grid(row=4, column=0, columnspan=10, padx=5)
         self.sortAreaFrame.grid_columnconfigure(0,weight=2)
@@ -143,15 +152,14 @@ class SortByRegion(ttk.Frame):
     def on_visibility(self, event):
         self.paramStr = []
         parmVal = self.friend.GetSelectedOutputs()
-        # ordering of string may not matter. The user ultimately selects the desired value
-        if parmVal & 1: self.paramStr.append(LPUE)
-        if parmVal & 2: self.paramStr.append(EBMS)
-        if parmVal & 4: self.paramStr.append(BIOM)
-        if parmVal & 8: self.paramStr.append(ABUN)
-        if parmVal & 16: self.paramStr.append(LNDW)
-        if parmVal & 32: self.paramStr.append(LAND)
-        if parmVal & 64: self.paramStr.append(FEFF)
-        if parmVal & 128: self.paramStr.append(FMOR)
+        if parmVal & 1: self.paramStr.append(ABUN)
+        if parmVal & 2: self.paramStr.append(BIOM)
+        if parmVal & 4: self.paramStr.append(EBMS)
+        if parmVal & 8: self.paramStr.append(LPUE)
+        if parmVal & 16: self.paramStr.append(FMOR)
+        if parmVal & 32: self.paramStr.append(FEFF)
+        if parmVal & 64: self.paramStr.append(LAND)
+        if parmVal & 128: self.paramStr.append(LNDW)
         if parmVal & 256: self.paramStr.append(RECR)
         self.comboParameter.configure(values=self.paramStr)
         self.comboParameter.current(0)
@@ -160,32 +168,35 @@ class SortByRegion(ttk.Frame):
         self.yearStop = int(self.friend.stopYr.myEntry.get())
         self.domainName = self.friend.domainNameCombo.get()
         self.numYears = self.yearStop - self.yearStart + 1
+        self.tableNumYears = self.numYears + 1
 
         self.numAreas = self.GetShapeData() 
 
+        #
+        # col+3 is to account for row header, i.e. region name and region area
+        #
+        for row in range(self.tableRows):
+            for col in range(self.tableCols):
+                self.table[row][col].grid()
         for row in range(self.numAreas):
-            for col in range(self.numYears):
-                self.table[row+1][col+1].grid()
-        for row in range(self.numAreas):
-            self.table[row+1][0].delete(0,tk.END)
-            self.table[row+1][0].insert(0,self.shape[row].NewSAMS)
+            UpdateEntry(self.table[row+1][0], self.shape[row].NewSAMS)
 
         # remove unused columns
         for row in range(self.numAreas):
             for col in range(self.numYears, self.maxYears):
-                self.table[row+1][col+1].grid_remove()
+                self.table[row+1][col+3].grid_remove()
 
         # remove unused rows
         for row in range(self.numAreas, self.maxAreas):
-            for col in range(self.maxYears+1):
+            for col in range(self.tableCols):
                 self.table[row+1][col].grid_remove()
 
         # restore row header
         for col in range(self.numYears):
-            self.table[0][col+1].grid()
+            self.table[0][col+3].grid()
         # clear col header
         for col in range(self.numYears, self.maxYears):
-            self.table[0][col+1].grid_remove()
+            self.table[0][col+3].grid_remove()
         # restore row header
         for row in range(self.numAreas):
             self.table[row+1][0].grid()
@@ -199,29 +210,34 @@ class SortByRegion(ttk.Frame):
     # @brief Max Number of years has increased, need to add additional columns
     def AppendYears(self, numYears):
         addYears = numYears - self.maxYears
-        for row in range(self.maxAreas+1):
+        for row in range(self.tableRows):
             for col in range(addYears):
-                self.table[row].append(ttk.Entry(self.sortAreaFrame, width=15))
-                self.table[row][self.maxYears+col+1].grid(row=row+4, column=self.maxYears+col+1)
+                if row == 0: self.table[row].append(ttk.Entry(self.sortAreaFrame, width=15, justify='center'))
+                else: self.table[row].append(ttk.Entry(self.sortAreaFrame, width=15, justify='right'))
+                self.table[row][self.maxYears+col+3].grid(row=row+4, column=self.maxYears+col+3)
         for col in range(self.numYears, self.maxYears+addYears):
-            self.table[0][col+1].insert(0,str(self.yearStart+col))
+            self.table[0][col+3].insert(0,str(self.yearStart+col))
 
         self.maxYears = numYears
         self.numYears = numYears
+        self.tableRows = self.maxAreas+1 # number of areas plus header
+        self.tableCols = self.maxYears+3 # one for each year, +1 for header, +1 for area,, +1 for initial state
+        self.tableNumYears = self.numYears + 1 # to include inital state
         # ensure all cells are now visible
-        for row in range(self.numAreas+1):
-            for col in range(self.maxYears+1):
+        for row in range(self.tableRows):
+            for col in range(self.tableCols):
                 self.table[row][col].grid()
 
     ##
     #
     def RunSort(self):
         runSortErrors = 0
-        paramData = [0.0 for _ in range(self.numYears)] # data read in from file
+        paramData = [0.0 for _ in range(self.tableNumYears)] # data read in from file
         rows = self.numAreas
-        cols = self.numYears
+        cols = self.tableNumYears
         accumParamData = [[0.0 for _ in range(cols)] for _ in range(rows)] # accumulated data if in region
         # Used to compute average of data
+        countNonZeroData = [[0.0 for _ in range(cols)] for _ in range(rows)]  # data read in from file
         countData = [[0.0 for _ in range(cols)] for _ in range(rows)]  # data read in from file
         desiredParam = self.comboParameter.get()
         # typical name: Lat_Lon_Grid_EBMS_MA_2015_2017
@@ -244,77 +260,54 @@ class SortByRegion(ttk.Frame):
                     dataArray = [s.strip() for s in line.split(',')]
                     lat = float(dataArray[0])
                     lon = float(dataArray[1])
-                    for i in range(self.numYears):
-                        # column 2 will be initial data and not of interest
-                        paramData[i] = float(dataArray[i+3]) 
+                    # i is index into file array
+                    for i in range(self.tableNumYears):
+                        paramData[i] = float(dataArray[i+2]) 
                     
                     # Now check if the data point (lon, lat) is located in one of the desired areas
-                    # self.areas.areaSubFrame[i] with given coordinates self.areas.areaSubFrame[i].corners[j]
-                    #
-                    # if so, add to accumParamData[i][0:n] += paramData[0:n]
+                    # as stored in: self.shape[row].long[0:n], self.shape[row].lat[0:n]
+                    # 
+                    # if so, add to accumParamData[row][0:n] += paramData[0:n]
 
                     # For each area
-                    for i in range(self.numAreas):
+                    for row in range(self.numAreas):
                         # is (lon, lat) in this area
-                        nodes = len(self.shape[i].lat)
-                        if PointInPolygon(self.shape[i].lon, self.shape[i].lat, lon, lat, nodes):
+                        nodes = len(self.shape[row].lat)
+                        if PointInPolygon(self.shape[row].lon, self.shape[row].lat, lon, lat, nodes):
                             # if so accumulate parameter data
-                            for j in range(self.numYears):
-                                accumParamData[i][j] += paramData[j]
-                                if paramData[j] > 0:
-                                    countData[i][j] += 1
+                            for col in range(self.tableNumYears):
+                                accumParamData[row][col] += paramData[col]
+                                countData[row][col] += 1
+                                if paramData[col] > 0:
+                                    countNonZeroData[row][col] += 1
 
             # display results
-            # Display Units
-            # Python 3.8 does not have match/case so using if elif
-            if desiredParam == ABUN:
-                self.UpdateEntry(self.table[0][0], 'M Scallops/m2')
-                scale = 1e-6
-            if desiredParam == BIOM:
-                self.UpdateEntry(self.table[0][0], 'K metric tons')
-                scale = 1e-3
-            if desiredParam == EBMS:
-                self.UpdateEntry(self.table[0][0], 'metric tons')
-                scale = 1.0
-            if desiredParam == FEFF:
-                self.UpdateEntry(self.table[0][0], 'average')
-                scale = 1.0
-            if desiredParam == FMOR:
-                self.UpdateEntry(self.table[0][0], 'average')
-                scale = 1.0
-            if desiredParam == LAND:
-                self.UpdateEntry(self.table[0][0], 'Scallops')
-                scale = 1.0
-            if desiredParam == LNDW:
-                self.UpdateEntry(self.table[0][0], 'grams')
-                scale = 1.0
-            if desiredParam == LPUE:
-                self.UpdateEntry(self.table[0][0], 'land/day')
-                scale = 1.0
-            if desiredParam == RECR:
-                self.UpdateEntry(self.table[0][0], 'scallops/m2' )
-                scale = 1.0
+            (units, scale) = DetermineUnitsScale(desiredParam)
+            UpdateEntry(self.table[0][0], units)
 
             for row in range(self.numAreas):
-                for col in range(self.numYears):
-                    self.table[row+1][col+1].delete(0,tk.END)
-                    # round to 4 decimal places
-                    # round(x,4) can have unpredicable results, use simple math instead
-                    r = 1e4
+                areaKm2 = self.shape[row].areaKm2
+                # gridKm2 = countData[row][0] * grid_area_sqm / 1.0e6
+                # print(row, ',', areaKm2, ',', gridKm2)
+                for col in range(self.tableNumYears):
                     if desiredParam == BIOM:
                         # convert to metric tons = 1e6 grams
                         # BIOM is in g/m2
-                        # g/m2 * km2 * (1e6 m2/km2) / 1e6
+                        # mt = 1e6 g
+                        # g/m2 * km2 * (1e6 m2/km2) / 1e6 g
                         # mt = g/m2 * km2
-                        areaKm2 = self.shape[row].areaKm2
-                        accumParamData[row][col] = accumParamData[row][col] * areaKm2 
+                        accumParamData[row][col] = accumParamData[row][col] * areaKm2 / countData[row][col]
                     
                     if desiredParam == FEFF or desiredParam == FMOR:
-                        # compute averate
-                        y = int((accumParamData[row][col] * r * scale / countData[row][col]) + 0.5) / r
-                    else:
-                        y = int((accumParamData[row][col] * r * scale) + 0.5) / r
-                    self.table[row+1][col+1].insert(0, str(y))
+                        # compute average
+                        accumParamData[row][col] = accumParamData[row][col] / countNonZeroData[row][col]
+                    
+                    if desiredParam == ABUN or desiredParam == RECR:
+                        # compute density average
+                        accumParamData[row][col] = accumParamData[row][col] / countData[row][col]
+
+                    # round to 4 decimal places
+                    UpdateEntry(self.table[row+1][col+2], f'{(accumParamData[row][col] * scale):.4f}')
 
         else:
             messagebox.showerror("Reading Parameter File", f'No data for '+fileName+'\nHas Simulation been run?\nAre years correct?')
@@ -324,15 +317,9 @@ class SortByRegion(ttk.Frame):
     
     ##
     #
-    def UpdateEntry(self, entry, val):
-        entry.delete(0,tk.END)
-        entry.insert(0, val)
-
-    ##
-    #
     def UpdateWidgets(self):
         f = self.exportFileName.split('/')
-        self.UpdateEntry(self.exportFileEntry, f[-1])
+        UpdateEntry(self.exportFileEntry, f[-1])
 
     ##
     #
@@ -341,7 +328,7 @@ class SortByRegion(ttk.Frame):
         file_path = filedialog.asksaveasfilename(title="Open CSV File", filetypes=[("CSV files", "*.csv")], initialdir=self.resultsDir)
         if file_path:
             f = file_path.split('/')
-            self.UpdateEntry(self.exportFileEntry, f[-1])
+            UpdateEntry(self.exportFileEntry, f[-1])
             self.exportFileName = file_path
 
     ## This method exports ouput parameter table to its own file name
@@ -356,12 +343,15 @@ class SortByRegion(ttk.Frame):
                 # get current parameter
                 outStr = self.comboParameter.get()
                 print('Sorting: ', outStr)
-                exportFileName = self.exportFileName + '_' + outStr + '.csv'
+                # User may have used '.' in name, just remove extension
+                dot = len(self.exportFileName) - 4
+                exportFileName = self.exportFileName[0:dot] + '_' + outStr + '.csv'
                 with open(exportFileName, 'w') as f:
                     # +1 is to include column and row headers
                     for a in range(self.numAreas+1):
-                        for yr in range(self.numYears+1):
+                        for yr in range(self.tableNumYears+1):
                             f.write(self.table[a][yr].get() + ',')
+                        f.write(self.table[a][self.tableNumYears+1].get())
                         f.write('\n')
                     f.close()
                 if not nomsg: messagebox.showinfo('Export This', f'FILE SAVED: {exportFileName}')

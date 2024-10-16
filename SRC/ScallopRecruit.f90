@@ -22,7 +22,6 @@ type Recruitment_Class
     real(dp) rec_start
     real(dp) rec_stop
     integer year(max_n_year)
-    integer est_year_src(max_n_year)
     integer n_year
     !! max_rec_ind is the largest size class treated as a recruit
     integer max_rec_ind
@@ -36,6 +35,7 @@ real(dp), PRIVATE :: domain_area_sqm
 
 integer, PRIVATE :: recruit_yr_strt ! start of available recruitment data
 integer, PRIVATE :: recruit_yr_stop  ! end of available recruitment data
+integer, PRIVATE :: recruit_avg_num ! number of years to read and average recruit estimates
 integer, PRIVATE :: n_rand_yrs
 integer, PRIVATE :: sim_start_year  ! start of the growth period
 integer, PRIVATE :: sim_stop_year   ! end of the growth period
@@ -65,14 +65,14 @@ CONTAINS
 !> @param[in] yr_start simulation start year
 !> @param[in] yr_stop simulation end year
 !==================================================================================================================
-subroutine Set_Recruitment(recruit, n_grids, dom_name, dom_area, recr_yr_strt, recr_yr_stop, &
+subroutine Set_Recruitment(recruit, n_grids, dom_name, dom_area, recr_yr_strt, recr_yr_stop, recruit_avg,&
     & L_inf_mu, K_mu, shell_length_mm, yr_start,  yr_stop)
     use globals
     type(Recruitment_Class), intent(inout) :: recruit(*)
     integer, intent(in) :: n_grids
     character(domain_len), intent(in) :: dom_name
     real(dp), intent(in) :: dom_area
-    integer, intent(out) :: recr_yr_strt, recr_yr_stop
+    integer, intent(out) :: recr_yr_strt, recr_yr_stop, recruit_avg
     real(dp), intent(in) :: L_inf_mu(*)
     real(dp), intent(in) :: K_mu(*)
     real(dp), intent(in) :: shell_length_mm(*)
@@ -80,6 +80,7 @@ subroutine Set_Recruitment(recruit, n_grids, dom_name, dom_area, recr_yr_strt, r
 
     integer n, j, year, year_index, random_year
     real(dp) tmp(n_grids)
+    real(dp) accum_est(n_grids)
     character(72) buf
     real(dp) L30mm
 
@@ -92,7 +93,17 @@ subroutine Set_Recruitment(recruit, n_grids, dom_name, dom_area, recr_yr_strt, r
     ! * Ten years in duration, e.g. 2022 - 2031
     ! * Recruit Yr 2012 - 2023
     ! * HabCam Data Habcam_BySegment_2000_2011-2023 (could also pick Habcam_BySegment_2000_2011-2023_v2)
-    integer, parameter ::  rand_idx_debug(10) = (/4, 8, 10, 12, 8, 10, 12, 10, 4, 2/)
+    !integer, parameter :: rand_idx_debug(10) = (/4, 8, 10, 12, 8, 10, 12, 10, 4, 2/)
+    integer, parameter :: rand_idx_debug(10,3) = reshape( (/ 4, 9, 8,&
+    &                                                        8, 9, 7,&
+    &                                                       10, 2, 7,&
+    &                                                       12,11, 9,&
+    &                                                        8, 9, 7,&
+    &                                                       10, 9, 2,&
+    &                                                       12,11,12,&
+    &                                                       10, 2,10,&
+    &                                                        4, 9, 8,&
+    &                                                        2,11, 4/), shape(rand_idx_debug), order=(/2,1/) )
 #endif
 
     ! Used to define weighting
@@ -123,6 +134,7 @@ subroutine Set_Recruitment(recruit, n_grids, dom_name, dom_area, recr_yr_strt, r
     sim_stop_year  = yr_stop
     recr_yr_strt = recruit_yr_strt
     recr_yr_stop = recruit_yr_stop
+    recruit_avg  = recruit_avg_num
     n_rand_yrs = recruit_yr_stop - recruit_yr_strt + 1
 
     allocate(weights(1:n_rand_yrs))
@@ -158,38 +170,45 @@ subroutine Set_Recruitment(recruit, n_grids, dom_name, dom_area, recr_yr_strt, r
     do year = sim_start_year, sim_stop_year
         year_index = year_index + 1
 
+        accum_est = 0.0_dp
+        ! want to average random estimates over recruit_avg_num years
+        do j = 1, recruit_avg_num
 #ifdef USE_FIXED_RAND
-        rand_idx = rand_idx_debug(year_index)
-#else
-        rand_idx = random_index()
-#endif
-        random_year = recruit_yr_strt - 1 + rand_idx
+        !rand_idx = rand_idx_debug(year_index)
+            rand_idx = rand_idx_debug(year_index,j)
 
-        write(buf,'(I4)')random_year
-        fname = rec_input_dir//'RecruitEstimate'//domain_name//trim(adjustl(buf))//'.txt'
-        inquire(file=fname, exist=exists)
-        if (exists) then
-            PRINT *, term_blu, trim(fname), ' FOUND', term_blk, year, year_index, rand_idx
-        else
-            PRINT *, term_red, trim(fname), ' NOT FOUND', term_blk
-            stop 1
-        endif
-        n=num_grids
-        call Read_Scalar_Field(fname, tmp, n)
-        if (n .NE. num_grids) then
-            PRINT *, term_red, 'OOPS something went wrong reading recruits', &
-            & term_blk, n, term_red, ' in file does not match expected', term_blk, num_grids
-            STOP 1
-        endif
+#else
+            rand_idx = random_index()
+#endif
+            random_year = recruit_yr_strt - 1 + rand_idx
+
+            write(buf,'(I4)')random_year
+            fname = rec_input_dir//'RecruitEstimate'//domain_name//trim(adjustl(buf))//'.txt'
+            inquire(file=fname, exist=exists)
+            if (exists) then
+                write(*,'(A,I2,A,I5)') ' Estimate #',j, term_blu//' '//trim(fname)//' found for'//term_blk, year
+            else
+                PRINT *, 'Estimate #',j, term_red, trim(fname), ' NOT FOUND', term_blk
+                stop 1
+            endif
+            n=num_grids
+            call Read_Scalar_Field(fname, tmp, n)
+            if (n .NE. num_grids) then
+                PRINT *, term_red, 'OOPS something went wrong reading recruits', &
+                & term_blk, n, term_red, ' in file does not match expected', term_blk, num_grids
+                STOP 1
+            endif
+            accum_est = accum_est + tmp
+        enddo ! 1, recruit_avg_num
+
         do j = 1,num_grids
             if (year_index > 1) then
-                recruit(j)%recruitment(year_index) = tmp(j)
+                recruit(j)%recruitment(year_index) = accum_est(j) / float(recruit_avg_num)
             else
                 ! recruitment is already accounted for in the first year
                 recruit(j)%recruitment(year_index) = 0._dp
             endif
             recruit(j)%year(year_index) = year
-            recruit(j)%est_year_src(year_index) = random_year
             recruit(j)%rec_start = recr_period_start
             recruit(j)%rec_stop = recr_period_stop
         enddo
@@ -275,6 +294,7 @@ subroutine Read_Configuration()
 
     recruit_yr_strt = 2012
     recruit_yr_stop = 2023
+    recruit_avg_num = 3
 
     write(*,*) 'READING IN ', config_file_name
 
@@ -306,6 +326,9 @@ subroutine Read_Configuration()
 
             case('Recruit Year Stop')
                 read(value,*) recruit_yr_stop
+
+            case('Avg Recr Over Years')
+                read(value,*) recruit_avg_num
 
             case default
                 write(*,*) term_red, 'Unrecognized line in ',config_file_name

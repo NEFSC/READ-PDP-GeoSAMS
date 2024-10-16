@@ -27,8 +27,6 @@ clopCol    = find(strcmpi('clop'   , header), 1);
 
 domList = {'MA', 'GB', 'AL'};
 
-detect=.4;
-
 isOctave = (exist('OCTAVE_VERSION', 'builtin') ~= 0);
 
 if isOctave
@@ -66,7 +64,7 @@ if isOctave
     year = M(:,yearCol);
     sg = M(:,sgCol);
     % convert count to density
-    M(:,svCol) = (detect * M(:,svCol)) ./ M(:,sqmCol);
+    M(:,svCol) = M(:,svCol) ./ M(:,sqmCol);
 else % NOT Octave
     M = readtable(dataFile,"FileType","text");
     if ~strcmp(domain, 'AL')
@@ -83,13 +81,13 @@ else % NOT Octave
     % convert count to density
     svData = table2array(M(:,svCol));
     svArea = table2array(M(:,sqmCol));
-    svData = (detect * svData) ./ svArea;
+    svData = svData ./ svArea;
     M(:,svCol) = array2table(svData,'VariableNames',{'surv_n'});
     year = table2array(M(:,yearCol));
     sg = table2array(M(:,sgCol));
 end
 
-% 
+%
 yr=refYear;
 X=[];
 j= year==yr & sg==3.;
@@ -104,7 +102,7 @@ else
         stratum_t = M(j,stratumCol);
         % Setting to INTEGER, Fortran read is expecting integer anyway
         % Changing NaN to UNDEFINED
-        k = isnan(stratum_t); stratum_t(k) = UNDEF_REGION; 
+        k = isnan(stratum_t); stratum_t(k) = UNDEF_REGION;
         is_closed_t = M(j,clopCol);
         lat_t = M(j,latCol);
         lon_t = M(j,lonCol);
@@ -123,7 +121,7 @@ else
         % Setting to INTEGER, Fortran read is expecting integer anyway
         % Changing NaN to UNDEFINED
         stratum=table2array(stratum_t);
-        k = isnan(stratum); 
+        k = isnan(stratum);
         stratum(k) = UNDEF_REGION;
         stratum_t=array2table(stratum,'VariableNames',{'stratum'});
         is_closed_t = M(j,clopCol);

@@ -230,4 +230,19 @@ integer function DayOfYear(m, d)
 
 endfunction DayOfYear
 
+!===================================================================
+! Test for float not a number
+! None of these tests worked
+! - (tmp /= tmp), 
+! - isnan(tmp)
+! - (.not.tmp<1.and..not.tmp>1) 
+!===================================================================
+logical function Is_NAN(x)
+    real(dp), intent(in) :: x
+    character(3) buf
+
+    write(buf, '(F3.0)') x
+    Is_NAN = (buf(1:3) == 'NaN')
+endfunction
+
 end module globals

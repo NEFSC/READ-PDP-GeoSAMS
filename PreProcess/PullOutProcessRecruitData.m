@@ -3,7 +3,7 @@
 % grp 4 as a single row.
 %
 % Processing continues on this array.
-% - Dredge Data, if chosend,  requires further processing to adjust for scallops detected vs actual 
+% - Dredge Data, if chosend,  requires further processing to adjust for scallops detected vs actual
 %   and depth adjustments. HabCam needs no further adjustment.
 %
 % Dredge and HabCam data are combined into a single array and then sorted by year
@@ -33,8 +33,6 @@ if ~strcmp(domain, 'GB') && ~strcmp(domain, 'MA') && ~strcmp(domain, 'AL')
   fprintf( "Use: 'MA' or 'GB' or 'AL'\n" )
   return;
 end
-
-isOctave = (exist('OCTAVE_VERSION', 'builtin') ~= 0);
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%% DREDGE DATA %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 % First consider dredge data
@@ -137,7 +135,7 @@ end
 % if NAN or blank, i.e. 0
 j = find(isnan(mon));mon(j)=6;day(j)=21;% assign missing date to summer solstice
 j = find(~(mon));mon(j)=6;day(j)=21;% assign missing date to summer solstice
-  
+
 len = length(year);
 yd = zeros(len,1);
 for n=1:len
@@ -292,7 +290,7 @@ lonCol   = 5;
 utmxCol  = 6;
 utmyCol  = 7;
 depthCol = 8;
-recrCol  = 9; 
+recrCol  = 9;
 
 if isOctave
     year= MHC(:,yearCol);
@@ -342,7 +340,7 @@ lonCol   = 3;
 utmxCol  = 4;
 utmyCol  = 5;
 depthCol = 6;
-recrCol  = 7; 
+recrCol  = 7;
 decYr= M(:,yearCol);
 lat=  M(:,latCol);
 lon=  M(:,lonCol);

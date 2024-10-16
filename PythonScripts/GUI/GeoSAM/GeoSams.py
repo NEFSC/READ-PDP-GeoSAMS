@@ -58,6 +58,7 @@ import multiprocessing
 import time
 from collections import defaultdict
 from multiprocessing import Process
+from datetime import datetime
 
 from MainInputFrame import *
 from GrowthFrame import *
@@ -75,7 +76,7 @@ from Globals import *
 #  arg#        1     2              3                  4                   5
 def Interpolate(ukCfgFile, domainName, obsFile, gridFile, zArg, procID, retDict):
     ex = os.path.join('UKsrc', 'UK')
-    outputFile = 'proc_' + obsFile + '_' + str(procID).zfill(3) +'.txt'
+    outputFile = 'proc_' + str(procID).zfill(3) + '_' + obsFile + '.txt'
     cmd = [ex, ukCfgFile, domainName, obsFile + '.csv', gridFile, zArg]
     with open(outputFile, "w") as outfile:
         result = subprocess.run(cmd, stdout=outfile)
@@ -89,6 +90,9 @@ class MainApplication(tk.Tk):
         super().__init__()
 
         # member variables
+        self.monDict = {'JAN':0, 'FEB':1, 'MAR':2, 'APR':3, 'MAY':4, 'JUN':5, 'JUL':6, 'AUG':7, 'SEP':8, 'OCT':9, 'NOV':10, 'DEC':11} 
+        self.daysInYear = [0, 31, 59, 90, 120, 151, 181, 212, 243, 273, 304, 334]
+
         self.maxAreas = maxAreas
         self.maxCorners = maxCorners
         self.maxYears = maxYears
@@ -134,6 +138,7 @@ class MainApplication(tk.Tk):
         # NOTE: These will still be default values as the user would not as yet entered anything!!
         self.simConfigFile  = os.path.join(self.root,configDir, simCfgDir, self.frame1.simCfgFile.myEntry.get())
         self.ukConfigFile   = os.path.join(self.root,configDir, interCfgDir, self.frame1.ukCfgFile.myEntry.get())
+        self.recrConfigFile = os.path.join(self.root,configDir, simCfgDir, self.frame1.recrCfgFile.myEntry.get())
 
         self.frame2 = EditMathSetup(self.notebook)
         self.frame3 = Growth(self.notebook, self)
@@ -142,7 +147,6 @@ class MainApplication(tk.Tk):
         self.frame6 = SpecialArea(self.notebook, self, self.maxAreas, self.maxCorners)
         self.frame7 = FishMortBySpecAcc(self.notebook, self.maxAreas, self.maxCorners)
         self.frame8 = SortByRegion(self.notebook, self.frame1, self.maxAreas, self.maxYears, self.paramStr)
-        self.ReadUKConfigFile()
 
         self.gmConfigFile = os.path.join(self.root,configDir, simCfgDir, self.frame6.gmCfgFile.myEntry.get())
 
@@ -169,6 +173,8 @@ class MainApplication(tk.Tk):
         ttk.Button(self, text='SAVE ALL Configs', style="BtnGreen.TLabel", command=self.SaveConfigFiles).place(relx=.5, rely=1, anchor='s')
         ttk.Button(self, text= "Help", style="Help.TLabel", command = self.pop_up).place(relx=.75, rely=1, anchor='s')
 
+        self.ReadUKConfigFile()      # update current UK settings
+        self.ReadRecruitConfigFile() # update current recruitment settings
     ##
     #
     def ToggleSkipStatusMsgs(self):
@@ -302,6 +308,7 @@ class MainApplication(tk.Tk):
     #                                        ^ MA is divided into North and South to better display the data
     #
     def InterpAndPlotResults(self):
+        rets = 0
         years = range(self.yearStart-1, self.yearStop+1) # year_start-1 is initial state
 
         # set configuration file name for UK.exe
@@ -393,6 +400,13 @@ class MainApplication(tk.Tk):
                     if procNum == numCores:
                         for proc in procs:
                             proc.join()
+                        
+                        # We are not trying to identify which process failed, just that something failed
+                        # the user can look into the proc*.txt files to see what failed and why.
+                        rets = sum(retDict.values())
+                        if rets > 0:
+                            return (retDict, 0)
+                        
                         procs = []
                         procNum = 0
                         print('Finished set through {}\n'.format(procID))
@@ -403,6 +417,12 @@ class MainApplication(tk.Tk):
         # finish up any remaining procs
         for proc in procs:
             proc.join()
+
+        # We are not trying to identify which process failed, just that something failed
+        # the user can look into the proc*.txt files to see what failed and why.
+        rets = sum(retDict.values())
+        if rets > 0:
+            return (retDict, 0)
 
         # all survey data is now interpolated. Process CSV files to combine the years
         for pStr in self.paramStr:
@@ -552,20 +572,46 @@ class MainApplication(tk.Tk):
     #     However, leap year is handled in the main loop 
     #     in which it is considered only for the current year
     def ConvertMonthDayToDayOfYr(self, monthDayStr):
-        monDict = {'JAN':0, 'FEB':1, 'MAR':2, 'APR':3, 'MAY':4, 'JUN':5, 'JUL':6, 'AUG':7, 'SEP':8, 'OCT':9, 'NOV':10, 'DEC':11} 
-        daysInYear = [0, 31, 59, 90, 120, 151, 181, 212, 243, 273, 304, 334]
         parseArr = [s.strip() for s in monthDayStr.split(' ')]
         month = parseArr[0]
         day = int(parseArr[1])
 
-        dayOfYear = daysInYear[monDict[month]] + day
-        # 
-        # Apply offset for Growth Year starting May 31 @ 2400, or Jun1 1 @ 0000
-        if dayOfYear - daysInYear[monDict['JUN']] > 0: 
-            dayOfYear = dayOfYear - daysInYear[monDict['JUN']]
-        else:
-            dayOfYear = dayOfYear - daysInYear[monDict['JUN']] + 365
+        dayOfYear = self.daysInYear[self.monDict[month]] + day
+        # Apply offset
+        dayOfYear = (dayOfYear - self.daysInYear[self.monDict['JUN']]) % 365
         return dayOfYear
+    
+    def ConvertDayOfYrToMonthDay(self, dayOfYear):
+        # Remove offset
+        dayOfYear = (dayOfYear + self.daysInYear[self.monDict['JUN']]) % 365
+        dayOfYear_str = str(dayOfYear)
+        # adjusting day num
+        dayOfYear_str.rjust(3 + len(dayOfYear_str), '0')
+         # Initialize non-leap year
+        year = "1900"
+        # converting to date
+        res = datetime.strptime(year + "-" + dayOfYear_str, "%Y-%j").strftime("%m-%d-%Y")
+        f = res.split('-')
+        return(int(f[0]), int(f[1]))
+    
+    ## 
+    # Read in the (tag, value) parameters from the recruitment to update parameters.
+    #
+    def ReadRecruitConfigFile(self):
+        tags = self.ReadConfigFile(self.recrConfigFile)
+
+        for (tag, value) in tags:
+            if (tag == 'Stop Period'): 
+                (month,day) = self.ConvertDayOfYrToMonthDay(int(value))
+                self.frame1.stopDayComboMonth.current(month-1)
+                self.frame1.stopDayComboDay.current(day-1)
+            if (tag == 'Start Period'): 
+                (month,day) = self.ConvertDayOfYrToMonthDay(int(value))
+                self.frame1.startDayComboMonth.current(month-1)
+                self.frame1.startDayComboDay.current(day-1)
+            if (tag == 'Recruit Year Strt'): UpdateEntry(self.frame1.recrYrStrt.myEntry, value)
+            if (tag == 'Recruit Year Stop'): UpdateEntry(self.frame1.recrYrStop.myEntry, value)
+            if (tag == 'Avg Recr Over Years'): UpdateEntry(self.frame1.numYrsAvg.myEntry, value)
 
     ##
     # Saves recruitment parameters to a configuration file.
@@ -587,13 +633,15 @@ class MainApplication(tk.Tk):
             f.write('# configuration file for Recruitment\n')
             f.write('###############################\n')
             f.write('# Start of Growth Year is June 1 at 00:00\n')
-            f.write('# Period in Day of Year should already have offset computed\n')
-            f.write('# Period is converted to fraction of year by GeoSAMS\n')
+            f.write('# Thus this represents the number of days from May 31\n')
+            f.write('# Start/Stop Period should already have offset computed\n')
             f.write('Start Period = {}\n'.format(startPeriod))
             f.write('Stop Period = {}\n'.format(stopPeriod))
             f.write('###############################\n')
             f.write('Recruit Year Strt = {}\n'.format(self.frame1.recrYrStrt.myEntry.get()))
             f.write('Recruit Year Stop = {}\n'.format(self.frame1.recrYrStop.myEntry.get()))
+            f.write('###############################\n')
+            f.write('Avg Recr Over Years = {}\n'.format(self.frame1.numYrsAvg.myEntry.get()))
             f.close()
             
     ##

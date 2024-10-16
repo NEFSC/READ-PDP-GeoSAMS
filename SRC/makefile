@@ -26,7 +26,7 @@ FFLAGS = -cpp
 # #ifdef USE_FIXED_RAND uses the same vs random index for each run to show consistent output
 # #ifdef ACCUM_LANDINGS then landing values are accumulated for the year rather than just the last timestep period
 #
-FFLAGS += -DUSE_FIXED_RAND -UACCUM_LANDINGS
+FFLAGS += -UUSE_FIXED_RAND -UACCUM_LANDINGS
 # other
 FFLAGS += -g -Wall -std=f95 -fall-intrinsics 
 

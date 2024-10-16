@@ -68,7 +68,7 @@ class MainInput(ttk.Frame):
         self.openSimConfigButton = ttk.Button(simFrame, text='Change/Save Sim File', style="BtnBluGrn.TLabel", command=self.GetSimConfigFName)
         self.openSimConfigButton.grid(row=2, column=3)
         #-------------------------------------------------------------------------------------------
-        simFrame.grid(row=1, column=0, padx=5, sticky='n')
+        simFrame.grid(row=1, column=0, padx=5, pady=0, sticky='n')
         # +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
         interpFrame = ttk.LabelFrame(self, text='Interpolation Configuration Files', style='SAMS.TFrame')
         self.ukCfgFile = SubFrameElement(self, interpFrame, '', 'UK.cfg', 0, 0, 1, width=20)
@@ -82,7 +82,7 @@ class MainInput(ttk.Frame):
         self.openPDFButton = ttk.Button(showResultsFrame, text='Open PDF File', style="BtnGreen.TLabel", command=self.OpenPDF)
         self.openPDFButton.grid(row=0, column=0, padx=10, sticky='we')
         #-------------------------------------------------------------------------------------------
-        showResultsFrame.grid(row=2, column=0, padx=5, sticky='e')
+        showResultsFrame.grid(row=2, column=0, padx=5, pady=0, sticky='e')
         # +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
         survDataFrame = ttk.LabelFrame(self, text='Survey Data Files, Environment Variables', style='SAMS.TFrame')
         self.dredgeDataFile = SubFrameElement(self, survDataFrame, 'Dredge Survey Data File', 'dredgetowbysize7917',  0, 0, 1, width=35)
@@ -141,34 +141,35 @@ class MainInput(ttk.Frame):
         self.stopDayComboDay.bind('<<ComboboxSelected>>', self.CheckStopDay)
         self.stopDayComboDay.grid(row=1, column=2, padx=5, sticky='e')
         #-------------------------------------------------------------------------------------------
-        self.recrYrStrt = SubFrameElement(self, recruitFrame, 'Recruit Yr Start', '2012',      0, 3, 4,
+        self.recrYrStrt = SubFrameElement(self, recruitFrame, 'Recruit Yr Start', '2012', 0, 3, 4,
                                           enterCmd=self.EnterKeyClicked, valCmd=numbersCallback)
         #-------------------------------------------------------------------------------------------
-        self.recrYrStop = SubFrameElement(self, recruitFrame, 'Recruit Yr Stop ', '2023',      1, 3, 4,
+        self.recrYrStop = SubFrameElement(self, recruitFrame, 'Recruit Yr Stop ', '2023', 1, 3, 4,
+                                          enterCmd=self.EnterKeyClicked, valCmd=numbersCallback)
+        # --------------------------------------------------------------------------------------------------------
+        self.numYrsAvg = SubFrameElement(self, recruitFrame, 'Number of Years to Avg', '3', 2, 3, 4,
                                           enterCmd=self.EnterKeyClicked, valCmd=numbersCallback)
         #-------------------------------------------------------------------------------------------
-        recruitFrame.grid(row=3, column=1, padx=5, sticky='w')
+        recruitFrame.grid(row=3, column=1, padx=5, pady=0, sticky='w')
         # +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-        durationFrame = ttk.LabelFrame(self, text='Duration', style='SAMS.TFrame')
+        durationFrame = ttk.LabelFrame(self, text='Duration: Growth Year Starts June 1 @ 00:00', style='SAMS.TFrame')
         #------------------------------------------------------------------------------------------
-        ttk.Label(durationFrame, text='Growth Year Starts June 1 @ 00:00').grid(row=0, column=0, padx=20)
-        #-------------------------------------------------------------------------------------------
-        self.startYr    = SubFrameElement(self, durationFrame, 'Start Year',       '2022',       1, 0, 1,
+        self.startYr    = SubFrameElement(self, durationFrame, 'Start Year', '2022', 0, 0, 1,
                                           enterCmd=self.EnterKeyClicked, valCmd=numbersCallback)
         #-------------------------------------------------------------------------------------------
-        self.stopYr     = SubFrameElement(self, durationFrame, 'Stop Year ',       '2025',       2, 0, 1,
+        self.stopYr     = SubFrameElement(self, durationFrame, 'Stop Year ', '2025', 1, 0, 1,
                                           enterCmd=self.EnterKeyClicked, valCmd=numbersCallback)
         #-------------------------------------------------------------------------------------------
-        self.tsPerYear  = SubFrameElement(self, durationFrame, 'Time Steps / Year', str(tsPerYear), 3, 0, 1)
+        self.tsPerYear  = SubFrameElement(self, durationFrame, 'Time Steps / Year', str(tsPerYear), 2, 0, 1)
         #-------------------------------------------------------------------------------------------
         self.domainNameLabel = ttk.Label(durationFrame, text='Domain Name')
-        self.domainNameLabel.grid(row=4, column=0, pady=5)
+        self.domainNameLabel.grid(row=3, column=0, pady=5)
         #-------------------------------------------------------------------------------------------
         self.domainNameCombo = ttk.Combobox(durationFrame, width=3, values=['MA', 'GB', 'AL'])
         self.domainNameCombo.current(2)
-        self.domainNameCombo.grid(row=4, column=1, sticky='w', pady=5)
+        self.domainNameCombo.grid(row=3, column=1, sticky='w', pady=5)
         #-------------------------------------------------------------------------------------------
-        durationFrame.grid(row=2, column=1, padx=5, sticky='w')
+        durationFrame.grid(row=2, column=1, padx=5, pady=0, sticky='w')
         # +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
         outputSelFrame = ttk.LabelFrame(self, text='Output Selection', style='SAMS.TFrame')
         #-------------------------------------------------------------------------------------------
@@ -201,11 +202,11 @@ class MainInput(ttk.Frame):
         #-------------------------------------------------------------------------------------------
         ttk.Checkbutton(outputSelFrame, text='Recruitment',   variable=self.recrVar , command=self.CBSelectedOutput).grid(row=2, column=2, sticky='sw', padx=10, pady=5)
         #-------------------------------------------------------------------------------------------
-        outputSelFrame.grid(row=1, column=1, padx=5, sticky='n')
+        outputSelFrame.grid(row=1, column=1, padx=5, pady=0, sticky='n')
         # +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
         # +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
         helpButton = ttk.Button(self, text= "Main Help", style="Help.TLabel", command = self.pop_up)
-        helpButton.grid(row=0, column=1)
+        helpButton.grid(row=4, column=3)
 
     ## This method is called on both Enter Key clicked and goes out of focus
     #
@@ -269,8 +270,8 @@ class MainInput(ttk.Frame):
     #  @brief Bit shifts (multiplies) checkbuttons and computes bit position value.
     #
     def ComputeSelectOuputValue(self):
-        value = (self.abunVar.get()<<3) + (self.bmsVar.get()<<2) + (self.ebmsVar.get()<<1) + self.lpueVar.get()\
-              + (self.fmortVar.get()<<7) + (self.feffVar.get()<<6) + (self.landVar.get()<<5) + (self.lndwVar.get()<<4)\
+        value = (self.abunVar.get())     + (self.bmsVar.get()<<1) + (self.ebmsVar.get()<<2) + (self.lpueVar.get()<<3)\
+              + (self.fmortVar.get()<<4) + (self.feffVar.get()<<5) + (self.landVar.get()<<6) + (self.lndwVar.get()<<7)\
               + (self.recrVar.get()<<8)
         return value
 

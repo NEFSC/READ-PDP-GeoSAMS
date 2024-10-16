@@ -22,7 +22,7 @@ from Globals import *
 class AreaManager(ttk.Frame):
     
     def __init__(self, container, parent, maxAreas, maxCorners, elementRow, elementCol, cornerRow, cornerColumn, labelArr,
-                 includeYears=False, numYearsMax=0, yearStart=0, yearStop=0):
+                 includeYears=False, numYearsMax=0, yearStart=0, yearStop=0, includeArea=False):
         super().__init__()
 
         self.numAreasMax = maxAreas
@@ -35,7 +35,7 @@ class AreaManager(ttk.Frame):
         self.areaData = [Corner(self.numCornersMax) for _ in range(self.numAreasMax)]
         self.areaSubFrame = [AreaMgrSubFrame(self, parent, a, self.numCorners, self.numCornersMax,  
                                          a+elementRow, elementCol, cornerRow, cornerColumn, labelArr,
-                                         includeYears, numYearsMax, yearStart, yearStop) for a in range(self.numAreasMax)]
+                                         includeYears, numYearsMax, yearStart, yearStop, includeArea) for a in range(self.numAreasMax)]
 
         self.scrollFrame = ScrollFrame(self) # add a new scrollable frame.
         
@@ -195,10 +195,13 @@ class AreaManager(ttk.Frame):
     #------------------------------------------------------------------------------------------------
     def UpdateWidgets(self):
         for i in range(self.numAreas):
-            self.areaSubFrame[i].commentEntry.myEntry.delete(0,tk.END)
-            self.areaSubFrame[i].commentEntry.myEntry.insert(0,self.areaSubFrame[i].comment)
-            self.areaSubFrame[i].numCornersEntry.myEntry.delete(0,tk.END)
-            self.areaSubFrame[i].numCornersEntry.myEntry.insert(0, str(self.areaData[i].numCorners))
+            # self.areaSubFrame[i].commentEntry.myEntry.delete(0,tk.END)
+            # self.areaSubFrame[i].commentEntry.myEntry.insert(0,self.areaSubFrame[i].comment)
+            UpdateEntry(self.areaSubFrame[i].commentEntry.myEntry, self.areaSubFrame[i].comment)
+            UpdateEntry(self.areaSubFrame[i].compAreaEntry.myEntry,  f'{self.areaSubFrame[i].myArea:.4f}'+' Km^2')
+            # self.areaSubFrame[i].numCornersEntry.myEntry.delete(0,tk.END)
+            # self.areaSubFrame[i].numCornersEntry.myEntry.insert(0, str(self.areaData[i].numCorners))
+            UpdateEntry(self.areaSubFrame[i].numCornersEntry.myEntry, str(self.areaData[i].numCorners))
             self.areaSubFrame[i].NumCornersUpdate()
             for j in range(self.areaData[i].numCorners):
                 self.areaSubFrame[i].corners[j].longitude.myEntry.delete(0,tk.END)
@@ -244,7 +247,7 @@ class Corner:
 #
 class AreaMgrSubFrame(tk.Frame):
     def __init__(self, container, parent, areaNum, numCorners, numCornersMax, elementRow, elementCol, cornerRow, cornerCol, labelArr,
-                 includeYears=False, numYearsMax=0, yearStart=0, yearStop=0):
+                 includeYears=False, numYearsMax=0, yearStart=0, yearStop=0, includeArea=False):
         super().__init__()
         self.numCornersMax = numCornersMax
         self.startincCol = 0
@@ -252,6 +255,7 @@ class AreaMgrSubFrame(tk.Frame):
         self.yearStop = yearStop
         self.numYearsMax = numYearsMax
         self.comment = ''
+        self.myArea = 0.0
 
         self.areaFrame = ttk.LabelFrame(parent, text='Area '+str(areaNum+1))
         # +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
@@ -267,6 +271,10 @@ class AreaMgrSubFrame(tk.Frame):
         # --------------------------------------------------------------------------------------------------------
         self.commentEntry = SubFrameElement(self, self.areaFrame, 'Comment',  '',  cornerRow, self.startincCol+cornerCol,
                                             self.startincCol+cornerCol+1, width=25,
+                                            enterCmd=self.SaveField)
+        # --------------------------------------------------------------------------------------------------------
+        if includeArea: self.compAreaEntry = SubFrameElement(self, self.areaFrame, 'Computed Area',  '',  cornerRow, self.startincCol+cornerCol+2,
+                                            self.startincCol+cornerCol+3, width=25,
                                             enterCmd=self.SaveField)
         # --------------------------------------------------------------------------------------------------------
         self.numCornersEntry = SubFrameElement(self, self.areaFrame, '# corners',  numCorners, 

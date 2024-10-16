@@ -109,12 +109,18 @@ class SortByArea(ttk.Frame):
         self.outputParmLabel.grid(row=0, column=0, sticky='e')
         self.comboParameter = ttk.Combobox(sortAreaFrame, values=paramStr, width=8)
         self.comboParameter.grid(row=1, column=0, sticky='e')
+        self.comboParameter.bind('<<ComboboxSelected>>', self.CbUpdateUnits)
         # --------------------------------------------------------------------------------------------------------
         self.dataSortFileLabel = ttk.Label(sortAreaFrame, text='Areas of Interest File Name')
         self.dataSortFileLabel.grid(row=0, column=1, sticky='w')
-        self.dataSortFileEntry = self.myEntry=ttk.Entry(sortAreaFrame, width=25)
+        self.dataSortFileEntry = tk.Entry(sortAreaFrame, width=25)
         self.dataSortFileEntry.insert(0, 'AreasOfInterestDataSort.csv')
         self.dataSortFileEntry.grid(row=1, column=1, sticky='w', padx=5)
+        self.dataSortUnitsLabel = ttk.Label(sortAreaFrame, text='Units')
+        self.dataSortUnitsLabel.grid(row=2, column=0, sticky='e')
+        self.dataSortUnitsEntry = tk.Entry(sortAreaFrame, width=25)
+        self.dataSortUnitsEntry.insert(0, '')
+        self.dataSortUnitsEntry.grid(row=2, column=1, sticky='w', padx=5)
         # --------------------------------------------------------------------------------------------------------
         self.openDataSortButton = ttk.Button(sortAreaFrame, text='Load Data Sort File', style="BtnGreen.TLabel", command=self.GetDataSortFile)
         self.openDataSortButton.grid(row=0, column=2, sticky='e')
@@ -148,8 +154,8 @@ class SortByArea(ttk.Frame):
         # +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
         # --------------------------------------------------------------------------------------------------------
         self.areas = AreaManager(self, sortAreaFrame, self.numAreasMax, self.numCornersMax,
-                                   elementRow=4, elementCol=0, cornerRow=0, cornerColumn=0, labelArr=cornerLabelArr,
-                                   includeYears=True, numYearsMax=self.maxYears, yearStart=self.yearStart, yearStop=self.yearStop)
+                                   elementRow=4, elementCol=0, cornerRow=0, cornerColumn=0, labelArr=cornerLabelArr, includeYears=True,
+                                   numYearsMax=self.maxYears, yearStart=self.yearStart, yearStop=self.yearStop, includeArea=True)
 
         # now hide
         for a in range(self.numAreas, self.numAreasMax):
@@ -173,19 +179,18 @@ class SortByArea(ttk.Frame):
         self.areaFName = os.path.join(self.startDir, self.dataSortFileEntry.get())
         self.paramStr = []
         parmVal = self.friend.GetSelectedOutputs()
-        # ordering of string may not matter. The user ultimately selects the desired vale
-        if parmVal & 1: self.paramStr.append(LPUE)
-        if parmVal & 2: self.paramStr.append(EBMS)
-        if parmVal & 4: self.paramStr.append(BIOM)
-        if parmVal & 8: self.paramStr.append(ABUN)
-        if parmVal & 16: self.paramStr.append(LNDW)
-        if parmVal & 32: self.paramStr.append(LAND)
-        if parmVal & 64: self.paramStr.append(FEFF)
-        if parmVal & 128: self.paramStr.append(FMOR)
+        if parmVal & 1: self.paramStr.append(ABUN)
+        if parmVal & 2: self.paramStr.append(BIOM)
+        if parmVal & 4: self.paramStr.append(EBMS)
+        if parmVal & 8: self.paramStr.append(LPUE)
+        if parmVal & 16: self.paramStr.append(FMOR)
+        if parmVal & 32: self.paramStr.append(FEFF)
+        if parmVal & 64: self.paramStr.append(LAND)
+        if parmVal & 128: self.paramStr.append(LNDW)
         if parmVal & 256: self.paramStr.append(RECR)
         self.comboParameter.configure(values=self.paramStr)
         self.comboParameter.current(0)
-
+        self.UpdateUnits()
         self.yearStart = int(self.friend.startYr.myEntry.get())
         self.yearStop = int(self.friend.stopYr.myEntry.get())
         self.domainName = self.friend.domainNameCombo.get()
@@ -202,6 +207,16 @@ class SortByArea(ttk.Frame):
 
     ##
     #
+    def CbUpdateUnits(self, event):
+        self.UpdateUnits()
+
+    def UpdateUnits(self):
+        desiredParam = self.comboParameter.get()
+        (units, scale) = DetermineUnitsScale(desiredParam)
+        UpdateEntry(self.dataSortUnitsEntry, units)
+
+    ##
+    #
     def AppendYears(self, addYears):
         for i in range(self.numAreasMax):
             self.areas.areaSubFrame[i].AppendResults(addYears)
@@ -215,6 +230,9 @@ class SortByArea(ttk.Frame):
         rows = self.numAreas
         cols = self.numYears
         accumParamData = [[0.0 for _ in range(cols)] for _ in range(rows)] # accumulated data if in region
+        # Used to compute average of data
+        countNonZeroData = [[0.0 for _ in range(cols)] for _ in range(rows)]  # data read in from file
+        countData = [[0.0 for _ in range(cols)] for _ in range(rows)]  # also serves to count number of grids in area
         desiredParam = self.comboParameter.get()
         # typical name: Lat_Lon_Grid_EBMS_MA_2015_2017
         #               Lat_Lon_Grid_ABUN_AL_2015_2017
@@ -233,8 +251,6 @@ class SortByArea(ttk.Frame):
                 self.areaData[i].lat[j] = float(self.areas.areaSubFrame[i].corners[j].latitude.myEntry.get())
 
         if os.path.isfile(paramFName):
-            ####of = open('temp.txt', 'w')
-            grid = 1
             with open(paramFName, 'r') as f:
                 while True:
                     # Read in a line from paramFName
@@ -247,36 +263,55 @@ class SortByArea(ttk.Frame):
                     dataArray = [s.strip() for s in line.split(',')]
                     lat = float(dataArray[0])
                     lon = float(dataArray[1])
+                    # i is index into file array
                     for i in range(self.numYears):
                         # column 2 will be initial data and not of interest
                         paramData[i] = float(dataArray[i+3]) 
                     
                     # Now check if the data point (lon, lat) is located in one of the desired areas
-                    # self.areas.areaSubFrame[i] with given coordinates self.areas.areaSubFrame[i].corners[j]
-                    #
-                    # if so, add to accumParamData[i][0:n] += paramData[0:n]
+                    # tkinter widgets: self.areas.areaSubFrame[row] with given coordinates self.areas.areaSubFrame[row].corners[j]
+                    # or as stored in: self.areaData[row].long[0:j], self.areaData[row].lat[0:j]
+                    # 
+                    # if so, add to accumParamData[row][0:n] += paramData[0:n]
 
                     # For each area
-                    for i in range(self.numAreas):
+                    for row in range(self.numAreas):
                         # is (lon, lat) in this area
-                        nodes = self.areaData[i].numCorners
-                        if PointInPolygon(self.areaData[i].long, self.areaData[i].lat, lon, lat, nodes):
+                        nodes = self.areaData[row].numCorners
+                        if PointInPolygon(self.areaData[row].long, self.areaData[row].lat, lon, lat, nodes):
                             # if so accumulate parameter data
-                            for j in range(self.numYears):
-                                accumParamData[i][j] += paramData[j]
-                            ####of.write('Grid #{} found in area{}\n'.format(grid,i+1))
-                    grid += 1
-            ####of.close()
+                            for col in range(self.numYears):
+                                accumParamData[row][col] += paramData[col]
+                                countData[row][col] += 1
+                                if paramData[col] > 0:
+                                    countNonZeroData[row][col] += 1
 
             # display results
-            for i in range(self.numAreas):
-                for j in range(self.numYears):
-                    self.areas.areaSubFrame[i].results[j].myEntry.delete(0,tk.END)
+            (units, scale) = DetermineUnitsScale(desiredParam)
+
+            for row in range(self.numAreas):
+                for col in range(self.numYears):
+                    areaKm2 = countData[row][col] * grid_area_sqm / 1.0e6
+                    self.areas.areaSubFrame[row].myArea = areaKm2
+                    UpdateEntry(self.areas.areaSubFrame[row].compAreaEntry.myEntry, f'{areaKm2:.4f}'+' Km^2')
+                    if desiredParam == BIOM:
+                        # convert to metric tons = 1e6 grams
+                        # BIOM is in g/m2
+                        # mt = 1e6 g
+                        # g/m2 * km2 * (1e6 m2/km2) / 1e6 g
+                        # mt = g/m2 * km2
+                        accumParamData[row][col] = accumParamData[row][col] * areaKm2 / countData[row][col]
+                    
+                    if desiredParam == FEFF or desiredParam == FMOR:
+                        # compute average
+                        accumParamData[row][col] = accumParamData[row][col] / countNonZeroData[row][col]
+                    
+                    if desiredParam == ABUN or desiredParam == RECR:
+                        # compute density average
+                        accumParamData[row][col] = accumParamData[row][col] / countData[row][col]
+
                     # round to 4 decimal places
-                    # round(x,4) can have unpredicable results, use simple math instead
-                    r = 1e4
-                    y = int(accumParamData[i][j] * r + 0.5) / r
-                    self.areas.areaSubFrame[i].results[j].myEntry.insert(0, str(y))
+                    UpdateEntry(self.areas.areaSubFrame[row].results[col].myEntry, f'{(accumParamData[row][col] * scale):.4f}')
 
         else:
             messagebox.showerror("Reading Parameter File", f'No data for '+fileName+'\nHas Simulation been run?\nAre years correct?')
@@ -338,14 +373,13 @@ class SortByArea(ttk.Frame):
         file_path = filedialog.asksaveasfilename(title="Open CSV File", filetypes=[("CSV files", "*.csv")], defaultextension='csv', initialdir=self.startDir)
         if file_path:
             f = file_path.split('/')
-            self.exportFileEntry.delete(0,tk.END)
-            self.exportFileEntry.insert(0, f[-1])
+            UpdateEntry(self.exportFileEntry, f[-1])
             self.exportFileName = file_path
 
     ## This method exports the current page of data, just a single output parameter
     #
     # First row :
-    #  AREA     YEAR        PARAMETER
+    #  AREA     YEAR        PARAMETER (UNITS)
     #   1       StartYear     
     #   1       ...
     #   1       StopYear
@@ -362,12 +396,20 @@ class SortByArea(ttk.Frame):
             if err == 0:
                 # get current parameter
                 outStr = self.comboParameter.get()
+                units = self.dataSortUnitsEntry.get()
                 with open(self.exportFileName, 'w') as f:
-                    f.write('AREA,YEAR,'+outStr+'\n')
+                    ##f.write('AREA,YEAR,' + outStr + ' ('+ units + ')\n')
+                    # Write Header
+                    f.write('Area #,Area,Units')
+                    for yr in range(self.numYears):
+                            f.write(',' + str(yr+self.yearStart))
+                    f.write('\n')
 
                     for a in range(self.numAreas):
+                        f.write(str(a+1)+ ',' + self.areas.areaSubFrame[a].compAreaEntry.myEntry.get()+ ',' + outStr + ' ('+ units + ')')
                         for yr in range(self.numYears):
-                            f.write(str(a+1) + ',' + str(yr+self.yearStart) + ',' + self.areas.areaSubFrame[a].results[yr].myEntry.get() + '\n')
+                             f.write( ',' + self.areas.areaSubFrame[a].results[yr].myEntry.get())
+                        f.write('\n')
 
                     f.close()
                 if not nomsg: messagebox.showinfo('Export This', f'FILE SAVED: {self.exportFileName}')
@@ -395,28 +437,26 @@ class SortByArea(ttk.Frame):
                 self.comboParameter.current(0)
                 self.RunSort()
                 self.ExportThis(True)
+                print('Initial file created', n)
 
                 # now append remaining outputs
-                scratchFName = os.path.join('Results', 'TEMP.TXT')
                 for i in range(1,n):
-                    of = open(scratchFName, 'w')
-                    with open(self.exportFileName, 'r') as f:
+                    with open(self.exportFileName, 'a') as f:
                         self.comboParameter.current(i)
+                        self.UpdateUnits()
                         self.RunSort()
-                        # read header
-                        line = f.readline()
-                        line = line.strip()+','+self.paramStr[i]+'\n'
-                        of.write(line)
+                        
+                        outStr = self.comboParameter.get()
+                        units = self.dataSortUnitsEntry.get()
+                        print('appending '+outStr)
 
                         for a in range(self.numAreas):
+                            f.write(str(a+1)+ ',' + self.areas.areaSubFrame[a].compAreaEntry.myEntry.get()+ ',' + outStr + ' ('+ units + ')')
                             for yr in range(self.numYears):
-                                line = f.readline()
-                                line = line.strip()+','+self.areas.areaSubFrame[a].results[yr].myEntry.get()+'\n'
-                                of.write(line)
-                    of.close()
-                    f.close()
-                    shutil.move(scratchFName, self.exportFileName)
-                
+                                f.write( ',' + self.areas.areaSubFrame[a].results[yr].myEntry.get())
+                            f.write('\n')
+                        f.close()
+
                 messagebox.showinfo('Export This', f'FILE SAVED: {self.exportFileName}')
 
             else: # data files have not yet been generated.

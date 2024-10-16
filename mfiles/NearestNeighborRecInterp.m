@@ -29,6 +29,12 @@ else
     fl0=strcat('Data/Recruits',int2str(refYear),domain,'.csv');
 end
 fl2=strcat('RecruitEstimates/RecruitEstimate',domain,int2str(yrStart),'.txt');
+[status, msg, msgid] = fileattrib(fl2);
+if msg.UserWrite == 0
+    fprintf([char(27) '[33m' 'Skipping Nearest Neighbor - Files locked for testing\n' char(27) '[0m'])
+    return
+end
+
 fl2CSV=strcat('RecruitEstimates/RecruitEstimate',domain,int2str(yrStart),'.csv');
 latCol  = 2;
 lonCol  = 3;
