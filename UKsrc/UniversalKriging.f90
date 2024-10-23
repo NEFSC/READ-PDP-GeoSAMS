@@ -14,8 +14,6 @@
 !> * Kriging variogram form
 !> * NLS Spatial Fcn File Name
 !> * Save Data
-!> * Use Saturate
-!> * Overflow Threshold
 !> 
 !> @subsubsection m0p1p1p1 High Limit Factor DEPRECATED
 !> 
@@ -54,16 +52,6 @@
 !>   - GB: Georges Bank
 !>   - AL: Both of the above
 !>
-!> @subsubsection m0p1p1p7 Use Saturate
-!> Interpolation can sometimes create excessively large values.
-!> To bypass, Use Saturate can be T or F, but set a larger threshold, i.e. 1E309 (Infinity).
-!> The user can choose to saturate to the threshold, (T), or 
-!> reset the value to 0.0 when exceeded, (F).
-!>
-!> @subsubsection m0p1p1p8 Overflow Threshold
-!> Threshold value to use
-!> Use Saturate = T, if field > Threshold then field = Threshold
-!> Use Saturate = F, if field > Threshold then field = 0.0
 
 
 program UKsimulation
@@ -82,7 +70,6 @@ integer num_points, num_spat_fcns, num_obs_points, j
 real(dp)  SF
 ! variables for nonlinear fitting
 integer nsf
-character(domain_len) domain_name
 type(Grid_Data_Class):: grid
 type(Grid_Data_Class):: obs
 type(Krig_Class):: par
@@ -90,8 +77,11 @@ type(NLSF_Class), allocatable ::nlsf(:)
 real(dp) alpha_obs
 logical save_data
 real(dp) f0_max
-real(dp) overflow_thresh
-logical use_saturate
+real(dp) fmax
+#ifdef USE_DOM_AVG
+real(dp) domain_avg
+#endif
+real(dp) tmp
 
 real e, etime, t(2)
 e = etime(t)         !  Startup etime - do not use result
@@ -103,14 +93,18 @@ par = Krig_Class(0.0, 0.0, 0.0, 'spherical')
 write (*,*) term_grn, "PROGRAM STARTING  ", &
 & 'elapsed:', term_yel, e, term_grn, ', user:', term_yel, t(1), term_grn, ', sys:', term_yel, t(2), term_blk
 
-call Read_Startup_Config(domain_name, par, alpha_obs, save_data, f0_max, overflow_thresh, use_saturate)
+call Read_Startup_Config(par, alpha_obs, save_data, f0_max)
 
 call random_seed( )
 
 !--------------------------------------------------------------------------
 ! Get observation data and regional grid data
 !--------------------------------------------------------------------------
-call GridMgr_Set_Grid_Manager(obs, grid, alpha_obs, num_obs_points, num_points) !, fmax_multiplier, fmax)
+#ifdef USE_DOM_AVG
+call GridMgr_Set_Grid_Manager(obs, grid, alpha_obs, num_obs_points, num_points, fmax, domain_avg) !, fmax_multiplier, fmax)
+#else
+call GridMgr_Set_Grid_Manager(obs, grid, alpha_obs, num_obs_points, num_points, fmax) !, fmax_multiplier, fmax)
+#endif
 
 allocate( eps(1:num_points), Ceps(1:num_points, 1:num_points))
 allocate(residual_cov(1:num_obs_points, 1:num_obs_points))
@@ -126,7 +120,6 @@ nsf = NLSF_Count_Defined_Functions()
 allocate(nlsf(1:nsf))
 nsf = NLSF_Define_Functions(nlsf, grid, f0_max)
 
-write (*,*) term_blu,"Reading ", term_blk, domain_name
 write(*,*) term_blu, 'Observation file:  ', term_blk, trim(GridMgr_Get_Obs_Data_File_Name())
 ! write(*,*) 'Logtransorm:       ', IsLogT
 ! write(*,*) 'Using High Limit:  ', IsHiLimit
@@ -146,16 +139,19 @@ write(*,*)
 write(*,*) term_blu, 'num_obs_points=', term_blk, num_obs_points, term_blu, 'nsf limit=', term_blk, NLSF_Get_NSF_Limit(), &
 &          term_blu, ' alpha = ', term_blk, alpha_obs
 write(*,*) term_blu, 'num_grid_points=', term_blk, num_points, term_blu
-write(*,'(A,A,A, L2)') term_blu, 'Is Truncate Range: ', term_blk, NLSF_Get_Is_Truncate_Range()
+write(*,'(A,A,A, L2)') term_blu, ' Is Truncate Range: ', term_blk, NLSF_Get_Is_Truncate_Range()
 f0_max = NLSF_Get_Z_F0_Max()
 if (f0_max > 0._dp) then
-    write(*,*) term_blu, ' Using f0_max setting: ', term_blk, f0_max
+    write(*,*) term_blu, 'f0_max setting: ', term_blk, f0_max
 else
-    write(*,*) term_blu, ' Using f0_max setting: ', term_blk, 'Determined by algorithm'
+    write(*,*) term_blu, 'f0_max setting: ', term_blk, 'Determined by algorithm'
 endif
-write(*,'(A,A,A,1PE11.2)') term_blu, ' Overflow Threshold: ', term_blk, overflow_thresh
-write(*,*) term_blu, 'Using Saturate Overflow: ', term_blk, use_saturate
-   
+
+#ifdef USE_DOM_AVG
+write(*,*)
+write(*,*) term_yel, 'Using Domain Averaging', term_blk
+write(*,*)
+#endif
 
 !SPECIAL CASE, ALL OBSERVED DATA POINTS ARE 0.0
 if (sum(obs%field(1:num_obs_points)) .GE. zero_threshold) then
@@ -191,7 +187,15 @@ if (sum(obs%field(1:num_obs_points)) .GE. zero_threshold) then
     spatial_fcn = Krig_Eval_Spatial_Function(obs, num_spat_fcns, num_obs_points, nlsf, save_data)
     residual = LSF_Generalized_Least_Squares&
     &       (obs%field, spatial_fcn, residual_cov, num_obs_points, num_spat_fcns, beta, Cbeta, save_data)
-    write(*,'(A,F10.6)')'Ordinary Least Sq Residual:', sqrt(sum(residual(1:num_obs_points)**2) / float(num_obs_points))
+    tmp = sqrt(sum(residual(1:num_obs_points)**2) / float(num_obs_points))
+
+    if (Is_NAN(tmp)) then ! (isnan(tmp)) then
+        write(*,*) term_red, 'Ordinary Least Sq Residual Failed', term_blk
+        STOP 1
+    else
+        write(*,'(A,F10.6)')'Ordinary Least Sq Residual and result:', tmp
+    endif
+
     if (save_data) then
         call Write_Vector_Scalar_Field(num_obs_points, residual, 'OLSresidual.txt')
         call Write_Vector_Scalar_Field(num_obs_points, obs%field, 'data.txt')
@@ -234,7 +238,11 @@ endif
 if (save_data) then
     call OutputUK(num_points, num_spat_fcns, grid, nlsf, beta, eps, Ceps, Cbeta, SF, alpha_obs)
 else
-    call OutputEstimates(num_points, grid, Ceps, SF, alpha_obs, overflow_thresh, use_saturate)
+#ifdef USE_DOM_AVG
+    call OutputEstimates(num_points, grid, Ceps, SF, alpha_obs, fmax, domain_avg)
+#else
+    call OutputEstimates(num_points, grid, Ceps, SF, alpha_obs, fmax)
+#endif
 endif
 
 write(*,*)'num_points, num_survey', num_points, num_obs_points
@@ -271,12 +279,11 @@ endprogram
 !--------------------------------------------------------------------------------------------------
 ! Keston Smith, Tom Callaghan (IBSS) 2024
 !--------------------------------------------------------------------------------------------------
-subroutine Read_Startup_Config(domain_name, par, alpha_obs, save_data, f0_max, overflow_thresh, use_saturate)
+subroutine Read_Startup_Config(par, alpha_obs, save_data, f0_max)
 use globals
 use Krig_Mod
 use NLSF_Mod, only : NLS_Set_Config_File_Name => Set_Config_File_Name
 implicit none
-character(2),intent(out):: domain_name
 type(Krig_Class), intent(out):: par
 integer j, k, io
 
@@ -286,8 +293,6 @@ character(value_len) value
 real(dp), intent(out) :: alpha_obs
 logical, intent(out)  :: save_data
 real(dp), intent(out) :: f0_max
-real(dp), intent(out) :: overflow_thresh
-logical, intent(out)  :: use_saturate
 
 integer ncla
 character(fname_len) cfg_file_name
@@ -299,27 +304,22 @@ logical exists
 alpha_obs=1.D0
 save_data = .false.
 f0_max = 0._dp
-use_saturate = .false.
-overflow_thresh = 1.D308
 
 ! Check what was entered on command line
 ncla=command_argument_count()
-if (ncla .eq. 0) then
+if (ncla .ne. 4) then
     write(*,*) term_red, 'No UK configuration file given', term_blk
     call get_command(cmd)
     write(*,*) term_blu,'Typical use: '
 
-    write(*,*) term_blu,'  exe   ConfigFile  Domain  ObservFile              ZF0Max(optional)'
-    write(*,*) term_yel,' .\UKsrc\UK UK_MA.cfg MA   X_Y_EBMS_MA2005_0.csv   0.0 | 70.0'
-    !                      arg#        1       2              3                  4'
     write(*,*) term_blu,'                                                    | --- optional but need both ---|'
-    write(*,*) term_blu,'  exe   ConfigFile  Domain  ObservFile                GridFile            ZF0Max'
-    write(*,*) term_yel,' .\UKsrc\UK UK_GB.cfg GB   X_Y_EBMS_GB2005_0_SW.csv  GBxyzLatLon_SW.csv   0.0 | 70.0', term_blk
-    !                      arg#        1       2              3                  4                   5
+    write(*,*) term_blu,'  exe      ConfigFile  ObservFile                GridFile            ZF0Max'
+    write(*,*) term_yel,' UKsrc\UK   UK_GB.cfg  X_Y_EBMS_GB2005.csv   GBxyzLatLon_SW.csv    0.0 | 70.0', term_blk
+    !                      arg#        1                 2                  3                   4
     stop 1
 endif
 
-if(ncla.ge.1) call get_command_argument(1, cfg_file_name)
+call get_command_argument(1, cfg_file_name)
 cfg_file_name = config_dir_interp//trim(cfg_file_name)
 inquire(file=cfg_file_name, exist=exists)
 if (exists) then
@@ -344,21 +344,10 @@ do
         value =  trim(adjustl(input_string(j+1:k-1)))
 
         select case (tag)
-        case('Domain Name')
-            domain_name = value(1:2)
-            if (.not. ( any ((/ domain_name.eq.'MA', domain_name.eq.'GB', domain_name.eq.'AL'/)) )) then
-                write(*,*) term_red, ' **** INVALID DOMAIN NAME: ', domain_name, term_blk
-                stop 1
-            endif
-            ! Force Grid file name form MA and GB. 
-            ! AL sets it on the command line, as does GB if saveByStratum was used during sim
-            value = domain_name//'xyzLatLon.csv'
-            if ( any ((/ domain_name.eq.'MA', domain_name.eq.'GB'/)) ) then
-                Call GridMgr_Set_Grid_Data_File_Name(value)
-            endif
+        ! Now used via python scripts, these values are determined on command line
 
-        case('Observation File')
-            Call GridMgr_Set_Obs_Data_File_Name(value)
+        ! case('Observation File')
+        !     Call GridMgr_Set_Obs_Data_File_Name(value)
 
         ! case('Log Transform')
         !     read(value,*) IsLogT
@@ -392,12 +381,6 @@ do
         case('Save Data')
             read(value,*) save_data
 
-        case('Use Saturate')
-            read(value,*) use_saturate
-
-        case('Overflow Threshold')
-            read(value,*) overflow_thresh
-
         case default
             write(*,*) term_red, 'ReadInput: Unrecognized line in UK.cfg'
             write(*,*) 'Unrecognized Line->',input_string, term_blk
@@ -407,50 +390,22 @@ do
 end do
 close(69)
 
-!========================== override config file =================================
-!override UK.cfg with command line arguments if present. Used by python scripts
-if(ncla.ge.2) then 
-    call get_command_argument(2, domain_name)
-    if (.not. ( any ((/ domain_name.eq.'MA', domain_name.eq.'GB', domain_name.eq.'AL'/)) )) then
-        write(*,*) term_red, ' **** INVALID DOMAIN NAME: ', domain_name, term_blk
-        stop 1
-    endif
-    ! Force default grid file name
-    cmd = domain_name//'xyzLatLon.csv'
-    ! AL sets it via command line, as does GB if saveByStratum was used during sim
-    if ( any ((/ domain_name.eq.'MA', domain_name.eq.'GB'/)) ) then
-        Call GridMgr_Set_Grid_Data_File_Name(cmd)
-    endif
-endif
+!========================== override config file/get remaining configs =================================
+call get_command_argument(2, obsfile)
+call GridMgr_Set_Obs_Data_File_Name(obsfile)
 
-if(ncla.ge.3) then
-    call get_command_argument(3, obsfile)
-    call GridMgr_Set_Obs_Data_File_Name(obsfile)
-endif
+! GB breaks up GridFile into four regions DEPRECATED
+! 1) GBxyzLatLon_N
+! 2) GBxyzLatLon_S
+! 3) GBxyzLatLon_SW
+! 4) GBxyzLatLon_W
+! AL adds a fifth Region, but uses the same grid as MA
+! 5) MAxyzLatLon
+call get_command_argument(3, gridfile)
+call GridMgr_Set_Grid_Data_File_Name(gridfile)
 
-! Typically, for MA, which uses default grid file, only reads f0_max override
-if (ncla .ge. 4) then
-    if (ncla .eq. 4) then
-        call get_command_argument(4, cmd)
-        if (len_trim(cmd) .NE. 0) then
-            ! did not read null spaces
-            read(cmd, *) f0_max
-        endif
-    else
-        ! GB breaks up GridFile into four regions
-        ! 1) GBxyzLatLon_N
-        ! 2) GBxyzLatLon_S
-        ! 3) GBxyzLatLon_SW
-        ! 4) GBxyzLatLon_W
-        ! AL adds a fifth Region, but uses the same grid as MA
-        ! 5) MAxyzLatLon
-        call get_command_argument(4, gridfile)
-        call GridMgr_Set_Grid_Data_File_Name(gridfile)
-
-        call get_command_argument(5, cmd)
-        read(cmd, *) f0_max
-    endif
-endif
+call get_command_argument(4, cmd)
+read(cmd, *) f0_max
 
 endsubroutine Read_Startup_Config
         
@@ -518,7 +473,11 @@ endsubroutine OutputUK
 !>
 !> That is moving from survey data locations to MA/GB grid locations
 !---------------------------------------------------------------------------------------------------
-subroutine OutputEstimates(num_points, grid, Ceps, SF, alpha_obs, overflow_thresh, use_saturate)
+#ifdef USE_DOM_AVG
+subroutine OutputEstimates(num_points, grid, Ceps, SF, alpha_obs, fmax, domain_avg)
+#else
+subroutine OutputEstimates(num_points, grid, Ceps, SF, alpha_obs, fmax)
+#endif
 use globals
 use Grid_Manager_Mod
 use NLSF_Mod
@@ -530,11 +489,12 @@ implicit none
 integer, intent(in) :: num_points
 type(Grid_Data_Class), intent(inout) :: grid
 real(dp), intent(in) :: Ceps(num_points,*)
-real(dp), intent(in) :: SF !,fmax
-
+real(dp), intent(in) :: SF,fmax
 real(dp), intent(in) :: alpha_obs
-real(dp), intent(in) :: overflow_thresh
-logical, intent(in)  :: use_saturate
+#ifdef USE_DOM_AVG
+real(dp), intent(in) :: domain_avg
+real(dp) MuY
+#endif
 
 integer n
 real(dp) V(num_points)
@@ -563,17 +523,59 @@ write(*,*) term_blu,'Writing ouput to: ', trim(fout), term_blk
 
 ! Save results along with location information
 open(63,file=trim(fout))
+call Limit_Field(num_points, grid, fmax)
+#ifdef USE_DOM_AVG
+MuY = sum( grid%field(1:num_points) )/float(num_points)
+grid%field(:) = domain_avg * grid%field(:) / MuY
+call Limit_Field(num_points, grid, fmax)
+#endif
 do n=1, num_points
-    ! Overflow results
-    if (grid%field(n) > overflow_thresh) then
-        if (use_saturate) then
-            grid%field = overflow_thresh
-        else
-            grid%field(n) = 0.D0
-        endif
-    endif
     write(63, fmtstr) grid%lat(n), grid%lon(n), grid%field(n)
 enddo
 close(63)
 
 endsubroutine OutputEstimates
+
+!----------------------------------------------------------------------------------------
+!subroutine Limit_Field(n,grid,fpeak)
+!
+! Purpose: Restrict maximum output 
+! The curves here are derived from scallop dredge survey data from 1979 to 2018.
+!
+! inputs: 
+!   n - length of vectors f and z
+!   fpeak - highest observed value of survey growth
+!
+! input/output
+!   grid%field - [n] intepolated data.
+! Keston Smith 2022
+!----------------------------------------------------------------------------------------
+subroutine Limit_Field(n,grid,fpeak)
+    use globals
+    use Grid_Manager_Mod
+        
+    integer, intent(in) :: n
+    type(Grid_Data_Class), intent(inout) :: grid
+    real(dp), intent(in) :: fpeak
+    real(dp) a,w,zc,fmax 
+    integer j,kappa
+    
+    do j=1,n
+        if (grid%lon(j) > ma_gb_border) then  ! GB
+            zc = 70._dp
+            w = 50._dp
+            a = 0.01_dp
+            kappa = 20
+        else
+            zc = 60._dp
+            w = 33._dp
+            a = 0.01_dp
+            kappa = 10
+        endif
+    
+        grid%field(j) = max( grid%field(j), 0._dp )
+        fmax= fpeak * (a + exp(-((grid%z(j) - zc) / w )**kappa))
+        grid%field(j) = min( grid%field(j) , fmax )
+    enddo    
+    return
+endsubroutine

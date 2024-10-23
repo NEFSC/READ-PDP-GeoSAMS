@@ -237,22 +237,13 @@ class UKInterpolation(ttk.Frame):
         self.formCombo.current(0)
         self.formCombo.grid(row=0, column=1, pady=5)
         # --------------------------------------------------------------------------------------------------------
-        self.useSaturateLabel = ttk.Label(self.paramFrame, text='Use Saturate')
-        self.useSaturateLabel.grid(row=1, column=0)
-        #-------------------------------------------------------------------------------------------
-        self.useSaturateCombo = ttk.Combobox(self.paramFrame, width=3, values=comboTFStr)
-        self.useSaturateCombo.current(comboTFStr.index('F'))
-        self.useSaturateCombo.grid(row=1, column=1)
-        #-------------------------------------------------------------------------------------------
-        self.saturateThresh = SubFrameElement(self, self.paramFrame, 'Saturate\nThreshold', '1E309', 2, 0, 1, width=10)
-        # --------------------------------------------------------------------------------------------------------
-        self.spatCfgFile  = SubFrameElement(self, self.paramFrame, 'Spatial Fcn Config File', 'SpatialFcns.cfg', 3, 0, 1, width=20)
+        self.spatCfgFile  = SubFrameElement(self, self.paramFrame, 'Spatial Fcn Config File', 'SpatialFcns.cfg', 2, 0, 1, width=20)
         # --------------------------------------------------------------------------------------------------------
         self.openSpatFncConfigButton = ttk.Button(self.paramFrame, text='Load Spat Fcn File', style="BtnGreen.TLabel", command=self.GetSpatialFcnConfigFName)
-        self.openSpatFncConfigButton.grid(row=4, column=0)
+        self.openSpatFncConfigButton.grid(row=3, column=0)
         # --------------------------------------------------------------------------------------------------------
         self.saveSpatFncConfigButton = ttk.Button(self.paramFrame, text='Save Spat Fcn File', style="BtnBluGrn.TLabel", command=self.SaveSpatialFcnConfigFName)
-        self.saveSpatFncConfigButton.grid(row=4, column=1)
+        self.saveSpatFncConfigButton.grid(row=3, column=1)
         # --------------------------------------------------------------------------------------------------------
         self.paramFrame.grid(row=0, column=0, sticky='n')
         # +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
@@ -266,22 +257,13 @@ class UKInterpolation(ttk.Frame):
         self.formMACombo.current(0)
         self.formMACombo.grid(row=0, column=1, pady=5)
         # --------------------------------------------------------------------------------------------------------
-        self.useMASaturateLabel = ttk.Label(self.paramMAFrame, text='Use Saturate')
-        self.useMASaturateLabel.grid(row=1, column=0)
-        #-------------------------------------------------------------------------------------------
-        self.useMASaturateCombo = ttk.Combobox(self.paramMAFrame, width=3, values=comboTFStr)
-        self.useMASaturateCombo.current(comboTFStr.index('F'))
-        self.useMASaturateCombo.grid(row=1, column=1)
-        #-------------------------------------------------------------------------------------------
-        self.saturateMAThresh = SubFrameElement(self, self.paramMAFrame, 'Saturate\nThreshold', '1E309', 2, 0, 1, width=10)
-        # --------------------------------------------------------------------------------------------------------
-        self.spatMACfgFile  = SubFrameElement(self, self.paramMAFrame, 'MA Spatial Fcn File', 'SpatialFcnsMA.cfg', 3, 0, 1, width=20)
+        self.spatMACfgFile  = SubFrameElement(self, self.paramMAFrame, 'MA Spatial Fcn File', 'SpatialFcnsMA.cfg', 2, 0, 1, width=20)
         # --------------------------------------------------------------------------------------------------------
         self.openMASpatFncConfigButton = ttk.Button(self.paramMAFrame, text='Load MA Fcn File', style="BtnGreen.TLabel", command=self.GetMASpatialFcnConfigFName)
-        self.openMASpatFncConfigButton.grid(row=4, column=0)
+        self.openMASpatFncConfigButton.grid(row=3, column=0)
         # --------------------------------------------------------------------------------------------------------
         self.saveMASpatFncConfigButton = ttk.Button(self.paramMAFrame, text='Save MA Fcn File', style="BtnBluGrn.TLabel", command=self.SaveMASpatialFcnConfigFName)
-        self.saveMASpatFncConfigButton.grid(row=4, column=1)
+        self.saveMASpatFncConfigButton.grid(row=3, column=1)
         # --------------------------------------------------------------------------------------------------------
         self.paramMAFrame.grid(row=0, column=0, sticky='n')
         # This window is only needed with domain AL
@@ -298,22 +280,14 @@ class UKInterpolation(ttk.Frame):
         self.formGBCombo.current(0)
         self.formGBCombo.grid(row=0, column=1, pady=5)
         # --------------------------------------------------------------------------------------------------------
-        self.useGBSaturateLabel = ttk.Label(self.paramGBFrame, text='Use Saturate')
-        self.useGBSaturateLabel.grid(row=1, column=0)
-        #-------------------------------------------------------------------------------------------
-        self.useGBSaturateCombo = ttk.Combobox(self.paramGBFrame, width=3, values=comboTFStr)
-        self.useGBSaturateCombo.current(comboTFStr.index('F'))
-        self.useGBSaturateCombo.grid(row=1, column=1)
-        #-------------------------------------------------------------------------------------------
-        self.saturateGBThresh = SubFrameElement(self, self.paramGBFrame, 'Saturate\nThreshold', '1E309', 2, 0, 1, width=10)
         # --------------------------------------------------------------------------------------------------------
-        self.spatGBCfgFile  = SubFrameElement(self, self.paramGBFrame, 'GB Spatial Fcn File', 'SpatialFcnsGB.cfg', 3, 0, 1, width=20)
+        self.spatGBCfgFile  = SubFrameElement(self, self.paramGBFrame, 'GB Spatial Fcn File', 'SpatialFcnsGB.cfg', 2, 0, 1, width=20)
         # --------------------------------------------------------------------------------------------------------
         self.openGBSpatFncConfigButton = ttk.Button(self.paramGBFrame, text='Load GB Fcn File', style="BtnGreen.TLabel", command=self.GetGBSpatialFcnConfigFName)
-        self.openGBSpatFncConfigButton.grid(row=4, column=0)
+        self.openGBSpatFncConfigButton.grid(row=3, column=0)
         # --------------------------------------------------------------------------------------------------------
         self.saveGBSpatFncConfigButton = ttk.Button(self.paramGBFrame, text='Save GB Fcn File', style="BtnBluGrn.TLabel", command=self.SaveGBSpatialFcnConfigFName)
-        self.saveGBSpatFncConfigButton.grid(row=4, column=1)
+        self.saveGBSpatFncConfigButton.grid(row=3, column=1)
         # --------------------------------------------------------------------------------------------------------
         self.paramGBFrame.grid(row=4, column=0, sticky='n')
         # +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
@@ -339,14 +313,6 @@ class UKInterpolation(ttk.Frame):
                     self.formCombo.current(i)
                 else:
                     messagebox.showerror('READING UK CONFIG FILE',f'Unknown variogram form{str}')
-            elif (tag == 'Use Saturate'):
-                if value[0] == 'T':
-                    self.useSaturateCombo.current(0)
-                else:
-                    self.useSaturateCombo.current(1)
-            elif (tag == 'Overflow Threshold'):
-                self.saturateThresh.myEntry.delete(0,tk.END)
-                self.saturateThresh.myEntry.insert(0,value)
             elif (tag == 'NLS Spatial Fcn File Name'):
                 self.spatCfgFile.myEntry.delete(0,tk.END)
                 self.spatCfgFile.myEntry.insert(0,value.strip())
@@ -362,11 +328,6 @@ class UKInterpolation(ttk.Frame):
                     self.formMACombo.current(i)
                 else:
                     messagebox.showerror('READING UK CONFIG FILE',f'Unknown MA variogram form{str}')
-            elif (tag == 'Use Saturate'):
-                self.useMASaturateCombo.current(comboTFStr.index(value[0]))
-            elif (tag == 'Overflow Threshold'):
-                self.saturateMAThresh.myEntry.delete(0,tk.END)
-                self.saturateMAThresh.myEntry.insert(0,value)
             elif (tag == 'NLS Spatial Fcn File Name'):
                 self.spatMACfgFile.myEntry.delete(0,tk.END)
                 self.spatMACfgFile.myEntry.insert(0,value.strip())
@@ -382,11 +343,6 @@ class UKInterpolation(ttk.Frame):
                     self.formGBCombo.current(i)
                 else:
                     messagebox.showerror('READING UK CONFIG FILE',f'Unknown GB variogram form{str}')
-            elif (tag == 'Use Saturate'):
-                self.useGBSaturateCombo.current(comboTFStr.index(value[0]))
-            elif (tag == 'Overflow Threshold'):
-                self.saturateGBThresh.myEntry.delete(0,tk.END)
-                self.saturateGBThresh.myEntry.insert(0,value)
             elif (tag == 'NLS Spatial Fcn File Name'):
                 self.spatGBCfgFile.myEntry.delete(0,tk.END)
                 self.spatGBCfgFile.myEntry.insert(0,value.strip())
@@ -415,8 +371,6 @@ class UKInterpolation(ttk.Frame):
         cfgFile  = os.path.join(self.root,configDir, interCfgDir, 'UK_MA.cfg')
         self.parent.CloseUKConfig(cfgFile, 
                                   self.formMACombo.get(),
-                                  self.useMASaturateCombo.get(),
-                                  self.saturateMAThresh.myEntry.get(),
                                   self.spatMACfgFile.myEntry.get())
 
     def SaveGBSpatialFcnConfigFName(self):
@@ -431,8 +385,6 @@ class UKInterpolation(ttk.Frame):
         cfgFile  = os.path.join(self.root,configDir, interCfgDir, 'UK_GB.cfg')
         self.parent.CloseUKConfig(cfgFile,
                                   self.formGBCombo.get(),
-                                  self.useGBSaturateCombo.get(),
-                                  self.saturateGBThresh.myEntry.get(),
                                   self.spatGBCfgFile.myEntry.get())
 
     ## 
@@ -688,19 +640,6 @@ Parameters
             = 0                                                        h = 0
         where Jn is the Bessel function of the first kind
     
-    Saturate
-        Interpolation can sometimes create excessively large values.
-        To bypass, Use Saturate can be T or F, but set a larger threshold,
-        i.e. 1E309 (Infinity).
-        The user can choose to saturate to the threshold, (T), or 
-        reset the value to 0.0 when exceeded, (F).
-
-    Saturate Threshold
-        Threshold value to use
-        Use Saturate = T, if field > Threshold then field = Threshold
-        Use Saturate = F, if field > Threshold then field = 0.0
-
-
 Spatial Fcn Config File:
     This is the name of the file used to hold the spatial function definitions.
     It is saved in the UK Configuration file.

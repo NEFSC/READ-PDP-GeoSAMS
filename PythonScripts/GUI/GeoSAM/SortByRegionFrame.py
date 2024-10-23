@@ -155,11 +155,11 @@ class SortByRegion(ttk.Frame):
         if parmVal & 1: self.paramStr.append(ABUN)
         if parmVal & 2: self.paramStr.append(BIOM)
         if parmVal & 4: self.paramStr.append(EBMS)
-        if parmVal & 8: self.paramStr.append(LPUE)
+        if parmVal & 8: self.paramStr.append(FEFF)
         if parmVal & 16: self.paramStr.append(FMOR)
-        if parmVal & 32: self.paramStr.append(FEFF)
-        if parmVal & 64: self.paramStr.append(LAND)
-        if parmVal & 128: self.paramStr.append(LNDW)
+        if parmVal & 32: self.paramStr.append(LAND)
+        if parmVal & 64: self.paramStr.append(LNDW)
+        if parmVal & 128: self.paramStr.append(LPUE)
         if parmVal & 256: self.paramStr.append(RECR)
         self.comboParameter.configure(values=self.paramStr)
         self.comboParameter.current(0)
@@ -247,9 +247,11 @@ class SortByRegion(ttk.Frame):
         fileName = os.path.join('Results', 'Lat_Lon_Grid_' + 
              desiredParam + self.domainName + '_' + str(self.yearStart) + '_' + str(self.yearStop) + '.csv')
         
+        of = open('temp.csv', 'w') #<-- create file to save Initial State for comparison to HabcamSurvey
         if os.path.isfile(paramFName):
             with open(paramFName, 'r') as f:
                 while True:
+                    lineRegion = 'NA' #<-- default region name
                     # Read in a line from paramFName
                     line = f.readline()
                     if not line:
@@ -274,12 +276,17 @@ class SortByRegion(ttk.Frame):
                         # is (lon, lat) in this area
                         nodes = len(self.shape[row].lat)
                         if PointInPolygon(self.shape[row].lon, self.shape[row].lat, lon, lat, nodes):
+                            lineRegion = self.shape[row].NewSAMS #<-- get region name
                             # if so accumulate parameter data
                             for col in range(self.tableNumYears):
                                 accumParamData[row][col] += paramData[col]
                                 countData[row][col] += 1
                                 if paramData[col] > 0:
                                     countNonZeroData[row][col] += 1
+                    
+                    mgmtAreaIndx = self.DetermineMgmtAreaIndex(lineRegion) #<-- determine Management Area Index
+                    of.write('{},{},{},{},{}\n'.format(lat,lon,mgmtAreaIndx,lineRegion,paramData[0])) #<-- save to file
+            of.close() #<-- close file
 
             # display results
             (units, scale) = DetermineUnitsScale(desiredParam)
@@ -296,11 +303,16 @@ class SortByRegion(ttk.Frame):
                         # mt = 1e6 g
                         # g/m2 * km2 * (1e6 m2/km2) / 1e6 g
                         # mt = g/m2 * km2
-                        accumParamData[row][col] = accumParamData[row][col] * areaKm2 / countData[row][col]
+                        ### accumParamData[row][col] = accumParamData[row][col] * areaKm2 / countData[row][col]
+                        ### OR approximately 
+                        ### accumParamData[row][col] = accumParamData[row][col] * gridKm2 / countData[row][col]
+                        ### WHICH IS
+                        ### accumParamData[row][col] = accumParamData[row][col] * (countData[row][0] * grid_area_sqm / 1.0e6) / countData[row][col]
+                        accumParamData[row][col] = accumParamData[row][col] * grid_area_sqm / 1.0e6
                     
                     if desiredParam == FEFF or desiredParam == FMOR:
                         # compute average
-                        accumParamData[row][col] = accumParamData[row][col] / countNonZeroData[row][col]
+                        if countNonZeroData[row][col] > 0: accumParamData[row][col] = accumParamData[row][col] / countNonZeroData[row][col]
                     
                     if desiredParam == ABUN or desiredParam == RECR:
                         # compute density average
@@ -324,7 +336,7 @@ class SortByRegion(ttk.Frame):
     ##
     #
     def BrowseExportFile(self):
-        # Note extension is not included so that output parameter name can be appende
+        # Note extension is not included so that output parameter name can be appended
         file_path = filedialog.asksaveasfilename(title="Open CSV File", filetypes=[("CSV files", "*.csv")], initialdir=self.resultsDir)
         if file_path:
             f = file_path.split('/')
@@ -344,7 +356,7 @@ class SortByRegion(ttk.Frame):
                 outStr = self.comboParameter.get()
                 print('Sorting: ', outStr)
                 # User may have used '.' in name, just remove extension
-                dot = len(self.exportFileName) - 4
+                dot = len(self.exportFileName)
                 exportFileName = self.exportFileName[0:dot] + '_' + outStr + '.csv'
                 with open(exportFileName, 'w') as f:
                     # +1 is to include column and row headers
@@ -448,6 +460,54 @@ class SortByRegion(ttk.Frame):
                 self.shape[n].Y[m] = shapesGB[offset].points[m][1]
                 (self.shape[n].lat[m], self.shape[n].lon[m]) = utm.to_latlon(self.shape[n].X[m], self.shape[n].Y[m], 19, 'T')
         return numRegions
+    
+    ## 
+    # determine Management Area Index
+    def DetermineMgmtAreaIndex(self, region):
+        mgmtAreaIndx = 21
+        if (region == "BI"):
+            mgmtAreaIndx = 1
+        elif (region == "CL1-Access"):
+            mgmtAreaIndx = 2
+        elif (region == "CL1-Sliver"):
+            mgmtAreaIndx = 3
+        elif (region == "CL1-South"):
+            mgmtAreaIndx = 4
+        elif (region == "CL2-Access"):
+            mgmtAreaIndx = 5
+        elif (region == "CL2-Ext"):
+            mgmtAreaIndx = 6
+        elif (region == "CL2-North"):
+            mgmtAreaIndx = 7
+        elif (region == "DMV"):
+            mgmtAreaIndx = 8
+        elif (region == "ET"):
+            mgmtAreaIndx = 9
+        elif (region == "GSC"):
+            mgmtAreaIndx = 10
+        elif (region == "HCS"):
+            mgmtAreaIndx = 11
+        elif (region == "LI"):
+            mgmtAreaIndx = 12
+        elif (region == "MAB-Nearshore"):
+            mgmtAreaIndx = 13
+        elif (region == "NF"):
+            mgmtAreaIndx = 14
+        elif (region == "NLS-North"):
+            mgmtAreaIndx = 15
+        elif (region == "NLS-South"):
+            mgmtAreaIndx = 16
+        elif (region == "NLS-West"):
+            mgmtAreaIndx = 17
+        elif (region == "NYB"):
+            mgmtAreaIndx = 18
+        elif (region == "SF"):
+            mgmtAreaIndx = 19
+        elif (region == "VIR"):
+            mgmtAreaIndx = 20
+        else:
+            mgmtAreaIndx = 21
+        return mgmtAreaIndx
 
     ## Help Window for Sort By Area
     #

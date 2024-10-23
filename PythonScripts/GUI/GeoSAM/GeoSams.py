@@ -71,13 +71,13 @@ from EditMathSetupFrame import *
 from Globals import *
 
 #        ConfigFile Domain  ObservFile                GridFile            ZF0Max
-# [ex,   ukCfgFile,   dn,     obsFile,                  gridFile,           value
-# .\UKsrc\UK UK.cfg GB      X_Y_EBMS_GB2005_0_SW.csv  GBxyzLatLon_SW.csv   0.0 | 70.0
-#  arg#        1     2              3                  4                   5
-def Interpolate(ukCfgFile, domainName, obsFile, gridFile, zArg, procID, retDict):
+# [ex,   ukCfgFile,    obsFile,                  gridFile,           value
+# .\UKsrc\UK UK.cfg  X_Y_EBMS_GB2005_0_SW.csv  GBxyzLatLon_SW.csv   0.0 desired typically, 70.0
+#  arg#        1     2                         3                    4
+def Interpolate(ukCfgFile, obsFile, gridFile, zArg, procID, retDict):
     ex = os.path.join('UKsrc', 'UK')
     outputFile = 'proc_' + str(procID).zfill(3) + '_' + obsFile + '.txt'
-    cmd = [ex, ukCfgFile, domainName, obsFile + '.csv', gridFile, zArg]
+    cmd = [ex, ukCfgFile, obsFile + '.csv', gridFile, zArg]
     with open(outputFile, "w") as outfile:
         result = subprocess.run(cmd, stdout=outfile)
     retDict[procID] = result.returncode
@@ -381,7 +381,7 @@ class MainApplication(tk.Tk):
                 for year in years:
                     obsFile = 'X_Y_' + pStr + self.domainName + str(year) + r
 
-                    # result = Interpolate(ukCfgFile, self.domainName, obsFile, gridFile, zArg)
+                    # result = Interpolate(ukCfgFile, obsFile, gridFile, zArg)
                     # if (result.returncode != 0):
                     #     errorStr = '[31m' + ''.join(str(e)+' ' for e in cmd) + ' error: ' + hex(result.returncode) + '[0m'
                     #     print(errorStr)
@@ -392,7 +392,7 @@ class MainApplication(tk.Tk):
 
                     procNum += 1
                     procID  += 1
-                    proc = Process(target=Interpolate, args=(ukCfgFile, self.domainName, obsFile, gridFile, zArg, procID, retDict))
+                    proc = Process(target=Interpolate, args=(ukCfgFile, obsFile, gridFile, zArg, procID, retDict))
                     procs.append(proc)
                     proc.start()
 
@@ -707,11 +707,9 @@ class MainApplication(tk.Tk):
         cfgFile  = os.path.join(self.root,configDir, interCfgDir, self.frame1.ukCfgFile.myEntry.get())
         self.CloseUKConfig(cfgFile, 
                            self.frame4.formCombo.get(),
-                           self.frame4.useSaturateCombo.get(),
-                           self.frame4.saturateThresh.myEntry.get(),
                            self.frame4.spatCfgFile.myEntry.get())
     
-    def CloseUKConfig(self, cfgFile, combo, useSaturate, threshold, fName):
+    def CloseUKConfig(self, cfgFile, combo, fName):
         with open(cfgFile, 'w') as f:
             f.write('# Set inputs for universal kriging\n')
             f.write('Kriging variogram form = ' + combo + '\n')
@@ -723,19 +721,6 @@ class MainApplication(tk.Tk):
             f.write('# Save interim data by writing out supporting data files\n')
             f.write('#\n')
             f.write('Save Data = F\n')
-            f.write('#\n')
-            f.write('# Interpolation can sometimes create excessively large values.\n')
-            f.write('# To bypass, Use Saturate can be T or F, but set a larger threshold, i.e. 1E309 (Infinity).\n')
-            f.write('# The user can choose to saturate to the threshold, (T), or \n')
-            f.write('# reset the value to 0.0 when exceeded, (F).\n')
-            f.write('#\n')
-            f.write('Use Saturate = ' + useSaturate + '\n')
-            f.write('#\n')
-            f.write('# Threshold value to use\n')
-            f.write('# Use Saturate = T, if field > Threshold then field = Threshold\n')
-            f.write('# Use Saturate = F, if field > Threshold then field = 0.0\n')
-            f.write('#\n')
-            f.write('Overflow Threshold = ' + threshold + '\n')
             f.close()
 
     ##

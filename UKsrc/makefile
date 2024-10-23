@@ -6,6 +6,14 @@
 OBJ_DIR = ./obj
 MOD_DIR = ./mod
 FC = gfortran
+
+# -cpp C preprocessor that will accept macros, i.e.  ifdef
+FFLAGS = -cpp
+# #ifdef USE_FIXED_RAND uses the same vs random index for each run to show consistent output
+# #ifdef ACCUM_LANDINGS then landing values are accumulated for the year rather than just the last timestep period
+#
+FFLAGS += -DUSE_DOM_AVG
+
 # For release use these flags
 # Expect this warning
 # Warning: 'ceps.dim[1].stride' may be used uninitialized in this function
@@ -16,10 +24,10 @@ FC = gfortran
 # This is written with currently using: GNU Fortran (GCC) 11.3.0
 # -mcmodel=medium -msse -msse2 -m3dnow not supported on MAC
 #FFLAGS = -Wall -std=f95 -fall-intrinsics -O3  -mcmodel=medium -funroll-all-loops -ffast-math -msse -msse2 -m3dnow -m64
-FFLAGS = -Wall -std=f95 -fall-intrinsics -O3  -funroll-all-loops -ffast-math -m64
+FFLAGS += -Wall -std=f95 -fall-intrinsics -O3  -funroll-all-loops -ffast-math -m64
 
 # For debug use these flags
-#FFLAGS = -g -Wall -std=f95 -fall-intrinsics -fbounds-check
+##FFLAGS += -g -Wall -std=f95 -fall-intrinsics -fbounds-check
 
 #NORF#SRCS = Globals.f90 UK_GridManager.f90 LinearSpatialFcn.f90 NonLinearSpatialFcn.f90 RandomField.f90 KrigingRoutines.f90 UniversalKriging.f90 IORoutines.f90
 SRCS = Globals.f90 UK_GridManager.f90 LinearSpatialFcn.f90 NonLinearSpatialFcn.f90 KrigingRoutines.f90 UniversalKriging.f90 IORoutines.f90

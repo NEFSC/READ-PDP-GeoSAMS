@@ -21,7 +21,7 @@ FC = gfortran
 # -fcheck=all -fcheck-array-temporaries-fno-automatic -fmax-stack-var-size=100000 
 #FFLAGS = -O3  -mcmodel=medium -funroll-all-loops -ffast-math -msse -msse2 -m3dnow -m64
 
-# -cpp C preprocessor that will accept macros, i.e. 
+# -cpp C preprocessor that will accept macros, i.e.  ifdef
 FFLAGS = -cpp
 # #ifdef USE_FIXED_RAND uses the same vs random index for each run to show consistent output
 # #ifdef ACCUM_LANDINGS then landing values are accumulated for the year rather than just the last timestep period

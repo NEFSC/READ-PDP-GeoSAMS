@@ -206,7 +206,7 @@ class MainInput(ttk.Frame):
         # +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
         # +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
         helpButton = ttk.Button(self, text= "Main Help", style="Help.TLabel", command = self.pop_up)
-        helpButton.grid(row=4, column=3)
+        helpButton.grid(row=4, column=1)
 
     ## This method is called on both Enter Key clicked and goes out of focus
     #
@@ -270,8 +270,8 @@ class MainInput(ttk.Frame):
     #  @brief Bit shifts (multiplies) checkbuttons and computes bit position value.
     #
     def ComputeSelectOuputValue(self):
-        value = (self.abunVar.get())     + (self.bmsVar.get()<<1) + (self.ebmsVar.get()<<2) + (self.lpueVar.get()<<3)\
-              + (self.fmortVar.get()<<4) + (self.feffVar.get()<<5) + (self.landVar.get()<<6) + (self.lndwVar.get()<<7)\
+        value = (self.abunVar.get())    + (self.bmsVar.get()<<1)  + (self.ebmsVar.get()<<2) + (self.feffVar.get()<<3)\
+              + (self.fmortVar.get()<<4) + (self.landVar.get()<<5) + (self.lndwVar.get()<<6) + (self.lpueVar.get()<<7)\
               + (self.recrVar.get()<<8)
         return value
 
