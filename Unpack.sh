@@ -99,6 +99,9 @@ fi
 if [ ! -d "RecruitEstimates" ]; then
     mkdir RecruitEstimates
 fi
+if [ ! -d "Analysis" ]; then
+    mkdir Analysis
+fi
 
 # startup.m is for use with MATLAB, not used by octave instead see .octaverc
 mv startup.m startup.xxx

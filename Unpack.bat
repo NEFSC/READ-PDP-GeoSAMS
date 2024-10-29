@@ -112,6 +112,9 @@ if not exist RecruitField\ (
 if not exist RecruitEstimates\ (
     mkdir RecruitEstimates\
 )
+if not exist Analysis\ (
+    mkdir Analysis\
+)
 
 @REM Make GeoSam executables
 cd SRC

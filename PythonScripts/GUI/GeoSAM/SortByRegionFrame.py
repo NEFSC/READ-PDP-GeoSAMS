@@ -285,7 +285,7 @@ class SortByRegion(ttk.Frame):
                                     countNonZeroData[row][col] += 1
                     
                     mgmtAreaIndx = self.DetermineMgmtAreaIndex(lineRegion) #<-- determine Management Area Index
-                    of.write('{},{},{},{},{}\n'.format(lat,lon,mgmtAreaIndx,lineRegion,paramData[0])) #<-- save to file
+                    of.write('{},{},{},{},{}\n'.format(lat,lon,lineRegion,paramData[0],mgmtAreaIndx)) #<-- save to file
             of.close() #<-- close file
 
             # display results

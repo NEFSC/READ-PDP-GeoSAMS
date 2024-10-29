@@ -86,6 +86,7 @@ character(*), parameter :: config_dir_interp = 'Configuration/Interpolation/'
 character(*), parameter :: config_dir_special = 'Configuration/SpecialAccess/'
 character(*), parameter :: grid_dir = 'Grids/'
 character(*), parameter :: data_dir = 'Data/'
+character(*), parameter :: anal_dir = 'Analysis/'
 
 integer, parameter :: num_regions = 2
 !character(3) :: rgn(num_regions) = (/ '_N ', '_S ', '_SW', '_W ', '_MA'/)

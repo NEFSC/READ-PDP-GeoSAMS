@@ -78,9 +78,7 @@ real(dp) alpha_obs
 logical save_data
 real(dp) f0_max
 real(dp) fmax
-#ifdef USE_DOM_AVG
 real(dp) domain_avg
-#endif
 real(dp) tmp
 
 real e, etime, t(2)
@@ -100,11 +98,7 @@ call random_seed( )
 !--------------------------------------------------------------------------
 ! Get observation data and regional grid data
 !--------------------------------------------------------------------------
-#ifdef USE_DOM_AVG
 call GridMgr_Set_Grid_Manager(obs, grid, alpha_obs, num_obs_points, num_points, fmax, domain_avg) !, fmax_multiplier, fmax)
-#else
-call GridMgr_Set_Grid_Manager(obs, grid, alpha_obs, num_obs_points, num_points, fmax) !, fmax_multiplier, fmax)
-#endif
 
 allocate( eps(1:num_points), Ceps(1:num_points, 1:num_points))
 allocate(residual_cov(1:num_obs_points, 1:num_obs_points))
@@ -123,12 +117,12 @@ nsf = NLSF_Define_Functions(nlsf, grid, f0_max)
 write(*,*) term_blu, 'Observation file:  ', term_blk, trim(GridMgr_Get_Obs_Data_File_Name())
 ! write(*,*) 'Logtransorm:       ', IsLogT
 ! write(*,*) 'Using High Limit:  ', IsHiLimit
-! write(*,'(A,F10.4)') ' High limit fmax:   ', fmax
+write(*,'(A,F10.4)') term_blu//' High limit fmax:   '//term_blk, fmax
 write(*,*) term_blu, 'Form of variagram: ', term_blk, par%form
 if (save_data) then
     write(*,*) 'All data is saved'
 else
-    write(*,*) 'Only resulting estimate is saved'
+    write(*,*) 'Only interpolated data is saved'
 endif
 if (NLSF_Get_Use_Orig_Data()) then
     write(*,*) 'Force 1D fit to original data'
@@ -147,23 +141,29 @@ else
     write(*,*) term_blu, 'f0_max setting: ', term_blk, 'Determined by algorithm'
 endif
 
-#ifdef USE_DOM_AVG
-write(*,*)
-write(*,*) term_yel, 'Using Domain Averaging', term_blk
-write(*,*)
-#endif
+!===========================
+! setup before all 0.0 check
+!===========================
+
+!
+! convert observed data to Log space
+!
+SF = (sum(obs%field(1:num_obs_points)) / float(num_obs_points)) / 5.D0
+obs%field(1:num_obs_points) = log((one_scallop_per_tow + obs%field(1:num_obs_points)) / SF)
+
+!-----------------------------------------------------------------------------------------------------
+! Performs a brute force least squares fit of nonlinear spatial function parameters to data points in obs.
+!-----------------------------------------------------------------------------------------------------
+call NLSF_Least_Sq_Fit(obs, nlsf, save_data)
+! nsf may have been modified during NLSF_Select_Fit
+nsf = NLSF_Get_NSF()
+num_spat_fcns = nsf + 1
+allocate(spatial_fcn(1:num_obs_points, 1:num_spat_fcns))
+allocate( beta(1:num_spat_fcns), Cbeta(1:num_spat_fcns, 1:num_spat_fcns) )
+!===========================
 
 !SPECIAL CASE, ALL OBSERVED DATA POINTS ARE 0.0
-if (sum(obs%field(1:num_obs_points)) .GE. zero_threshold) then
-    SF = (sum(obs%field(1:num_obs_points)) / float(num_obs_points)) / 5.D0
-    obs%field(1:num_obs_points) = log((one_scallop_per_tow + obs%field(1:num_obs_points)) / SF)
-
-    !-----------------------------------------------------------------------------------------------------
-    ! Performs a brute force least squares fit of nonlinear spatial function parameters to data points in obs.
-    !-----------------------------------------------------------------------------------------------------
-    call NLSF_Least_Sq_Fit(obs, nlsf, save_data)
-    ! nsf may have been modified during NLSF_Select_Fit
-    nsf = NLSF_Get_NSF()
+if (abs(sum(obs%field(1:num_obs_points))) .GE. zero_threshold) then
     if (nsf>0) then
         write(*,*)
         write(*,*) 'ax   Form               f0            lambda'
@@ -181,9 +181,6 @@ if (sum(obs%field(1:num_obs_points)) .GE. zero_threshold) then
     !-------------------------------------------------------------------------
     ! Ordinary Least Square fit with spatial functions
     !-------------------------------------------------------------------------
-    num_spat_fcns = nsf + 1
-    allocate(spatial_fcn(1:num_obs_points, 1:num_spat_fcns))
-    allocate( beta(1:num_spat_fcns), Cbeta(1:num_spat_fcns, 1:num_spat_fcns) )
     spatial_fcn = Krig_Eval_Spatial_Function(obs, num_spat_fcns, num_obs_points, nlsf, save_data)
     residual = LSF_Generalized_Least_Squares&
     &       (obs%field, spatial_fcn, residual_cov, num_obs_points, num_spat_fcns, beta, Cbeta, save_data)
@@ -226,9 +223,6 @@ if (sum(obs%field(1:num_obs_points)) .GE. zero_threshold) then
     resOBS(1:num_obs_points) = obs%field(1:num_obs_points) - trndOBS(1:num_obs_points)
     write(*,'(A,F10.6)')'GLSres:', sqrt(sum(resOBS(1:num_obs_points)**2) / float(num_obs_points))
 
-    deallocate(spatial_fcn)
-    deallocate( beta, Cbeta)
-
 else
     ! THEREFORE, ALL INTERPOLATED DATA WOULD BE 0.0
     num_points = grid%num_points
@@ -238,15 +232,13 @@ endif
 if (save_data) then
     call OutputUK(num_points, num_spat_fcns, grid, nlsf, beta, eps, Ceps, Cbeta, SF, alpha_obs)
 else
-#ifdef USE_DOM_AVG
-    call OutputEstimates(num_points, grid, Ceps, SF, alpha_obs, fmax, domain_avg)
-#else
-    call OutputEstimates(num_points, grid, Ceps, SF, alpha_obs, fmax)
-#endif
+    call OutputEstimates(num_points, num_spat_fcns, grid, nlsf, beta, eps, Ceps, SF, alpha_obs, fmax, domain_avg)
 endif
 
 write(*,*)'num_points, num_survey', num_points, num_obs_points
 
+deallocate(spatial_fcn)
+deallocate(beta, Cbeta)
 deallocate(nlsf)
 deallocate(eps, Ceps)
 deallocate(residual_cov, residual)
@@ -473,11 +465,7 @@ endsubroutine OutputUK
 !>
 !> That is moving from survey data locations to MA/GB grid locations
 !---------------------------------------------------------------------------------------------------
-#ifdef USE_DOM_AVG
-subroutine OutputEstimates(num_points, grid, Ceps, SF, alpha_obs, fmax, domain_avg)
-#else
-subroutine OutputEstimates(num_points, grid, Ceps, SF, alpha_obs, fmax)
-#endif
+subroutine OutputEstimates(num_points, num_spat_fcns, grid, nlsf, beta, eps, Ceps, SF, alpha_obs, fmax, domain_avg)
 use globals
 use Grid_Manager_Mod
 use NLSF_Mod
@@ -486,53 +474,99 @@ use Krig_Mod
 
 implicit none
 
-integer, intent(in) :: num_points
+integer, intent(in) :: num_points, num_spat_fcns
 type(Grid_Data_Class), intent(inout) :: grid
-real(dp), intent(in) :: Ceps(num_points,*)
+type(NLSF_Class), intent(in)::nlsf(*)
+real(dp), intent(in) :: Ceps(num_points,*), beta(*), eps(*)
 real(dp), intent(in) :: SF,fmax
 real(dp), intent(in) :: alpha_obs
-#ifdef USE_DOM_AVG
 real(dp), intent(in) :: domain_avg
 real(dp) MuY
-#endif
 
 integer n
-real(dp) V(num_points)
+real(dp), allocatable :: trend(:), V(:), Fg(:,:)
 character(fname_len) fname, fout
 character(80) fmtstr
 
+!=======================================================================================
+character(fname_len) feps, fdata, ftrend, fstd
+!=======================================================================================
+
+allocate(trend(1:num_points), V(1:num_points), Fg(1:num_points, 1:num_spat_fcns))
+
 ! SPECIAL CASE, if all data points are 0 then no reverse processing necessary
 if (sum(grid%field(1:num_points)) .NE. 0.0) then
+
+    ! compute Fg using grid in logT space
+    Fg = Krig_Eval_Spatial_Function(grid, num_spat_fcns, num_points, nlsf, .FALSE.)
+
     do n=1, num_points
         V(n)=Ceps(n, n)
     enddo
     grid%field(1:num_points) = grid%field(1:num_points)**(1./alpha_obs)    
 !!!!    grid%field(1:num_points) = SF * exp( grid%field(1:num_points) + V(1:num_points)/2. ) - one_scallop_per_tow  ! adjusted inverse log(one_scallop_per_tow+f)
+
+    !
+    ! convert results back to linear space
+    !
     grid%field(1:num_points) = SF * exp( grid%field(1:num_points) ) - one_scallop_per_tow  ! adjusted inverse log(one_scallop_per_tow+f)
     write(*,'(A,A,2F12.6,A)') term_blu, 'output SF, A=', SF, one_scallop_per_tow, term_blk
 endif
+
+! grid is in linear space
+call Limit_Field(num_points, grid, fmax)
+MuY = sum( grid%field(1:num_points) )/float(num_points)
+grid%field(:) = domain_avg * grid%field(:) / MuY
+call Limit_Field(num_points, grid, fmax)
+
+! Save results along with location information
 fname = GridMgr_Get_Obs_Data_File_Name()
 ! Change output directory and file prefix
 ! /X_Y_...
 ! n12345
 n = index(fname, '/') + 5
 fout = output_dir//'Lat_Lon_Grid_'//fname(n:)
-
 fmtstr='(2(ES14.7 : ", ") (ES14.7 : ))'
 write(*,*) term_blu,'Writing ouput to: ', trim(fout), term_blk
-
-! Save results along with location information
 open(63,file=trim(fout))
-call Limit_Field(num_points, grid, fmax)
-#ifdef USE_DOM_AVG
-MuY = sum( grid%field(1:num_points) )/float(num_points)
-grid%field(:) = domain_avg * grid%field(:) / MuY
-call Limit_Field(num_points, grid, fmax)
-#endif
 do n=1, num_points
     write(63, fmtstr) grid%lat(n), grid%lon(n), grid%field(n)
 enddo
 close(63)
+
+!=======================================================================================
+! post run analyze results
+
+! Change output directory and file prefix
+! /X_Y_...
+! n12345
+n = index(fname, '/') + 5
+feps   = anal_dir//'Lat_Lon_Grid_Epsilon-'//fname(n:)
+fdata  = anal_dir//'Lat_Lon_Grid_Field-'//fname(n:)
+ftrend = anal_dir//'Lat_Lon_Grid_SpatialTrend-'//fname(n:)
+fstd   = anal_dir//'Lat_Lon_Grid_KrigSTD-'//fname(n:)
+fmtstr='(2(ES14.7 : ", ") (ES14.7 : ))'
+
+open(63,file=trim(feps))
+open(64,file=trim(fdata))
+open(65,file=trim(ftrend))
+open(66,file=trim(fstd))
+
+! Fg is in LogT space
+trend(1:num_points) = matmul( Fg(1:num_points, 1:num_spat_fcns), beta(1:num_spat_fcns)) 
+do n=1, num_points
+    write(63, fmtstr) grid%lat(n), grid%lon(n), SF * exp(eps(n)) - one_scallop_per_tow
+    write(64, fmtstr) grid%lat(n), grid%lon(n), grid%field(n)   ! already in linear space
+    write(65, fmtstr) grid%lat(n), grid%lon(n), SF * exp(trend(n))-one_scallop_per_tow
+    write(66, fmtstr) grid%lat(n), grid%lon(n), SF * exp(sqrt(V(n))) - one_scallop_per_tow
+enddo
+close(66)
+close(65)
+close(64)
+close(63)
+!=======================================================================================
+
+deallocate(trend, V, Fg)
 
 endsubroutine OutputEstimates
 

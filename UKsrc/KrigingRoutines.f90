@@ -446,6 +446,7 @@ integer nopnf, num_points, num_obs_points
 integer n, p
 
 ! !=======================================================================================
+! integer j
 ! character(fname_len) fname, feps, fdata, ftrend
 ! character(80) fmtstr
 ! !=======================================================================================

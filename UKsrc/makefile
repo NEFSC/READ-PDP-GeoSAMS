@@ -12,7 +12,7 @@ FFLAGS = -cpp
 # #ifdef USE_FIXED_RAND uses the same vs random index for each run to show consistent output
 # #ifdef ACCUM_LANDINGS then landing values are accumulated for the year rather than just the last timestep period
 #
-FFLAGS += -DUSE_DOM_AVG
+# FFLAGS += -D
 
 # For release use these flags
 # Expect this warning

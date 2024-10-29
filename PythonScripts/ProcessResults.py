@@ -71,16 +71,16 @@ for pStr in paramStr:
             # These data files also need to use separate spatial functions
             # Override command line argument
             if r == '_MA':
-                gridFile = 'MAxyzLatLon.csv'
+                gridFile = 'MAxyzLatLonRgn.csv'
                 ukCfgFile = 'UK_MA.cfg'
             else:
                 #gridFile = 'GBxyzLatLon' + r + '.csv'
-                gridFile = 'GBxyzLatLon.csv'
+                gridFile = 'GBxyzLatLonRgn.csv'
                 ukCfgFile = 'UK_GB.cfg'
         else:
             # DEPRECATE: if we no longer need to separate GB into sub regions
             #gridFile = self.domainName+'xyzLatLon' + r + '.csv'
-            gridFile = dn+'xyzLatLon.csv'
+            gridFile = dn+'xyzLatLonRgn.csv'
 
         for year in years:
             obsFile = 'X_Y_' + pStr + dn + str(year) + r + '.csv'

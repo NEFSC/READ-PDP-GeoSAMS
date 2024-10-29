@@ -77,6 +77,7 @@ from Globals import *
 def Interpolate(ukCfgFile, obsFile, gridFile, zArg, procID, retDict):
     ex = os.path.join('UKsrc', 'UK')
     outputFile = 'proc_' + str(procID).zfill(3) + '_' + obsFile + '.txt'
+    outputFile = os.path.join(analDir, outputFile)
     cmd = [ex, ukCfgFile, obsFile + '.csv', gridFile, zArg]
     with open(outputFile, "w") as outfile:
         result = subprocess.run(cmd, stdout=outfile)
@@ -344,7 +345,7 @@ class MainApplication(tk.Tk):
         manager = multiprocessing.Manager()
         retDict = manager.dict()
         # clean up leftover files from prior run
-        for f in glob.glob('proc*.txt'):
+        for f in glob.glob(analDir+'/proc*.txt'):
             os.remove(f)
         start = time.time()
 
@@ -369,14 +370,14 @@ class MainApplication(tk.Tk):
                     # These data files also need to use separate spatial functions
                     # Override command line argument
                     if r == '_MA':
-                        gridFile = 'MAxyzLatLon.csv'
+                        gridFile = 'MAxyzLatLonRgn.csv'
                         ukCfgFile = 'UK_MA.cfg'
                     else:
                         #gridFile = 'GBxyzLatLon' + r + '.csv'
-                        gridFile = 'GBxyzLatLon.csv'
+                        gridFile = 'GBxyzLatLonRgn.csv'
                         ukCfgFile = 'UK_GB.cfg'
                 else:
-                    gridFile = self.domainName+'xyzLatLon.csv'
+                    gridFile = self.domainName+'xyzLatLonRgn.csv'
 
                 for year in years:
                     obsFile = 'X_Y_' + pStr + self.domainName + str(year) + r
@@ -437,7 +438,7 @@ class MainApplication(tk.Tk):
                 
                 # append remaining years as additional columns to first data set
                 for year in years:
-                    flin = 'Results/Lat_Lon_Grid_' + pStr + self.domainName + str(year) + r + '.csv'
+                    flin = resultsDir + '/Lat_Lon_Grid_' + pStr + self.domainName + str(year) + r + '.csv'
                     with open(flin) as f:
                         reader = csv.reader(f)
                         for row in reader:
@@ -451,7 +452,7 @@ class MainApplication(tk.Tk):
                     k  += 1
 
                 # brute force write out results
-                flout = open('Results/Lat_Lon_Grid_' + pStr + self.domainName + r + '.csv', 'w')
+                flout = open(resultsDir + '/Lat_Lon_Grid_' + pStr + self.domainName + r + '.csv', 'w')
                 for row in range(len(col[0][0])):
                     for c in range(ncols):
                         flout.write(col[0][c][row])
@@ -462,10 +463,10 @@ class MainApplication(tk.Tk):
             # end for region
 
             # now combine all region files into one file
-            flout = 'Results/Lat_Lon_Grid_' + pStr + self.domainName + '_' + str(self.yearStart) + '_' + str(self.yearStop) + '.csv'
+            flout = resultsDir + '/Lat_Lon_Grid_' + pStr + self.domainName + '_' + str(self.yearStart) + '_' + str(self.yearStop) + '.csv'
             wrFile = open(flout, 'w')
             for r in region:
-                flin = 'Results/Lat_Lon_Grid_' + pStr + self.domainName + r + '.csv'
+                flin = resultsDir + '/Lat_Lon_Grid_' + pStr + self.domainName + r + '.csv'
                 rdFile = open(flin, 'r')
                 lines = rdFile.readlines()
                 wrFile.writelines(lines)
@@ -484,8 +485,8 @@ class MainApplication(tk.Tk):
         # ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++   
         # We have the needed output paramters so lets plot data and save to pdf files
         for pStr in self.paramStr:
-            str1 = 'Results/Lat_Lon_Surv_' + pStr + self.domainName
-            str2 = 'Results/Lat_Lon_Grid_' + pStr + self.domainName+'_'+str(self.yearStart) + '_' + str(self.yearStop)
+            str1 = resultsDir + '/Lat_Lon_Surv_' + pStr + self.domainName
+            str2 = resultsDir + '/Lat_Lon_Grid_' + pStr + self.domainName+'_'+str(self.yearStart) + '_' + str(self.yearStop)
 
             if self.frame2.usingMatlab.get():
                 matlabStr = 'PlotLatLonGridSurvey(' + "'" + str1 + "','" + str2 + "', " + str(self.yearStart) + ',' +str(self.tsPerYear) + ", '" + self.domainName + "');exit"

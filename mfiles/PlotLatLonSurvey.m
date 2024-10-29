@@ -80,43 +80,18 @@ else
         n=n+1;
     end
 end
-edges = [0,10,1e2,1e3,1e4,1e5,1e6,1e7,1e8,1e9,1e10];
-if isOctave
-    hh=histc(field,edges);
-    len = size(hh,1);
-    h = zeros(1,len);
-    for n=1:len
-        h(n) = sum(hh(n,:));
-    end
-else
-    h=histcounts(field,edges);
-end
-% looking for % of data
-a=0.9 * r * numCol;
-total = 0;
-saturate = 1e10;
-for n=1:size(h,2)
-    total = total + h(n);
-    if total > a
-        saturate = 10^n;
-        break
-    end
-end
-
 % clear data limits of 0+ to saturate negative and zero data
 for k=1:numCol
 for n=1:r
     % geoscatter does not accept 0.0, must be positive or NaN
-    if field(n,k)<=0 ; field(n,k) = NaN; end
-    % saturate values
-    if field(n,k)> saturate; field(n,k) = NaN; end
+    if field(n,k)<=0 ; field(n,k) = 1e-99; end
 end
 end
 
 for i=1:numCol
 	year = yearStart + i - 2;
     if isOctave
-        f = figure('Name',[fname '_' int2str(year) '_' int2str(saturate)]);
+        f = figure('Name',[fname '_' int2str(year) ]);
         scatter(lon, lat, field(:,i), 'b');
         legend(int2str(year))
         % enlarge figure
@@ -132,7 +107,7 @@ for i=1:numCol
             set(p, 'paperposition', [.1 .1 10 16]);
         end
     else
-        f = figure('Name',[fname '_' int2str(year) '_' int2str(saturate)]);
+        f = figure('Name',[fname '_' int2str(year)]);
         s=geoscatter(lat, lon, field(:,i), field(:,i), "filled");
         geobasemap bluegreen;
         title([fname '_' int2str(year)], 'Interpreter', 'none');
@@ -141,7 +116,6 @@ for i=1:numCol
         colormap(c);
         c = colorbar;
         c.Label.String = "Field";
-
 
         p = gcf();
         p.PaperSize = [11 17];
@@ -153,6 +127,6 @@ for i=1:numCol
             p.PaperPosition = [.1 .1 10 16]; 
         end
     end
-	saveas(gcf,[fname int2str(year) '_' int2str(saturate) '.pdf'])
+	saveas(gcf,[fname int2str(year) '.pdf'])
 end
 
