@@ -149,6 +149,7 @@ endif
 ! convert observed data to Log space
 !
 SF = (sum(obs%field(1:num_obs_points)) / float(num_obs_points)) / 5.D0
+if (SF .EQ. 0.0_dp) SF = 1.0_dp
 obs%field(1:num_obs_points) = log((one_scallop_per_tow + obs%field(1:num_obs_points)) / SF)
 
 !-----------------------------------------------------------------------------------------------------
@@ -162,73 +163,65 @@ allocate(spatial_fcn(1:num_obs_points, 1:num_spat_fcns))
 allocate( beta(1:num_spat_fcns), Cbeta(1:num_spat_fcns, 1:num_spat_fcns) )
 !===========================
 
-!SPECIAL CASE, ALL OBSERVED DATA POINTS ARE 0.0
-if (abs(sum(obs%field(1:num_obs_points))) .GE. zero_threshold) then
-    if (nsf>0) then
-        write(*,*)
-        write(*,*) 'ax   Form               f0            lambda'
-        write(*,*) '-- ----------   ---------------  --------------'
-        do j=1, nsf
-            write(*,'(A4,A12,2F16.6)') nlsf(j)%axis, nlsf(j)%form, nlsf(j)%f0, nlsf(j)%lambda
-        enddo
-        write(*,*)
-    endif
-    residual_cov(1:num_obs_points, 1:num_obs_points)=0.D0
-    do j=1, num_obs_points
-        residual_cov(j, j)=1.D0
+if (nsf>0) then
+    write(*,*)
+    write(*,*) 'ax   Form               f0            lambda'
+    write(*,*) '-- ----------   ---------------  --------------'
+    do j=1, nsf
+        write(*,'(A4,A12,2F16.6)') nlsf(j)%axis, nlsf(j)%form, nlsf(j)%f0, nlsf(j)%lambda
     enddo
-
-    !-------------------------------------------------------------------------
-    ! Ordinary Least Square fit with spatial functions
-    !-------------------------------------------------------------------------
-    spatial_fcn = Krig_Eval_Spatial_Function(obs, num_spat_fcns, num_obs_points, nlsf, save_data)
-    residual = LSF_Generalized_Least_Squares&
-    &       (obs%field, spatial_fcn, residual_cov, num_obs_points, num_spat_fcns, beta, Cbeta, save_data)
-    tmp = sqrt(sum(residual(1:num_obs_points)**2) / float(num_obs_points))
-
-    if (Is_NAN(tmp)) then ! (isnan(tmp)) then
-        write(*,*) term_red, 'Ordinary Least Sq Residual Failed', term_blk
-        STOP 1
-    else
-        write(*,'(A,F10.6)')'Ordinary Least Sq Residual and result:', tmp
-    endif
-
-    if (save_data) then
-        call Write_Vector_Scalar_Field(num_obs_points, residual, 'OLSresidual.txt')
-        call Write_Vector_Scalar_Field(num_obs_points, obs%field, 'data.txt')
-        call Write_CSV(num_spat_fcns, num_spat_fcns, Cbeta, 'LSFCovBeta.csv', num_spat_fcns, .false.)
-    endif
-
-    !-------------------------------------------------------------------------
-    ! Fit variogram parameters to Ordinary Least Square residual
-    !-------------------------------------------------------------------------
-    dist = Krig_Compute_Distance(obs, obs, num_obs_points, obs%num_points)
-    call Krig_Comp_Emp_Variogram(num_obs_points, dist, num_obs_points, residual, par)
-
-    if (save_data) then
-        open(63, file='KRIGpar.txt')
-        write(63,*)par%sill, par%nugget, par%alpha
-        close(63)
-    endif
-
-    !-------------------------------------------------------------------------
-    ! Compute Universal Kriging estimate of field on grid (fest) given
-    ! observations x_obs, y_obs, z_obs, field_obs. Also returns the estimate of spatial function
-    ! coeficients, beta, and posterior covariance of beta(Cbeta).
-    !-------------------------------------------------------------------------
-    call Krig_Generalized_Least_Sq(grid, obs, num_spat_fcns, par, beta, Cbeta, eps, Ceps, nlsf, save_data)
-
-    ! COMPUTED BUT NOT USED except for GLSres
-    trndOBS =  matmul(spatial_fcn, beta)
-    resOBS(1:num_obs_points) = obs%field(1:num_obs_points) - trndOBS(1:num_obs_points)
-    write(*,'(A,F10.6)')'GLSres:', sqrt(sum(resOBS(1:num_obs_points)**2) / float(num_obs_points))
-
-else
-    ! THEREFORE, ALL INTERPOLATED DATA WOULD BE 0.0
-    num_points = grid%num_points
-    grid%field(1:num_points) = 0.0_dp
-    write(*,*) term_yel, 'Obsevation data is all 0, therefore interpolated data is will be all 0', term_blk
+    write(*,*)
 endif
+residual_cov(1:num_obs_points, 1:num_obs_points)=0.D0
+do j=1, num_obs_points
+    residual_cov(j, j)=1.D0
+enddo
+
+!-------------------------------------------------------------------------
+! Ordinary Least Square fit with spatial functions
+!-------------------------------------------------------------------------
+spatial_fcn = Krig_Eval_Spatial_Function(obs, num_spat_fcns, num_obs_points, nlsf, save_data)
+residual = LSF_Generalized_Least_Squares&
+&       (obs%field, spatial_fcn, residual_cov, num_obs_points, num_spat_fcns, beta, Cbeta, save_data)
+tmp = sqrt(sum(residual(1:num_obs_points)**2) / float(num_obs_points))
+
+if (Is_NAN(tmp)) then ! (isnan(tmp)) then
+    write(*,*) term_red, 'Ordinary Least Sq Residual Failed', term_blk
+    STOP 1
+else
+    write(*,'(A,F10.6)')'Ordinary Least Sq Residual and result:', tmp
+endif
+
+if (save_data) then
+    call Write_Vector_Scalar_Field(num_obs_points, residual, 'OLSresidual.txt')
+    call Write_Vector_Scalar_Field(num_obs_points, obs%field, 'data.txt')
+    call Write_CSV(num_spat_fcns, num_spat_fcns, Cbeta, 'LSFCovBeta.csv', num_spat_fcns, .false.)
+endif
+
+!-------------------------------------------------------------------------
+! Fit variogram parameters to Ordinary Least Square residual
+!-------------------------------------------------------------------------
+dist = Krig_Compute_Distance(obs, obs, num_obs_points, obs%num_points)
+call Krig_Comp_Emp_Variogram(num_obs_points, dist, num_obs_points, residual, par)
+
+if (save_data) then
+    open(63, file='KRIGpar.txt')
+    write(63,*)par%sill, par%nugget, par%alpha
+    close(63)
+endif
+
+!-------------------------------------------------------------------------
+! Compute Universal Kriging estimate of field on grid (fest) given
+! observations x_obs, y_obs, z_obs, field_obs. Also returns the estimate of spatial function
+! coeficients, beta, and posterior covariance of beta(Cbeta).
+!-------------------------------------------------------------------------
+call Krig_Generalized_Least_Sq(grid, obs, num_spat_fcns, par, beta, Cbeta, eps, Ceps, nlsf, save_data)
+
+! COMPUTED BUT NOT USED except for GLSres
+trndOBS =  matmul(spatial_fcn, beta)
+resOBS(1:num_obs_points) = obs%field(1:num_obs_points) - trndOBS(1:num_obs_points)
+write(*,'(A,F10.6)')'GLSres:', sqrt(sum(resOBS(1:num_obs_points)**2) / float(num_obs_points))
+
 if (save_data) then
     call OutputUK(num_points, num_spat_fcns, grid, nlsf, beta, eps, Ceps, Cbeta, SF, alpha_obs)
 else
@@ -494,24 +487,20 @@ character(fname_len) feps, fdata, ftrend, fstd
 
 allocate(trend(1:num_points), V(1:num_points), Fg(1:num_points, 1:num_spat_fcns))
 
-! SPECIAL CASE, if all data points are 0 then no reverse processing necessary
-if (sum(grid%field(1:num_points)) .NE. 0.0) then
+! compute Fg using grid in logT space
+Fg = Krig_Eval_Spatial_Function(grid, num_spat_fcns, num_points, nlsf, .FALSE.)
 
-    ! compute Fg using grid in logT space
-    Fg = Krig_Eval_Spatial_Function(grid, num_spat_fcns, num_points, nlsf, .FALSE.)
+do n=1, num_points
+    V(n)=Ceps(n, n)
+enddo
+grid%field(1:num_points) = grid%field(1:num_points)**(1./alpha_obs)    
 
-    do n=1, num_points
-        V(n)=Ceps(n, n)
-    enddo
-    grid%field(1:num_points) = grid%field(1:num_points)**(1./alpha_obs)    
-!!!!    grid%field(1:num_points) = SF * exp( grid%field(1:num_points) + V(1:num_points)/2. ) - one_scallop_per_tow  ! adjusted inverse log(one_scallop_per_tow+f)
-
-    !
-    ! convert results back to linear space
-    !
-    grid%field(1:num_points) = SF * exp( grid%field(1:num_points) ) - one_scallop_per_tow  ! adjusted inverse log(one_scallop_per_tow+f)
-    write(*,'(A,A,2F12.6,A)') term_blu, 'output SF, A=', SF, one_scallop_per_tow, term_blk
-endif
+!
+! convert results back to linear space
+!
+!!!!grid%field(1:num_points) = SF * exp( grid%field(1:num_points) + V(1:num_points)/2. ) - one_scallop_per_tow  ! adjusted inverse log(one_scallop_per_tow+f)
+grid%field(1:num_points) = SF * exp( grid%field(1:num_points) ) - one_scallop_per_tow  ! adjusted inverse log(one_scallop_per_tow+f)
+write(*,'(A,A,2F12.6,A)') term_blu, 'output SF, A=', SF, one_scallop_per_tow, term_blk
 
 ! grid is in linear space
 call Limit_Field(num_points, grid, fmax)
