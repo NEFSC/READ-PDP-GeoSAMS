@@ -369,7 +369,7 @@ if isOctave
     set(gca, 'color', [193 245 247]/255);     %RGB as a fraction
     h=get(gca,'title');
     title = get(h,'String');
-    set(gca, 'title', [title char(10) units]);
+    set(gca, 'title', [title newline() units]);
     c=rainbow(100);
 else
     geobasemap bluegreen
