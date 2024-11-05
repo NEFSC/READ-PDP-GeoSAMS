@@ -12,6 +12,8 @@
 
 function PlotLatLonGridSurvey(surveyFname, gridFname, yrStart, tsPerYear, domain, yrSelect)
 
+units = GetUnits(gridFname);
+
 isOctave = (exist('OCTAVE_VERSION', 'builtin') ~= 0);
 if isOctave
     % used if called by command line
@@ -98,7 +100,7 @@ end
 for k=1:c
 for n=1:r
     % geoscatter does not accept 0.0, must be positive or NaN
-    if grid(n,k)<=0 ; grid(n,k) = NaN; end
+    if grid(n,k)<=0 ; grid(n,k) = realmin(); end
     % saturate values
     if grid(n,k)> saturate; grid(n,k) = saturate; end
 end
@@ -180,7 +182,7 @@ end
 for k=1:numCol
 for n=1:rSurvey
     % geoscatter does not accept 0.0, must be positive or NaN
-    if survey(n,k)<=0 ; survey(n,k) = NaN; end
+    if survey(n,k)<=0 ; survey(n,k) = realmin(); end
 end
 end
 
@@ -276,9 +278,10 @@ end
 % plot figure for each year
 for i=1:c
     year = yrStart + i - 2 + offset;
-    
+
     if or(strcmp(domain, 'MA'), strcmp(domain, 'AL'))
         thisTitle = [useTitle int2str(year) '_' int2str(100./mx_N(i)) '_MA_North'];
+        unitStr = [units, ' X ', num2str(mx_N(i),4)];
         surveyLon = lonSurvey_N;
         surveyLat = latSurvey_N;
         if isOctave
@@ -291,6 +294,7 @@ for i=1:c
         gridData = grid_N(:,i);
     else
         thisTitle = [useTitle int2str(year) '_' int2str(100./mx(i))];
+        unitStr = [units, ' X ', num2str(mx(i),4)];
         surveyLon = lonSurvey;
         surveyLat = latSurvey;
         if isOctave
@@ -305,7 +309,7 @@ for i=1:c
     PlotGrid(domain, thisTitle, isOctave, surveyLon, surveyLat, surveyData, gridLon, gridLat, gridData)
     PlotRegion(isOctave, 'MA_North', cutNS, 1)
     title(thisTitle, 'Interpreter', 'none');
-    SetColorbar(isOctave)
+    SetColorbar(isOctave, unitStr)
     SizePaper(domain, isOctave)
     saveas(gcf,[thisTitle '.pdf'])
 
@@ -315,7 +319,7 @@ for i=1:c
         PlotGrid(domain, thisTitle, isOctave, lonSurvey_S, latSurvey_S, survey_S(:,i), lonGrid_S, latGrid_S, grid_S(:,i))
         PlotRegion(isOctave, 'MA_South', cutNS, 1)
         title(thisTitle, 'Interpreter', 'none');
-        SetColorbar(isOctave)
+        SetColorbar(isOctave, [units, ' X ', num2str(mx_S(i),4)])
         SizePaper(domain, isOctave)
         saveas(gcf,[thisTitle '.pdf'])
     end
@@ -326,7 +330,7 @@ for i=1:c
         PlotGrid(domain, thisTitle, isOctave, lonSurvey_NE, latSurvey_NE, survey_NE(:,i), lonGrid_NE, latGrid_NE, grid_NE(:,i))
         PlotRegion(isOctave, 'GB', cutNS, 1)
         title(thisTitle, 'Interpreter', 'none');
-        SetColorbar(isOctave)
+        SetColorbar(isOctave, [units, ' X ', num2str(mx_NE(i),4)])
         SizePaper(domain, isOctave)
         saveas(gcf,[thisTitle '.pdf'])
     end
@@ -360,13 +364,18 @@ else
 end %if isOctave
 end % function
 
-function SetColorbar(isOctave)
+function SetColorbar(isOctave,units)
 if isOctave
     set(gca, 'color', [193 245 247]/255);     %RGB as a fraction
+    h=get(gca,'title');
+    title = get(h,'String');
+    set(gca, 'title', [title char(10) units]);
     c=rainbow(100);
 else
     geobasemap bluegreen
     c=hot(100);
+    ax=gca;
+    ax.Subtitle = text(0.5,0.5,units);
 end
 colormap(c);
 colorbar;
@@ -402,4 +411,6 @@ else
         f.OuterPosition = [1963.4 -221.4 1000 1087.2];
     end
 end
+% correct when data is all 0
+if max(gridData) == realmin(), clim([realmin(), 0.001]); end
 end
