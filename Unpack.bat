@@ -115,6 +115,12 @@ if not exist RecruitEstimates\ (
 if not exist Analysis\ (
     mkdir Analysis\
 )
+if not exist MFigures\ (
+    mkdir MFigures\
+)
+if not exist MFigures\Results (
+    mkdir MFigures\Results
+)
 
 @REM Make GeoSam executables
 cd SRC
