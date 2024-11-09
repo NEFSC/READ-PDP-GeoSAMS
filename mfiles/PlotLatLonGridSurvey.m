@@ -12,7 +12,7 @@
 
 function PlotLatLonGridSurvey(surveyFname, gridFname, yrStart, tsPerYear, domain, yrSelect)
 
-units = GetUnits(gridFname);
+units = ['Grid: ' GetUnits(gridFname)];
 
 isOctave = (exist('OCTAVE_VERSION', 'builtin') ~= 0);
 if isOctave
@@ -43,7 +43,7 @@ if size(s,2) < 5
     % plotting a single year
     useTitle = gridFname;
 else
-    useTitle = gridFname(1:s(5));
+    useTitle = gridFname(1:s(4));
 end
 
 if isOctave
@@ -277,10 +277,10 @@ end
 
 % plot figure for each year
 for i=1:c
-    year = yrStart + i - 2 + offset;
+    year = yrStart + i - 1 + offset;
 
     if or(strcmp(domain, 'MA'), strcmp(domain, 'AL'))
-        thisTitle = [useTitle int2str(year) '_' int2str(100./mx_N(i)) '_MA_North'];
+        thisTitle = [useTitle int2str(year) '_MA_North'];
         unitStr = [units, ' X ', num2str(mx_N(i),4)];
         surveyLon = lonSurvey_N;
         surveyLat = latSurvey_N;
@@ -293,7 +293,7 @@ for i=1:c
         gridLat = latGrid_N;
         gridData = grid_N(:,i);
     else
-        thisTitle = [useTitle int2str(year) '_' int2str(100./mx(i))];
+        thisTitle = [useTitle int2str(year) ];
         unitStr = [units, ' X ', num2str(mx(i),4)];
         surveyLon = lonSurvey;
         surveyLat = latSurvey;
@@ -315,7 +315,7 @@ for i=1:c
 
     % Plot lower data
     if or(strcmp(domain, 'MA'), strcmp(domain, 'AL'))
-        thisTitle = [useTitle int2str(year) '_' int2str(100./mx_S(i)) '_MA_South'];
+        thisTitle = [useTitle int2str(year) '_MA_South'];
         PlotGrid(domain, thisTitle, isOctave, lonSurvey_S, latSurvey_S, survey_S(:,i), ...
             lonGrid_S, latGrid_S, grid_S(:,i), [units, ' X ', num2str(mx_S(i),4)])
         PlotRegion(isOctave, 'MA_South', cutNS, 1)
@@ -327,7 +327,7 @@ for i=1:c
 
     % Plot NE, i.e. GB data
     if strcmp(domain, 'AL')
-        thisTitle = [useTitle int2str(year) '_' int2str(100./mx_NE(i)) '_GB'];
+        thisTitle = [useTitle int2str(year) '_GB'];
         PlotGrid(domain, thisTitle, isOctave, lonSurvey_NE, latSurvey_NE, survey_NE(:,i), ...
             lonGrid_NE, latGrid_NE, grid_NE(:,i), [units, ' X ', num2str(mx_NE(i),4)])
         PlotRegion(isOctave, 'GB', cutNS, 1)

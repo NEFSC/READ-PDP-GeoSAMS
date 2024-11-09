@@ -43,6 +43,14 @@
 # This is the first step in <i><b>START Sim</b></i>. This button will save all of the configuration files using
 # the names given. 
 #
+# @section p1p4 Year in file names
+# GUI specifies 2022 to 2025
+# - X_Y_BIOM_2022_DN  Initial state as of June 1, 2022 @ 00:00, i.e. May 31, 2022 @ 24:00
+# - X_Y_BIOM_2023_DN  Growth state as of May 31, 2023 @ 24:00, results for 1st year growth
+# - X_Y_BIOM_2024_DN  Growth state as of May 31, 2024 @ 24:00, results for 2nd year growth
+# - X_Y_BIOM_2025_DN  Growth state as of May 31, 2025 @ 24:00, results for 3rd year growth
+# - X_Y_BIOM_2026_DN  Growth state as of May 31, 2026 @ 24:00, results for 4th year growth
+
 import tkinter as tk
 from tkinter import ttk
 from tkinter import messagebox
@@ -310,7 +318,8 @@ class MainApplication(tk.Tk):
     #
     def InterpAndPlotResults(self):
         rets = 0
-        years = range(self.yearStart-1, self.yearStop+1) # year_start-1 is initial state
+        # year_start is initial state, yearStop+2 represents the last year of simulation output, actually '+1'
+        years = range(self.yearStart, self.yearStop+2)  
 
         # set configuration file name for UK.exe
         ukCfgFile = self.ukCfgFile  # This may be overwritten depending on domain
@@ -463,7 +472,7 @@ class MainApplication(tk.Tk):
             # end for region
 
             # now combine all region files into one file
-            flout = resultsDir + '/Lat_Lon_Grid_' + pStr + self.domainName + '_' + str(self.yearStart) + '_' + str(self.yearStop) + '.csv'
+            flout = resultsDir + '/Lat_Lon_Grid_' + pStr + self.domainName + '_' + str(self.yearStart) + '_' + str(self.yearStop+1) + '.csv'
             wrFile = open(flout, 'w')
             for r in region:
                 flin = resultsDir + '/Lat_Lon_Grid_' + pStr + self.domainName + r + '.csv'
@@ -486,7 +495,7 @@ class MainApplication(tk.Tk):
         # We have the needed output paramters so lets plot data and save to pdf files
         for pStr in self.paramStr:
             str1 = resultsDir + '/Lat_Lon_Surv_' + pStr + self.domainName
-            str2 = resultsDir + '/Lat_Lon_Grid_' + pStr + self.domainName+'_'+str(self.yearStart) + '_' + str(self.yearStop)
+            str2 = resultsDir + '/Lat_Lon_Grid_' + pStr + self.domainName+'_'+str(self.yearStart) + '_' + str(self.yearStop+1)
 
             if self.frame2.usingMatlab.get():
                 matlabStr = 'PlotLatLonGridSurvey(' + "'" + str1 + "','" + str2 + "', " + str(self.yearStart) + ',' +str(self.tsPerYear) + ", '" + self.domainName + "');exit"

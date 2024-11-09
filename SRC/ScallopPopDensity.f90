@@ -16,6 +16,14 @@ PROGRAM ScallopPopDensity
 !!  -     if leap year       315 which is  = 315.   /365.2425 = 0.86244
 !!  However, leap year will be handled in the main loop in which it is considered only for the current year
 !!
+!!  GUI specifies 2022 to 2025
+!!  - X_Y_BIOM_2022_DN  Initial state as of June 1, 2022 @ 00:00, i.e. May 31, 2022 @ 24:00
+!!  - X_Y_BIOM_2023_DN  Growth state as of May 31, 2023 @ 24:00, results for 1st year growth
+!!  - X_Y_BIOM_2024_DN  Growth state as of May 31, 2024 @ 24:00, results for 2nd year growth
+!!  - X_Y_BIOM_2025_DN  Growth state as of May 31, 2025 @ 24:00, results for 3rd year growth
+!!  - X_Y_BIOM_2026_DN  Growth state as of May 31, 2026 @ 24:00, results for 4th year growth
+!!    
+!!
 !! @section ms1 Initialize Simulation Parameters
 !! @subsection ms1p1 Read Input
 !! Values are read in from file name given on command line, e.g.\n
@@ -701,9 +709,9 @@ if (plot_data_sel%plot_LPUE) call Write_Lat_Lon_Preamble(num_grids, grid, output
 if (plot_data_sel%plot_RECR) call Write_Lat_Lon_Preamble(num_grids, grid, output_dir//'Lat_Lon_Surv_RECR_'//domain_name//'.csv')
 
 ! Write similar data for later interpolation by UK (Universal Kriging)
-! Year-1 is the initial state
-yr_offset = -1.
-do n = start_year-1, stop_year
+! Year is the initial state
+yr_offset = 0.
+do n = start_year, stop_year+1
     write(buf,'(I4)') n
     if (plot_data_sel%plot_ABUN) &
     &    call Write_X_Y_Preamble(num_grids, grid, yr_offset, data_dir//'X_Y_ABUN_'//domain_name//buf//'.csv')
@@ -762,9 +770,9 @@ delta_time = 1._dp / dfloat(ts_per_year)
 
 if (mod(ts, ts_per_year) .eq. 1) then
     if (ts .eq. 1) then
-        write(buf,'(I4)') year-1
-    else
         write(buf,'(I4)') year
+    else
+        write(buf,'(I4)') year+1
     endif
     call Write_Column_CSV_By_Region(num_grids, recruit(1:num_grids)%recruitment(recr_idx), &
     &            grid(1:num_grids)%lon, 'RECR', data_dir//'X_Y_RECR_'//domain_name//trim(buf), .true.)
