@@ -161,6 +161,8 @@ class SpecialArea(ttk.Frame):
         self.numAreas = n
         self.areaMgr.NumAreasUpdate(self.numAreas)
 
+    # --------------------------------------------------------------------------------------------------------
+    # --------------------------------------------------------------------------------------------------------
     def UpdateWidgets(self):
         # Populate from known file
         if self.areaFName == os.path.join(self.startDir, 'NONE'):
@@ -170,8 +172,10 @@ class SpecialArea(ttk.Frame):
         self.numAreasEntry.delete(0,tk.END)
         self.numAreasEntry.insert(0, str(self.numAreas))
         self.NumAreasUpdate()
-        self.areaMgr.UpdateWidgets()
+        self.areaMgr.UpdateWidgets(showCompArea=False)
 
+    # --------------------------------------------------------------------------------------------------------
+    # --------------------------------------------------------------------------------------------------------
     def GetAreaFile(self):
         self.areaFName = filedialog.askopenfilename(title="Open Special Area CSV File", filetypes=[("CSV files", "*.csv")],
                                                     defaultextension='csv', initialdir=self.startDir)
@@ -181,14 +185,42 @@ class SpecialArea(ttk.Frame):
             f = self.areaFName.split('/')
             self.specAccFile.myEntry.insert(0, f[-1])
     
+    # --------------------------------------------------------------------------------------------------------
+    # --------------------------------------------------------------------------------------------------------
     def SaveAreaFile(self):
         self.areaFName = filedialog.asksaveasfilename(title="Save Special Area CSV File", filetypes=[("CSV files", "*.csv")],
                                                       defaultextension='csv', initialdir=self.startDir)
         if self.areaFName:
-            self.areaMgr.SaveSpecialAreaData(self.areaFName, int(self.numAreasEntry.get()))
+            self.SaveSpecialAreaData(self.areaFName, int(self.numAreasEntry.get()))
             self.specAccFile.myEntry.delete(0,tk.END)
             f = self.areaFName.split('/')
             self.specAccFile.myEntry.insert(0, f[-1])
+
+    #------------------------------------------------------------------------------------------------
+    #------------------------------------------------------------------------------------------------
+    def SaveSpecialAreaData(self, fname, numAreas):
+        with open(fname, 'w') as f:
+            f.write('# This file contains the vertices for special area polygons which are entered\n')
+            f.write('# as a vector of longitude coordinates followed by a vector of latitude coordinates.\n')
+            f.write('# The length of each vector must be the same that is same number of comma separated values not characters\n')
+            f.write('# Lines starting with # are used as comments.\n')
+            f.write('# For multiple lines (such as this note) - only the last line is retained\n')
+            for i in range(numAreas):
+                # write comment
+                f.write('#'+self.areaMgr.areaSubFrame[i].comment+'\n')
+
+                # write longitude values
+                for j in range(int(self.areaMgr.areaSubFrame[i].numCornersEntry.myEntry.get()) - 1):
+                    f.write(self.areaMgr.areaSubFrame[i].corners[j].longitude.myEntry.get()+',')
+                f.write(self.areaMgr.areaSubFrame[i].corners[j+1].longitude.myEntry.get()+'\n')
+            
+                # write latitude values
+                for j in range(int(self.areaMgr.areaSubFrame[i].numCornersEntry.myEntry.get()) - 1):
+                    f.write(self.areaMgr.areaSubFrame[i].corners[j].latitude.myEntry.get()+',')
+                f.write(self.areaMgr.areaSubFrame[i].corners[j+1].latitude.myEntry.get()+'\n')
+        f.close()
+
+
 
     ## Help Window for Special Access Area
     #

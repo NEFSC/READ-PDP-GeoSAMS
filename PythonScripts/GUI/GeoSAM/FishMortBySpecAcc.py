@@ -161,11 +161,11 @@ class FishMortBySpecAcc(ttk.Frame):
             self.numDefined = 0
             year = []
         else:
-            (self.numDefined, year) = self.areaMgr.ReadFields(self.fmFName)
+            (self.numDefined, year) = self.ReadFields(self.fmFName)
         self.numDefinedEntry.delete(0,tk.END)
         self.numDefinedEntry.insert(0, str(self.numDefined))
         self.NumDefinedUpdate()
-        self.areaMgr.UpdateWidgets()
+        self.areaMgr.UpdateWidgets(showCompArea=False)
 
         # remove all
         for i in range(self.numDefinedMax):
@@ -197,10 +197,20 @@ class FishMortBySpecAcc(ttk.Frame):
             numAreas = int(self.numDefinedEntry.get())
 
             with open(self.fmFName, 'w') as f:
+                # add closing notes for user
+                f.write('# This file contains a list of fishing mortalities for special access areas.'+'\n')
+                f.write('# Each row contains'+'\n')
+                f.write('#   - year '+'\n')
+                f.write('#   - the number of areas in row'+'\n')
+                f.write('#   - area numbers as defined in the Special Access File'+'\n')
+                f.write('#   - fishing mortalities for the given area numbers'+'\n')
+                f.write('# The number of fishing mortalities must match the number of areas listed'+'\n')
+                f.write('# Lines starting with # are used as comments.\n')
+                f.write('# For multiple lines (such as this note) - only the last line is retained\n')
                 for i in range(numAreas):
                     # write comment
                     comment = self.areaMgr.areaSubFrame[i].commentEntry.myEntry.get()
-                    f.write('# '+comment+'\n')
+                    f.write('#'+comment+'\n')
 
                     # save year
                     f.write(self.yearEntry[i].get()+',')
@@ -218,6 +228,67 @@ class FishMortBySpecAcc(ttk.Frame):
                         f.write(self.areaMgr.areaSubFrame[i].corners[j].latitude.myEntry.get()+',')
                     f.write(self.areaMgr.areaSubFrame[i].corners[j+1].latitude.myEntry.get()+'\n')
                 f.close()
+    #------------------------------------------------------------------------------------------------
+    #------------------------------------------------------------------------------------------------
+    def ReadFields(self, fName):
+        """Reads an Area file and returns the number of fields. 
+        
+        Fields have a Special Area number for the x value with a Mortality setting for the y value."""
+        year = []
+        definedIndex = 0
+        if os.path.isfile(fName):
+            with open(fName, 'r') as f:
+                while True:
+                    if (definedIndex >= self.numDefinedMax):
+                        messagebox.showerror("Reading Fishing Mort File", f'Max reached {self.numDefinedMax}\nStopping at {definedIndex}')
+                        break
+
+                    # read defined values
+                    inputStr = f.readline()
+                    if not inputStr:
+                        f.close()
+                        break
+
+                    if inputStr[0] == '#':
+                        # reads in comment. if a mult-line comment only the last line is kept
+                        n = len(inputStr.strip()) - 1
+                        # remove any trailing commas
+                        while inputStr[n] == ',':
+                            n -= 1
+                        self.areaMgr.areaSubFrame[definedIndex].comment = inputStr[1:n+1]
+                        continue
+                    inputArr = [s.strip() for s in inputStr.split(',')]
+                    # remove trailing commas
+                    inputArr = list(filter(None, inputArr))
+
+                    year.append(inputArr[0])
+                    numFields = int(inputArr[1])
+                    # check data size
+                    definedLen = len(inputArr)
+
+                    # 2 entries per defined + year + numFieldsVal
+                    if definedLen > numFields*2 + 2:
+                        messagebox.showerror("Reading Fishing Mort File", f'File row{definedIndex} is ill defined\n')
+
+                    if (numFields > self.numFieldsMax):
+                        messagebox.showerror("Reading Fishing Mort File", f'Max fields reached. Stoppin at {self.numFieldsMax}\n')
+                        numFields = self.numFieldsMax
+                    
+                    # get special access area values
+                    for i in range(numFields):
+                        self.areaMgr.areaData[definedIndex].long[i] = int(inputArr[i+2])
+                        self.areaMgr.areaData[definedIndex].lat[i] = float(inputArr[i+numFields+2])
+
+                    self.areaMgr.areaData[definedIndex].numCorners = numFields
+                    definedIndex += 1
+
+                f.close()
+            self.numAreas = definedIndex
+        else: 
+            messagebox.showerror("Data Sort", f'No Fields File Has Been Read')
+            self.numAreas = 1
+        return (self.numAreas, year)
+
 
     ##
     # Help Window for Fishing Mortatlity in Special Access Area

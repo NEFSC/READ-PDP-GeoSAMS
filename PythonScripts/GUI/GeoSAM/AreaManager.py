@@ -129,76 +129,15 @@ class AreaManager(ttk.Frame):
             self.numAreas = 1
         return self.numAreas
     
+       
     #------------------------------------------------------------------------------------------------
     #------------------------------------------------------------------------------------------------
-    def ReadFields(self, fName):
-        """Reads an Area file and returns the number of fields. 
-        
-        Fields have a Special Area number for the x value with a Mortality setting for the y value."""
-        year = []
-        definedIndex = 0
-        if os.path.isfile(fName):
-            with open(fName, 'r') as f:
-                while True:
-                    if (definedIndex >= self.numAreasMax):
-                        messagebox.showerror("Reading Fishing Mort File", f'Max reached {self.numAreasMax}\nStopping at {definedIndex}')
-                        break
-
-                    # read defined values
-                    inputStr = f.readline()
-                    if not inputStr:
-                        f.close()
-                        break
-
-                    if inputStr[0] == '#':
-                        # reads in comment. if a mult-line comment only the last line is kept
-                        n = len(inputStr.strip()) - 1
-                        # remove any trailing commas
-                        while inputStr[n] == ',':
-                            n -= 1
-                        self.areaSubFrame[definedIndex].comment = inputStr[1:n+1]
-                        continue
-                    inputArr = [s.strip() for s in inputStr.split(',')]
-                    # remove trailing commas
-                    inputArr = list(filter(None, inputArr))
-
-                    year.append(inputArr[0])
-                    numFields = int(inputArr[1])
-                    # check data size
-                    definedLen = len(inputArr)
-
-                    # 2 entries per defined + year + numFieldsVal
-                    if definedLen > numFields*2 + 2:
-                        messagebox.showerror("Reading Fishing Mort File", f'File row{definedIndex} is ill defined\n')
-
-                    if (numFields > self.numCornersMax):
-                        messagebox.showerror("Reading Fishing Mort File", f'Max fields reached. Stoppin at {self.numCornersMax}\n')
-                        numFields = self.numCornersMax
-                    
-                    # get special access area values
-                    for i in range(numFields):
-                        self.areaData[definedIndex].long[i] = int(inputArr[i+2])
-                        self.areaData[definedIndex].lat[i] = float(inputArr[i+numFields+2])
-
-                    self.areaData[definedIndex].numCorners = numFields
-                    definedIndex += 1
-
-                f.close()
-            self.numAreas = definedIndex
-        else: 
-            messagebox.showerror("Data Sort", f'No Fields File Has Been Read')
-            self.numAreas = 1
-        return (self.numAreas, year)
-
-        
-    #------------------------------------------------------------------------------------------------
-    #------------------------------------------------------------------------------------------------
-    def UpdateWidgets(self):
+    def UpdateWidgets(self, showCompArea=True):
         for i in range(self.numAreas):
             # self.areaSubFrame[i].commentEntry.myEntry.delete(0,tk.END)
             # self.areaSubFrame[i].commentEntry.myEntry.insert(0,self.areaSubFrame[i].comment)
             UpdateEntry(self.areaSubFrame[i].commentEntry.myEntry, self.areaSubFrame[i].comment)
-            UpdateEntry(self.areaSubFrame[i].compAreaEntry.myEntry,  f'{self.areaSubFrame[i].myArea:.4f}'+' Km^2')
+            if showCompArea: UpdateEntry(self.areaSubFrame[i].compAreaEntry.myEntry,  f'{self.areaSubFrame[i].myArea:.4f}'+' Km^2')
             # self.areaSubFrame[i].numCornersEntry.myEntry.delete(0,tk.END)
             # self.areaSubFrame[i].numCornersEntry.myEntry.insert(0, str(self.areaData[i].numCorners))
             UpdateEntry(self.areaSubFrame[i].numCornersEntry.myEntry, str(self.areaData[i].numCorners))
@@ -208,29 +147,6 @@ class AreaManager(ttk.Frame):
                 self.areaSubFrame[i].corners[j].longitude.myEntry.insert(0, str(self.areaData[i].long[j]))
                 self.areaSubFrame[i].corners[j].latitude.myEntry.delete(0,tk.END)
                 self.areaSubFrame[i].corners[j].latitude.myEntry.insert(0, str(self.areaData[i].lat[j]))
-
-    #------------------------------------------------------------------------------------------------
-    #------------------------------------------------------------------------------------------------
-    def SaveSpecialAreaData(self, fname, numAreas):
-        with open(fname, 'w') as f:
-            f.write('# This file contains the vertices for special area polygons which are entered\n')
-            f.write('# as a vector of longitude coordinates followed by a vector of latitude coordinates.\n')
-            f.write('# The length of each vector must be the same that is same number of comma separated values not characters\n')
-            f.write('# Lines starting with # are ignored.\n')
-            for i in range(numAreas):
-                # write comment
-                f.write('# '+self.areaSubFrame[i].comment+'\n')
-
-                # write longitude values
-                for j in range(int(self.areaSubFrame[i].numCornersEntry.myEntry.get()) - 1):
-                    f.write(self.areaSubFrame[i].corners[j].longitude.myEntry.get()+',')
-                f.write(self.areaSubFrame[i].corners[j+1].longitude.myEntry.get()+'\n')
-            
-                # write latitude values
-                for j in range(int(self.areaSubFrame[i].numCornersEntry.myEntry.get()) - 1):
-                    f.write(self.areaSubFrame[i].corners[j].latitude.myEntry.get()+',')
-                f.write(self.areaSubFrame[i].corners[j+1].latitude.myEntry.get()+'\n')
-        f.close()
 
 
 ## Defines floating point data for corner defintions

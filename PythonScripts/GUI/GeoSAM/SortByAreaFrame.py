@@ -236,10 +236,9 @@ class SortByArea(ttk.Frame):
         desiredParam = self.comboParameter.get()
         # typical name: Lat_Lon_Grid_EBMS_MA_2015_2017
         #               Lat_Lon_Grid_ABUN_AL_2015_2017
-        paramFName = os.path.join(self.root, 'Results', 'Lat_Lon_Grid_' + 
-             desiredParam + self.domainName + '_' + str(self.yearStart) + '_' + str(self.yearStop) + '.csv')
         fileName = os.path.join('Results', 'Lat_Lon_Grid_' + 
-             desiredParam + self.domainName + '_' + str(self.yearStart) + '_' + str(self.yearStop) + '.csv')
+             desiredParam + self.domainName + '_' + str(self.yearStart) + '_' + str(self.yearStop+1) + '.csv')
+        paramFName = os.path.join(self.root, fileName)
         
         # The data structure is used with InPolygon algorithm to check 
         # if grid parameter is within area of interest
