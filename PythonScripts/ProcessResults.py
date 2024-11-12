@@ -1,4 +1,10 @@
 #subprocess.run([ex, dn, flin])
+# GUI specifies 2022 to 2025
+# - X_Y_BIOM_2022_DN  Initial state as of June 1, 2022 @ 00:00, i.e. May 31, 2022 @ 24:00
+# - X_Y_BIOM_2023_DN  Growth state as of May 31, 2023 @ 24:00, results for 1st year growth
+# - X_Y_BIOM_2024_DN  Growth state as of May 31, 2024 @ 24:00, results for 2nd year growth
+# - X_Y_BIOM_2025_DN  Growth state as of May 31, 2025 @ 24:00, results for 3rd year growth
+# - X_Y_BIOM_2026_DN  Growth state as of May 31, 2026 @ 24:00, results for 4th year growth
 
 import subprocess
 import os
@@ -23,7 +29,8 @@ year_start = int(sys.argv[2])
 year_end = int(sys.argv[3])
 simCfgFile = sys.argv[4]
 ukCfgFile = sys.argv[5]
-years = range(year_start-1, year_end + 1) # year_start-1 is initial state
+# year_start is initial state, yearStop+2 represents the last year of simulation output, actually '+1'
+years = range(year_start, year_end+2)
 
 # Used while concatenating files
 # number of colums in csv file, starting at 0
@@ -131,7 +138,7 @@ for pStr in paramStr:
 
     # now combine all region files into one file
     for pfix in prefix:
-        flout = pfix + pStr + dn + '_' + str(year_start) + '_' + str(year_end) + '.csv'
+        flout = pfix + pStr + dn + '_' + str(year_start) + '_' + str(year_end+1) + '.csv'
         wrFile = open(flout, 'w')
         for r in rgn:
             flin = pfix + pStr + dn + r + '.csv'
@@ -151,7 +158,7 @@ p = platform.platform()
 
 for pStr in paramStr:
     str1 = 'Results/Lat_Lon_Surv_' + pStr + dn
-    str2 = 'Results/Lat_Lon_Grid_' + pStr + dn+'_'+str(year_start) + '_' + str(year_end)
+    str2 = 'Results/Lat_Lon_Grid_' + pStr + dn+'_'+str(year_start) + '_' + str(year_end+1)
 
     if p[0:3] == 'Win':
         cmd = ['matlab.exe', '-batch', 'PlotLatLonGridSurvey('+"'"+str1+"','"+str2+"', "+str(year_start)+','+str(tsInYear)+", '"+dn+"')"]
