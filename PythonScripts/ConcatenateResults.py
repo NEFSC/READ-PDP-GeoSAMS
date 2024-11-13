@@ -23,7 +23,7 @@ year_start = int(sys.argv[2])
 year_end = int(sys.argv[3])
 simCfgFile = sys.argv[4]
 ukCfgFile = sys.argv[5]
-years = range(year_start-1, year_end + 1) # year_start-1 is initial state
+years = range(year_start, year_end + 2) # year_start is initial state
 
 # Used while concatenating files
 # number of colums in csv file, starting at 0

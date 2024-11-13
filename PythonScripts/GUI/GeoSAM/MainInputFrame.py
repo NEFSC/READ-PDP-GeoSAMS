@@ -152,12 +152,12 @@ class MainInput(ttk.Frame):
         #-------------------------------------------------------------------------------------------
         recruitFrame.grid(row=3, column=1, padx=5, pady=0, sticky='w')
         # +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-        durationFrame = ttk.LabelFrame(self, text='Duration: Growth Year Starts June 1 @ 00:00', style='SAMS.TFrame')
+        durationFrame = ttk.LabelFrame(self, text='Duration:', style='SAMS.TFrame')
         #------------------------------------------------------------------------------------------
-        self.startYr    = SubFrameElement(self, durationFrame, 'Start Year', '2022', 0, 0, 1,
+        self.startYr    = SubFrameElement(self, durationFrame, 'Start, @24:00 on May 31, ', '2022', 0, 0, 1,
                                           enterCmd=self.EnterKeyClicked, valCmd=numbersCallback)
         #-------------------------------------------------------------------------------------------
-        self.stopYr     = SubFrameElement(self, durationFrame, 'Stop Year ', '2025', 1, 0, 1,
+        self.stopYr     = SubFrameElement(self, durationFrame, 'End, @ 24:00 May 31,', '2025', 1, 0, 1,
                                           enterCmd=self.EnterKeyClicked, valCmd=numbersCallback)
         #-------------------------------------------------------------------------------------------
         self.tsPerYear  = SubFrameElement(self, durationFrame, 'Time Steps / Year', str(tsPerYear), 2, 0, 1)

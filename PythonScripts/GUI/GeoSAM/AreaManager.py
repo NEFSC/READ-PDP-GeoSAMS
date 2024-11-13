@@ -178,7 +178,8 @@ class AreaMgrSubFrame(tk.Frame):
         if includeYears:
             numYears = yearStop - yearStart + 1
             self.numYrCols = 3
-            self.results = [SubFrameElement(self, self.areaFrame, str(yearStart+i), '0', i//self.numYrCols+3,
+            # year label is added by child when repainting frame
+            self.results = [SubFrameElement(self, self.areaFrame, '2000', '0', i//self.numYrCols+3,
                                              (i%self.numYrCols)*2, (i%self.numYrCols)*2+1, width=15) for i in range(numYearsMax)]
             # Now hide unused
             for i in range(numYears, numYearsMax):

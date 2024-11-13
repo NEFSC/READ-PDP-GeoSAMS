@@ -199,7 +199,7 @@ class SortByArea(ttk.Frame):
             for j in range(self.numYears):
                 self.areas.areaSubFrame[i].results[j].myEntry.grid()
                 self.areas.areaSubFrame[i].results[j].myLabel.grid()
-                self.areas.areaSubFrame[i].results[j].myLabel.config(text = str(self.yearStart+j))
+                self.areas.areaSubFrame[i].results[j].myLabel.config(text = str(self.yearStart+j+1))
             for j in range(self.numYears, self.maxYears):
                 self.areas.areaSubFrame[i].results[j].myEntry.grid_remove()
                 self.areas.areaSubFrame[i].results[j].myLabel.grid_remove()
@@ -401,7 +401,7 @@ class SortByArea(ttk.Frame):
                     # Write Header
                     f.write('Area #,Area,Units')
                     for yr in range(self.numYears):
-                            f.write(',' + str(yr+self.yearStart))
+                            f.write(',' + str(yr+self.yearStart+1))
                     f.write('\n')
 
                     for a in range(self.numAreas):
@@ -426,7 +426,7 @@ class SortByArea(ttk.Frame):
             filesExist = True
             n = len(self.paramStr)
             for i in range(n):
-                dataFileName = 'Lat_Lon_Grid_' + self.paramStr[i] + self.domainName + '_' + str(self.yearStart) + '_' + str(self.yearStop ) + '.csv'
+                dataFileName = 'Lat_Lon_Grid_' + self.paramStr[i] + self.domainName + '_' + str(self.yearStart) + '_' + str(self.yearStop+1) + '.csv'
                 if not os.path.isfile(os.path.join('Results', dataFileName)):
                     filesExist = False
                     break
@@ -572,6 +572,14 @@ Area N
         These are the coordinates of the area vertices. Enter the Longitude and
         Latitude of the vertices for the area. It is up to the user to ensure 
         that a closed shape is defined.
+
+    Year Headings
+    Main specifies 2022 as year start and 2025 as year stop
+    - Initial state as of June 1, 2022 @ 00:00, i.e. May 31, 2022 @ 24:00
+    - 2023: Growth state as of May 31, 2023 @ 24:00, results for 1st year growth
+    - 2024: Growth state as of May 31, 2024 @ 24:00, results for 2nd year growth
+    - 2025: Growth state as of May 31, 2025 @ 24:00, results for 3rd year growth
+    - 2026: Growth state as of May 31, 2026 @ 24:00, results for 4th year growth
 '''
         #about = re.sub("\n\s*", "\n", about) # remove leading whitespace from each line
         popup = tk.Toplevel()

@@ -132,7 +132,7 @@ class SortByRegion(ttk.Frame):
             self.table[row+1][1].insert(0,f'{self.shape[row].areaKm2:.4f}')
         self.table[0][1].insert(0,'Area (Km^2)')
         for col in range(self.numYears):
-            self.table[0][col+3].insert(0,str(self.yearStart+col))
+            self.table[0][col+3].insert(0,str(self.yearStart+col+1))
         self.table[0][2].insert(0, 'Initial State')
 
         self.sortAreaFrame.grid(row=4, column=0, columnspan=10, padx=5)
@@ -380,7 +380,7 @@ class SortByRegion(ttk.Frame):
             filesExist = True
             n = len(self.paramStr)
             for i in range(n):
-                dataFileName = 'Lat_Lon_Grid_' + self.paramStr[i] + self.domainName + '_' + str(self.yearStart) + '_' + str(self.yearStop ) + '.csv'
+                dataFileName = 'Lat_Lon_Grid_' + self.paramStr[i] + self.domainName + '_' + str(self.yearStart) + '_' + str(self.yearStop+1) + '.csv'
                 if not os.path.isfile(os.path.join('Results', dataFileName)):
                     filesExist = False
                     break
@@ -547,6 +547,13 @@ Export Results
         parameter is appended to the name chosen by the user and csv extension.
         For example: <UserName>_ABUN_.csv
 
+    Year Headings
+    Main specifies 2022 as year start and 2025 as year stop
+    - Initial state as of June 1, 2022 @ 00:00, i.e. May 31, 2022 @ 24:00
+    - 2023: Growth state as of May 31, 2023 @ 24:00, results for 1st year growth
+    - 2024: Growth state as of May 31, 2024 @ 24:00, results for 2nd year growth
+    - 2025: Growth state as of May 31, 2025 @ 24:00, results for 3rd year growth
+    - 2026: Growth state as of May 31, 2026 @ 24:00, results for 4th year growth
 '''
         #about = re.sub("\n\s*", "\n", about) # remove leading whitespace from each line
         popup = tk.Toplevel()
