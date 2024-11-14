@@ -1,6 +1,8 @@
 import platform
 import tkinter as tk
 
+from tkinter import messagebox
+
 configDir = 'Configuration'
 interCfgDir = 'Interpolation'
 simCfgDir = 'Simulation'
@@ -61,3 +63,20 @@ def DetermineUnitsScale(desiredParam):
 def UpdateEntry(entry, val):
     entry.delete(0,tk.END)
     entry.insert(0, val)
+
+##
+# This method will display the message and then go away after the default time.
+#
+def ShowMessage(heading, message, type='info', timeout=2500):
+    root = tk.Tk()
+    root.withdraw()
+    try:
+        root.after(timeout, root.destroy)
+        if type == 'info':
+            messagebox.showinfo(heading, message, master=root)
+        elif type == 'warning':
+            messagebox.showwarning(heading, message, master=root)
+        elif type == 'error':
+            messagebox.showerror(heading, message, master=root)
+    except:
+        pass

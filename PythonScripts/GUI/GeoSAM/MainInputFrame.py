@@ -157,7 +157,7 @@ class MainInput(ttk.Frame):
         self.startYr    = SubFrameElement(self, durationFrame, 'Start, @24:00 on May 31, ', '2022', 0, 0, 1,
                                           enterCmd=self.EnterKeyClicked, valCmd=numbersCallback)
         #-------------------------------------------------------------------------------------------
-        self.stopYr     = SubFrameElement(self, durationFrame, 'End, @ 24:00 May 31,', '2025', 1, 0, 1,
+        self.stopYr     = SubFrameElement(self, durationFrame, 'End, @ 24:00 on May 31,', '2026', 1, 0, 1,
                                           enterCmd=self.EnterKeyClicked, valCmd=numbersCallback)
         #-------------------------------------------------------------------------------------------
         self.tsPerYear  = SubFrameElement(self, durationFrame, 'Time Steps / Year', str(tsPerYear), 2, 0, 1)
@@ -218,11 +218,12 @@ class MainInput(ttk.Frame):
             self.stopYr.myEntry.insert(0,'2000')
         startYear = int(self.startYr.myEntry.get())
         stopYear = int(self.stopYr.myEntry.get())
-        if stopYear < startYear:
-            stopYear = startYear
+        if stopYear <= startYear:
+            stopYear = startYear + 1
             self.stopYr.myEntry.delete(0,tk.END)
             self.stopYr.myEntry.insert(0,str(stopYear))
-            messagebox.showerror('YEAR RANGE','Stop Year is before Start Year\nSetting them equal')
+            messagebox.showerror('YEAR RANGE','Stop Year is same or before Start Year\nSetting them 1 year offset')
+        # We will have growth for each year plus the initial state
         numYears = stopYear - startYear + 1
         if numYears > self.maxYears:
             addYears = numYears - self.maxYears

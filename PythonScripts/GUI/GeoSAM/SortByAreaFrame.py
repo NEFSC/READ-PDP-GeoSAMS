@@ -194,12 +194,14 @@ class SortByArea(ttk.Frame):
         self.yearStart = int(self.friend.startYr.myEntry.get())
         self.yearStop = int(self.friend.stopYr.myEntry.get())
         self.domainName = self.friend.domainNameCombo.get()
+        # year end growth data + initial state
         self.numYears = self.yearStop - self.yearStart + 1
         for i in range(self.numAreasMax):
             for j in range(self.numYears):
                 self.areas.areaSubFrame[i].results[j].myEntry.grid()
                 self.areas.areaSubFrame[i].results[j].myLabel.grid()
-                self.areas.areaSubFrame[i].results[j].myLabel.config(text = str(self.yearStart+j+1))
+                self.areas.areaSubFrame[i].results[j].myLabel.config(text = str(self.yearStart+j))
+            self.areas.areaSubFrame[0].results[0].myLabel.config(text = 'Initial State')
             for j in range(self.numYears, self.maxYears):
                 self.areas.areaSubFrame[i].results[j].myEntry.grid_remove()
                 self.areas.areaSubFrame[i].results[j].myLabel.grid_remove()
@@ -237,7 +239,7 @@ class SortByArea(ttk.Frame):
         # typical name: Lat_Lon_Grid_EBMS_MA_2015_2017
         #               Lat_Lon_Grid_ABUN_AL_2015_2017
         fileName = os.path.join('Results', 'Lat_Lon_Grid_' + 
-             desiredParam + self.domainName + '_' + str(self.yearStart) + '_' + str(self.yearStop+1) + '.csv')
+             desiredParam + self.domainName + '_' + str(self.yearStart) + '_' + str(self.yearStop) + '.csv')
         paramFName = os.path.join(self.root, fileName)
         
         # The data structure is used with InPolygon algorithm to check 
@@ -264,8 +266,7 @@ class SortByArea(ttk.Frame):
                     lon = float(dataArray[1])
                     # i is index into file array
                     for i in range(self.numYears):
-                        # column 2 will be initial data and not of interest
-                        paramData[i] = float(dataArray[i+3]) 
+                        paramData[i] = float(dataArray[i+2]) 
                     
                     # Now check if the data point (lon, lat) is located in one of the desired areas
                     # tkinter widgets: self.areas.areaSubFrame[row] with given coordinates self.areas.areaSubFrame[row].corners[j]
@@ -351,6 +352,8 @@ class SortByArea(ttk.Frame):
         if fName:
             with open(fName, 'w') as f:
                 for i in range(int(self.numAreasEntry.get())):
+                    # write comment
+                    f.write('#'+self.areas.areaSubFrame[i].commentEntry.myEntry.get()+'\n')
 
                     # write longitude values
                     for j in range(int(self.areas.areaSubFrame[i].numCornersEntry.myEntry.get()) - 1):
@@ -399,13 +402,16 @@ class SortByArea(ttk.Frame):
                 with open(self.exportFileName, 'w') as f:
                     ##f.write('AREA,YEAR,' + outStr + ' ('+ units + ')\n')
                     # Write Header
-                    f.write('Area #,Area,Units')
-                    for yr in range(self.numYears):
-                            f.write(',' + str(yr+self.yearStart+1))
+                    f.write('Area #,Comment,Area,Units,Init State')
+                    for yr in range(1,self.numYears):
+                            f.write(',' + str(yr+self.yearStart))
                     f.write('\n')
 
                     for a in range(self.numAreas):
-                        f.write(str(a+1)+ ',' + self.areas.areaSubFrame[a].compAreaEntry.myEntry.get()+ ',' + outStr + ' ('+ units + ')')
+                        f.write(str(a+1))
+                        f.write(',' + self.areas.areaSubFrame[a].commentEntry.myEntry.get())
+                        f.write(',' + self.areas.areaSubFrame[a].compAreaEntry.myEntry.get())
+                        f.write(',' + outStr + ' ('+ units + ')')
                         for yr in range(self.numYears):
                              f.write( ',' + self.areas.areaSubFrame[a].results[yr].myEntry.get())
                         f.write('\n')
@@ -426,7 +432,7 @@ class SortByArea(ttk.Frame):
             filesExist = True
             n = len(self.paramStr)
             for i in range(n):
-                dataFileName = 'Lat_Lon_Grid_' + self.paramStr[i] + self.domainName + '_' + str(self.yearStart) + '_' + str(self.yearStop+1) + '.csv'
+                dataFileName = 'Lat_Lon_Grid_' + self.paramStr[i] + self.domainName + '_' + str(self.yearStart) + '_' + str(self.yearStop) + '.csv'
                 if not os.path.isfile(os.path.join('Results', dataFileName)):
                     filesExist = False
                     break

@@ -231,7 +231,7 @@ class MainApplication(tk.Tk):
         
         # Typical data file name: Data/bin5mm2015AL.csv
         # Delete any existing files, want a clean slate
-        for yr in range(self.yearStart, self.yearStop+1):
+        for yr in range(self.yearStart, self.yearStop):
             dataFName = os.path.join(self.root, 'Data', 'bin5mm'+str(yr)+self.domainName+'.csv')
             if os.path.isfile(dataFName): 
                 os.remove(dataFName)
@@ -246,9 +246,9 @@ class MainApplication(tk.Tk):
             mathArg = 'O'
 
         if platform.system() == 'Windows':
-            cmd = [os.path.join(self.root, 'Unpack.bat'), startYear, recruitYrStrt, recruitYrStop, self.domainName, mathArg]
+            cmd = [os.path.join(self.root, 'Unpack.bat'), str(self.yearStart), self.recruitYrStrt, self.recruitYrStop, self.domainName, mathArg]
         else:
-            cmd = [os.path.join(self.root, 'Unpack.sh'), startYear, recruitYrStrt, recruitYrStop, self.domainName, mathArg]
+            cmd = [os.path.join(self.root, 'Unpack.sh'), str(self.yearStart), self.recruitYrStrt, self.recruitYrStop, self.domainName, mathArg]
             subprocess.run(['chmod','744','Unpack.sh']) # make file executable
         if not self.skipStatusMsgs.get(): messagebox.showinfo("Unpack", f'Starting Unpack.\nThis could take several minutes, longer if using Octave.\nPlease be patient.')
         result = subprocess.run(cmd)
@@ -271,8 +271,10 @@ class MainApplication(tk.Tk):
             # typical command line:
             # > ./SRC/ScallopPopDensity.exe Scallop.cfg StartYear StopYear Domain
             ex = os.path.join('SRC', 'ScallopPopDensity')
-            # ScallopPopDensity prepends directory structure to simConfigFile
-            cmd = [ex, simConfigFile, startYear, stopYear, self.domainName]
+            # ScallopPopDensity 
+            #  - prepends directory structure to simConfigFile
+            #  - still interprets year as start of year, so deduct 1 from stop year
+            cmd = [ex, simConfigFile, str(self.yearStart), str(self.yearStop-1), self.domainName]
             print(cmd)
             if not self.skipStatusMsgs.get(): messagebox.showinfo("GeoSAMS Sim", f"Program Started: {cmd}")
             result = subprocess.run(cmd)
@@ -318,8 +320,8 @@ class MainApplication(tk.Tk):
     #
     def InterpAndPlotResults(self):
         rets = 0
-        # year_start is initial state, yearStop+2 represents the last year of simulation output, actually '+1'
-        years = range(self.yearStart, self.yearStop+2)  
+        # year_start is initial state, yearStop represents the last year of simulation output
+        years = range(self.yearStart, self.yearStop+1)  
 
         # set configuration file name for UK.exe
         ukCfgFile = self.ukCfgFile  # This may be overwritten depending on domain
@@ -327,9 +329,9 @@ class MainApplication(tk.Tk):
         # Used while concatenating files
         # number of colums in csv file, starting at 0
         # lat, lon, initial data
-        ncols = self.yearStop - self.yearStart + 3
+        ncols = self.yearStop - self.yearStart + 2
         # number of years plus initial state
-        nyears = self.yearStop - self.yearStart + 2
+        nyears = self.yearStop - self.yearStart + 1
 
         self.ReadSimConfigFile()
 
@@ -390,15 +392,6 @@ class MainApplication(tk.Tk):
 
                 for year in years:
                     obsFile = 'X_Y_' + pStr + self.domainName + str(year) + r
-
-                    # result = Interpolate(ukCfgFile, obsFile, gridFile, zArg)
-                    # if (result.returncode != 0):
-                    #     errorStr = '[31m' + ''.join(str(e)+' ' for e in cmd) + ' error: ' + hex(result.returncode) + '[0m'
-                    #     print(errorStr)
-                    #     return (result.returncode, result.args)
-                    # print( 'Just Finished: ', ukCfgFile, self.domainName, obsFile, gridFile, zArg)
-                    # # Cleanup dataDir
-                    # os.remove(os.path.join(dataDir, obsFile))
 
                     procNum += 1
                     procID  += 1
@@ -472,7 +465,7 @@ class MainApplication(tk.Tk):
             # end for region
 
             # now combine all region files into one file
-            flout = resultsDir + '/Lat_Lon_Grid_' + pStr + self.domainName + '_' + str(self.yearStart) + '_' + str(self.yearStop+1) + '.csv'
+            flout = resultsDir + '/Lat_Lon_Grid_' + pStr + self.domainName + '_' + str(self.yearStart) + '_' + str(self.yearStop) + '.csv'
             wrFile = open(flout, 'w')
             for r in region:
                 flin = resultsDir + '/Lat_Lon_Grid_' + pStr + self.domainName + r + '.csv'
@@ -495,7 +488,7 @@ class MainApplication(tk.Tk):
         # We have the needed output paramters so lets plot data and save to pdf files
         for pStr in self.paramStr:
             str1 = resultsDir + '/Lat_Lon_Surv_' + pStr + self.domainName
-            str2 = resultsDir + '/Lat_Lon_Grid_' + pStr + self.domainName+'_'+str(self.yearStart) + '_' + str(self.yearStop+1)
+            str2 = resultsDir + '/Lat_Lon_Grid_' + pStr + self.domainName + '_' + str(self.yearStart) + '_' + str(self.yearStop)
 
             if self.frame2.usingMatlab.get():
                 matlabStr = 'PlotLatLonGridSurvey(' + "'" + str1 + "','" + str2 + "', " + str(self.yearStart) + ',' +str(self.tsPerYear) + ", '" + self.domainName + "');exit"
@@ -521,6 +514,7 @@ class MainApplication(tk.Tk):
         self.WriteGrowthConfig()
         self.WriteGridMgrConfig()
         self.WriteUKConfig()
+
         # cfgFile  = os.path.join(self.root,configDir, interCfgDir, self.frame4.spatCfgFile.myEntry.get())
         # self.WriteSpatialFncsConfig(cfgFile)
         if not self.skipStatusMsgs.get(): messagebox.showinfo("Save Files", "Configuration Files Saved")

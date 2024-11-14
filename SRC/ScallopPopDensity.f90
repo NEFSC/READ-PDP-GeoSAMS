@@ -16,14 +16,14 @@ PROGRAM ScallopPopDensity
 !!  -     if leap year       315 which is  = 315.   /365.2425 = 0.86244
 !!  However, leap year will be handled in the main loop in which it is considered only for the current year
 !!
-!!  GUI specifies 2022 to 2025
+!!  GUI specifies 2022 to 2026, however, it passes to this program 2022 to 2025 as
+!!  these are the years for which growth starts. The resulting files are still the same.
 !!  - X_Y_BIOM_2022_DN  Initial state as of June 1, 2022 @ 00:00, i.e. May 31, 2022 @ 24:00
 !!  - X_Y_BIOM_2023_DN  Growth state as of May 31, 2023 @ 24:00, results for 1st year growth
 !!  - X_Y_BIOM_2024_DN  Growth state as of May 31, 2024 @ 24:00, results for 2nd year growth
 !!  - X_Y_BIOM_2025_DN  Growth state as of May 31, 2025 @ 24:00, results for 3rd year growth
 !!  - X_Y_BIOM_2026_DN  Growth state as of May 31, 2026 @ 24:00, results for 4th year growth
 !!    
-!!
 !! @section ms1 Initialize Simulation Parameters
 !! @subsection ms1p1 Read Input
 !! Values are read in from file name given on command line, e.g.\n
