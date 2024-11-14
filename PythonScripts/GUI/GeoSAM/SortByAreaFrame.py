@@ -304,7 +304,7 @@ class SortByArea(ttk.Frame):
                     
                     if desiredParam == FEFF or desiredParam == FMOR:
                         # compute average
-                        accumParamData[row][col] = accumParamData[row][col] / countNonZeroData[row][col]
+                        if countNonZeroData[row][col] > 0: accumParamData[row][col] = accumParamData[row][col] / countNonZeroData[row][col]
                     
                     if desiredParam == ABUN or desiredParam == RECR:
                         # compute density average
@@ -442,7 +442,7 @@ class SortByArea(ttk.Frame):
                 self.comboParameter.current(0)
                 self.RunSort()
                 self.ExportThis(True)
-                print('Initial file created', n)
+                #print('Initial file created', n)
 
                 # now append remaining outputs
                 for i in range(1,n):
@@ -453,7 +453,7 @@ class SortByArea(ttk.Frame):
                         
                         outStr = self.comboParameter.get()
                         units = self.dataSortUnitsEntry.get()
-                        print('appending '+outStr)
+                        #print('appending '+outStr)
 
                         for a in range(self.numAreas):
                             f.write(str(a+1)+ ',' + self.areas.areaSubFrame[a].compAreaEntry.myEntry.get()+ ',' + outStr + ' ('+ units + ')')

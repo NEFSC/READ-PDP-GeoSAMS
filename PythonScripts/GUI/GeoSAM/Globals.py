@@ -8,6 +8,7 @@ interCfgDir = 'Interpolation'
 simCfgDir = 'Simulation'
 specAccCfgDir = 'SpecialAccess'
 surveyDataDir = 'OriginalData'
+shapeFileDir = 'Shapefiles'
 resultsDir = 'Results'
 analDir = 'Analysis'
 comboTFStr = ['T', 'F']

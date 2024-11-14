@@ -54,6 +54,7 @@ class MainInput(ttk.Frame):
         self.simStartDir = os.path.join(self.root, configDir, simCfgDir)
         self.interpStartDir = os.path.join(self.root, configDir, interCfgDir)
         self.surveyStartDir = os.path.join(self.root, surveyDataDir)
+        self.shapeFileDir = os.path.join(self.root, shapeFileDir)
         self.friend = friend
         self.maxYears = maxYears
 
@@ -330,8 +331,8 @@ class MainInput(ttk.Frame):
     # 
     def SetDredgeFileEnvVar(self):
         os.environ["DredgeFile"] = self.dredgeDataFile.myEntry.get()
-        fname = os.path.join('OriginalData', os.environ["DredgeFile"]+'.csv')
-        print(fname)
+        # fname = os.path.join('OriginalData', os.environ["DredgeFile"]+'.csv')
+        # print(fname)
 
     ##
     # 
@@ -350,8 +351,8 @@ class MainInput(ttk.Frame):
     # 
     def SetHabCamFileEnvVar(self):
         os.environ["HabCamFile"] = self.habCamDataFile.myEntry.get()
-        fname = os.path.join('OriginalData', os.environ["HabCamFile"]+'.csv')
-        print(fname)
+        # fname = os.path.join('OriginalData', os.environ["HabCamFile"]+'.csv')
+        # print(fname)
 
     ##
     # 
@@ -380,10 +381,9 @@ class MainInput(ttk.Frame):
     ##
     #
     def SetMaShapeFile(self):
-        file_path = filedialog.askopenfilename(title="Open SHP File", filetypes=[("SHP files", "*.shp")], defaultextension='csv', initialdir=self.startDir)
+        file_path = filedialog.askopenfilename(title="Open SHP File", filetypes=[("SHP files", "*.shp")], defaultextension='csv', initialdir=self.shapeFileDir)
         if file_path:
             self.areaFName = file_path
-            self.UpdateWidgets()
             self.maShapeFileEntry.delete(0,tk.END)
             f = file_path.split('/')
             self.maShapeFileEntry.insert(0, f[-1])
@@ -391,10 +391,9 @@ class MainInput(ttk.Frame):
     ##
     #
     def SetGbShapeFile(self):
-        file_path = filedialog.askopenfilename(title="Open SHP File", filetypes=[("SHP files", "*.shp")], defaultextension='csv', initialdir=self.startDir)
+        file_path = filedialog.askopenfilename(title="Open SHP File", filetypes=[("SHP files", "*.shp")], defaultextension='csv', initialdir=self.shapeFileDir)
         if file_path:
             self.areaFName = file_path
-            self.UpdateWidgets()
             self.gbShapeFileEntry.delete(0,tk.END)
             f = file_path.split('/')
             self.gbShapeFileEntry.insert(0, f[-1])

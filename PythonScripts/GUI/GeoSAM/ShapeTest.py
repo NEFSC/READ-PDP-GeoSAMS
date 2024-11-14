@@ -33,10 +33,10 @@ for n in range(shapeLen):
         shapeMA[n].X[m] = shapes[n].points[m][0]
         shapeMA[n].Y[m] = shapes[n].points[m][1]
         (shapeMA[n].lat[m], shapeMA[n].lon[m]) = utm.to_latlon(shapeMA[n].X[m], shapeMA[n].Y[m], 18, 'T')
-    print( shapeMA[n].SAMS, shapeMA[n].NewSAMS, shapeMA[n].areaKm2)
-    print(n, len(shapes[n].points))
-    print(n, shapeMA[n].X[5], shapeMA[n].Y[5])
-    print(n, shapeMA[n].lat[5], shapeMA[n].lon[5])
+    print('MA', shapeMA[n].SAMS, shapeMA[n].NewSAMS, shapeMA[n].areaKm2)
+    print('MA', n, len(shapes[n].points))
+    print('MA', n, shapeMA[n].X[5], shapeMA[n].Y[5])
+    print('MA', n, shapeMA[n].lat[5], shapeMA[n].lon[5])
     print()
 
 sf = shapefile.Reader("ShapeFiles/GB_Estimation_Areas_2024_UTM19_PDT.shp")
