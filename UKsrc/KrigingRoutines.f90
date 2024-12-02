@@ -439,7 +439,6 @@ real(dp), allocatable:: R(:,:), V(:,:)
 real(dp), allocatable:: CbetaInv(:,:), Ceps(:,:), CepsInv(:,:), TempInv(:,:)
 real(dp), allocatable:: DGh(:,:), C0(:,:), gammaG(:,:)
 real(dp), allocatable:: Mtmp(:,:), Vtmp(:), Vtmp2(:), Gtmp(:,:), ftrnd(:)
-integer,  allocatable:: ipiv(:)
 
 real(dp) Vinf(1, 1), Dinf(1, 1)
 integer nopnf, num_points, num_obs_points
@@ -469,7 +468,7 @@ allocate( TempInv(1:num_obs_points, 1:num_obs_points))
 
 allocate( Mtmp(1:num_obs_points, 1:num_spat_fcns), Vtmp(1:num_obs_points), Vtmp2(1:num_spat_fcns))
 allocate( Gtmp(1:num_obs_points, 1:num_points))
-allocate( ftrnd(1:num_points), ipiv(1:nopnf))
+allocate( ftrnd(1:num_points))
 
 !
 ! Compute variogram between observation points and spatial functions at
@@ -478,10 +477,6 @@ allocate( ftrnd(1:num_points), ipiv(1:nopnf))
 dist = Krig_Compute_Distance(obs, obs, num_obs_points, obs%num_points)
 gamma = Krig_Compute_Variogram(num_obs_points, num_obs_points, dist, num_obs_points, par)
 Fs = Krig_Eval_Spatial_Function(obs, num_spat_fcns, num_obs_points, nlsf, save_data)
-
-!------------------------------------------------------------------------------
-! Ceps <- covariance between observation points (from variogram)
-!------------------------------------------------------------------------------
 
 !
 ! Compute variogram between observation points and grid points and spatial
@@ -601,7 +596,6 @@ deallocate(D0h, gamma0, Fs0)
 deallocate(R, V)
 deallocate(CbetaInv, Ceps, CepsInv)
 deallocate(Mtmp, Vtmp, Vtmp2, Gtmp, ftrnd)
-deallocate(ipiv)
 deallocate(C0, DGh,  gammaG)
 
 end subroutine Krig_Generalized_Least_Sq

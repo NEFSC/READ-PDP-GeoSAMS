@@ -3,14 +3,16 @@ import tkinter as tk
 
 from tkinter import messagebox
 
+analDir = 'Analysis'
 configDir = 'Configuration'
+dataDir = 'Data'
+gridDir = 'Grids'
 interCfgDir = 'Interpolation'
+resultsDir = 'Results'
+shapeFileDir = 'Shapefiles'
 simCfgDir = 'Simulation'
 specAccCfgDir = 'SpecialAccess'
 surveyDataDir = 'OriginalData'
-shapeFileDir = 'Shapefiles'
-resultsDir = 'Results'
-analDir = 'Analysis'
 comboTFStr = ['T', 'F']
 cornerLabelArr = ['Corner', 'Long', 'Lat ', '0.0', '0.0']
 frameWidth = 400

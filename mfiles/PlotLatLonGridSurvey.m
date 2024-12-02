@@ -10,7 +10,8 @@
 % tsPerYear:   Number of time samples per year
 % yrSelect:    Used to identify a single year
 
-function PlotLatLonGridSurvey(surveyFname, gridFname, yrStart, tsPerYear, domain, yrSelect)
+%function PlotLatLonGridSurvey(surveyFname, gridFname, yrStart, tsPerYear, domain, yrSelect)
+function PlotLatLonGridSurvey(surveyFname, gridFname, yrStart, tsPerYear, domain)
 
 units = ['Grid: ' GetUnits(gridFname)];
 
@@ -27,7 +28,7 @@ if isOctave
     else
         yrStart = str2num(yrStart);
         tsPerYear = str2num(tsPerYear);
-        yrSelect = str2num(yrSelect);
+        %yrSelect = str2num(yrSelect);
     end
 end
 
@@ -266,29 +267,17 @@ end
 %
 % Ready to plot
 %
-if c == 1
-    % then grid file is only a single year
-    % select offset for survey data
-    offset = yrSelect - yrStart + 1;
-else
-    offset = 0;
-end
-
 
 % plot figure for each year
 for i=1:c
-    year = yrStart + i - 1 + offset;
+    year = yrStart + i - 1;
 
     if or(strcmp(domain, 'MA'), strcmp(domain, 'AL'))
         thisTitle = [useTitle int2str(year) '_MA_North'];
         unitStr = [units, ' X ', num2str(mx_N(i),4)];
         surveyLon = lonSurvey_N;
         surveyLat = latSurvey_N;
-        if isOctave
-            surveyData = survey_N(:,i+offset);
-        else
-            surveyData = survey_N(:,i);
-        end
+        surveyData = survey_N(:,i);
         gridLon = lonGrid_N;
         gridLat = latGrid_N;
         gridData = grid_N(:,i);
@@ -297,11 +286,7 @@ for i=1:c
         unitStr = [units, ' X ', num2str(mx(i),4)];
         surveyLon = lonSurvey;
         surveyLat = latSurvey;
-        if isOctave
-            surveyData = survey(:,i+offset);
-        else
-            surveyData = survey(:,i);
-        end
+        surveyData = survey(:,i);
         gridLon = lonGrid;
         gridLat = latGrid;
         gridData = grid(:,i);

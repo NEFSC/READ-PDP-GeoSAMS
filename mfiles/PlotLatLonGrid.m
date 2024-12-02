@@ -88,7 +88,7 @@ end
 end
 
 for i=1:c
-    year = yrStart + i - 2;
+    year = yrStart + i - 1;
     %thisTitle = [useTitle int2str(year) '_' int2str(saturate)];
     thisTitle = [useTitle int2str(year)];
     if isOctave
