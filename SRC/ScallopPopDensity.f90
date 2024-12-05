@@ -775,7 +775,7 @@ if (mod(ts, ts_per_year) .eq. 1) then
         write(buf,'(I4)') year+1
     endif
     call Write_Column_CSV_By_Region(num_grids, recruit(1:num_grids)%recruitment(recr_idx), &
-    &            grid(1:num_grids)%lon, 'RECR', data_dir//'X_Y_RECR_'//domain_name//trim(buf), .true.)
+    &            grid(1:num_grids)%lon, 'PARAM', data_dir//'X_Y_RECR_'//domain_name//trim(buf), .true.)
 endif
 
 ! Write data for survey grid

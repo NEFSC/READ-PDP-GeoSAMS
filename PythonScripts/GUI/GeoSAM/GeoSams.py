@@ -385,7 +385,7 @@ class MainApplication(tk.Tk):
                     gridFile = self.domainName+'xyzLatLonRgn.csv'
 
                 for year in years:
-                    obsFile = 'X_Y_' + pStr + self.domainName + str(year) + r + '.csv'
+                    obsFile = 'X_Y_' + pStr + self.domainName + str(year) + r
                     procNum += 1
                     procID  += 1
                     proc = Process(target=ComputeResiduals, args=(obsFile, gridFile, procID, retDict))
@@ -445,7 +445,8 @@ class MainApplication(tk.Tk):
                     gridFile = self.domainName+'xyzLatLonRgn.csv'
                     
                 for year in years:
-                    obsFile = 'X_Y_' + pStr + self.domainName + str(year) + r + '_GAM'
+                    obsFile = 'X_Y_' + pStr + self.domainName + str(year) + r
+                    # extension is added by method
                     idw = InverseDistanceWeighting(obsFile, gridFile)
                     idw.Interpolate()
 
@@ -463,7 +464,7 @@ class MainApplication(tk.Tk):
                 
                 # append remaining years as additional columns to first data set
                 for year in years:
-                    flin = resultsDir + '/Lat_Lon_Grid_' + pStr + self.domainName + str(year) + r + '_GAM.csv'
+                    flin = resultsDir + '/Lat_Lon_Grid_' + pStr + self.domainName + str(year) + r + '_IDW.csv'
                     with open(flin) as f:
                         reader = csv.reader(f)
                         for row in reader:
@@ -477,7 +478,7 @@ class MainApplication(tk.Tk):
                     k  += 1
 
                 # brute force write out results
-                flout = open(resultsDir + '/Lat_Lon_Grid_' + pStr + self.domainName + r + '_GAM.csv', 'w')
+                flout = open(resultsDir + '/Lat_Lon_Grid_' + pStr + self.domainName + r + '_IDW.csv', 'w')
                 for row in range(len(col[0][0])):
                     for c in range(ncols):
                         flout.write(col[0][c][row])
@@ -488,10 +489,10 @@ class MainApplication(tk.Tk):
             # end for region
 
             # now combine all region files into one file
-            flout = resultsDir + '/Lat_Lon_Grid_' + pStr + self.domainName + '_' + str(self.yearStart) + '_' + str(self.yearStop) + '_GAM.csv'
+            flout = resultsDir + '/Lat_Lon_Grid_' + pStr + self.domainName + '_' + str(self.yearStart) + '_' + str(self.yearStop) + '_IDW.csv'
             wrFile = open(flout, 'w')
             for r in region:
-                flin = resultsDir + '/Lat_Lon_Grid_' + pStr + self.domainName + r + '_GAM.csv'
+                flin = resultsDir + '/Lat_Lon_Grid_' + pStr + self.domainName + r + '_IDW.csv'
                 rdFile = open(flin, 'r')
                 lines = rdFile.readlines()
                 wrFile.writelines(lines)
@@ -511,7 +512,7 @@ class MainApplication(tk.Tk):
         # We have the needed output paramters so lets plot data and save to pdf files
         for pStr in self.paramStr:
             str1 = resultsDir + '/Lat_Lon_Surv_' + pStr + self.domainName
-            str2 = resultsDir + '/Lat_Lon_Grid_' + pStr + self.domainName + '_' + str(self.yearStart) + '_' + str(self.yearStop) + '_GAM'
+            str2 = resultsDir + '/Lat_Lon_Grid_' + pStr + self.domainName + '_' + str(self.yearStart) + '_' + str(self.yearStop) + '_IDW'
 
             if self.frame2.usingMatlab.get():
                 matlabStr = 'PlotLatLonGridSurvey(' + "'" + str1 + "','" + str2 + "', " + str(self.yearStart) + ',' +str(self.tsPerYear) + ", '" + self.domainName + "');exit"

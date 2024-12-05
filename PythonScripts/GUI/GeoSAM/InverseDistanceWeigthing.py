@@ -7,10 +7,12 @@ from Globals import *
 
 class InverseDistanceWeighting():
     def __init__(self, inputFname, gridFname):
-        self.dataFname = os.path.join(dataDir, inputFname+'.csv')
-        outFile = 'Lat_Lon_Grid_'+inputFname[4:]+'.csv'
-        self.outFname = os.path.join(resultsDir,outFile)
-        self.gridFname = os.path.join(gridDir,gridFname )
+        self.dataFname = os.path.join(dataDir, inputFname+'_IDW.csv')
+        self.predFname = os.path.join(dataDir, inputFname+'_PRED.csv')
+        outFile = 'Lat_Lon_Grid_'+inputFname[4:]
+        self.interFname = os.path.join(dataDir,outFile+'_IDW.csv')
+        self.gridFname = os.path.join(gridDir,gridFname)
+        self.finalFname = os.path.join(resultsDir,outFile+'_IDW.csv')
 
     def idw(self, x, y, z, xi, yi, p=2):
         """
@@ -86,11 +88,31 @@ class InverseDistanceWeighting():
 
         zi = self.idw(x, y, z, gridX, gridY, p=2)
 
-        with open(self.outFname, 'w') as f:
+        with open(self.interFname, 'w') as f:
             for n in range(numGrid):
-                if zi[n] <= 0:
-                    f.write('{},{},0.0\n'.format(gridLat[n], gridLon[n]))
-                else:
-                    f.write('{},{},{}\n'.format(gridLat[n], gridLon[n], zi[n]))
+                f.write('{},{},{}\n'.format(gridLat[n], gridLon[n], zi[n]))
             f.close()
 
+        # interpolation complete add results to prediction values
+        residFname = open(self.interFname, 'r')
+        predFname = open(self.predFname, 'r')
+        inputStr = predFname.readline() # read header
+        resultFname = open(self.finalFname, 'w')
+        # print('READING: ', self.interFname, self.predFname, self.predictIndex)
+        # print('WRITING: ', self.finalFname)
+        for n in range(numGrid):
+            inputStr = residFname.readline()
+            inputArr = [s.strip() for s in inputStr.split(',')]
+            residual = float(inputArr[2])
+
+            inputStr = predFname.readline()
+            inputArr = [s.strip() for s in inputStr.split(',')]
+            predict = float(inputArr[10])
+
+            result = residual + predict
+            if result < 0.0: result=0.0
+            resultFname.write('{},{},{}\n'.format(gridLat[n], gridLon[n], result))
+        
+        resultFname.close()
+        predFname.close()
+        residFname.close()
