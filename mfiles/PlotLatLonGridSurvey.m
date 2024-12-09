@@ -10,7 +10,6 @@
 % tsPerYear:   Number of time samples per year
 % yrSelect:    Used to identify a single year
 
-%function PlotLatLonGridSurvey(surveyFname, gridFname, yrStart, tsPerYear, domain, yrSelect)
 function PlotLatLonGridSurvey(surveyFname, gridFname, yrStart, tsPerYear, domain)
 
 units = ['Grid: ' GetUnits(gridFname)];
@@ -28,7 +27,6 @@ if isOctave
     else
         yrStart = str2num(yrStart);
         tsPerYear = str2num(tsPerYear);
-        %yrSelect = str2num(yrSelect);
     end
 end
 

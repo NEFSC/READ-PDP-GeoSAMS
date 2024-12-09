@@ -24,3 +24,4 @@ colormap(c);
 c = colorbar;
 c.Label.String = tag;
 title(fname, 'Interpreter','none'); % Interpreter, none is so that '_' are kept intact
+daspect([1,cos(mean(lat)*pi/180), 1]);
