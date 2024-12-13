@@ -91,6 +91,7 @@ class InverseDistanceWeighting():
         predFname = open(self.predFname, 'r')
         inputStr = predFname.readline() # read header
         resultFname = open(self.finalFname, 'w')
+        print('Writing Final: ', self.finalFname)
         for n in range(numGrid):
             inputStr = predFname.readline()
             inputArr = [s.strip() for s in inputStr.split(',')]
