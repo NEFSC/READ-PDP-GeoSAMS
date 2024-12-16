@@ -49,16 +49,15 @@ real(dp), parameter :: zero_threshold = 1.0D-99
 
 ! ASIN incorrectly produces error
 ! Error: Fortran 2003: Elemental function as initialization expression with non-integer/non-character arguments
-real(dp), parameter :: pi = 3.14159265358979311599796346854D0 ! 2._dp * ASIN(1._dp)
+real(dp), parameter :: pi = 3.14159265358979323846264338327950288D0 ! 2._dp * ASIN(1._dp)
 
 ! metric equivalents
 real(dp), parameter :: grams_per_pound = 453.592_dp
 real(dp), parameter :: meters_per_naut_mile = 1852.D0
-real(dp), Parameter :: feet_per_naut_mile = 6076.12
 real(dp), parameter :: grams_per_metric_ton = 1000000._dp
 real(dp), parameter :: grid_area_sqm = meters_per_naut_mile**2
 
-real(dp), parameter :: tow_area_sqm = 4516._dp
+real(dp), parameter :: tow_area_sqm = 4516._dp ! 1852 m * 8 ft
 real(dp), parameter :: one_scallop_per_tow = 1.D0 / tow_area_sqm ! 1 scallop per tow, prevents log(0)
 real(dp), parameter :: ma_gb_border = -70.5
 ! Adding a leap year every 4 years adds 1/4 to the 365-day year 
@@ -66,6 +65,8 @@ real(dp), parameter :: ma_gb_border = -70.5
 ! Omitting a leap year every 100 years subtracts 1/100 = 0.01 days from the 365-day year.
 ! Adding a leap year every 400 years adds 1/400 = 0.0025 days to the 365-day year.
 !
+! Technically, should also add 0.00025 to account for every 4000 years, but
+! if this system is still in use 4000 years from now I'll bear the burden and shame of omitting it.
 real(dp), parameter :: days_in_year=365+0.25-0.01+0.0025
 
 ! colors taken from https://i.stack.imgur.com/9UVnC.png
