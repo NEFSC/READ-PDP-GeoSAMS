@@ -21,17 +21,45 @@
 #    - Lat_Lon_Surv_AAAA_DN_YYYY_scale.pdf
 #       same as above shows the original data plotted at the survey locations.
 
-if [ "'$HabCamFile'" == "''" ]
-then
-    echo [31mEnv Variable Not Set[0m
-    echo "For example > export HabCamFile='Habcam_BySegment_2000_2014-2020'"
-    exit 1
-fi
-
 if [ "'$DredgeFile'" == "''" ]
 then
     echo [31mEnv Variable Not Set[0m
     echo "For example > export DredgeFile='dredgetowbysize7917'"
+    exit 1
+fi
+
+if [ "'$HabCamFile'" == "''" ]
+then
+    echo [31mEnv Variable Not Set[0m
+    echo "For example > export HabCamFile='Habcam_BySegment_2000_2011-2023_v2'"
+    exit 1
+fi
+
+if [ "'$MAShapeFile'" == "''" ]
+then
+    echo [31mEnv Variable Not Set[0m
+    echo "For example > export MAShapeFile='MAB_Est_Areas_2024_UTM18_Habcam_GeoSAMS.shp'"
+    exit 1
+fi
+
+if [ "'$MAShapeBufferFile'" == "''" ]
+then
+    echo [31mEnv Variable Not Set[0m
+    echo "For example > export MAShapeBufferFile='MAB_Est_Areas_2024_UTM18_Habcam_Buffer_15k_GeoSAMS.shp'"
+    exit 1
+fi
+
+if [ "'$GBShapeFile'" == "''" ]
+then
+    echo [31mEnv Variable Not Set[0m
+    echo "For example > export GBShapeFile='GB_Est_Areas_2024_UTM19_Habcam_GeoSAMS.shp'"
+    exit 1
+fi
+
+if [ "'$GBShapeBufferFile'" == "''" ]
+then
+    echo [31mEnv Variable Not Set[0m
+    echo "For example > export GBShapeBufferFile='GB_Est_Areas_2024_UTM19_Habcam_Buffer_5k_GeoSAMS.shp'"
     exit 1
 fi
 
@@ -116,27 +144,6 @@ if [ ! -d "obj" ]; then
 fi
 make
 
-# Make UK executables
-cd ../UKsrc
-if [ -f IORoutines.f90 ]; then
-# if files already exist, make writeable
-    chmod 664 IORoutines.f90
-    chmod 664 Globals.f90
-fi
-cp ../SRC/IORoutines.f90 .
-cp ../SRC/Globals.f90 .
-# change back to read only to remind user not to modifying local copy
-chmod 444 IORoutines.f90
-chmod 444 Globals.f90
-
-if [ ! -d "mod" ]; then
-    mkdir mod
-fi
-if [ ! -d "obj" ]; then
-    mkdir obj
-fi
-make
-
 # finish with preprocessing
 cd ..
 
@@ -150,8 +157,8 @@ if [ "$5" == "M" ]; then
         exit 1
     fi
 
-    echo [33mmatlab.exe -batch "HabCamData5mmbin(%1, '%4', 'T'); exit;"[0m
-    matlab.exe -batch "HabCamData5mmbin(%1, '%4', 'T'); exit;"
+    echo [33mmatlab.exe -batch "HabCamData5mmbin(%1, '%4'); exit;"[0m
+    matlab.exe -batch "HabCamData5mmbin(%1, '%4'); exit;"
     if [ $? != 0 ]; then
         echo [31mError in Matlab HabCamData5mmbin. Stopping[0m
         exit 1

@@ -109,6 +109,9 @@ X=[];
 % was j= dataSrc==srcText & year==yr & sg==3.;
 j= year==yr & sg==3.;
 
+% Write header
+WriteHeader(flnm);
+
 if sum(j) == 0
     % no data found
     fprintf('Skipping %s Year %d\n', domain, yr);
@@ -148,6 +151,21 @@ else
     end
 
     n=find(and(year==yr,sg==3.));
+    % Initialize shape data
+    shape = GetShapeData();
+
+    % Create table for Zone and Region
+    sz = size(lat_t);
+    if isOctave
+        zone_t = zeros(sz);
+        region_t = zeros(sz);
+    else
+        varTypes = "string";
+        varNames = "Zone";
+        zone_t = table('Size',sz,'VariableTypes',varTypes,'VariableNames',varNames);
+        varNames = "Region";
+        region_t = table('Size',sz,'VariableTypes',varTypes,'VariableNames',varNames);
+    end
     for k=1:numel(lat_t)
         % bring in the surv_n data from size group 3 to 18, centimeters
         % which is in the 30 rows following sg==3
@@ -156,25 +174,41 @@ else
         % accumulate 15 to 18
         % sum n(k+24) - n(k+30) into k=25
         region = GetRegion(isOctave, lat_t(k,:), lon_t(k,:), stratum_t(k,:));
+        [zoneStr, regionStr] = CheckInRegionPolygon(isOctave, x_t(k,:), y_t(k,:), shape);
+        if isOctave
+            zone_t(k,:) = zoneStr;
+        else
+            zone_t(k,:) = mat2cell(zoneStr,1);
+        end
+
+        if isOctave
+            region_t(k,:) = regionStr;
+        else
+            region_t(k,:) = mat2cell(regionStr,1);
+        end
+
         if region>0
             if isOctave
                 k25 = sum((M(n(k)+24:n(k)+30,30)));
                 density = [(M(n(k):n(k)+23,30));k25];
                 density= density * countPerSqm;
-                X=[X;DecYr_t(k,:), x_t(k,:), y_t(k,:), lat_t(k,:), lon_t(k,:), z_t(k,:), is_closed_t(k,:), stratum_t(k,:), transpose(density)];
+                X=[X;DecYr_t(k,:), x_t(k,:), y_t(k,:), lat_t(k,:), lon_t(k,:), z_t(k,:), ...
+                   is_closed_t(k,:), stratum_t(k,:), zone_t(k,:), region_t(k,:), transpose(density)];
             else
                 k25   = sum(table2array(M(n(k)+24:n(k)+30,30)));
                 density = [table2array(M(n(k):n(k)+23,30));k25];
                 density= rows2vars(array2table( density * countPerSqm));
-                X=[X;DecYr_t(k,:), x_t(k,:), y_t(k,:), lat_t(k,:), lon_t(k,:), z_t(k,:), is_closed_t(k,:), stratum_t(k,:), density(1,2:end)];
+                X=[X;DecYr_t(k,:), x_t(k,:), y_t(k,:), lat_t(k,:), lon_t(k,:), z_t(k,:), ...
+                   is_closed_t(k,:), stratum_t(k,:), zone_t(k,:), region_t(k,:), density(1,2:end)];
             end
         end
     end
     fprintf('Size of grid %d\n', size(X,1))
     if isOctave
-        csvwrite(flnm,X);
+        dlmwrite(flnm,X,"-append");
     else
-        writetable(X,flnm,'WriteVariableNames',0);
+        writetable(X,flnm,'WriteVariableNames',0,'WriteMode','append');
     end
+
 end % if sum(j) == 0
 end

@@ -12,6 +12,10 @@
 
 function PlotLatLonGridSurvey(surveyFname, gridFname, yrStart, tsPerYear, domain)
 
+%------------------SHAPE DATA --------------------------------------------
+shapeMA = shaperead('ShapeFiles/MAB_Region/MAB_Est_Areas_2024_UTM18_Habcam_GeoSAMS.shp');
+shapeGB = shaperead('ShapeFiles/GB_Region/GB_Est_Areas_2024_UTM19_Habcam_GeoSAMS.shp');
+
 units = ['Grid: ' GetUnits(gridFname)];
 
 isOctave = (exist('OCTAVE_VERSION', 'builtin') ~= 0);
@@ -48,7 +52,7 @@ end
 if isOctave
     D=csvreadK([gridFname '.csv']);
 else
-    D=readtable([gridFname '.csv']);
+    D=readtable([gridFname '.csv'],'NumHeaderLines',1);
     % remove NaN
     D=fillmissing(D,'constant',0.0);
 end
@@ -290,7 +294,7 @@ for i=1:c
         gridData = grid(:,i);
     end
     PlotGrid(domain, thisTitle, isOctave, surveyLon, surveyLat, surveyData, gridLon, gridLat, gridData, unitStr)
-    PlotRegion(isOctave, 'MA_North', cutNS, 1)
+    PlotRegion(isOctave, 'MA_North', shapeMA, cutNS, 1)
     SetColorbar(isOctave)
     SizePaper(domain, isOctave)
     saveas(gcf,[thisTitle '.pdf'])
@@ -301,7 +305,7 @@ for i=1:c
         thisTitle = [useTitle int2str(year) '_MA_South'];
         PlotGrid(domain, thisTitle, isOctave, lonSurvey_S, latSurvey_S, survey_S(:,i), ...
             lonGrid_S, latGrid_S, grid_S(:,i), [units, ' X ', num2str(mx_S(i),4)])
-        PlotRegion(isOctave, 'MA_South', cutNS, 1)
+        PlotRegion(isOctave, 'MA_South', shapeMA, cutNS, 1)
         SetColorbar(isOctave)
         SizePaper(domain, isOctave)
         saveas(gcf,[thisTitle '.pdf'])
@@ -313,7 +317,7 @@ for i=1:c
         thisTitle = [useTitle int2str(year) '_GB'];
         PlotGrid(domain, thisTitle, isOctave, lonSurvey_NE, latSurvey_NE, survey_NE(:,i), ...
             lonGrid_NE, latGrid_NE, grid_NE(:,i), [units, ' X ', num2str(mx_NE(i),4)])
-        PlotRegion(isOctave, 'GB', cutNS, 1)
+        PlotRegion(isOctave, 'GB', shapeGB, cutNS, 0)
         SetColorbar(isOctave)
         SizePaper(domain, isOctave)
         saveas(gcf,[thisTitle '.pdf'])

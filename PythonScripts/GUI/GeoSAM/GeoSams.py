@@ -54,6 +54,7 @@
 import tkinter as tk
 from tkinter import ttk
 from tkinter import messagebox
+import pandas as pd
 
 import subprocess
 import sys
@@ -79,9 +80,8 @@ from EditMathSetupFrame import *
 from Globals import *
 from InverseDistanceWeigthing import *
 
-#        ConfigFile Domain  ObservFile                GridFile            ZF0Max
-# [ex,   ukCfgFile,    obsFile,                  gridFile,           value
-# .\UKsrc\UK UK.cfg  X_Y_EBMS_GB2005_0_SW.csv  GBxyzLatLon_SW.csv   0.0 desired typically, 70.0
+# [            ex,              obsFile,                            gridFile
+# Rscript .\GAM\R_GAM_GeoSAMS.r X_Y_<param>_AL<yyyy>_<MA|GB>_BUFFER <MA|GB>RegionGrid.csv 
 #  arg#        1     2                         3                    4
 def ComputeResiduals(obsFile, gridFile, procID, retDict):
     ex = os.path.join('GAM', 'R_GAM_GeoSAMS.r')
@@ -89,7 +89,7 @@ def ComputeResiduals(obsFile, gridFile, procID, retDict):
     outputFile = os.path.join(analDir, outputFile)
     cmd = ['Rscript', ex, obsFile, gridFile ]
     with open(outputFile, "w") as outfile:
-        result = subprocess.run(cmd, stdout=outfile)
+        result = subprocess.run(cmd, stdout=outfile, stderr=outfile)
     retDict[procID] = result.returncode
 
 ##
@@ -117,7 +117,6 @@ class MainApplication(tk.Tk):
         self.yearStart=0
         self.yearStop=0
         self.simConfigFile=''
-        self.ukCfgFile=''
 
         # setup
         self.title(title)
@@ -147,12 +146,10 @@ class MainApplication(tk.Tk):
         self.frame1 = MainInput(self.notebook, self, self.tsPerYear, self.paramVal, self.maxYears)
         # NOTE: These will still be default values as the user would not as yet entered anything!!
         self.simConfigFile  = os.path.join(self.root,configDir, simCfgDir, self.frame1.simCfgFile.myEntry.get())
-        self.ukConfigFile   = os.path.join(self.root,configDir, interCfgDir, self.frame1.ukCfgFile.myEntry.get())
         self.recrConfigFile = os.path.join(self.root,configDir, simCfgDir, self.frame1.recrCfgFile.myEntry.get())
 
         self.frame2 = EditMathSetup(self.notebook)
         self.frame3 = Growth(self.notebook, self)
-        self.frame4 = UKInterpolation(self.notebook, self, self.frame1)
         self.frame5 = SortByArea(self.notebook, self.frame1, self.maxAreas, self.maxCorners, self.maxYears, self.paramStr)
         self.frame6 = SpecialArea(self.notebook, self, self.maxAreas, self.maxCorners)
         self.frame7 = FishMortBySpecAcc(self.notebook, self.maxAreas, self.maxCorners)
@@ -172,7 +169,6 @@ class MainApplication(tk.Tk):
         self.notebook.add(self.frame7, text='Fishing Mort in\n Special Access')
         self.notebook.add(self.frame5, text='SortByArea')
         self.notebook.add(self.frame8, text='SortByRegion')
-        self.notebook.add(self.frame4, text='UKInterpolation')
         self.notebook.pack()
 
         self.isSkip = False
@@ -183,7 +179,6 @@ class MainApplication(tk.Tk):
         ttk.Button(self, text='SAVE ALL Configs', style="BtnGreen.TLabel", command=self.SaveConfigFiles).place(relx=.5, rely=1, anchor='s')
         ttk.Button(self, text= "Help", style="Help.TLabel", command = self.pop_up).place(relx=.75, rely=1, anchor='s')
 
-        self.ReadUKConfigFile()      # update current UK settings
         self.ReadRecruitConfigFile() # update current recruitment settings
     ##
     #
@@ -202,12 +197,49 @@ class MainApplication(tk.Tk):
 
     ## 
     # Starts the GeoSAMS simulatation <b>ScallopPopDensity</b>. 
-    # If it runs successfully then UK interpolation is started
     #
+    # 1a) TrawlData5mmbin(Year, 'DN')   this will Delete bin5mm2022AL.csv
+    #     INPUT: OriginalData\dredgetowbysize7917.csv
+    #     OUTPUT: Data\bin5mm<yyyy><dn>.csv
+        
+    # 1b) HabCamData5mmbin(Year, 'DN')
+    #     INPUT: OriginalData\Habcam_BySegment_2000_2011-2023_v2.csv
+    #     OUTPUT: appends to Data\bin5mm<yyyy><dn>.csv
+        
+    # 2) \SRC\ScallopPopDensity.exe Scallop.cfg 2022 2025 AL
+    #     INPUT: Data\bin5mm2022AL.csv
+    #     OUTPUT: Data\X_Y_<param>_AL<yyyy>_<ma|gb>.csv
+        
+    # 3) For all YEARS, all PARAMS, MA|GB:
+    #     python .\PythonScripts\GUI\GeoSAM\SortIntoColumns.py X_Y_<param>_AL<yyy>_[MA|GB]
+    #     INPUT: Data\X_Y_<param>_AL<yyyy>_<ma|gb>.csv
+    #     OUTPUT: Data\X_Y_<param>_AL<yyyy>_<ma|gb>_BUFFER.csv
+
+    # 4) For all YEARS, all PARAMS, MA|GB: 
+    #     Rscript .\GAM\R_GAM_GeoSAMS.r X_Y_<param>_AL<yyyy>_<MA|GB>_BUFFER <MA|GB>RegionGrid.csv 
+    #     INPUT: Data\X_Y_<param>_AL<yyyy>_<ma|gb>_BUFFER.csv
+    #     INPUT: Grids\<ma|gb>RegionGrid.csv
+    #     OUTPUT:
+    #         Residuals: Data\X_Y_<param>_AL<yyyy>_<ma|gb>_BUFFER_RESID.csv
+    #         Predicts:  Data\X_Y_<param>_AL<yyyy>_<ma|gb>_BUFFER_PRED.csv
+            
+    # 5) For all YEARS, all PARAMS, MA|GB: 
+    #     python python .\PythonScripts\OK\pykrige_geosams.py X_Y_<yyyy>_AL<yyyy>_<ma|gb>
+    #     INPUT: X_Y_<yyyy>_AL<yyyy>_<ma|gb>
+    #     ADJUSTED TO:
+    #         Survey Residuals: Data\X_Y_<param>_AL<yyyy>_<ma|gb>_BUFFER_RESID.csv  X_Y_BIOM_AL2022_GB_BUFFER_GAM.csv'
+    #         Grid Predicts:    Data\X_Y_<param>_AL<yyyy>_<ma|gb>_BUFFER_PRED.csv   GBxyzLatLonRgn_REGION_GAM.csv
+    #     OUTPUT:   Results\Lat_Lon_Grid_<param>_AL<yyyy>_<ma|gb>_REGION_KRIGE.csv  GBxyzLatLonRgn_REGION_GAM_KRIGE_SPH.csv
+
+
     def Run_Sim(self):
         # Set Environment Variables
         self.frame1.SetDredgeFileEnvVar()
         self.frame1.SetHabCamFileEnvVar()
+        self.frame1.SetMaShapeFileEnvVar()
+        self.frame1.SetMaShapeBufferFileEnvVar()
+        self.frame1.SetGBShapeFileEnvVar()
+        self.frame1.SetGBShapeBufferFileEnvVar()
         # No check for variables changed, therefore update all configuration files with current values in GUI
         # OR
         # Create new files based on names given by user, or same if not changed
@@ -217,7 +249,6 @@ class MainApplication(tk.Tk):
         self.simConfigFile = os.path.join(configDir, simCfgDir, simConfigFile)
 
         # exec to be called, UK, prepends directory structure
-        self.ukCfgFile = self.frame1.ukCfgFile.myEntry.get()
 
         startYear = self.frame1.startYr.myEntry.get()
         stopYear = self.frame1.stopYr.myEntry.get()
@@ -246,6 +277,10 @@ class MainApplication(tk.Tk):
         else:
             mathArg = 'O'
 
+        ######################################################################################################################################################################            
+        # Unpack includes:
+        # 1a) TrawlData5mmbin(Year, 'DN')
+        # 1b) HabCamData5mmbin(Year, 'DN')
         if platform.system() == 'Windows':
             cmd = [os.path.join(self.root, 'Unpack.bat'), str(self.yearStart), self.recruitYrStrt, self.recruitYrStop, self.domainName, mathArg]
         else:
@@ -266,6 +301,8 @@ class MainApplication(tk.Tk):
             else:
                 messagebox.showerror("Unpack", f'Failed\n{result.args}\nReturn Code = {result.returncode}\nSee Monitor for Reason')
             
+        ######################################################################################################################################################################            
+        # 2) \SRC\ScallopPopDensity.exe Scallop.cfg 2022 2025 AL
         if filesExist:
             # Continue with starting the GeoSAMS simulation ----------------------------------------------------------------------
             # 
@@ -365,7 +402,7 @@ class MainApplication(tk.Tk):
         # Compute Residuals
         # ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
         for pStr in self.paramStr:
-            for r in region:
+            for r in region:    # typically  region = ['_GB', '_MA']
                 if self.domainName == 'AL':
                     # ALxyzLatLon_MA uses the same grid file as MA, 
                     # and did not want to configuration manage multiple identical files
@@ -377,15 +414,24 @@ class MainApplication(tk.Tk):
                     # These data files also need to use separate spatial functions
                     # Override command line argument
                     if r == '_MA':
-                        gridFile = 'MAxyzLatLonRgn.csv'
+                        gridFile = 'MARegionGrid.csv'
                     else:
                         #gridFile = 'GBxyzLatLon' + r + '.csv'
-                        gridFile = 'GBxyzLatLonRgn.csv'
+                        gridFile = 'GBRegionGrid.csv'
                 else:
                     gridFile = self.domainName+'xyzLatLonRgn.csv'
 
                 for year in years:
-                    obsFile = 'X_Y_' + pStr + self.domainName + str(year) + r
+                    # 3) For all YEARS, all PARAMS, MA|GB:
+                    # First add columns to Data\X_Y_<param>_AL<yyyy>_<ma|gb>.csv
+                    ex = os.path.join('PythonScripts', 'GUI', 'GeoSAM', 'SortIntoColumns.py')
+                    inputFile = 'X_Y_'+ pStr + self.domainName + str(year) + r
+                    cmd = ['python', ex, inputFile ]
+                    result = subprocess.run(cmd)
+
+                    # 4) For all YEARS, all PARAMS, MA|GB: 
+                    #    Rscript .\GAM\R_GAM_GeoSAMS.r X_Y_<param>_AL<yyyy>_<MA|GB>_BUFFER <MA|GB>RegionGrid.csv 
+                    obsFile = 'X_Y_' + pStr + self.domainName + str(year) + r + '_BUFFER'
                     procNum += 1
                     procID  += 1
                     proc = Process(target=ComputeResiduals, args=(obsFile, gridFile, procID, retDict))
@@ -419,7 +465,7 @@ class MainApplication(tk.Tk):
         rets = sum(retDict.values())
         if rets > 0:
             return (retDict, 0)
-
+#====================================================================================================================================
         # ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
         # Intepolate using Inverse Distance Weighting
         # ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
@@ -446,66 +492,48 @@ class MainApplication(tk.Tk):
                     
                 for year in years:
                     obsFile = 'X_Y_' + pStr + self.domainName + str(year) + r
-                    # extension is added by method
-                    idw = InverseDistanceWeighting(obsFile, gridFile)
-                    idw.Interpolate()
+                    # # extension is added by method
+                    # idw = InverseDistanceWeighting(obsFile, gridFile)
+                    # idw.Interpolate()
+                    # 5) For all YEARS, all PARAMS, MA|GB: 
+                    #    python .\PythonScripts\OK\pykrige_geosams.py X_Y_BIOM_AL2022_GB
+                    ex = os.path.join('PythonScripts', 'OK', 'pykrige_geosams.py')
+                    inputFile = 'X_Y_'+ pStr + self.domainName + str(year) + r
+                    cmd = ['python', ex, inputFile ]
+                    result = subprocess.run(cmd)
 
         # 
         # Process CSV files to combine the years
+        pfix = 'Results/Lat_Lon_Grid_'
+
         for pStr in self.paramStr:
+            flout = pfix + pStr + self.domainName + '_'  + str(self.yearStart) + '_' + str(self.yearStop) + '.csv'
             for r in region:
-                ###########################################################################################
-                # subprocess.run takes in Data/X_Y_* and creates
-                #    Results/Lat_Lon_Grid* 
-                # Concatenate individual year files into a single file
-                ###########################################################################################
-                col = [defaultdict(list) for _ in range(nyears)]
-                k = 0
-                
-                # append remaining years as additional columns to first data set
                 for year in years:
-                    flin = resultsDir + '/Lat_Lon_Grid_' + pStr + self.domainName + str(year) + r + '_IDW.csv'
-                    with open(flin) as f:
-                        reader = csv.reader(f)
-                        for row in reader:
-                            for (i,v) in enumerate(row):
-                                col[k][i].append(v)
-                        f.close()
-###                    os.remove(flin)
+                    # Lat_Lon_Grid_BIOM_AL2026_MA_REGION_KRIGE
+                    flin = pfix + pStr + self.domainName + str(year) + r + '_REGION_KRIGE.csv'
+                    df = pd.read_csv(flin, usecols=['LAT','LON','FINALPREDICT'])
 
-                    for i in range (len(col[0][0])):    
-                        col[0][k + 2].append(col[k][2][i])
-                    k  += 1
+                    if year == self.yearStart:
+                        dfFinal = df
+                        dfFinal.rename(columns={ 'FINALPREDICT':str(year)}, inplace=True)
+                    else:
+                        dfFinal[str(year)] = df['FINALPREDICT']
 
-                # brute force write out results
-                flout = open(resultsDir + '/Lat_Lon_Grid_' + pStr + self.domainName + r + '_IDW.csv', 'w')
-                for row in range(len(col[0][0])):
-                    for c in range(ncols):
-                        flout.write(col[0][c][row])
-                        flout.write(',')
-                    flout.write(col[0][ncols][row])
-                    flout.write('\n')
-                flout.close()
-            # end for region
+                if r == region[0]: 
+                    dfFinal.to_csv(flout, index=False)
+                else:
+                    dfFinal.to_csv(flout, mode='a', index=False,header=False)
 
-            # now combine all region files into one file
-            flout = resultsDir + '/Lat_Lon_Grid_' + pStr + self.domainName + '_' + str(self.yearStart) + '_' + str(self.yearStop) + '_IDW.csv'
-            wrFile = open(flout, 'w')
-            for r in region:
-                flin = resultsDir + '/Lat_Lon_Grid_' + pStr + self.domainName + r + '_IDW.csv'
-                rdFile = open(flin, 'r')
-                lines = rdFile.readlines()
-                wrFile.writelines(lines)
-                rdFile.close()
-###                os.remove(flin)
-            wrFile.close()
-            print('Files concatenated to: ',flout)
+        # Lat_Lon_Grid_BIOM_AL2022_2026.csv
+        print('Files concatenated to: ',flout)
         # end for pStr
 
         end = time.time()
 
         print( 'Interpolation exec time: {}'.format(end-start))
 
+#====================================================================================================================================
         # ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++   
         #  PLOTTING
         # ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++   
@@ -526,6 +554,7 @@ class MainApplication(tk.Tk):
                 print(errorStr)
                 procID += 1
                 retDict[procID] = result.returncode
+#====================================================================================================================================
 
         return (retDict, procID)
 
@@ -537,7 +566,6 @@ class MainApplication(tk.Tk):
         self.WriteRecruitmentConfig()
         self.WriteGrowthConfig()
         self.WriteGridMgrConfig()
-        self.WriteUKConfig()
 
         # cfgFile  = os.path.join(self.root,configDir, interCfgDir, self.frame4.spatCfgFile.myEntry.get())
         # self.WriteSpatialFncsConfig(cfgFile)
@@ -729,29 +757,6 @@ class MainApplication(tk.Tk):
             f.close()
 
     ##
-    # Saves Universal Kriging parameters to a configuration file.
-    #
-    def WriteUKConfig(self):
-        cfgFile  = os.path.join(self.root,configDir, interCfgDir, self.frame1.ukCfgFile.myEntry.get())
-        self.CloseUKConfig(cfgFile, 
-                           self.frame4.formCombo.get(),
-                           self.frame4.spatCfgFile.myEntry.get())
-    
-    def CloseUKConfig(self, cfgFile, combo, fName):
-        with open(cfgFile, 'w') as f:
-            f.write('# Set inputs for universal kriging\n')
-            f.write('Kriging variogram form = ' + combo + '\n')
-            f.write('#\n')
-            f.write('# Configuration files are expected to be in the Configuration directory\n')
-            f.write('#\n')
-            f.write('NLS Spatial Fcn File Name = ' + fName + '\n')
-            f.write('#\n')
-            f.write('# Save interim data by writing out supporting data files\n')
-            f.write('#\n')
-            f.write('Save Data = F\n')
-            f.close()
-
-    ##
     # Saves spatial function parameters to a configuration file.
     #
     def WriteSpatialFncsConfig(self, cfgFile, functions, numFncsEntry):
@@ -844,22 +849,6 @@ class MainApplication(tk.Tk):
                 self.tsPerYear = int(value)
 
     ## 
-    # Read in the (tag, value) parameters from the UK configuration file.
-    #
-    def ReadUKConfigFile(self):
-        tags = self.ReadConfigFile(self.ukConfigFile)
-        self.frame4.UpdateUKParameters(tags)
-
-        # MA and GB UK Config Files Names are hardcoded
-        cfgFile  = os.path.join(self.root,configDir, interCfgDir, 'UK_MA.cfg')
-        tags = self.ReadConfigFile(cfgFile)
-        self.frame4.UpdateMAParameters(tags)
-
-        cfgFile  = os.path.join(self.root,configDir, interCfgDir, 'UK_GB.cfg')
-        tags = self.ReadConfigFile(cfgFile)
-        self.frame4.UpdateGBParameters(tags)
-
-    ## 
     # Read in the (tag, value) parameters from the grid manager configuration file.
     #
     def ReadGridMgrConfigFile(self):
@@ -884,18 +873,11 @@ START Sim
        - Recruitment File
        - Growth Config File
        - Grid Mgr Config File
-       - UK Config File
-       - Spatial Fcn Config File (in UKIterpolation tab)
     If simulation completed successfully, will the interpolate the results from
 	the survey grid to the region grid.
 	
 	NOTE: 
-    1) Before running with Domain Name 'AL', Go to UKIterpolation tab and make 
-    sure the Spatial Fcn Config File 'SpatialFcnsMA.cfg' and 
-    'SpatialFcnsGB.cfg' have the function definitions desired. These files are
-    used to interpolate data in their respective regions
-
-    2) This does not save the Special Access File or the Fishing Mort File. 
+    1) This does not save the Special Access File or the Fishing Mort File. 
        See Special Acces Tab and the FishingMort in Special Access Tab
 
 Skip Status Msgs
@@ -923,7 +905,7 @@ def main():
     nargs = len(sys.argv)
     maxYears = 5 # this can change as user enters a greater range, start year to stop year
     if (nargs != 3):
-        maxAreas = 25
+        maxAreas = 50
         maxCorners = 8
         print ("Missing command line arguments. Expecting: ")
         print ("  $ GeoSams.py MaxNumAreas MaxNumCorners")

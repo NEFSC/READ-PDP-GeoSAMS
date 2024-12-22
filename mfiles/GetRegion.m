@@ -1,11 +1,13 @@
 function x = GetRegion(isOctave, lat_t, lon_t, stratum_t)
 
+
 region_none=0;
-region_N=1;
-region_S=2;
-region_SW=3;
-region_W=4;
-region_MA=5;
+regionGB_N=1;
+regionGB_S=2;
+regionGB_SW=3;
+regionGB_W=4;
+regionMA_N=5;
+regionMA_S=6;
 
 if (isOctave)
     lat = lat_t;
@@ -21,31 +23,35 @@ if (isnan(stratum) || (stratum == 0))
     x = region_none;
 else
     if (stratum < 6400)
-        x = region_MA;
+        if (stratum < 6290)
+            x = regionMA_S;
+        else
+            x = regionMA_N;
+        end
     elseif( (stratum < 6460) || (stratum == 6652) || (stratum == 6662) )
         x = region_none;
     elseif (stratum < 6490)
         if ((lat > 40.7) && (lon > -69.35))
-            x = region_W;
+            x = regionGB_W;
         else
-            x = region_SW;
+            x = regionGB_SW;
         end
     elseif (stratum < 6530)
-        x = region_W;
+        x = regionGB_W;
     elseif (stratum < 6560)
-        x = region_N;
+        x = regionGB_N;
     elseif (stratum < 6610)
-        x = region_S;
+        x = regionGB_S;
     elseif (stratum < 6622)
-        x = region_S;
+        x = regionGB_S;
     elseif (stratum < 6651)
         x = region_none;
     elseif (stratum < 6680)
-        x = region_N;
+        x = regionGB_N;
     elseif (stratum < 6710)
         x = region_none;
     elseif (stratum < 6730)
-        x = region_N;
+        x = regionGB_N;
     elseif (stratum < 6740)
         x = region_none;
     elseif (stratum < 6960)
@@ -54,10 +60,10 @@ else
                 if lon < -67.14
                     x = region_none;
                 else
-                    x = region_N;
+                    x = regionGB_N;
                 end
             else
-                x = region_S;
+                x = regionGB_S;
             end
         else
             x = region_none;

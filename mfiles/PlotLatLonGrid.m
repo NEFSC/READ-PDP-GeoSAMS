@@ -5,8 +5,8 @@
 function PlotLatLonGrid(fname, yrStart, domain)
 
 %------------------SHAPE DATA --------------------------------------------
-shapeMA = shaperead('ShapeFiles/MAB_Estimation_Areas_2024_UTM18_PDT.shp');
-shapeGB = shaperead('ShapeFiles/GB_Estimation_Areas_2024_UTM19_PDT.shp');
+shapeMA = shaperead('ShapeFiles/MAB_Region/MAB_Est_Areas_2024_UTM18_Habcam_GeoSAMS.shp');
+shapeGB = shaperead('ShapeFiles/GB_Region/GB_Est_Areas_2024_UTM19_Habcam_GeoSAMS.shp');
 
 shapeMAlen = length(shapeMA);
 for k=1:shapeMAlen, [shapeMA(k).lat,shapeMA(k).lon] = utm2ll(shapeMA(k).X,shapeMA(k).Y,18); end
@@ -142,8 +142,8 @@ for i=1:c
         end
     end
     hold on
-    PlotRegion(isOctave, 'GB', 0, 0)
-    PlotRegion(isOctave, 'MA', 0, 0)
+    PlotRegion(isOctave, 'GB', shapeGB, 0, 0)
+    PlotRegion(isOctave, 'MA', shapeMA, 0, 0)
 
     saveas(gcf,[thisTitle '.pdf'])
 end

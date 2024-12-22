@@ -12,92 +12,221 @@ args <- commandArgs(trailingOnly = TRUE)
 # [1] X_Y_BIOM_AL2022_GB 
 # [2] GBxyzLatLonRgn.csv 
 # OUTPUTS:
-# residFname: X_Y_BIOM_AL2022_GB_IDW.csv
+# residFname: X_Y_BIOM_AL2022_GB_RESID.csv
 # predFname:  X_Y_BIOM_AL2022_GB_PRED.csv
 dataFileName<- file.path("Data", args[1])
 dataFname <- paste(dataFileName, '.csv', sep='')
 gridFname <- file.path("Grids", args[2])
 ####i <- unlist(stri_locate_all(pattern=".", dataFname, fixed=TRUE))[1] - 1
-residFname <- paste(dataFileName, '_IDW.csv',sep='')
+residFname <- paste(dataFileName, '_RESID.csv',sep='')
 predictFname <- paste(dataFileName, '_PRED.csv',sep='')
 cat(dataFname, gridFname, residFname, predictFname, "\n")
 
 ###load data###
 
 surveydata=read.csv(file=dataFname) #read in survey data
-predictgrid=read.csv(file=gridFname,header=FALSE) #read in grid data
+predictgrid=read.csv(file=gridFname) #read in grid data
 #head(predictgrid)
 
 ###data manipulation###
 
-if(all(surveydata$PARAM==0)) #if all the data is zero, no gam model created, 0.0 assigned to the gam columns (could switch to zero if needed), and output the data
-{
+surveydata[,c("ID","PRESABS","FOLD","GAM1PREDICT","GAM2PREDICT","GAMPREDICTM2","GAMRESIDUALM2","BUFFER")]=0
+predictgrid[,c("GAM1PREDICT","GAM2PREDICT","GAM1VAR","GAM2VAR","GAMPREDICTM2")]=0
 
-	surveydata[,c("PRESABS","FOLD","GAM1PREDICT","GAM2PREDICT","GAMPREDICT","GAMRESIDUAL")]=0.0
-	predictgrid[,c("GAM1PREDICT","GAM2PREDICT","GAM1VAR","GAM2VAR","GAMPREDICT")]=0.0
+startTime <- Sys.time()
+allstat=c() #use to store cross-validation statistics
 	
-} else #do gam models and output the data
+if(all(surveydata$PARAM==0)) #if all the data is zero, no gam model created, NAs assigned to the gam columns (could switch to zero if needed), and output the data
 {
 
+	#write.csv(surveydata,file=residFname,row.names=FALSE) #output for survey data
+	#write.csv(predictgrid,file=predictFname,row.names=FALSE) #output for grids
+
+}else #do gam models and output the data
+{
+	surveydata$ID=1:dim(surveydata)[1]
 	surveydata$PRESABS=ifelse(surveydata$PARAM>0,1,0) #add presense absense column to the survey data for gam model to use
 	surveydata$FOLD=rep(1:10,length=dim(surveydata)[1]) #assign fold to the data for cross validation
 	#head(surveydata)
-	colnames(predictgrid)=c("UTM_X","UTM_Y","DEPTH","LAT","LON","SAMS") #assign column name to grid data
+	#colnames(predictgrid)=c("UTM_X","UTM_Y","DEPTH","LAT","LON","SAMS") #assign column name to grid data
 
 	###doing GAM###
-	##iterate accross different k values and select the k value based on cross validation result
 
-	allstat=c()
-	for(k1 in seq(5,40,5)) #iterate accross different k for lat*lon interaction term
-	{	
-		for(k2 in seq(5,30,5)) #iterate accross different k for depth term
-		{
-			surveydataallfold=c() #used to store cross validation data
-			for(i in 1:10)
-			{
-				surveydataleaveone=subset(surveydata,FOLD!=i) #leave out one fold
-				surveydataonefold=subset(surveydata,FOLD==i) #one fold
-				gam1f=gam(PRESABS~s(UTM_X,UTM_Y,k=k1)+s(DEPTH,k=k2),data=surveydataleaveone,family=quasibinomial,method="REML") #gam1 constructed using presense absense data
-				gam2f=gam(PARAM~s(UTM_X,UTM_Y,k=k1)+s(DEPTH,k=k2),data=subset(surveydataleaveone,PRESABS==1),family=quasipoisson,method="REML") #gam2 constrctued using presense data only
-				
-				gam1_predvarf=predict(gam1f,type="response",newdata=surveydataonefold, se.fit = TRUE) #make probability prediction based on constructed gam1
-				gam2_predvarf=predict(gam2f,type="response",newdata=surveydataonefold, se.fit = TRUE) #make quantity prediction based on constructed gam2
-				surveydataonefold$GamPredict=gam1_predvarf[[1]]*gam2_predvarf[[1]] #gam1*gam2 is the final result from gam
-				surveydataonefold$GamResidual=surveydataonefold$PARAM-surveydataonefold$GamPredict #residuals from gam that will be used to calculate cross validation statistics
-				surveydataallfold=rbind(surveydataallfold,surveydataonefold) #combine data from different folds
+	##start up with data outside of modeling region and the buffer
+	
+    surveydata_buffer_cols=colnames(surveydata)[grep("BUFFER_",colnames(surveydata))]
+	surveydata_result=surveydata[apply(surveydata[,surveydata_buffer_cols],1,function(x) sum(x)==0),] 	
+	predictgrid_result=predictgrid[is.na(predictgrid$REGION)==TRUE,]
+	
+	for(r in unique(surveydata$REGION[is.na(surveydata$REGION)==FALSE])) #iterate by different regions
+	{
+		surveydata_temp=surveydata[surveydata[,paste0("BUFFER_",r)]==1,] #subset the survey data for each buffer
+		predictgrid_temp=subset(predictgrid,REGION==r) #subset the grid data for each region
+		print(r)
+		print(sum(surveydata_temp$PRESABS)/dim(surveydata_temp)[1])
+		
+		if(sum(surveydata_temp$PRESABS)/dim(surveydata_temp)[1]<=.8) #if there is less than 80% of the data that are positive, do hurdle gam
+		{			
+			
+			##iterate through different ks to find the best GAM based on cross-validation
+			 
+			if(r!="NYB_3D") #if needed, NYB do 3-D gam to stabilize the gam at the east part of the canyon, no iterates on k for the 3-D gam, use the default and let REML reduce the estimated k, so not included in here
+			{			
+				allstat=c() #use to store cross-validation statistics
+				for(k1 in seq(5,30,5)) #iterate accross different k for lat*lon interaction term
+				{	
+
+					for(k2 in seq(5,30,5)) #iterate accross different k for depth term
+					{
+
+						surveydata_temp_allfold=c() #used to store cross validation data
+						for(i in 1:10) #10 fold cross validation
+						{
+							surveydata_temp_leaveone=subset(surveydata_temp,FOLD!=i) #leave out one fold
+							surveydata_temp_onefold=subset(surveydata_temp,FOLD==i) #one fold
+	 
+							if(r=="NYB") gam1f=try(gam(PRESABS~s(UTM_X,UTM_Y,k=k1)+s(UTM_Y,DEPTH,k=k2),data=surveydata_temp_leaveone,family=quasibinomial,method="REML")) #for NYB, depth needs to be conditioned on latitude so that we don't overestimate the biomass in the east part of the canyon. default to this, and if this doesn't work, do 3D gam. added try function and it would report error when model have issues, when model have issues, we will not use this k combination and move to test the next combination
+							else gam1f=try(gam(PRESABS~s(UTM_X,UTM_Y,k=k1)+s(DEPTH,k=k2),data=surveydata_temp_leaveone,family=quasibinomial,method="REML")) #hurdle gam1 constructed using presense absense data
+							if(class(gam1f)[1]=="try-error") break; #if model have issues, break the loop and jump to next combination of k
+							if(r=="NYB") gam2f=try(gam(PARAM~s(UTM_X,UTM_Y,k=k1)+s(UTM_Y,DEPTH,k=k2),data=subset(surveydata_temp_leaveone,PRESABS==1),family=quasipoisson,method="REML")) #for NYB, depth conditioned on latitude
+							else gam2f=try(gam(PARAM~s(UTM_X,UTM_Y,k=k1)+s(DEPTH,k=k2),data=subset(surveydata_temp_leaveone,PRESABS==1),family=quasipoisson,method="REML")) #hurdle gam2 constrctued using presense data only
+							if(class(gam2f)[1]=="try-error") break;
+							
+							gam1_predvarf=predict(gam1f,type="response",newdata=surveydata_temp_onefold, se.fit = TRUE) #make probability prediction based on constructed gam1
+							gam2_predvarf=predict(gam2f,type="response",newdata=surveydata_temp_onefold, se.fit = TRUE) #make quantity prediction based on constructed gam2
+							surveydata_temp_onefold$GamPredict=gam1_predvarf[[1]]*gam2_predvarf[[1]] #gam1*gam2 is the final result from gam
+							surveydata_temp_onefold$GamResidual=surveydata_temp_onefold$PARAM-surveydata_temp_onefold$GamPredict #residuals from gam that will be used to calculate cross validation statistics
+							surveydata_temp_allfold=rbind(surveydata_temp_allfold,surveydata_temp_onefold) #combine data from different folds
+							 
+							if(i==10) allstat=rbind(allstat,data.frame(k1=k1,k2=k2,CV=sqrt(sum(surveydata_temp_allfold$GamResidual^2)/length(surveydata_temp_allfold$GamResidual)))) #at the last fold, combine cross validation statistics from different k values
+						}	
+					}
+				}
 			}
 				
-			allstat=rbind(allstat,data.frame(k1=k1,k2=k2,CV=sqrt(sum(surveydataallfold$GamResidual^2)/length(surveydataallfold$GamResidual)))) #combine statistics from different k values
+			##construct final GAM based on the selected k values and made predictions
+		
+			if(r=="NYB_3D") #for 3-D gam in NYB
+			{
+				gam1=gam(PRESABS~s(UTM_X,UTM_Y,DEPTH),data=surveydata_temp,family=quasibinomial,method="REML") #construct final model for gam1
+				gam2=gam(PARAM~s(UTM_X,UTM_Y,DEPTH),data=subset(surveydata_temp,PRESABS==1),family=quasipoisson,method="REML") #construct final model for gam2
+
+			}else{ #for the rest of the regions
+			
+				k1final=allstat[which.min(allstat$CV),]$k1 #get final k value for lat*lon interaction term
+				k2final=allstat[which.min(allstat$CV),]$k2 #get final k value for depth term or lat*depth for NYB
+				print(paste(r,k1final,k2final))
+				if(r=="NYB") gam1=gam(PRESABS~s(UTM_X,UTM_Y,k=k1final)+s(UTM_Y,DEPTH,k=k2final),data=surveydata_temp,family=quasibinomial,method="REML") #construct final model for gam1 for NYB
+				else gam1=gam(PRESABS~s(UTM_X,UTM_Y,k=k1final)+s(DEPTH,k=k2final),data=surveydata_temp,family=quasibinomial,method="REML") #construct final model for gam1 for the rest of the regions
+				if(r=="NYB") gam2=gam(PARAM~s(UTM_X,UTM_Y,k=k1final)+s(UTM_Y,DEPTH,k=k2final),data=subset(surveydata_temp,PRESABS==1),family=quasipoisson,method="REML") #construct final model for gam2 for NYB	
+				else gam2=gam(PARAM~s(UTM_X,UTM_Y,k=k1final)+s(DEPTH,k=k2final),data=subset(surveydata_temp,PRESABS==1),family=quasipoisson,method="REML") #construct final model for gam2 for the rest of the regions			
+			}
+			
+			gam1_predvars=predict(gam1,type="response", se.fit = TRUE) #made predictions for survey data for gam1		
+			gam2_predvars=predict(gam2,type="response",newdata=surveydata_temp, se.fit = TRUE) #made predictions for survey data for gam2 
+			surveydata_temp$GAM1PREDICT=gam1_predvars[[1]] #predicted probability for gam1 for survey data
+			surveydata_temp$GAM2PREDICT=gam2_predvars[[1]] #predicted quantity for gam2 for survey data
+			surveydata_temp$GAMPREDICTM2=gam1_predvars[[1]]*gam2_predvars[[1]] #gam1*gam2 is the final result from gam
+			surveydata_temp$GAMRESIDUALM2=surveydata_temp$PARAM-surveydata_temp$GAMPREDICTM2 #residuals from gam
+			surveydata_temp$BUFFER=r #record buffer
+			
+			gam1_predvar=predict(gam1,type="response",newdata=predictgrid_temp,se.fit = TRUE) #made predictions for grids for gam1		
+			gam2_predvar=predict(gam2,type="response",newdata=predictgrid_temp, se.fit = TRUE) #made predictions for grids for gam2		
+			predictgrid_temp$GAM1PREDICT=gam1_predvar[[1]] #predicted probability for gam1 for grids
+			predictgrid_temp$GAM2PREDICT=gam2_predvar[[1]] #predicted quantity for gam2 for grids
+			predictgrid_temp$GAM1VAR=gam1_predvar[[2]] #predicted variance for gam1 for grids
+			predictgrid_temp$GAM2VAR=gam2_predvar[[2]] #predicted variance for gam2 for grids
+			predictgrid_temp$GAMPREDICTM2=gam1_predvar[[1]]*gam2_predvar[[1]] #gam1*gam2 is the final result from gam
+
+			surveydata_result=rbind(surveydata_result,surveydata_temp) #noted that surveydata_result have repeated values of survey records because some data at the bundary might be used by multiple regions (queried by buffer) 
+			predictgrid_result=rbind(predictgrid_result,predictgrid_temp)
+		
+		}
+		
+		if(sum(surveydata_temp$PRESABS)/dim(surveydata_temp)[1]>.8 | is.null(allstat)==TRUE) #if more than 80% of the data are positive or no k combinations works for the hurdle gam , do one tweedie gam for all data. found that 70% positive data with tweedie gam spikes k to 30 for both terms for all regions tested, doesn't seem to be stable or make sense, so use 80% as the cut off
+		{
+		
+			##iterate through different ks to find the best GAM based on cross-validation
+			
+			if(r!="NYB_3D") #if needed, NYB do 3-D gam to stabilize the gam at the east part of the canyon, no iterates on k, use the default and let REML reduce the estimated k, so not included in here
+			{
+				allstat=c() #use to store cross-validation statistics
+				for(k1 in seq(5,30,5)) #iterate accross different k for lat*lon interaction term
+				{	
+					for(k2 in seq(5,30,5)) #iterate accross different k for depth term
+					{
+						surveydata_temp_allfold=c() #used to store cross validation data
+						for(i in 1:10) #10 fold cross validation
+						{
+							surveydata_temp_leaveone=subset(surveydata_temp,FOLD!=i) #leave out one fold
+							surveydata_temp_onefold=subset(surveydata_temp,FOLD==i) #one fold
+							if(r=="NYB") gam1f=try(gam(PARAM~s(UTM_X,UTM_Y,k=k1)+s(UTM_Y,DEPTH,k=k2),data=surveydata_temp_leaveone,family=tw(),method="REML")) #gam1 constructed using all data and a tweedie distribution for NYB with lat*depth
+							else gam1f=try(gam(PARAM~s(UTM_X,UTM_Y,k=k1)+s(DEPTH,k=k2),data=surveydata_temp_leaveone,family=tw(),method="REML")) #gam1 constructed using all data and a tweedie distribution for the rest of the regions
+							if(class(gam1f)[1]=="try-error") break;
+							
+							gam1_predvarf=predict(gam1f,type="response",newdata=surveydata_temp_onefold, se.fit = TRUE) #make pprediction based on constructed gam1
+							surveydata_temp_onefold$GamPredict=gam1_predvarf[[1]] #gam1 is the final result from gam
+							surveydata_temp_onefold$GamResidual=surveydata_temp_onefold$PARAM-surveydata_temp_onefold$GamPredict #residuals from gam that will be used to calculate cross validation statistics
+							surveydata_temp_allfold=rbind(surveydata_temp_allfold,surveydata_temp_onefold) #combine data from different folds
+							
+							if(i==10) allstat=rbind(allstat,data.frame(k1=k1,k2=k2,CV=sqrt(sum(surveydata_temp_allfold$GamResidual^2)/length(surveydata_temp_allfold$GamResidual)))) #combine cross validation statistics from different k values
+						}	
+					}
+				}
+			}
+				
+			if(r=="NYB_3D")
+			{
+				gam1=gam(PARAM~s(UTM_X,UTM_Y,DEPTH),data=surveydata_temp,family=tw(),method="REML") #construct final model for gam1	for 3-D gam for NYB			
+			
+			}else{
+				k1final=allstat[which.min(allstat$CV),]$k1 #get final k value for lat*lon interaction term
+				k2final=allstat[which.min(allstat$CV),]$k2 #get final k value for depth term or lat*depth for NYB
+				print(paste(r,k1final,k2final))
+				if(r=="NYB") gam1=gam(PARAM~s(UTM_X,UTM_Y,k=k1final)+s(UTM_Y,DEPTH,k=k2final),data=surveydata_temp,family=tw(),method="REML") #construct final model for gam1 for NYB with lat*depth
+				else gam1=gam(PARAM~s(UTM_X,UTM_Y,k=k1final)+s(DEPTH,k=k2final),data=surveydata_temp,family=tw(),method="REML") #construct final model for gam1				
+			}		
+
+			gam1_predvars=predict(gam1,type="response", se.fit = TRUE) #made predictions for survey data for gam1		
+			surveydata_temp$GAM1PREDICT=gam1_predvars[[1]] #predicted quantity from gam1 for survey data
+			surveydata_temp$GAM2PREDICT=NA #no gam2 here
+			surveydata_temp$GAMPREDICTM2=gam1_predvars[[1]] #gam1 is the final result from gam
+			surveydata_temp$GAMRESIDUALM2=surveydata_temp$PARAM-surveydata_temp$GAMPREDICTM2 #residuals from gam
+			surveydata_temp$BUFFER=r
+			
+			gam1_predvar=predict(gam1,type="response",newdata=predictgrid_temp,se.fit = TRUE) #made predictions for grids for gam1		
+			predictgrid_temp$GAM1PREDICT=gam1_predvar[[1]] #predicted quantity for gam1 for grids
+			predictgrid_temp$GAM2PREDICT=NA #no gam2 here
+			predictgrid_temp$GAM1VAR=gam1_predvar[[2]] #predicted variance for gam1 for grids
+			predictgrid_temp$GAM2VAR=NA #no gam2 here
+			predictgrid_temp$GAMPREDICTM2=gam1_predvar[[1]] #gam1 is the final result from gam
+
+			surveydata_result=rbind(surveydata_result,surveydata_temp)
+			predictgrid_result=rbind(predictgrid_result,predictgrid_temp)
+			
 		}
 	}
 		
-	##construct final GAM based on the selected k values and made predictions
-		
-	k1final=allstat[which.min(allstat$CV),]$k1 #get final k value for lat*lon interaction term
-	k2final=allstat[which.min(allstat$CV),]$k2 #get final k value for depth term
-	gam1=gam(PRESABS~s(UTM_X,UTM_Y,k=k1final)+s(DEPTH,k=k2final),data=surveydata,family=quasibinomial,method="REML") #construct final model for gam1
-	gam2=gam(PARAM~s(UTM_X,UTM_Y,k=k1final)+s(DEPTH,k=k2final),data=subset(surveydata,PRESABS==1),family=quasipoisson,method="REML") #construct final model for gam2
+	###output data###
+	
+	aggregate(predictgrid_result$GAMPREDICTM2*(1.852^2),by=list(predictgrid_result$ZONE),sum)
+	sum(aggregate(predictgrid_result$GAMPREDICTM2*(1.852^2),by=list(predictgrid_result$ZONE),sum)$x)
+	dim(surveydata)
+	dim(predictgrid)
+	dim(surveydata_result)
+	dim(predictgrid_result)
+	plot(UTM_Y~UTM_X,predictgrid_result,cex=predictgrid_result$GAMPREDICTM2/10,pch=16)
 
-	gam1_predvar=predict(gam1,type="response", se.fit = TRUE) #made predictions for survey data for gam1		
-	gam2_predvar=predict(gam2,type="response",newdata=surveydata, se.fit = TRUE) #made predictions for survey data for gam2 
-	surveydata$GAM1PREDICT=gam1_predvar[[1]] #predicted probability for gam1 for survey data
-	surveydata$GAM2PREDICT=gam2_predvar[[1]] #predicted quantity for gam2 for survey data
-	surveydata$GAMPREDICT=gam1_predvar[[1]]*gam2_predvar[[1]] #gam1*gam2 is the final result from gam
-	surveydata$GAMRESIDUAL=surveydata$PARAM-surveydata$GAMPREDICT #residuals from gam that will be used to calculate cross validation statistics
-	#head(surveydata)
+	write.csv(surveydata_result,file=residFname,row.names=FALSE) #output for survey data
+	write.csv(predictgrid_result,file=predictFname,row.names=FALSE) #output for grids
+	# write.csv(surveydata_result,file="A:/GeoSAMS/GAM/X_Y_BIOM_AL2022_GB_BUFFER_GAM.csv",row.names=FALSE) #output for survey data
+	# write.csv(predictgrid_result,file="A:/GeoSAMS/GAM/GBxyzLatLonRgn_REGION_GAM.csv",row.names=FALSE) #output for grids
+	#write.csv(surveydata_result,file="A:/GeoSAMS/GAM/X_Y_BIOM_AL2022_MA_BUFFER_GAM.csv",row.names=FALSE) #output for survey data
+	#write.csv(predictgrid_result,file="A:/GeoSAMS/GAM/MAxyzLatLonRgn_REGION_GAM.csv",row.names=FALSE) #output for grids
 
-	gam1_predvar=predict(gam1,type="response",newdata=predictgrid,se.fit = TRUE) #made predictions for grids for gam1		
-	gam2_predvar=predict(gam2,type="response",newdata=predictgrid, se.fit = TRUE) #made predictions for grids for gam2		
-	predictgrid$GAM1PREDICT=gam1_predvar[[1]] #predicted probability for gam1 for grids
-	predictgrid$GAM2PREDICT=gam2_predvar[[1]] #predicted quantity for gam1 for grids
-	predictgrid$GAM1VAR=gam1_predvar[[2]] #predicted quantity for gam1 for grids
-	predictgrid$GAM2VAR=gam2_predvar[[2]] #predicted quantity for gam2 for grids
-	predictgrid$GAMPREDICT=gam1_predvar[[1]]*gam2_predvar[[1]] #gam1*gam2 is the final result from gam
-	#head(predictgrid)
-	#aggregate(predictgrid$GAMPREDICT*(1.852^2),by=list(predictgrid$SAMS),sum)
 }
 
-###output data###
+endTime <- Sys.time()
 
-write.csv(surveydata,file=residFname,row.names=FALSE) #output for survey data
-write.csv(predictgrid,file=predictFname,row.names=FALSE) #output for grids
+duration <- endTime - startTime
+cat("Elapsed time: ", duration)

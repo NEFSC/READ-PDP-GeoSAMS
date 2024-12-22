@@ -819,6 +819,7 @@ real(dp), allocatable :: abundance(:)
 real(dp), allocatable :: bms(:)
 real(dp), allocatable :: ebms_mt(:)
 character(6) buf
+character(15) dummy(15)
 
 allocate(abundance(num_grids))
 allocate(bms(num_grids), ebms_mt(num_grids))
@@ -889,58 +890,57 @@ if (mod(ts, ts_per_year) .eq. 1) then
     endif
 
     if (data_select%plot_ABUN) &
-    &    call Write_Column_CSV_By_Region(num_grids, abundance(:), grid(1:num_grids)%lon, 'PARAM', &
-    &    data_dir//'X_Y_ABUN_'//domain_name//trim(buf), .true.)
+    &    call Write_Column_CSV_By_Region(num_grids, abundance(:), dummy, grid(1:num_grids)%lon, 'PARAM', &
+    &    data_dir//'X_Y_ABUN_'//domain_name//trim(buf), .true., .false.)
 
     if (data_select%plot_BIOM) &
-    &    call Write_Column_CSV_By_Region(num_grids, bms(:), grid(1:num_grids)%lon, 'PARAM', &
-    &    data_dir//'X_Y_BIOM_'//domain_name//trim(buf), .true.)
-
+    &    call Write_Column_CSV_By_Region(num_grids, bms(:), dummy, grid(1:num_grids)%lon, 'PARAM', &
+    &    data_dir//'X_Y_BIOM_'//domain_name//trim(buf), .true., .false.)
     if (data_select%plot_EBMS) &
-    &    call Write_Column_CSV_By_Region(num_grids, ebms_mt(:), grid(1:num_grids)%lon, 'PARAM', &
-    &    data_dir//'X_Y_EBMS_'//domain_name//trim(buf), .true.)
+    &    call Write_Column_CSV_By_Region(num_grids, ebms_mt(:), dummy, grid(1:num_grids)%lon, 'PARAM', &
+    &    data_dir//'X_Y_EBMS_'//domain_name//trim(buf), .true., .false.)
 
     if (data_select%plot_FEFF) &
-    &    call Write_Column_CSV_By_Region(num_grids, fishing_effort(:), grid(1:num_grids)%lon, 'PARAM', &
-    &    data_dir//'X_Y_FEFF_'//domain_name//trim(buf), .true.)
+    &    call Write_Column_CSV_By_Region(num_grids, fishing_effort(:), dummy, grid(1:num_grids)%lon, 'PARAM', &
+    &    data_dir//'X_Y_FEFF_'//domain_name//trim(buf), .true., .false.)
 
     if (data_select%plot_FMOR) &
-    &    call Write_Column_CSV_By_Region(num_grids, F_mort(:), grid(1:num_grids)%lon, 'PARAM', &
-    &    data_dir//'X_Y_FMOR_'//domain_name//trim(buf), .true.)
+    &    call Write_Column_CSV_By_Region(num_grids, F_mort(:), dummy, grid(1:num_grids)%lon, 'PARAM', &
+    &    data_dir//'X_Y_FMOR_'//domain_name//trim(buf), .true., .false.)
 
 ! landings_accum or landings_by_num
 ! landings_wgt_accum or landings_wgt_grams
 ! lpue_accum or lpue
 #ifdef ACCUM_LANDINGS
     if (data_select%plot_LAND) then
-        call Write_Column_CSV_By_Region(num_grids, landings_accum(:), grid(1:num_grids)%lon, 'PARAM', &
-        &    data_dir//'X_Y_LAND_'//domain_name//trim(buf), .true.)
+        call Write_Column_CSV_By_Region(num_grids, landings_accum(:), dummy, grid(1:num_grids)%lon, 'PARAM', &
+        &    data_dir//'X_Y_LAND_'//domain_name//trim(buf), .true., .false.)
         landings_accum(:) = 0.D0
     endif
 
     if (data_select%plot_LNDW) then
-        call Write_Column_CSV_By_Region(num_grids, landings_wgt_accum(:), grid(1:num_grids)%lon, 'PARAM', &
-        &    data_dir//'X_Y_LNDW_'//domain_name//trim(buf), .true.)
+        call Write_Column_CSV_By_Region(num_grids, landings_wgt_accum(:), dummy, grid(1:num_grids)%lon, 'PARAM', &
+        &    data_dir//'X_Y_LNDW_'//domain_name//trim(buf), .true., .false.)
         landings_wgt_accum(:) = 0.D0
     endif
 
     if (data_select%plot_LPUE) then 
-        call Write_Column_CSV_By_Region(num_grids, lpue_accum(:), grid(1:num_grids)%lon, 'PARAM', &
-        &    data_dir//'X_Y_LPUE_'//domain_name//trim(buf), .true.)
+        call Write_Column_CSV_By_Region(num_grids, lpue_accum(:), dummy, grid(1:num_grids)%lon, 'PARAM', &
+        &    data_dir//'X_Y_LPUE_'//domain_name//trim(buf), .true., .false.)
         lpue_accum(:) = 0.D0
     endif
 #else
     if (data_select%plot_LAND) &
-    &    call Write_Column_CSV_By_Region(num_grids, landings_by_num(:), grid(1:num_grids)%lon, 'PARAM', &
-    &    data_dir//'X_Y_LAND_'//domain_name//trim(buf), .true.)
+    &    call Write_Column_CSV_By_Region(num_grids, landings_by_num(:), dummy, grid(1:num_grids)%lon, 'PARAM', &
+    &    data_dir//'X_Y_LAND_'//domain_name//trim(buf), .true., .false.)
 
     if (data_select%plot_LNDW) &
-    &    call Write_Column_CSV_By_Region(num_grids, landings_wgt_grams(:), grid(1:num_grids)%lon, 'PARAM', &
-    &    data_dir//'X_Y_LNDW_'//domain_name//trim(buf), .true.)
+    &    call Write_Column_CSV_By_Region(num_grids, landings_wgt_grams(:), dummy, grid(1:num_grids)%lon, 'PARAM', &
+    &    data_dir//'X_Y_LNDW_'//domain_name//trim(buf), .true., .false.)
 
     if (data_select%plot_LPUE) &
-    &    call Write_Column_CSV_By_Region(num_grids, lpue(:), grid(1:num_grids)%lon, 'PARAM', &
-    &    data_dir//'X_Y_LPUE_'//domain_name//trim(buf), .true.)
+    &    call Write_Column_CSV_By_Region(num_grids, lpue(:), dummy, grid(1:num_grids)%lon, 'PARAM', &
+    &    data_dir//'X_Y_LPUE_'//domain_name//trim(buf), .true., .false.)
 #endif
 
 endif ! if(mod()) = 1

@@ -171,7 +171,7 @@ minLon = [-180*ones(1,6),-67.333333*ones(1,5),-180*ones(1,2)];
 minLat = [40.83333,40.83333,zeros(1,11)];
 nrs = length(rsi);
 
-G = shaperead('ShapeFiles/Shellfish_Strata.shp');
+G = shaperead('ShapeFiles/Shellfish/Shellfish_Strata.shp');
 isRock=zeros(size(lat));
 for k=1:nrs
     [k,rsi(k),nrs];

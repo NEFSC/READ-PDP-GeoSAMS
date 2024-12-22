@@ -1,4 +1,4 @@
-function HabCamData5mmbin(refYear, domain, appendResults)
+function HabCamData5mmbin(refYear, domain)
 
 UNDEF_REGION = 9999;
 
@@ -35,7 +35,6 @@ if isOctave
     if ~strcmp(arg_list(1), '--gui')
         refYear = str2num(cell2mat(arg_list(1)));
         domain = cell2mat(arg_list(2));
-        appendResults = cell2mat(arg_list(3));
     else
         refYear = str2num(refYear);
     end
@@ -114,8 +113,8 @@ else
         end
         DecYr_t = year(j) + yd/365.25;
         z_t = M(j,zCol);
-        xutm_t = M(j,utmxCol);
-        yutm_t = M(j,utmyCol);
+        x_t = M(j,utmxCol);
+        y_t = M(j,utmyCol);
     else
         stratum_t = M(j,stratumCol);
         % Setting to INTEGER, Fortran read is expecting integer anyway
@@ -135,11 +134,26 @@ else
         end
         DecYr_t = array2table(year(j) + yd/365.25,'VariableNames',{'DecYr'});
         z_t = M(j,zCol);
-        xutm_t = M(j,utmxCol);
-        yutm_t = M(j,utmyCol);
+        x_t = M(j,utmxCol);
+        y_t = M(j,utmyCol);
     end
 
     n=find(and(year==yr,sg==3.));
+    % Initialize shape data
+    shape = GetShapeData();
+
+    % Create table for Zone and Region
+    sz = size(lat_t);
+    if isOctave
+        zone_t = zeros(sz);
+        region_t = zeros(sz);
+    else
+        varTypes = "string";
+        varNames = "Zone";
+        zone_t = table('Size',sz,'VariableTypes',varTypes,'VariableNames',varNames);
+        varNames = "Region";
+        region_t = table('Size',sz,'VariableTypes',varTypes,'VariableNames',varNames);
+    end
     for k=1:numel(lat_t)
         % bring in the surv_n data from size group 3 to 18, centimeters
         % which is in the 30 rows following sg==3
@@ -148,34 +162,45 @@ else
         % accumulate 15 to 18
         % sum n(k+24) - n(k+30) into k=25
         region = GetRegion(isOctave, lat_t(k,:), lon_t(k,:), stratum_t(k,:));
+        [zoneStr, regionStr] = CheckInRegionPolygon(isOctave, x_t(k,:), y_t(k,:), shape);
+        if isOctave
+            zone_t(k,:) = zoneStr;
+        else
+            zone_t(k,:) = mat2cell(zoneStr,1);
+        end
+
+        if isOctave
+            region_t(k,:) = regionStr;
+        else
+            region_t(k,:) = mat2cell(regionStr,1);
+        end
+
         if region >= 0  % TODO filtering does not match recruit as it does no filtering, use all regions
             if isOctave
                 k25 = sum((M(n(k)+24:n(k)+30, svCol)));
                 density = [(M(n(k):n(k)+23, svCol));k25];
-                X=[X;DecYr_t(k,:), xutm_t(k,:), yutm_t(k,:), lat_t(k,:), lon_t(k,:), z_t(k,:), is_closed_t(k,:), stratum_t(k,:), transpose(density)];
+                X=[X;DecYr_t(k,:), x_t(k,:), y_t(k,:), lat_t(k,:), lon_t(k,:), z_t(k,:), ...
+                   is_closed_t(k,:), stratum_t(k,:), zone_t(k,:), region_t(k,:), transpose(density)];
             else
                 k25   = sum(table2array(M(n(k)+24:n(k)+30, svCol)));
                 density = [table2array(M(n(k):n(k)+23, svCol));k25];
                 density_t = rows2vars(array2table(density,'VariableNames',{'density'}));
                 %        A           B            C            D             E         F          G                    H             I
-                X=[X;DecYr_t(k,:), xutm_t(k,:), yutm_t(k,:), lat_t(k,:), lon_t(k,:), z_t(k,:), is_closed_t(k,:), stratum_t(k,:), density_t(1,2:end)];
+                X=[X;DecYr_t(k,:), x_t(k,:), y_t(k,:), lat_t(k,:), lon_t(k,:), z_t(k,:), ...
+                   is_closed_t(k,:), stratum_t(k,:), zone_t(k,:), region_t(k,:), density_t(1,2:end)];
             end
         end
     end
     flnm=strcat('Data/bin5mm',int2str(yr),domain,'.csv');
     fprintf('Size of grid %d\n', size(X,1))
+    %first check if file does not exist. TrawlData may not have had any data
+    if exist(flnm, 'file') == 0
+        WriteHeader(flnm)
+    end
     if isOctave
-        if strcmp(appendResults(1), 'T')
-            dlmwrite(flnm, X, "-append")
-        else
-            dlmwrite(flnm,X);
-        end
+        dlmwrite(flnm, X, "-append")
     else
-        if strcmp(appendResults(1), 'T')
-            writetable(X,flnm,'WriteVariableNames',0,'WriteMode','append');
-        else
-            writetable(X,flnm,'WriteVariableNames',0);
-        end
+        writetable(X,flnm,'WriteVariableNames',0,'WriteMode','append');
     end
 end % if sum(j) == 0
 end

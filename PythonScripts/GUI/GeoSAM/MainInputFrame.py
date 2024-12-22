@@ -71,23 +71,16 @@ class MainInput(ttk.Frame):
         #-------------------------------------------------------------------------------------------
         simFrame.grid(row=1, column=0, padx=5, pady=0, sticky='n')
         # +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-        interpFrame = ttk.LabelFrame(self, text='Interpolation Configuration Files', style='SAMS.TFrame')
-        self.ukCfgFile = SubFrameElement(self, interpFrame, '', 'UK.cfg', 0, 0, 1, width=20)
-        self.openUKConfigButton = ttk.Button(interpFrame, text='Change/Save UK File', style="BtnBluGrn.TLabel", command=self.GetUKConfigFName)
-        self.openUKConfigButton.grid(row=0, column=3)
-        #-------------------------------------------------------------------------------------------
-        interpFrame.grid(row=2, column=0, padx=5, pady=0, sticky='w')
-        # +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
         showResultsFrame = ttk.LabelFrame(self, text='View Plots', style='SAMS.TFrame')
         # --------------------------------------------------------------------------------------------------------
         self.openPDFButton = ttk.Button(showResultsFrame, text='Open PDF File', style="BtnGreen.TLabel", command=self.OpenPDF)
         self.openPDFButton.grid(row=0, column=0, padx=10, sticky='we')
         #-------------------------------------------------------------------------------------------
-        showResultsFrame.grid(row=2, column=0, padx=5, pady=0, sticky='e')
+        showResultsFrame.grid(row=2, column=1, padx=5, pady=0, sticky='ne')
         # +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
         survDataFrame = ttk.LabelFrame(self, text='Survey Data Files, Environment Variables', style='SAMS.TFrame')
-        self.dredgeDataFile = SubFrameElement(self, survDataFrame, 'Dredge Survey Data File', 'dredgetowbysize7917',  0, 0, 1, width=35)
-        self.habCamDataFile = SubFrameElement(self, survDataFrame, 'HabCam Survey Data File', 'Habcam_BySegment_2000_2011-2023_v2',1, 0, 1, width=35)
+        self.dredgeDataFile = SubFrameElement(self, survDataFrame, 'Dredge Survey Data File', 'dredgetowbysize7917',  0, 0, 1, width=40)
+        self.habCamDataFile = SubFrameElement(self, survDataFrame, 'HabCam Survey Data File', 'Habcam_BySegment_2000_2011-2023_v2',1, 0, 1, width=40)
         #-------------------------------------------------------------------------------------------
         self.setDredgeDataButton = ttk.Button(survDataFrame, text='Set DredgeData', style="BtnBluGrn.TLabel", command=self.SetDredgeFileName)
         self.setDredgeDataButton.grid(row=0, column=3)
@@ -95,24 +88,37 @@ class MainInput(ttk.Frame):
         self.setHabCamDataButton = ttk.Button(survDataFrame, text='Set HabCamData', style="BtnBluGrn.TLabel", command=self.SetHabCamFileName)
         self.setHabCamDataButton.grid(row=1, column=3)
         #-------------------------------------------------------------------------------------------
-        survDataFrame.grid(row=3, column=0, padx=5, pady=0, sticky='sw')
+        survDataFrame.grid(row=2, column=0, padx=5, pady=0)
         # +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
         shapeFileFrame = ttk.LabelFrame(self, text='Shape Files', style='SAMS.TFrame')
         # --------------------------------------------------------------------------------------------------------
-        self.maShapeFileEntry = self.myEntry=ttk.Entry(shapeFileFrame, width=40)
-        self.maShapeFileEntry.insert(0, 'MAB_Estimation_Areas_2024_UTM18_PDT.shp')
+        self.maShapeFileEntry = ttk.Entry(shapeFileFrame, width=60)
+        self.maShapeFileEntry.insert(0, 'MAB_Est_Areas_2024_UTM18_Habcam_GeoSAMS.shp')
         self.maShapeFileEntry.grid(row=0, column=1, sticky='w', padx=5)
-        self.gbShapeFileEntry = self.myEntry=ttk.Entry(shapeFileFrame, width=40)
-        self.gbShapeFileEntry.insert(0, 'GB_Estimation_Areas_2024_UTM19_PDT.shp')
+        self.gbShapeFileEntry = ttk.Entry(shapeFileFrame, width=60)
+        self.gbShapeFileEntry.insert(0, 'GB_Est_Areas_2024_UTM19_Habcam_GeoSAMS.shp')
         self.gbShapeFileEntry.grid(row=1, column=1, sticky='w', padx=5)
+
+        self.maShapeBufferFileEntry = ttk.Entry(shapeFileFrame, width=60)
+        self.maShapeBufferFileEntry.insert(0, 'MAB_Est_Areas_2024_UTM18_Habcam_Buffer_15k_GeoSAMS.shp')
+        self.maShapeBufferFileEntry.grid(row=2, column=1, sticky='w', padx=5)
+        self.gbShapeBufferFileEntry = ttk.Entry(shapeFileFrame, width=60)
+        self.gbShapeBufferFileEntry.insert(0, 'GB_Est_Areas_2024_UTM19_Habcam_Buffer_5k_GeoSAMS.shp')
+        self.gbShapeBufferFileEntry.grid(row=3, column=1, sticky='w', padx=5)
         # --------------------------------------------------------------------------------------------------------
-        self.setMaShapeFiletButton = ttk.Button(shapeFileFrame, text='Set MA Shape File', style="BtnBluGrn.TLabel", command=self.SetMaShapeFile)
-        self.setMaShapeFiletButton.grid(row=0, column=2, sticky='e')
+        self.setMaShapeFileButton = ttk.Button(shapeFileFrame, text='Set MA Shape File', style="BtnBluGrn.TLabel", command=self.SetMaShapeFile)
+        self.setMaShapeFileButton.grid(row=0, column=2, sticky='e')
         # --------------------------------------------------------------------------------------------------------
-        self.setGbShapeFiletButton = ttk.Button(shapeFileFrame, text='Set GB Shape File', style="BtnBluGrn.TLabel", command=self.SetGbShapeFile)
-        self.setGbShapeFiletButton.grid(row=1, column=2, sticky='e')
+        self.setGbShapeFileButton = ttk.Button(shapeFileFrame, text='Set GB Shape File', style="BtnBluGrn.TLabel", command=self.SetGbShapeFile)
+        self.setGbShapeFileButton.grid(row=1, column=2, sticky='e')
+        # --------------------------------------------------------------------------------------------------------
+        self.setMaShapeBufferFileButton = ttk.Button(shapeFileFrame, text='Set MA Shape Buffer File', style="BtnBluGrn.TLabel", command=self.SetMaShapeBufferFile)
+        self.setMaShapeBufferFileButton.grid(row=2, column=2, sticky='e')
+        # --------------------------------------------------------------------------------------------------------
+        self.setGbShapeBufferFileButton = ttk.Button(shapeFileFrame, text='Set GB Shape Buffer File', style="BtnBluGrn.TLabel", command=self.SetGbShapeBufferFile)
+        self.setGbShapeBufferFileButton.grid(row=3, column=2, sticky='e')
         #-------------------------------------------------------------------------------------------
-        shapeFileFrame.grid(row=4, column=0, padx=5, pady=0, sticky='sw')
+        shapeFileFrame.grid(row=3, column=0, padx=5, pady=0, sticky='sw')
         # +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
         recruitFrame = ttk.LabelFrame(self, text='Recruitment', style='SAMS.TFrame')
         self.monthsArr = ['JAN', 'FEB', 'MAR', 'APR', 'MAY', 'JUN', 'JUL', 'AUG', 'SEP', 'OCT', 'NOV', 'DEC']
@@ -170,7 +176,7 @@ class MainInput(ttk.Frame):
         self.domainNameCombo.current(2)
         self.domainNameCombo.grid(row=3, column=1, sticky='w', pady=5)
         #-------------------------------------------------------------------------------------------
-        durationFrame.grid(row=2, column=1, padx=5, pady=0, sticky='w')
+        durationFrame.grid(row=2, column=1, padx=5, pady=0, sticky='nw')
         # +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
         outputSelFrame = ttk.LabelFrame(self, text='Output Selection', style='SAMS.TFrame')
         #-------------------------------------------------------------------------------------------
@@ -207,7 +213,7 @@ class MainInput(ttk.Frame):
         # +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
         # +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
         helpButton = ttk.Button(self, text= "Main Help", style="Help.TLabel", command = self.pop_up)
-        helpButton.grid(row=4, column=1)
+        helpButton.grid(row=0, column=1)
 
     ## This method is called on both Enter Key clicked and goes out of focus
     #
@@ -301,19 +307,6 @@ class MainInput(ttk.Frame):
             self.simCfgFile.myEntry.insert(0,f[-1])
             self.friend.WriteScallopConfig()
 
-    ## 
-    # Calls the filedialog method asksaveasfilename to name a file to be used for the Universal Kriging
-    # Configuration file. It then writes out the defined parameters to this file using the 'tag = value' format. 
-    #
-    def GetUKConfigFName(self):
-        file_path = filedialog.asksaveasfilename(title="Open Configuration File", filetypes=[("CFG files", 
-                    "*.cfg")], defaultextension='cfg', initialdir=self.interpStartDir)
-        f = file_path.split('/')
-        if file_path:
-            self.ukCfgFile.myEntry.delete(0,tk.END)
-            self.ukCfgFile.myEntry.insert(0,f[-1])
-            self.friend.WriteUKConfig()
-
     ##
     # 
     def SetDredgeFileName(self):
@@ -387,7 +380,13 @@ class MainInput(ttk.Frame):
             self.maShapeFileEntry.delete(0,tk.END)
             f = file_path.split('/')
             self.maShapeFileEntry.insert(0, f[-1])
+        self.SetMaShapeFileEnvVar()
     
+    ##
+    # 
+    def SetMaShapeFileEnvVar(self):
+        os.environ["MAShapeFile"] = self.maShapeFileEntry.get()
+
     ##
     #
     def SetGbShapeFile(self):
@@ -397,6 +396,42 @@ class MainInput(ttk.Frame):
             self.gbShapeFileEntry.delete(0,tk.END)
             f = file_path.split('/')
             self.gbShapeFileEntry.insert(0, f[-1])
+        self.SetGBShapeFileEnvVar()
+    
+    ##
+    # 
+    def SetGBShapeFileEnvVar(self):
+        os.environ["GBShapeFile"] = self.gbShapeFileEntry.get()
+
+    def SetMaShapeBufferFile(self):
+        file_path = filedialog.askopenfilename(title="Open SHP File", filetypes=[("SHP files", "*.shp")], defaultextension='csv', initialdir=self.shapeFileDir)
+        if file_path:
+            self.areaFName = file_path
+            self.maShapeBufferFileEntry.delete(0,tk.END)
+            f = file_path.split('/')
+            self.maShapeBufferFileEntry.insert(0, f[-1])
+        self.SetMaShapeBufferFileEnvVar()
+    
+    ##
+    # 
+    def SetMaShapeBufferFileEnvVar(self):
+        os.environ["MAShapeBufferFile"] = self.maShapeBufferFileEntry.get()
+
+    ##
+    #
+    def SetGbShapeBufferFile(self):
+        file_path = filedialog.askopenfilename(title="Open SHP File", filetypes=[("SHP files", "*.shp")], defaultextension='csv', initialdir=self.shapeFileDir)
+        if file_path:
+            self.areaFName = file_path
+            self.gbShapeBufferFileEntry.delete(0,tk.END)
+            f = file_path.split('/')
+            self.gbShapeBufferFileEntry.insert(0, f[-1])
+        self.SetGBShapeBufferFileEnvVar()
+    
+    ##
+    # 
+    def SetGBShapeBufferFileEnvVar(self):
+        os.environ["GBShapeBufferFile"] = self.gbShapeBufferFileEntry.get()
 
     ## 
     #

@@ -76,6 +76,8 @@ type Grid_Data_Class
     real(dp) stratum
     ! Indexed special access
     integer special_access_index
+    character(15) zone
+    character(15) region
 end type Grid_Data_Class
 
 type LonLatPoint
@@ -120,6 +122,7 @@ character(csv_line_len) input_str
 nlines = 0
 
 OPEN (1, file = init_cond_fname)
+READ (1,'(A)', iostat=io, END=10) input_str ! read header row
 DO
     READ (1,'(A)', iostat=io, END=10) input_str
     if (io.lt.0) exit
@@ -362,6 +365,8 @@ integer function Load_Grid_State(grid, state_mat)
 
     open(63, file=init_cond_fname, status='old')
     n = 0
+    ! read and ignore header row
+    read(63,'(a)',iostat=io) input_str
     do
         read(63,'(a)',iostat=io) input_str
         if (io.lt.0) exit
@@ -369,7 +374,7 @@ integer function Load_Grid_State(grid, state_mat)
         if (trim(input_str) .EQ. '') exit
         n=n+1
         read(input_str,*) grid(n)%year, grid(n)%x, grid(n)%y, grid(n)%lat, grid(n)%lon, grid(n)%z, &
-        &               is_closed, grid(n)%stratum, state_mat(n,1:num_size_classes)
+        &               is_closed, grid(n)%stratum, grid(n)%zone, grid(n)%region, state_mat(n,1:num_size_classes)
 
         grid(n)%is_closed = (is_closed > 0)
         grid(n)%special_access_index = 0

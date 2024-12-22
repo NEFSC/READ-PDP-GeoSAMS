@@ -4,18 +4,15 @@
 % UTM Zone is determined by Lon
 % CSV Extension is added to fname in script
 function ComputeXYfromGrid(fname)
-D=readtable([fname '.csv'],"FileType","spreadsheet",'NumHeaderLines', 0);
+D=readtable([fname '.csv'],"FileType","spreadsheet",'NumHeaderLines', 1);
 lon = table2array(D(:,5));
 lat = table2array(D(:,4));
 
-x = table2array(D(:,1));
-y = table2array(D(:,2));
 z = table2array(D(:,3));
 sams = table2array(D(:,6));
 stratum = table2array(D(:,7));
-region = table2array(D(:,8));
-
-
+x=zeros(size(lon,1),1);
+y=zeros(size(lon,1),1);
 for i = 1:size(lon,1)
     if lon(i)>-70.5
         zone=19;
@@ -24,11 +21,12 @@ for i = 1:size(lon,1)
     end
     [x(i),y(i)]=ll2utm(lat(i),lon(i),zone);
 end
-M = [x, y, z, lat, lon, sams, stratum, region];
+
+M = [x, y, z, lat, lon, sams, stratum];
 
 fNameWrite = [fname 'Mod' '.csv'];
 
-writecsv(M, fNameWrite, '%f, %f, %f, %f, %f, %f, %f, %f');
+writecsv(M, fNameWrite, '%f, %f, %f, %f, %f, %f, %f');
 
 end % function
 

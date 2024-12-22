@@ -29,7 +29,31 @@ if "'%DredgeFile%'" EQU "''" (
 
 if "'%HabCamFile%'" EQU "''" (
     @echo [31mEnv Variable Not Set[0m
-    @echo "For example > set HabCamFile=Habcam_BySegment_2000_2014-2020"
+    @echo "For example > set HabCamFile=Habcam_BySegment_2000_2011-2023_v2"
+    exit /b 10
+)
+
+if "'%MAShapeFile%'" EQU "''" (
+    @echo [31mEnv Variable Not Set[0m
+    @echo "For example > set MAShapeFile=MAB_Est_Areas_2024_UTM18_Habcam_GeoSAMS.shp"
+    exit /b 10
+)
+
+if "'%MAShapeBufferFile%'" EQU "''" (
+    @echo [31mEnv Variable Not Set[0m
+    @echo "For example > set MAShapeBufferFile=MAB_Est_Areas_2024_UTM18_Habcam_Buffer_15k_GeoSAMS.shp"
+    exit /b 10
+)
+
+if "'%GBShapeFile%'" EQU "''" (
+    @echo [31mEnv Variable Not Set[0m
+    @echo "For example > set GBShapeFile=GB_Est_Areas_2024_UTM19_Habcam_GeoSAMS.shp"
+    exit /b 10
+)
+
+if "'%GBShapeBufferFile%'" EQU "''" (
+    @echo [31mEnv Variable Not Set[0m
+    @echo "For example > GBShapeBufferFile=GB_Est_Areas_2024_UTM19_Habcam_Buffer_5k_GeoSAMS.shp"
     exit /b 10
 )
 
@@ -132,24 +156,6 @@ if not exist obj\ (
 )
 make
 
-@REM Make UK executables
-cd ..\UKsrc
-attrib -R IORoutines.f90
-attrib -R Globals.f90
-copy ..\SRC\IORoutines.f90 .
-copy ..\SRC\Globals.f90 .
-@REM prevent modification of these file in this directory
-attrib +R .\IORoutines.f90
-attrib +R Globals.f90
-
-if not exist mod\ (
-    mkdir mod\
-)
-if not exist obj\ (
-    mkdir obj\
-)
-make
-
 @REM finish with preprocessing
 cd ..
 
@@ -164,8 +170,8 @@ if "%5" EQU "M" (
         exit 1/b
     )
 
-    @echo [33mmatlab.exe -batch "HabCamData5mmbin(%1, '%4', 'T'); exit;"[0m
-    matlab.exe -batch "HabCamData5mmbin(%1, '%4', 'T'); exit;"
+    @echo [33mmatlab.exe -batch "HabCamData5mmbin(%1, '%4'); exit;"[0m
+    matlab.exe -batch "HabCamData5mmbin(%1, '%4'); exit;"
     IF ERRORLEVEL 1 (
         @echo [31mError in MATLAB HabCamData5mmbin. Stopping[0m
         exit 1/b

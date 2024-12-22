@@ -39,9 +39,8 @@ class GeoShape:
         self.Y=[]
         self.lat=[]
         self.lon=[]
-        self.SAMS=''
-        self.NewSAMS=''
-        self.areaKm2 = 0.0
+        self.Zone=''
+        self.area = 0.0
 
 ##
 # This class is used to assist the user in defining areas of interest to assess accumulated parameters located
@@ -129,8 +128,8 @@ class SortByRegion(ttk.Frame):
                 else: self.table[row][col] = ttk.Entry(self.sortAreaFrame, width=15, justify='right')
                 self.table[row][col].grid(row=row+4, column=col)
         for row in range(self.numAreas):
-            self.table[row+1][0].insert(0,self.shape[row].NewSAMS)
-            self.table[row+1][1].insert(0,f'{self.shape[row].areaKm2:.4f}')
+            self.table[row+1][0].insert(0,self.shape[row].Zone)
+            self.table[row+1][1].insert(0,f'{self.shape[row].area:.4f}')
         self.table[0][1].insert(0,'Area (Km^2)')
         for col in range(self.firstYrCol+1, self.numYears+self.firstYrCol):
             self.table[0][col].insert(0,str(self.yearStart+col-self.firstYrCol))
@@ -176,7 +175,7 @@ class SortByRegion(ttk.Frame):
             for col in range(self.tableCols):
                 self.table[row][col].grid()
         for row in range(self.numAreas):
-            UpdateEntry(self.table[row+1][0], self.shape[row].NewSAMS)
+            UpdateEntry(self.table[row+1][0], self.shape[row].Zone)
 
         # remove unused columns
         for row in range(self.numAreas):
@@ -272,7 +271,7 @@ class SortByRegion(ttk.Frame):
                         # is (lon, lat) in this area
                         nodes = len(self.shape[row].lat)
                         if PointInPolygon(self.shape[row].lon, self.shape[row].lat, lon, lat, nodes):
-                            lineRegion = self.shape[row].NewSAMS #<-- get region name
+                            lineRegion = self.shape[row].Zone #<-- get region name
                             # if so accumulate parameter data
                             for col in range(self.numYears):
                                 accumParamData[row][col] += paramData[col]
@@ -289,7 +288,7 @@ class SortByRegion(ttk.Frame):
             UpdateEntry(self.table[0][0], units)
 
             for row in range(self.numAreas):
-                areaKm2 = self.shape[row].areaKm2
+                areaKm2 = self.shape[row].area
                 # gridKm2 = countData[row][0] * grid_area_sqm / 1.0e6
                 # print(row, ',', areaKm2, ',', gridKm2)
                 for col in range(self.numYears):
@@ -407,13 +406,13 @@ class SortByRegion(ttk.Frame):
         self.shapeLenGB = 0
 
         if (self.domainName == 'AL') or (self.domainName == 'MA'):
-            sfName = os.path.join(self.startDir,self.friend.maShapeFileEntry.get())
+            sfName = os.path.join(self.startDir,'MAB_Region',self.friend.maShapeFileEntry.get())
             sfMA = shapefile.Reader(sfName)
             shapesMA = sfMA.shapes()
             self.shapeLenMA = len(sfMA)
     
         if (self.domainName == 'AL') or (self.domainName == 'GB'):
-            sfName = os.path.join(self.startDir,self.friend.gbShapeFileEntry.get())
+            sfName = os.path.join(self.startDir,'GB_Region',self.friend.gbShapeFileEntry.get())
             sfGB = shapefile.Reader(sfName)
             shapesGB = sfGB.shapes()
             self.shapeLenGB = len(sfGB)
@@ -424,12 +423,12 @@ class SortByRegion(ttk.Frame):
             quit()
         self.shape = [ GeoShape() for _ in range(numRegions)]
 
+        # Read in MA values
         for n in range(self.shapeLenMA):
             record = sfMA.record(n)
             as_dict = record.as_dict()
-            self.shape[n].SAMS = record['SAMS']
-            self.shape[n].NewSAMS = record['NewSAMS']
-            self.shape[n].areaKm2 = record['AreaKm2']
+            self.shape[n].Zone = record['Zone']
+            self.shape[n].area = record['Area']
             pointLen = len(shapesMA[n].points)
             self.shape[n].X = [0.0 for _ in range(pointLen)]
             self.shape[n].Y = [0.0 for _ in range(pointLen)]
@@ -440,13 +439,13 @@ class SortByRegion(ttk.Frame):
                 self.shape[n].Y[m] = shapesMA[n].points[m][1]
                 (self.shape[n].lat[m], self.shape[n].lon[m]) = utm.to_latlon(self.shape[n].X[m], self.shape[n].Y[m], 18, 'T')
 
+        # Read in GB values
         for n in range(self.shapeLenMA, numRegions):
             offset = n-self.shapeLenMA
             record = sfGB.record(offset)
             as_dict = record.as_dict()
-            self.shape[n].SAMS = record['SAMS']
-            self.shape[n].NewSAMS = record['NewSAMS']
-            self.shape[n].areaKm2 = record['AreaKm2']
+            self.shape[n].Zone = record['Zone']
+            self.shape[n].area = record['Area']
             pointLen = len(shapesGB[offset].points)
             self.shape[n].X = [0.0 for _ in range(pointLen)]
             self.shape[n].Y = [0.0 for _ in range(pointLen)]

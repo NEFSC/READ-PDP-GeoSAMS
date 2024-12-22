@@ -555,22 +555,38 @@ type(Grid_Data_Class), intent(in) :: grid(*)
 real(dp), intent(in) :: yr_offset
 character(*), intent(in) :: fname
 
+character(15) dummy(15)
 character(fname_len) file_name
 integer k
 k = index(fname, '.') -1
 file_name = fname(1:k)
-call Write_Column_CSV_By_Region(num_grids, grid(1:num_grids)%year+yr_offset, &
+call Write_Column_CSV_By_Region(num_grids, grid(1:num_grids)%year+yr_offset, dummy, &
 &                                           grid(1:num_grids)%lon, &
-&                                           'YEAR', trim(file_name),.false.)
-call Write_Column_CSV_By_Region(num_grids, grid(1:num_grids)%x, &
+&                                           'YEAR', trim(file_name),.false., .false.)
+call Write_Column_CSV_By_Region(num_grids, grid(1:num_grids)%x, dummy, &
 &                                           grid(1:num_grids)%lon, &
-&                                           'UTM_X', trim(file_name),.true.)
-call Write_Column_CSV_By_Region(num_grids, grid(1:num_grids)%y, &
+&                                           'UTM_X', trim(file_name),.true., .false.)
+call Write_Column_CSV_By_Region(num_grids, grid(1:num_grids)%y, dummy, &
 &                                           grid(1:num_grids)%lon, &
-&                                           'UTM_Y', trim(file_name),.true.)
-call Write_Column_CSV_By_Region(num_grids, grid(1:num_grids)%z, &
+&                                           'UTM_Y', trim(file_name),.true., .false.)
+call Write_Column_CSV_By_Region(num_grids, grid(1:num_grids)%z, dummy, &
 &                                           grid(1:num_grids)%lon, &
-&                                           'DEPTH', trim(file_name),.true.)
+&                                           'DEPTH', trim(file_name),.true., .false.)
+call Write_Column_CSV_By_Region(num_grids, grid(1:num_grids)%lat, dummy, &
+&                                           grid(1:num_grids)%lon, &
+&                                           'LAT', trim(file_name),.true., .false.)
+call Write_Column_CSV_By_Region(num_grids, grid(1:num_grids)%lon, dummy, &
+&                                           grid(1:num_grids)%lon, &
+&                                           'LON', trim(file_name),.true., .false.)
+call Write_Column_CSV_By_Region(num_grids, grid(1:num_grids)%stratum, dummy, &
+&                                           grid(1:num_grids)%lon, &
+&                                           'STRATUM', trim(file_name),.true., .false.)
+call Write_Column_CSV_By_Region(num_grids, grid(1:num_grids)%stratum, grid(1:num_grids)%zone, &
+&                                           grid(1:num_grids)%lon, &
+&                                           'ZONE', trim(file_name), .true., .true.)
+call Write_Column_CSV_By_Region(num_grids, grid(1:num_grids)%stratum, grid(1:num_grids)%region, &
+&                                           grid(1:num_grids)%lon, &
+&                                           'REGION', trim(file_name), .true., .true.)
 
 endsubroutine Write_X_Y_Preamble
 !--------------------------------------------------------------------------------------------------
@@ -582,15 +598,17 @@ endsubroutine Write_X_Y_Preamble
 !>  f (real(dp)) values to write to csv file
 !> file_name (character(72)) filename to write f to in csv format
 !--------------------------------------------------------------------------------------------------
-subroutine Write_Column_CSV_By_Region(n,f, lon, header,file_name,append)
+subroutine Write_Column_CSV_By_Region(n,f, c, lon, header,file_name,append, use_c)
 use globals
 use Grid_Manager_Mod
 implicit none
 integer, intent(in):: n
 real(dp), intent(in):: f(*), lon(*)
+character(15), intent(in) :: c(*)
 character(*), intent(in) :: header
 character(*), intent(in) ::file_name
 logical, intent(in) :: append
+logical, intent(in) :: use_c
 integer k, io
 character(fname_len) fmtstr
 character(1) cr
@@ -624,17 +642,29 @@ if (append) then
         endif
         line_count(offset) = line_count(offset) + 1
         read(appd_dev+offset,'(A)',iostat=io) input_str
-        if (f(k) < 0.0) then
-            write(*,'(A,A,A,A,A,A,A,I5,A,A,A)') term_yel, 'WARNING: Negative value in: ', term_blk, &
-            &  file_name//trim(rgn(offset))//'.csv', term_yel, ' line: ', term_blk, line_count(offset), &
-            &  term_yel, ' set to 0.00000', term_blk
-            write(output_str,'(A,A,(ES14.7 : ))') trim(input_str),',',0.D0
-        ! sometimes f(k) takes on the value of E-311, which can not be read back in
-        ! seems the minimum value is E-300, even with using format ES15.7E3 
-        elseif (f(k) < zero_threshold) then
-            write(output_str,'(A,A,(ES14.7 : ))') trim(input_str),',',0.D0
+        if (use_c) then
+            write(output_str,'(A,A,A)') trim(input_str),',',trim(c(k))
         else
-            write(output_str,'(A,A,(ES14.7 : ))') trim(input_str),',',f(k)
+            ! if (f(k) < 0.0) then
+            !     write(*,'(A,A,A,A,A,A,A,I5,A,A,A)') term_yel, 'WARNING: Negative value in: ', term_blk, &
+            !     &  file_name//trim(rgn(offset))//'.csv', term_yel, ' line: ', term_blk, line_count(offset), &
+            !     &  term_yel, ' set to 0.00000', term_blk
+            !     write(output_str,'(A,A,(ES14.7 : ))') trim(input_str),',',0.D0
+            ! ! sometimes f(k) takes on the value of E-311, which can not be read back in
+            ! ! seems the minimum value is E-300, even with using format ES15.7E3 
+            ! elseif (f(k) < zero_threshold) then
+            !     write(output_str,'(A,A,(ES14.7 : ))') trim(input_str),',',0.D0
+            ! else
+            !     write(output_str,'(A,A,(ES14.7 : ))') trim(input_str),',',f(k)
+            ! endif
+
+            ! sometimes f(k) takes on the value of E-311, which can not be read back in
+            ! seems the minimum value is E-300, even with using format ES15.7E3 
+            if ((f(k) > 0) .AND. (f(k) < zero_threshold)) then
+                write(output_str,'(A,A,(ES14.7 : ))') trim(input_str),',',0.D0
+            else
+                write(output_str,'(A,A,(ES14.7 : ))') trim(input_str),',',f(k)
+            endif
         endif
         write(temp_dev+offset, '(A)'//NEW_LINE(cr)) trim(output_str)
     enddo
@@ -764,6 +794,7 @@ character(fname_len) file_name
 real(dp) recruits(1:num_grids)
 real(dp) recr_steps
 real(dp) delta_time, t
+character(15) dummy(15)
 
 recr_idx = year - start_year + 1
 delta_time = 1._dp / dfloat(ts_per_year)
@@ -774,8 +805,8 @@ if (mod(ts, ts_per_year) .eq. 1) then
     else
         write(buf,'(I4)') year+1
     endif
-    call Write_Column_CSV_By_Region(num_grids, recruit(1:num_grids)%recruitment(recr_idx), &
-    &            grid(1:num_grids)%lon, 'PARAM', data_dir//'X_Y_RECR_'//domain_name//trim(buf), .true.)
+    call Write_Column_CSV_By_Region(num_grids, recruit(1:num_grids)%recruitment(recr_idx), dummy, &
+    &            grid(1:num_grids)%lon, 'PARAM', data_dir//'X_Y_RECR_'//domain_name//trim(buf), .true., .false.)
 endif
 
 ! Write data for survey grid
