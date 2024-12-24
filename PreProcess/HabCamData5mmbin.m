@@ -145,8 +145,8 @@ else
     % Create table for Zone and Region
     sz = size(lat_t);
     if isOctave
-        zone_t = zeros(sz);
-        region_t = zeros(sz);
+        zone_t = cell(sz,1);
+        region_t = cell(sz,1);
     else
         varTypes = "string";
         varNames = "Zone";
@@ -198,7 +198,17 @@ else
         WriteHeader(flnm)
     end
     if isOctave
-        dlmwrite(flnm, X, "-append")
+        %dlmwrite(flnm, X, "-append")
+        % Open a file for writing
+        fid = fopen(flnm, "a");
+
+        % Iterate through the matrix and write each row to the file
+        for i = 1:size(X, 1)
+            fprintf(fid, "%f,%f,%f,%f,%f,%f,%i,%f,%s,%s,%f,%f,%f,%f,%f,%f,%f,%f,%f,%f,%f,%f,%f,%f,%f,%f,%f,%f,%f,%f,%f,%f,%f,%f,%f\n", X{i,1:8}, X{i,9:10}, X{i,11});
+        end
+
+        % Close the file
+        fclose(fid);
     else
         writetable(X,flnm,'WriteVariableNames',0,'WriteMode','append');
     end

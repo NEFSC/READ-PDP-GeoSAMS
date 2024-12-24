@@ -173,8 +173,8 @@ if [ "$5" == "O" ]; then
         exit 1
     fi
 
-    echo [33moctave PreProcess/HabCamData5mmbin.m $1 $4 T[0m
-    octave PreProcess/HabCamData5mmbin.m $1 $4 T
+    echo [33moctave PreProcess/HabCamData5mmbin.m $1 $4[0m
+    octave PreProcess/HabCamData5mmbin.m $1 $4
     if [ $? != 0 ]; then
         echo [31mError in Octave HabCamData5mmbin. Stopping[0m
         exit 1

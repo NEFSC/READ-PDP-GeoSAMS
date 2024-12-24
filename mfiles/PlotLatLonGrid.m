@@ -36,20 +36,20 @@ else
     D=readtable([fname '.csv'],"FileType","spreadsheet");
 end
 [r, c]=size(D);
-c = c - 2; % deduct for lat, lon
+c = c - 5; % deduct for lat, lon, X, Y, Zone
 field=NaN(r,c); % pre-allocate
 
 if isOctave
     lat=D(:,1);
     lon=D(:,2);
     for k=1:c
-        field(:,k) = D(:,k+2);
+        field(:,k) = D(:,k+5);
     end
 else
     lat=table2array(D(:,1));
     lon=table2array(D(:,2));
     for k=1:c
-        field(:,k) =table2array(D(:,k+2));
+        field(:,k) =table2array(D(:,k+5)); % data starts in column 6
     end
 end
 

@@ -16,12 +16,20 @@ end
 
 for i=1:length(shape)
     if inpolygon(X, Y, shape(i).X, shape(i).Y)
-        zone = string(shape(i).Zone);
+        if isOctave
+            zone = shape(i).Zone;
+        else
+            zone = string(shape(i).Zone);
+        end
         if strcmp(zone,'VIR'); zone = 'NA';end
         if strcmp(zone,'NA')
             region = 'NA';
         else
-            region = string(shape(i).Region);
+            if isOctave
+                region = shape(i).Region;
+            else
+                region = string(shape(i).Region);
+            end
         end
         break
     end

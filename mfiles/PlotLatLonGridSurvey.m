@@ -16,7 +16,6 @@ function PlotLatLonGridSurvey(surveyFname, gridFname, yrStart, tsPerYear, domain
 shapeMA = shaperead('ShapeFiles/MAB_Region/MAB_Est_Areas_2024_UTM18_Habcam_GeoSAMS.shp');
 shapeGB = shaperead('ShapeFiles/GB_Region/GB_Est_Areas_2024_UTM19_Habcam_GeoSAMS.shp');
 
-units = ['Grid: ' GetUnits(gridFname)];
 
 isOctave = (exist('OCTAVE_VERSION', 'builtin') ~= 0);
 if isOctave
@@ -33,6 +32,7 @@ if isOctave
         tsPerYear = str2num(tsPerYear);
     end
 end
+units = ['Grid: ' GetUnits(gridFname)];
 
 %++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 % Gather Grid Data
@@ -58,20 +58,20 @@ else
 end
 
 [r, c]=size(D);
-c = c - 2; % deduct for lat, lon
+c = c - 5; % deduct for lat, lon, X, Y, Zone
 grid=NaN(r,c); % pre-allocate
 
 if isOctave
     latGrid=D(:,1);
     lonGrid=D(:,2);
     for k=1:c
-        grid(:,k) = D(:,k+2);
+        grid(:,k) = D(:,k+5);
     end
 else
     latGrid=table2array(D(:,1));
     lonGrid=table2array(D(:,2));
     for k=1:c
-        grid(:,k)=table2array(D(:,k+2));
+        grid(:,k)=table2array(D(:,k+5)); % data starts in column 6
     end
 end
 

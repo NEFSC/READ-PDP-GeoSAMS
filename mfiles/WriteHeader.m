@@ -11,4 +11,5 @@ for i = 1:size(c,1)-1
     fputc(fid, ',');
 end
 fputc(fid, strtrim(c(i+1,:)));
+fputc(fid,"\n");
 fclose(fid);

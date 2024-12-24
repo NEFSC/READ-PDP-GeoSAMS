@@ -75,7 +75,7 @@ for i in region:
 
 df_grid_result = df_grid_result.assign(
     FINALPREDICTM2 = df_grid_result['GAMPREDICTM2'] + df_grid_result['KRIGEPREDICTM2'],
-    FINALPREDICT = (df_grid_result['GAMPREDICTM2'] + df_grid_result['KRIGEPREDICTM2']) * (1.852**2)) #add two columns to calculate the final results
+    FINALPREDICT = (df_grid_result['GAMPREDICTM2'] + df_grid_result['KRIGEPREDICTM2']) ) #add two columns to calculate the final results
 df_grid_result['FINALPREDICT'] = df_grid_result['FINALPREDICT'].apply(lambda x : (x if x > 0 else 0)) #if the FINALPREDICT is negative, set the value to zero
 
 # print('INTERP HEADER: ', df_grid_result.columns.tolist())
