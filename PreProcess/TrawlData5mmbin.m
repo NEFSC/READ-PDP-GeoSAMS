@@ -157,8 +157,8 @@ else
     % Create table for Zone and Region
     sz = size(lat_t);
     if isOctave
-        zone_t = zeros(sz);
-        region_t = zeros(sz);
+        zone_t = cell(sz,1);
+        region_t = cell(sz,1);
     else
         varTypes = "string";
         varNames = "Zone";
@@ -177,13 +177,9 @@ else
         [zoneStr, regionStr] = CheckInRegionPolygon(isOctave, x_t(k,:), y_t(k,:), shape);
         if isOctave
             zone_t(k,:) = zoneStr;
-        else
-            zone_t(k,:) = mat2cell(zoneStr,1);
-        end
-
-        if isOctave
             region_t(k,:) = regionStr;
         else
+            zone_t(k,:) = mat2cell(zoneStr,1);
             region_t(k,:) = mat2cell(regionStr,1);
         end
 
@@ -205,7 +201,17 @@ else
     end
     fprintf('Size of grid %d\n', size(X,1))
     if isOctave
-        dlmwrite(flnm,X,"-append");
+        %dlmwrite(flnm, X, "-append")
+        % Open a file for writing
+        fid = fopen(flnm, "a");
+
+        % Iterate through the matrix and write each row to the file
+        for i = 1:size(X, 1)
+            fprintf(fid, "%f,%f,%f,%f,%f,%f,%i,%f,%s,%s,%f,%f,%f,%f,%f,%f,%f,%f,%f,%f,%f,%f,%f,%f,%f,%f,%f,%f,%f,%f,%f,%f,%f,%f,%f\n", X{i,1:8}, X{i,9:10}, X{i,11});
+        end
+
+        % Close the file
+        fclose(fid);
     else
         writetable(X,flnm,'WriteVariableNames',0,'WriteMode','append');
     end

@@ -34,7 +34,6 @@ surveydata[,c("ID","PRESABS","FOLD","GAM1PREDICT","GAM2PREDICT","GAMPREDICTM2","
 predictgrid[,c("GAM1PREDICT","GAM2PREDICT","GAM1VAR","GAM2VAR","GAMPREDICTM2")]=0
 
 startTime <- Sys.time()
-allstat=c() #use to store cross-validation statistics
 	
 if(all(surveydata$PARAM==0)) #if all the data is zero, no gam model created, NAs assigned to the gam columns (could switch to zero if needed), and output the data
 {
@@ -65,6 +64,7 @@ if(all(surveydata$PARAM==0)) #if all the data is zero, no gam model created, NAs
 		print(r)
 		print(sum(surveydata_temp$PRESABS)/dim(surveydata_temp)[1])
 		
+		allstat=c() #use to store cross-validation statistics
 		if(sum(surveydata_temp$PRESABS)/dim(surveydata_temp)[1]<=.8) #if there is less than 80% of the data that are positive, do hurdle gam
 		{			
 			
@@ -209,8 +209,8 @@ if(all(surveydata$PARAM==0)) #if all the data is zero, no gam model created, NAs
 		
 	###output data###
 	
-	aggregate(predictgrid_result$GAMPREDICTM2*(1.852^2),by=list(predictgrid_result$ZONE),sum)
-	sum(aggregate(predictgrid_result$GAMPREDICTM2*(1.852^2),by=list(predictgrid_result$ZONE),sum)$x)
+	aggregate(predictgrid_result$GAMPREDICTM2,by=list(predictgrid_result$ZONE),sum)
+	sum(aggregate(predictgrid_result$GAMPREDICTM2,by=list(predictgrid_result$ZONE),sum)$x)
 	dim(surveydata)
 	dim(predictgrid)
 	dim(surveydata_result)

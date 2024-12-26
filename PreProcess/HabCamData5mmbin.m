@@ -51,7 +51,7 @@ if isOctave
     if ~strcmp(domain, 'AL')
         lon = M(:,lonCol);
         if strcmp(domain, 'GB')
-            j = lon > -70.5
+            j = lon > -70.5;
         else
             j = lon <= -70.5;
         end
@@ -165,13 +165,9 @@ else
         [zoneStr, regionStr] = CheckInRegionPolygon(isOctave, x_t(k,:), y_t(k,:), shape);
         if isOctave
             zone_t(k,:) = zoneStr;
-        else
-            zone_t(k,:) = mat2cell(zoneStr,1);
-        end
-
-        if isOctave
             region_t(k,:) = regionStr;
         else
+            zone_t(k,:) = mat2cell(zoneStr,1);
             region_t(k,:) = mat2cell(regionStr,1);
         end
 

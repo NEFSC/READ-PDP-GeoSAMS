@@ -120,7 +120,7 @@ for i=1:c
         geobasemap bluegreen;
         title([useTitle int2str(year)], 'Interpreter', 'none');
         s.SizeData = 5; % size of dots
-        c=hot(100);
+        c=cool(100);
         colormap(c);
         c = colorbar;
         c.Label.String = "Field";

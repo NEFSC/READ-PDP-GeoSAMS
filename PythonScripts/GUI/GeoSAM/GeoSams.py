@@ -419,14 +419,17 @@ class MainApplication(tk.Tk):
                         #gridFile = 'GBxyzLatLon' + r + '.csv'
                         gridFile = 'GBRegionGrid.csv'
                 else:
-                    gridFile = self.domainName+'xyzLatLonRgn.csv'
+                    gridFile = self.domainName+'RegionGrid.csv'
 
                 for year in years:
                     # 3) For all YEARS, all PARAMS, MA|GB:
                     # First add columns to Data\X_Y_<param>_AL<yyyy>_<ma|gb>.csv
                     ex = os.path.join('PythonScripts', 'GUI', 'GeoSAM', 'SortIntoColumns.py')
                     inputFile = 'X_Y_'+ pStr + self.domainName + str(year) + r
-                    cmd = ['python', ex, inputFile ]
+                    if platform.system() == 'Windows':
+                        cmd = ['python', ex, inputFile ]
+                    else: # TODO depends on how python gets installed.
+                        cmd = ['python3', ex, inputFile ]
                     result = subprocess.run(cmd)
 
                     # 4) For all YEARS, all PARAMS, MA|GB: 
@@ -465,31 +468,12 @@ class MainApplication(tk.Tk):
         rets = sum(retDict.values())
         if rets > 0:
             return (retDict, 0)
-#====================================================================================================================================
         # ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-        # Intepolate using Inverse Distance Weighting
+        # Intepolate using OK
         # ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
         # all survey data residuals computed now to interpolate. 
         for pStr in self.paramStr:
             for r in region:
-                if self.domainName == 'AL':
-                    # ALxyzLatLon_MA uses the same grid file as MA, 
-                    # and did not want to configuration manage multiple identical files
-                    #     'MA'+'xyzLatLon' + '' + '.csv'
-                    # ALxyzLatLon_SW to ALxyzLatLon_W use the same grid files as GB
-                    # and did not want to configuration manage multiple identical files
-                    # 'GBxyzLatLon' + r + '.csv'
-                    #
-                    # These data files also need to use separate spatial functions
-                    # Override command line argument
-                    if r == '_MA':
-                        gridFile = 'MAxyzLatLonRgn.csv'
-                    else:
-                        #gridFile = 'GBxyzLatLon' + r + '.csv'
-                        gridFile = 'GBxyzLatLonRgn.csv'
-                else:
-                    gridFile = self.domainName+'xyzLatLonRgn.csv'
-                    
                 for year in years:
                     obsFile = 'X_Y_' + pStr + self.domainName + str(year) + r
                     # # extension is added by method
@@ -499,7 +483,10 @@ class MainApplication(tk.Tk):
                     #    python .\PythonScripts\OK\pykrige_geosams.py X_Y_BIOM_AL2022_GB
                     ex = os.path.join('PythonScripts', 'OK', 'pykrige_geosams.py')
                     inputFile = 'X_Y_'+ pStr + self.domainName + str(year) + r
-                    cmd = ['python', ex, inputFile ]
+                    if platform.system() == 'Windows':
+                        cmd = ['python', ex, inputFile ]
+                    else: # TODO depends on how python is installed.
+                        cmd = ['python3', ex, inputFile ]
                     result = subprocess.run(cmd)
 
         # 
@@ -512,10 +499,10 @@ class MainApplication(tk.Tk):
                 for year in years:
                     # Lat_Lon_Grid_BIOM_AL2026_MA_REGION_KRIGE
                     flin = pfix + pStr + self.domainName + str(year) + r + '_REGION_KRIGE.csv'
-                    df = pd.read_csv(flin, usecols=['LAT','LON','FINALPREDICT'])
+                    df = pd.read_csv(flin, usecols=['UTM_X', 'UTM_Y', 'LAT','LON', 'ZONE', 'FINALPREDICT'])
 
                     if year == self.yearStart:
-                        dfFinal = df
+                        dfFinal = df.reindex(columns=['LAT','LON', 'UTM_X', 'UTM_Y', 'ZONE', 'FINALPREDICT'])
                         dfFinal.rename(columns={ 'FINALPREDICT':str(year)}, inplace=True)
                     else:
                         dfFinal[str(year)] = df['FINALPREDICT']
@@ -533,14 +520,13 @@ class MainApplication(tk.Tk):
 
         print( 'Interpolation exec time: {}'.format(end-start))
 
-#====================================================================================================================================
-        # ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++   
-        #  PLOTTING
-        # ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++   
+        #++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++   
+        # PLOTTING
+        #++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++   
         # We have the needed output paramters so lets plot data and save to pdf files
         for pStr in self.paramStr:
             str1 = resultsDir + '/Lat_Lon_Surv_' + pStr + self.domainName
-            str2 = resultsDir + '/Lat_Lon_Grid_' + pStr + self.domainName + '_' + str(self.yearStart) + '_' + str(self.yearStop) + '_IDW'
+            str2 = resultsDir + '/Lat_Lon_Grid_' + pStr + self.domainName + '_' + str(self.yearStart) + '_' + str(self.yearStop)
 
             if self.frame2.usingMatlab.get():
                 matlabStr = 'PlotLatLonGridSurvey(' + "'" + str1 + "','" + str2 + "', " + str(self.yearStart) + ',' +str(self.tsPerYear) + ", '" + self.domainName + "');exit"
@@ -554,7 +540,6 @@ class MainApplication(tk.Tk):
                 print(errorStr)
                 procID += 1
                 retDict[procID] = result.returncode
-#====================================================================================================================================
 
         return (retDict, procID)
 

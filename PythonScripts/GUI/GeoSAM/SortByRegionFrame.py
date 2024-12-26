@@ -19,6 +19,7 @@ import sys
 sys.path.append("PythonScripts/GUI/GeoSAM/PyshpMaster")
 import shapefile
 import utm
+import pandas as pd
 
 from tkinter import ttk
 from tkinter import messagebox
@@ -63,11 +64,13 @@ class SortByRegion(ttk.Frame):
         self.friend = friend
         self.areaFName = None
 
+        self.zones = []
         self.maxAreas = maxAreas
         self.maxYears = maxYears
         self.numAreas = 1
         self.numCorners = 1
         self.paramStr = paramStr
+        self.areaKm2 = []
 
         self.yearStart = int(self.friend.startYr.myEntry.get())
         self.yearStop = int(self.friend.stopYr.myEntry.get())
@@ -109,10 +112,8 @@ class SortByRegion(ttk.Frame):
         exportFrame.grid(row=3, column=0, columnspan=6, sticky='we')
         # +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
         # --------------------------------------------------------------------------------------------------------
-        self.shape = []
-        self.shapeLenMA = 0
-        self.shapeLenGB = 0
-        self.numAreas = self.GetShapeData()
+        self.numAreas = self.GetZoneData()
+        self.areaKm2 = [0.0 for _ in range(self.numAreas)]
 
         self.tableRows = self.maxAreas+1 # number of areas plus header
         self.tableCols = self.maxYears+2 # one for each year, +1 for header, +1 for area
@@ -128,8 +129,8 @@ class SortByRegion(ttk.Frame):
                 else: self.table[row][col] = ttk.Entry(self.sortAreaFrame, width=15, justify='right')
                 self.table[row][col].grid(row=row+4, column=col)
         for row in range(self.numAreas):
-            self.table[row+1][0].insert(0,self.shape[row].Zone)
-            self.table[row+1][1].insert(0,f'{self.shape[row].area:.4f}')
+            self.table[row+1][0].insert(0,self.zones[row])
+            self.table[row+1][1].insert(0,f'{self.areaKm2[row]:.4f}')
         self.table[0][1].insert(0,'Area (Km^2)')
         for col in range(self.firstYrCol+1, self.numYears+self.firstYrCol):
             self.table[0][col].insert(0,str(self.yearStart+col-self.firstYrCol))
@@ -169,13 +170,13 @@ class SortByRegion(ttk.Frame):
         self.domainName = self.friend.domainNameCombo.get()
         self.numYears = self.yearStop - self.yearStart + 1
 
-        self.numAreas = self.GetShapeData() 
+        self.numAreas = self.GetZoneData() 
 
         for row in range(self.tableRows):
             for col in range(self.tableCols):
                 self.table[row][col].grid()
         for row in range(self.numAreas):
-            UpdateEntry(self.table[row+1][0], self.shape[row].Zone)
+            UpdateEntry(self.table[row+1][0], self.zones[row])
 
         # remove unused columns
         for row in range(self.numAreas):
@@ -226,7 +227,6 @@ class SortByRegion(ttk.Frame):
     ##
     #
     def RunSort(self, showMsg=True):
-        if showMsg: ShowMessage(heading='Run Sort started', message='Please be patient.')
         runSortErrors = 0
         paramData = [0.0 for _ in range(self.numYears)] # data read in from file
         rows = self.numAreas
@@ -239,57 +239,40 @@ class SortByRegion(ttk.Frame):
         # typical name: Lat_Lon_Grid_EBMS_MA_2015_2017
         #               Lat_Lon_Grid_ABUN_AL_2015_2017
         fileName = os.path.join('Results', 'Lat_Lon_Grid_' + 
-             desiredParam + self.domainName + '_' + str(self.yearStart) + '_' + str(self.yearStop) + '_IDW.csv')
+             desiredParam + self.domainName + '_' + str(self.yearStart) + '_' + str(self.yearStop) + '.csv')
         paramFName = os.path.join(self.root, fileName)
-        
-        of = open('temp.csv', 'w') #<-- create file to save Initial State for comparison to HabcamSurvey
+
+        years = range(self.yearStart, self.yearStop + 1) # year_start is initial state
         if os.path.isfile(paramFName):
-            with open(paramFName, 'r') as f:
-                while True:
-                    lineRegion = 'NA' #<-- default region name
-                    # Read in a line from paramFName
-                    line = f.readline()
-                    if not line:
-                        f.close()
-                        break
-
-                    # parse line
-                    dataArray = [s.strip() for s in line.split(',')]
-                    lat = float(dataArray[0])
-                    lon = float(dataArray[1])
-                    # i is index into file array
-                    for i in range(self.numYears):
-                        paramData[i] = float(dataArray[i+2]) 
+            df = pd.read_csv(paramFName)
+            dfAgg = pd.DataFrame()
+            for year in years:
+                dfAgg[str(year)] = df.groupby('ZONE').agg({str(year):'sum'})
                     
-                    # Now check if the data point (lon, lat) is located in one of the desired areas
-                    # as stored in: self.shape[row].long[0:n], self.shape[row].lat[0:n]
-                    # 
-                    # if so, add to accumParamData[row][0:n] += paramData[0:n]
+            # For each area
+            for row in range(self.numAreas):
+                for col in range(self.numYears):
+                    accumParamData[row][col] = dfAgg[str(col+self.yearStart)][self.zones[row]]
+                    countData[row][col] = len(df[df['ZONE']==self.zones[row]])
 
-                    # For each area
-                    for row in range(self.numAreas):
-                        # is (lon, lat) in this area
-                        nodes = len(self.shape[row].lat)
-                        if PointInPolygon(self.shape[row].lon, self.shape[row].lat, lon, lat, nodes):
-                            lineRegion = self.shape[row].Zone #<-- get region name
-                            # if so accumulate parameter data
-                            for col in range(self.numYears):
-                                accumParamData[row][col] += paramData[col]
-                                countData[row][col] += 1
-                                if paramData[col] > 0:
-                                    countNonZeroData[row][col] += 1
-                    
-                    mgmtAreaIndx = self.DetermineMgmtAreaIndex(lineRegion) #<-- determine Management Area Index
-                    of.write('{},{},{},{},{}\n'.format(lat,lon,lineRegion,paramData[0],mgmtAreaIndx)) #<-- save to file
-            of.close() #<-- close file
+                    # Determine number of non-zero data by first counting the number of data counts
+                    # then subracting the number of zero counts
+                    counts =  df[df['ZONE']==self.zones[row]][str(col+self.yearStart)].value_counts()
+                    try:
+                        countNonZeroData[row][col] = countData[row][col] - counts[0]
+                    except:
+                        countNonZeroData[row][col] = countData[row][col]
 
             # display results
             (units, scale) = DetermineUnitsScale(desiredParam)
             UpdateEntry(self.table[0][0], units)
 
             for row in range(self.numAreas):
-                areaKm2 = self.shape[row].area
-                # gridKm2 = countData[row][0] * grid_area_sqm / 1.0e6
+                ##areaKm2 = self.shape[row].area
+                # Shape area not populated in shape file, use computed area
+                #gridKm2 = countData[row][0] * grid_area_sqm / 1.0e6
+                self.areaKm2[row] = countData[row][0] * grid_area_sqm / 1.0e6
+                UpdateEntry(self.table[row+1][1], f'{self.areaKm2[row]:.4f}')
                 # print(row, ',', areaKm2, ',', gridKm2)
                 for col in range(self.numYears):
                     if desiredParam == BIOM:
@@ -320,7 +303,6 @@ class SortByRegion(ttk.Frame):
             messagebox.showerror("Reading Parameter File", f'No data for '+fileName+'\nHas Simulation been run?\nAre years correct?')
             runSortErrors = 1
 
-        if showMsg: messagebox.showinfo('Run Sort', 'Completed')
         return runSortErrors
     
     ##
@@ -343,7 +325,6 @@ class SortByRegion(ttk.Frame):
     #
     def ExportThis(self, exportingAll=False, showMsg=True):
         if self.exportFileName != '':
-            if showMsg: messagebox.showinfo('Export This', 'Starting Export')
             # Ensure data is up to date
             err = self.RunSort(showMsg=False)
 
@@ -383,7 +364,6 @@ class SortByRegion(ttk.Frame):
                     break
 
             if filesExist:
-                messagebox.showinfo('Export ALL', 'Starting Export\nPlease be patient.')
                 for cb in range(n):
                     self.comboParameter.current(cb)
                     self.ExportThis(exportingAll=True, showMsg=False)
@@ -400,62 +380,18 @@ class SortByRegion(ttk.Frame):
     #
     # MA regions, if selected, are first placed into array followed by GB regions, selected.
     # Logic will always have either MA, GB, or both
-    def GetShapeData(self):
-        self.domainName = self.friend.domainNameCombo.get()
-        self.shapeLenMA = 0
-        self.shapeLenGB = 0
+    def GetZoneData(self):
+        df = pd.read_csv(os.path.join('Grids', 'GBRegionGrid.csv'),na_filter=False)
+        zonesGB=sorted(df['ZONE'].unique())
+        zonesGB = list(filter(lambda x: (x!='NA'),zonesGB))
 
-        if (self.domainName == 'AL') or (self.domainName == 'MA'):
-            sfName = os.path.join(self.startDir,'MAB_Region',self.friend.maShapeFileEntry.get())
-            sfMA = shapefile.Reader(sfName)
-            shapesMA = sfMA.shapes()
-            self.shapeLenMA = len(sfMA)
-    
-        if (self.domainName == 'AL') or (self.domainName == 'GB'):
-            sfName = os.path.join(self.startDir,'GB_Region',self.friend.gbShapeFileEntry.get())
-            sfGB = shapefile.Reader(sfName)
-            shapesGB = sfGB.shapes()
-            self.shapeLenGB = len(sfGB)
+        df = pd.read_csv(os.path.join('Grids','MARegionGrid.csv'),na_filter=False)
+        zonesMA=sorted(df['ZONE'].unique())
+        zonesMA = list(filter(lambda x: (x!='NA'),zonesMA))
 
-        numRegions = self.shapeLenMA + self.shapeLenGB
-        if numRegions > self.maxAreas:
-            messagebox.showerror("Number of Areas ", f'Max is {self.maxAreas} Shapefiles need {numRegions}\nRestart GUI with {numRegions} 8')
-            quit()
-        self.shape = [ GeoShape() for _ in range(numRegions)]
-
-        # Read in MA values
-        for n in range(self.shapeLenMA):
-            record = sfMA.record(n)
-            as_dict = record.as_dict()
-            self.shape[n].Zone = record['Zone']
-            self.shape[n].area = record['Area']
-            pointLen = len(shapesMA[n].points)
-            self.shape[n].X = [0.0 for _ in range(pointLen)]
-            self.shape[n].Y = [0.0 for _ in range(pointLen)]
-            self.shape[n].lat = [0.0 for _ in range(pointLen)]
-            self.shape[n].lon = [0.0 for _ in range(pointLen)]
-            for m in range(len(shapesMA[n].points)):
-                self.shape[n].X[m] = shapesMA[n].points[m][0]
-                self.shape[n].Y[m] = shapesMA[n].points[m][1]
-                (self.shape[n].lat[m], self.shape[n].lon[m]) = utm.to_latlon(self.shape[n].X[m], self.shape[n].Y[m], 18, 'T')
-
-        # Read in GB values
-        for n in range(self.shapeLenMA, numRegions):
-            offset = n-self.shapeLenMA
-            record = sfGB.record(offset)
-            as_dict = record.as_dict()
-            self.shape[n].Zone = record['Zone']
-            self.shape[n].area = record['Area']
-            pointLen = len(shapesGB[offset].points)
-            self.shape[n].X = [0.0 for _ in range(pointLen)]
-            self.shape[n].Y = [0.0 for _ in range(pointLen)]
-            self.shape[n].lat = [0.0 for _ in range(pointLen)]
-            self.shape[n].lon = [0.0 for _ in range(pointLen)]
-            for m in range(len(shapesGB[offset].points)): 
-                self.shape[n].X[m] = shapesGB[offset].points[m][0]
-                self.shape[n].Y[m] = shapesGB[offset].points[m][1]
-                (self.shape[n].lat[m], self.shape[n].lon[m]) = utm.to_latlon(self.shape[n].X[m], self.shape[n].Y[m], 19, 'T')
-        return numRegions
+        self.zones = sorted(zonesGB + zonesMA)
+        
+        return len(self.zones)
     
     ## 
     # determine Management Area Index

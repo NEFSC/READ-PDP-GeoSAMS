@@ -356,10 +356,10 @@ end % function
 function SetColorbar(isOctave)
 if isOctave
     set(gca, 'color', [193 245 247]/255);     %RGB as a fraction
-    c=rainbow(100);
+    c=cool(100);
 else
     geobasemap bluegreen
-    c=hot(100);
+    c=cool(100);
 end
 colormap(c);
 colorbar;
