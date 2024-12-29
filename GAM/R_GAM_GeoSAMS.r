@@ -37,9 +37,10 @@ startTime <- Sys.time()
 	
 if(all(surveydata$PARAM==0)) #if all the data is zero, no gam model created, NAs assigned to the gam columns (could switch to zero if needed), and output the data
 {
+	cat('Writing 0s to', residFname, predictFname, '\n')
 
-	#write.csv(surveydata,file=residFname,row.names=FALSE) #output for survey data
-	#write.csv(predictgrid,file=predictFname,row.names=FALSE) #output for grids
+	write.csv(surveydata,file=residFname,row.names=FALSE) #output for survey data
+	write.csv(predictgrid,file=predictFname,row.names=FALSE) #output for grids
 
 }else #do gam models and output the data
 {

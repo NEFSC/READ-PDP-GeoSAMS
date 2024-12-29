@@ -51,14 +51,17 @@ end
 
 if isOctave
     D=csvreadK([gridFname '.csv']);
+    [r, c]=size(D);
+    c = c - 5; % deduct for lat, lon, X, Y, Zone
 else
     D=readtable([gridFname '.csv'],'NumHeaderLines',1);
-    % remove NaN
+    D(:,5) = []; % ignore ZONE
+    % remove NaN - main reason to ignore zone, following command does not know how to handle the text
     D=fillmissing(D,'constant',0.0);
+    [r, c]=size(D);
+    c = c - 4; % deduct for lat, lon, X, Y
 end
 
-[r, c]=size(D);
-c = c - 5; % deduct for lat, lon, X, Y, Zone
 grid=NaN(r,c); % pre-allocate
 
 if isOctave
@@ -71,7 +74,7 @@ else
     latGrid=table2array(D(:,1));
     lonGrid=table2array(D(:,2));
     for k=1:c
-        grid(:,k)=table2array(D(:,k+5)); % data starts in column 6
+        grid(:,k)=table2array(D(:,k+4)); % data now starts in column 5
     end
 end
 

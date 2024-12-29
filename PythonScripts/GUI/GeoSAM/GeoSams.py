@@ -391,7 +391,7 @@ class MainApplication(tk.Tk):
         manager = multiprocessing.Manager()
         retDict = manager.dict()
         # clean up leftover files from prior run
-        for f in glob.glob(analDir+'/proc*.txt'):
+        for f in glob.glob(os.path.join(analDir, '*.txt')):
             os.remove(f)
         start = time.time()
 
@@ -475,20 +475,17 @@ class MainApplication(tk.Tk):
         for pStr in self.paramStr:
             for r in region:
                 for year in years:
-                    obsFile = 'X_Y_' + pStr + self.domainName + str(year) + r
-                    # # extension is added by method
-                    # idw = InverseDistanceWeighting(obsFile, gridFile)
-                    # idw.Interpolate()
                     # 5) For all YEARS, all PARAMS, MA|GB: 
                     #    python .\PythonScripts\OK\pykrige_geosams.py X_Y_BIOM_AL2022_GB
                     ex = os.path.join('PythonScripts', 'OK', 'pykrige_geosams.py')
                     inputFile = 'X_Y_'+ pStr + self.domainName + str(year) + r
+                    stdOutFile = os.path.join('Analysis', inputFile+'.txt')
                     if platform.system() == 'Windows':
                         cmd = ['python', ex, inputFile ]
                     else: # TODO depends on how python is installed.
                         cmd = ['python3', ex, inputFile ]
-                    result = subprocess.run(cmd)
-
+                    with open(stdOutFile, 'w') as fid:
+                        result = subprocess.run(cmd, stdout=fid)
         # 
         # Process CSV files to combine the years
         pfix = 'Results/Lat_Lon_Grid_'
