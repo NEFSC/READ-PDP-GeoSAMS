@@ -1,5 +1,5 @@
 % Assumes a figure has already been opened
-function PlotRegion(isOctave, region, shape, cutNS, split)
+function PlotRegion(isOctave, region, shape, cutNS, split, dispText)
 
 if strcmp(region, 'GB')
     shapeLen = length(shape);
@@ -16,11 +16,7 @@ if strcmp(region, 'GB')
         minLat = min(shape(k).lat);
         posnLon = (maxLon + minLon) / 2.0;
         posnLat = (maxLat + minLat) / 2.0;
-        if isOctave
-            text(posnLon, posnLat, shape(k).Zone,'Color','k','FontSize',10,'FontWeight', 'bold');
-        else
-            text(posnLat, posnLon, shape(k).Zone,'Color',"#A2142F",'FontSize',10,'FontWeight', 'bold');
-        end
+        PaintNames(isOctave, dispText, posnLon, posnLat, shape(k).Zone)
     end
 else
     shapeLen = length(shape);
@@ -47,42 +43,13 @@ else
                     if shape(k).lon(n) < minLon, minLon=shape(k).lon(n); end
                 end
             end
-            %plot to edge, a straight line above cutNS to below cutNS
-            if k==4
-                %if strcmp(region, 'MA_North')
-                %    p1 = [shape(k).lat(89), cutNS];
-                %    p2 = [shape(k).lon(89), cutNS-112];
-                %else
-                %    p1 = [shape(k).lat(91), cutNS];
-                %    p2 = [shape(k).lon(91), cutNS-112];
-                %end
-                %if isOctave
-                %    plot(p2, p1, 'color', 'k')
-                %else
-                %    geoplot(p1, p2, 'r')
-                %end
-                %if p1(2) > maxLat, maxLat=p1(2); end
-                %if p1(2) < minLat, minLat=p1(2); end
-                %if p2(2) > maxLon, maxLon=p2(2); end
-                %if p2(2) < minLon, minLon=p2(2); end
-            end
     
-            if maxLon + minLon ~= 0.0
-                posnLon = (maxLon + minLon) / 2.0;
-                posnLat = (maxLat + minLat) / 2.0;
-                if isOctave
-                    if length(shape(k).Zone)>3
-                        text(posnLon, posnLat-0.05, shape(k).Zone,'Color','k','FontSize',10,'FontWeight', 'bold');
-                    else
-                        text(posnLon, posnLat, shape(k).Zone,'Color','k','FontSize',10,'FontWeight', 'bold');
-                    end
-                else
-                    if length(shape(k).Zone)>3
-                        text(posnLat-0.05, posnLon, shape(k).Zone,'Color',"#A2142F",'FontSize',10,'FontWeight', 'bold');
-                    else
-                        text(posnLat, posnLon, shape(k).Zone,'Color',"#A2142F",'FontSize',10,'FontWeight', 'bold');
-                    end
-                end
+            posnLon = (maxLon + minLon) / 2.0;
+            posnLat = (maxLat + minLat) / 2.0;
+            if length(shape(k).Zone)>3
+                PaintNames(isOctave, dispText, posnLon, posnLat-0.05, shape(k).Zone);
+            else
+                PaintNames(isOctave, dispText, posnLon, posnLat, shape(k).Zone);
             end
         else
             if isOctave
@@ -96,12 +63,16 @@ else
             minLat = min(shape(k).lat);
             posnLon = (maxLon + minLon) / 2.0;
             posnLat = (maxLat + minLat) / 2.0;
-            if isOctave
-                text(posnLon, posnLat, shape(k).Zone,'Color','k','FontSize',10,'FontWeight', 'bold');
-            else
-                text(posnLat, posnLon, shape(k).Zone,'Color',"#A2142F",'FontSize',10,'FontWeight', 'bold');
-            end
+            PaintNames(isOctave, dispText, posnLon, posnLat, shape(k).Zone);
         end
     end % k=1:shapeLen
 end % strcmp(region, 'GB')
 end % function
+
+function PaintNames( isOctave, dispText, lon, lat, zone)
+    if isOctave
+        if dispText; text(lon, lat, zone,'Color','k','FontSize',10,'FontWeight', 'bold'); end
+    else
+        if dispText; text(lat, lon, zone,'Color',"#A2142F",'FontSize',10,'FontWeight', 'bold'); end
+    end
+end

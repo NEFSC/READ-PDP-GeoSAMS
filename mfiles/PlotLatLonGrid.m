@@ -2,7 +2,7 @@
 % grid location, <--- grid parameter --->
 % lat, lon, p1, p2, .... , pN
 % Extension is added to fname in script
-function PlotLatLonGrid(fname, yrStart, domain)
+function PlotLatLonGrid(fname, yrStart, domain, dispNames)
 
 %------------------SHAPE DATA --------------------------------------------
 shapeMA = shaperead('ShapeFiles/MAB_Region/MAB_Est_Areas_2024_UTM18_Habcam_GeoSAMS.shp');
@@ -22,6 +22,7 @@ if isOctave
         fname = cell2mat(arg_list(1));
         yrStart = str2num(cell2mat(arg_list(2)));
         domain = cell2mat(arg_list(3));
+        dispNames = cell2mat(arg_list(4));
     end
 end
 
@@ -142,8 +143,8 @@ for i=1:c
         end
     end
     hold on
-    PlotRegion(isOctave, 'GB', shapeGB, 0, 0)
-    PlotRegion(isOctave, 'MA', shapeMA, 0, 0)
+    PlotRegion(isOctave, 'GB', shapeGB, 0, 0, dispNames)
+    PlotRegion(isOctave, 'MA', shapeMA, 0, 0, dispNames)
 
     saveas(gcf,[thisTitle '.pdf'])
 end
