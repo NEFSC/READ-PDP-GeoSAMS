@@ -3,7 +3,7 @@
 % grp 4 as a single row.
 %
 % Processing continues on this array.
-% - Dredge Data, if chosend,  requires further processing to adjust for scallops detected vs actual
+% - Dredge Data, if chosen,  requires further processing to adjust for scallops detected vs actual
 %   and depth adjustments. HabCam needs no further adjustment.
 %
 % Dredge and HabCam data are combined into a single array and then sorted by year

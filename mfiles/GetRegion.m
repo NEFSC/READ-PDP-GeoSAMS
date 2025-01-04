@@ -1,5 +1,7 @@
 function x = GetRegion(isOctave, lat_t, lon_t, stratum_t)
-
+% Called from HabCamData5mmbin and TrawlData5mmbin
+%
+% Determines which region, as defined by stratum, the point lat_t, lon_t is in
 
 region_none=0;
 regionGB_N=1;

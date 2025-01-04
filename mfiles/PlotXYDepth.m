@@ -1,22 +1,18 @@
-% Reads in data From DNxyzLatLon and converts it to a table
+% Reads in data From DNRegionGrid and converts it to a table
 % Then plots depth using color grid
 
 function PlotXYDepth(fname)
 D=readtable(fname,"FileType","spreadsheet");
 
-X=table2array(D(:,2));
-Y=table2array(D(:,3));
-[lat, lon] = utm2ll(X,Y,19);
-depth=array2table(table2array(D(:,5)),'VariableNames',{'Depth'});
-lon = array2table(lon,'VariableNames',{'Longitude'});
-lat = array2table(lat,'VariableNames',{'Latitude'});
-tbl = [lat, lon, depth];
+depth_t=array2table(table2array(D(:,3)),'VariableNames',{'Depth'});
+lat_t = array2table(table2array(D(:,4)),'VariableNames',{'Longitude'});
+lon_t = array2table(table2array(D(:,5)),'VariableNames',{'Latitude'});
+tbl = [lat_t, lon_t, depth_t];
 
-%figure('Name',fname)
-s=geoscatter(tbl,"Latitude", "Longitude", "filled");
+figure('Name',fname)
+s=geoscatter(tbl,"Longitude", "Latitude", "filled");
 hold on
 geobasemap darkwater;
-
 s.SizeData = 5; % size of dots
 s.ColorVariable = "Depth";
 c=hot(100);

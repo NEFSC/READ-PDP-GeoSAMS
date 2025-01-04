@@ -68,7 +68,8 @@ class InverseDistanceWeighting():
         #---------------------------------------------------
         # Read in grid data
         #---------------------------------------------------
-        numGrid = self.GetNumberOfRecords(self.gridFname, hasHeader=False)
+        numGrid = self.GetNumberOfRecords(self.gridFname, hasHeader=True)
+        print('GRID LEN: ', numGrid)
 
         gridX = np.zeros(numGrid)
         gridY = np.zeros(numGrid)
@@ -76,8 +77,10 @@ class InverseDistanceWeighting():
         gridLon = np.zeros(numGrid)
 
         with open(self.gridFname, 'r') as f:
+            inputStr = f.readline() # read and ignore header
             for n in range(numGrid):
                 inputStr = f.readline()
+                #print(n, inputStr)
                 inputArr = [s.strip() for s in inputStr.split(',')]
                 gridX[n] = float(inputArr[0])
                 gridY[n] = float(inputArr[1])

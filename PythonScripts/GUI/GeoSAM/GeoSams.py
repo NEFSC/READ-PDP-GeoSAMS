@@ -319,12 +319,12 @@ class MainApplication(tk.Tk):
 
             if result.returncode == 0:
                 if not self.skipStatusMsgs.get(): messagebox.showinfo("GeoSAM Sim", 
-                    f'Completed Successfully\n{result.args}\nStarting UK Interp\nIf all output selected this will run over an hour.\nPlease be patient.')
+                    f'Completed Successfully\n{result.args}\nStarting Interp&Plot\nIf all output selected this will run over an hour.\nPlease be patient.')
 
                 # Then Continue with Interpolation and Plotting Results -----------------------------------------------------------
                 (retDict, procID) = self.InterpAndPlotResults()
                 if sum(retDict.values()) == 0:
-                    messagebox.showinfo("GeoSAMS/UK/Plotting", f'ALL DONE\nRan {procID} processes')
+                    messagebox.showinfo("GeoSAMS/Interp/Plotting", f'ALL DONE\nRan {procID} processes')
                 else:
                     messagebox.showerror("InterpAndPlotResults", 'Failed')
             else:
@@ -472,6 +472,8 @@ class MainApplication(tk.Tk):
         # Intepolate using OK
         # ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
         # all survey data residuals computed now to interpolate. 
+        # At this point all parallel processing is complete, restart procID counter
+        procID = 0
         for pStr in self.paramStr:
             for r in region:
                 for year in years:
@@ -486,6 +488,17 @@ class MainApplication(tk.Tk):
                         cmd = ['python3', ex, inputFile ]
                     with open(stdOutFile, 'w') as fid:
                         result = subprocess.run(cmd, stdout=fid)
+
+                    retDict[procID] = result.returncode
+
+                    # could wait until all scripts have run. If failure most likely with python itself
+                    # so fail at first occurance.
+                    if sum(retDict.values()) != 0:
+                        messagebox.showerror("GeoSAM OK", f'Failed\n{result.args}\nReturn Code = {result.returncode}')
+                        return (retDict, procID)
+            procID += 1
+
+
         # 
         # Process CSV files to combine the years
         pfix = 'Results/Lat_Lon_Grid_'
@@ -506,7 +519,7 @@ class MainApplication(tk.Tk):
 
                 if r == region[0]: 
                     dfFinal.to_csv(flout, index=False)
-                else:
+                else: # append MA to GB
                     dfFinal.to_csv(flout, mode='a', index=False,header=False)
 
         # Lat_Lon_Grid_BIOM_AL2022_2026.csv

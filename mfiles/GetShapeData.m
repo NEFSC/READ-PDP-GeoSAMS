@@ -1,4 +1,6 @@
 function x = GetShapeData()
+% Called from HabCamData5mmbin and TrawlData5mmbin
+%
 % reads in shape files named by environment variables
 % Concatenates MAB and GB structures into a single structure
 % getZone is true if the region data is desired

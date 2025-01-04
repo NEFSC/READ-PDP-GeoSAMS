@@ -3,6 +3,8 @@
 %              or   'Lat_Lon_Survey_ABUN...'
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 function units = GetUnits(fileName)
+% Called from PlotLatLonGridSurvey
+%
     units ='';
     k=strfind(fileName,'ABUN');
     if k>0, units = 'scallops/m^2';end

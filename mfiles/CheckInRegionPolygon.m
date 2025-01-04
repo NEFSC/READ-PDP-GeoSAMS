@@ -1,4 +1,6 @@
 function [zone, region]= CheckInRegionPolygon(isOctave, X_t, Y_t, shape)
+% Called from HabCamData5mmbin and TrawlData5mmbin
+%
 % Takes X,Y UTM coordinates and determins which, if any
 % Zone region geopoint is located.
 % Returns Zone name and alphabetical index
