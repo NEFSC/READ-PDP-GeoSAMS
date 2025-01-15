@@ -17,7 +17,7 @@ shapeMA = shaperead('ShapeFiles/MAB_Region/MAB_Est_Areas_2024_UTM18_Habcam_GeoSA
 shapeGB = shaperead('ShapeFiles/GB_Region/GB_Est_Areas_2024_UTM19_Habcam_GeoSAMS.shp');
 
 split = 1;
-dispText = 1;
+dispText = 0;
 
 isOctave = (exist('OCTAVE_VERSION', 'builtin') ~= 0);
 if isOctave

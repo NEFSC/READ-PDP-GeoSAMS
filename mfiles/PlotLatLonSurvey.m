@@ -91,9 +91,9 @@ end
 for i=1:numCol
 	year = yearStart + i - 2;
     if isOctave
-        f = figure('Name',[fname '_' int2str(year) ]);
+        f = figure('Name',[fname '_' int2str(year+1) ]);
         scatter(lon, lat, field(:,i), 'b');
-        legend(int2str(year))
+        legend(int2str(year+1))
         % enlarge figure
         figure(f,"position",get(0,"screensize"))
         % now save it to pdf
@@ -107,10 +107,10 @@ for i=1:numCol
             set(p, 'paperposition', [.1 .1 10 16]);
         end
     else
-        f = figure('Name',[fname '_' int2str(year)]);
+        f = figure('Name',[fname '_' int2str(year+1)]);
         s=geoscatter(lat, lon, field(:,i), field(:,i), "filled");
         geobasemap bluegreen;
-        title([fname '_' int2str(year)], 'Interpreter', 'none');
+        title([fname '_' int2str(year+1)], 'Interpreter', 'none');
         s.SizeData = 5; % size of dots
         c=hot(100);
         colormap(c);
@@ -127,6 +127,6 @@ for i=1:numCol
             p.PaperPosition = [.1 .1 10 16]; 
         end
     end
-	saveas(gcf,[fname int2str(year) '.pdf'])
+	saveas(gcf,[fname int2str(year+1) '.pdf'])
 end
 

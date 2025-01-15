@@ -78,7 +78,6 @@ from SpecialAreaFrame import *
 from FishMortBySpecAcc import *
 from EditMathSetupFrame import *
 from Globals import *
-from InverseDistanceWeigthing import *
 
 # [            ex,              obsFile,                            gridFile
 # Rscript .\GAM\R_GAM_GeoSAMS.r X_Y_<param>_AL<yyyy>_<MA|GB>_BUFFER <MA|GB>RegionGrid.csv 
@@ -467,7 +466,8 @@ class MainApplication(tk.Tk):
         # the user can look into the proc*.txt files to see what failed and why.
         rets = sum(retDict.values())
         if rets > 0:
-            return (retDict, 0)
+            return (retDict, procID)
+        
         # ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
         # Intepolate using OK
         # ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
