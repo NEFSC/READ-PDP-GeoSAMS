@@ -100,4 +100,5 @@ else:
     # print(df_grid_result.agg({'GAMPREDICTM2':'sum'}))
 
 #df_grid_result.to_csv('MAxyzLatLonRgn_REGION_GAM_KRIGE.csv',sep = ',',index=False) #output the prediction grid
+print('Writing results to: ', outFile)
 df_grid_result.to_csv(outFile,sep = ',',index=False) #output the prediction grid

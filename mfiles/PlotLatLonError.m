@@ -4,11 +4,11 @@
 %  * longitude is in column 2
 %  * col: user provides column wherein lies the data to be plotted
 %  * tag: user provides a namve for the data
-function PlotLatLonError(fname, col, tag)
+function PlotLatLonError(fname, latCol, lonCol, col, tag)
 D=readtable(fname,"FileType","spreadsheet");
 
-lat=array2table(table2array(D(:,1)),'VariableNames',{'Latitude'});
-lon=array2table(table2array(D(:,2)),'VariableNames',{'Longitude'});
+lat=array2table(table2array(D(:,latCol)),'VariableNames',{'Latitude'});
+lon=array2table(table2array(D(:,lonCol)),'VariableNames',{'Longitude'});
 err=array2table(table2array(D(:,col)),'VariableNames',{tag});
 tbl = [lat, lon, err];
 
