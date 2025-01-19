@@ -404,7 +404,7 @@ else
     end
 end
 % correct scale when data is all 0
-if max(gridData) == realmin(), clim([realmin(), 0.001]); end
+if max(gridData) == realmin(), caxis([realmin(), 0.001]); end
 
 % Using this approach as octave, axes properties does not support 'Subtitle'
 title([thisTitle newline() unitsStr], 'Interpreter', 'none');

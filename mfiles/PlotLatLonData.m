@@ -1,35 +1,27 @@
-% Assumes that data is arranged as 
-% grid location, <--- grid parameter --->
-% lat, lon, p1, p2, .... , pN
-
-function PlotLatLonData(fname)
-D=readtable(fname,"FileType","spreadsheet");
-[r, c]=size(D);
-c = c - 2; % deduct for lat, lon
-param=NaN(r,c); % pre-allocate
-
-lat=table2array(D(:,1));
-lon=table2array(D(:,2));
-for k=1:c
-    param(:,k) =table2array(D(:,k+2));
-end
-
-% geoscatter does not accept 0.0, must be positive or NaN
-for k=1:c
-for n=1:r
-    if param(n,k)==0; param(n,k)=1e-6;end
-end
-end
-% scale data 0+ to 200
-m = max(max(param)) / 50.;
-param = param ./ m;
-
-figure('Name',fname)
-s=geoscatter(lat, lon, param(:,1), 'o', 'r');
-hold on
-s=geoscatter(lat, lon, param(:,14), 'o', 'black');
-s=geoscatter(lat, lon, param(:,27), 'o', 'm');
-s=geoscatter(lat, lon, param(:,40), 'o', 'g');
-%s=geoscatter(lat, lon, param(:,53), 'o', 'b');
-legend('2005 start','2005', '2006','2007')%, '2008')
-geobasemap streets
+% Reads in data From fname and converts it to a table
+% Then plots depth using color grid. Assumes
+%  * latitude is in column 1
+%  * longitude is in column 2
+%  * col: user provides column wherein lies the data to be plotted
+%  * tag: user provides a namve for the data
+function PlotLatLonData(fname, latCol, lonCol, col, tag)
+    D=readtable(fname,"FileType","spreadsheet");
+    
+    lat=array2table(table2array(D(:,latCol)),'VariableNames',{'Latitude'});
+    lon=array2table(table2array(D(:,lonCol)),'VariableNames',{'Longitude'});
+    err=array2table(table2array(D(:,col)),'VariableNames',{tag});
+    tbl = [lat, lon, err];
+    
+    figure('Name',fname)
+    s=geoscatter(tbl,"Latitude", "Longitude", "filled");
+    hold on
+    geobasemap bluegreen
+    
+    s.SizeData = 5; % size of dots
+    s.ColorVariable = tag;
+    c=jet(500);
+    colormap(c);
+    c = colorbar;
+    c.Label.String = tag;
+    title(fname, 'Interpreter','none'); % Interpreter, none is so that '_' are kept intact
+    

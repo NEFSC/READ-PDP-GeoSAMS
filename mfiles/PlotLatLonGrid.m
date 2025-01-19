@@ -2,7 +2,7 @@
 % grid location, <--- grid parameter --->
 % lat, lon, p1, p2, .... , pN
 % Extension is added to fname in script
-function PlotLatLonGrid(fname, yrStart, domain, dispNames)
+function PlotLatLonGrid(param, yrStart, yrEnd, dispNames)
 
 %------------------SHAPE DATA --------------------------------------------
 shapeMA = shaperead('ShapeFiles/MAB_Region/MAB_Est_Areas_2024_UTM18_Habcam_GeoSAMS.shp');
@@ -13,139 +13,115 @@ for k=1:shapeMAlen, [shapeMA(k).lat,shapeMA(k).lon] = utm2ll(shapeMA(k).X,shapeM
 
 shapeGBlen = length(shapeGB);
 for k=1:shapeGBlen, [shapeGB(k).lat,shapeGB(k).lon] = utm2ll(shapeGB(k).X,shapeGB(k).Y,19); end
+
+region=['GB';'MA'];
+
 %-------------------------------------------------------------------------
 isOctave = (exist('OCTAVE_VERSION', 'builtin') ~= 0);
 if isOctave
     % used if called by command line
     arg_list=argv();
     if ~strcmp(arg_list(1), '--gui');
-        fname = cell2mat(arg_list(1));
+        param = cell2mat(arg_list(1));
         yrStart = str2num(cell2mat(arg_list(2)));
-        domain = cell2mat(arg_list(3));
-        dispNames = cell2mat(arg_list(4));
+        yrEnd = str2num(cell2mat(arg_list(3)));
+        dispNames = str2num(cell2mat(arg_list(4)));
     end
 end
 
 % Expected name is in the form:
-% Lat_Lon_Grid_FIELD_DN_YYST_YYSP
-s=strfind(fname,'_');
-useTitle = fname(1:s(5));
+% Lat_Lon_Grid_FEFF_AL2026_MA_REGION_KRIGE
+for r=1:2
+    domain = region(r,:);
+    for year=yrStart:yrEnd
+        fname = ['Results/Lat_Lon_Grid_',param,'AL', int2str(year), '_',domain, '_REGION_KRIGE.csv'];
+        useTitle = [param, domain];
 
-if isOctave
-    D=csvreadK([fname '.csv']);
-else
-    D=readtable([fname '.csv'],"FileType","spreadsheet");
-end
-[r, c]=size(D);
-c = c - 5; % deduct for lat, lon, X, Y, Zone
-field=NaN(r,c); % pre-allocate
-
-if isOctave
-    lat=D(:,1);
-    lon=D(:,2);
-    for k=1:c
-        field(:,k) = D(:,k+5);
-    end
-else
-    lat=table2array(D(:,1));
-    lon=table2array(D(:,2));
-    for k=1:c
-        field(:,k) =table2array(D(:,k+5)); % data starts in column 6
-    end
-end
-
-edges = [0,10,1e2,1e3,1e4,1e5,1e6,1e7,1e8,1e9,1e10];
-if isOctave
-    hh=histc(field,edges);
-    len = size(hh,1);
-    h = zeros(1,len);
-    for n=1:len
-        h(n) = sum(hh(n,:));
-    end
-else
-   h=histcounts(field,edges);
-end
-
-% looking for 90% of data
-a=0.9 * r * c;
-total = 0;
-saturate = 1e10;
-for n=1:size(h,2)
-   total = total + h(n);
-   if total > a
-      saturate = 10^n;
-      break
-   end
-end
-
-%
-for k=1:c
-for n=1:r
-    % geoscatter does not accept 0.0, must be positive or NaN
-    if field(n,k)<=0 ; field(n,k) = NaN; end
-    % saturate values
-    if field(n,k)> saturate; field(n,k) = saturate; end
-end
-end
-
-for i=1:c
-    year = yrStart + i - 1;
-    %thisTitle = [useTitle int2str(year) '_' int2str(saturate)];
-    thisTitle = [useTitle int2str(year)];
-    if isOctave
-        f = figure('Name', thisTitle);
-        s=scatter(lon, lat, field(:,i), field(:,i), "filled");
-        %set(gca, 'color', [193 245 247]/255) %RGB as a fraction
-        % however background color does not save to pdf
-        set(s,'sizedata',5)
-
-        c=cool(100);
-        colormap(c);
-        c = colorbar;
-
-        % enlarge figure
-        figure(f,"position",get(0,"screensize"))
-        % now save it to pdf
-        p = gcf();
-        set(p, 'papersize', [11 17]);
-        set(p, 'papertype', "tabloid");
-        if strcmp(domain, 'GB')
-            set(p, 'paperorientation', "landscape");
+        if isOctave
+            D=csvreadK(fname);
         else
-            set(p, 'paperorientation', "portrait");
-            set(p, 'paperposition', [.1 .1 10 16]);
-        end
-    else
-        f = figure('Name', thisTitle);
-        s=geoscatter(lat, lon, field(:,i), field(:,i), "filled");
-        geobasemap bluegreen;
-        title([useTitle int2str(year)], 'Interpreter', 'none');
-        s.SizeData = 5; % size of dots
-        c=cool(100);
-        colormap(c);
-        c = colorbar;
-        c.Label.String = "Field";
-        % enlarge figure
-        if strcmp(domain, 'GB')
-            f.OuterPosition = [1963.4 -221.4 1500 1087.2];
-        else
-            f.OuterPosition = [1963.4 -221.4 1000 1087.2];
+            D=readtable(fname,"FileType","spreadsheet");
         end
 
-        p = gcf();
-        p.PaperSize = [11 17];
-        p.PaperType  = "tabloid";
-        if strcmp(domain, 'GB')
-            p.PaperOrientation = "landscape";
+        if isOctave
+            lat=D(:,4);
+            lon=D(:,5);
+            field = D(:,17);
         else
-            p.PaperOrientation = "portrait";
-            p.PaperPosition = [.1 .1 10 16];
+            lat=table2array(D(:,4));
+            lon=table2array(D(:,5));
+            field=table2array(D(:,17));
         end
+
+        %
+        for n=1:size(field,1)
+            % geoscatter does not accept 0.0, must be positive or NaN
+            if field(n)<=0 ; field(n) = NaN; end
+        end
+
+        units = ['Grid: ' GetUnits(param)];
+        thisTitle = [useTitle int2str(year)];
+        f = figure();
+
+        if isOctave
+            s=scatter(lon, lat, field, field, "filled");
+            % Using this approach as octave, axes properties does not support 'Subtitle'
+            title([thisTitle newline() units], 'Interpreter', 'none');
+            %set(gca, 'color', [193 245 247]/255) %RGB as a fraction
+            % however background color does not save to pdf
+            set(s,'sizedata',5)
+
+            c=jet(500);
+            colormap(c);
+            c = colorbar;
+
+            % enlarge figure
+            figure(f,"position",get(0,"screensize"))
+            % now save it to pdf
+            p = gcf();
+            set(p, 'papersize', [11 17]);
+            set(p, 'papertype', "tabloid");
+            if strcmp(domain, 'GB')
+                set(p, 'paperorientation', "landscape");
+            else
+                set(p, 'paperorientation', "portrait");
+                set(p, 'paperposition', [.1 .1 10 16]);
+            end
+        else
+            s=geoscatter(lat, lon, field, field, "filled");
+            % Using this approach as octave, axes properties does not support 'Subtitle'
+            title([thisTitle newline() units], 'Interpreter', 'none');
+            geobasemap darkwater;
+            %title([useTitle int2str(year)], 'Interpreter', 'none');
+            s.SizeData = 5; % size of dots
+            c=jet(500);
+            colormap(c);
+            c = colorbar;
+    %        c.Label.String = param;
+            % enlarge figure
+            if strcmp(domain, 'GB')
+                f.OuterPosition = [1963.4 -221.4 1500 1087.2];
+            else
+                f.OuterPosition = [1963.4 -221.4 1000 1087.2];
+            end
+
+            p = gcf();
+            p.PaperSize = [11 17];
+            p.PaperType  = "tabloid";
+            if strcmp(domain, 'GB')
+                p.PaperOrientation = "landscape";
+            else
+                p.PaperOrientation = "portrait";
+                p.PaperPosition = [.1 .1 10 16];
+            end
+        end
+        hold on
+        if strcmp(domain, 'GB')
+            PlotRegion(isOctave, 'GB', shapeGB, 0, 0, dispNames)
+        else
+            PlotRegion(isOctave, 'MA', shapeMA, 0, 0, dispNames)
+        end
+        fname = ['Results/', thisTitle '.pdf'];
+        saveas(gcf,fname)
     end
-    hold on
-    PlotRegion(isOctave, 'GB', shapeGB, 0, 0, dispNames)
-    PlotRegion(isOctave, 'MA', shapeMA, 0, 0, dispNames)
-
-    saveas(gcf,[thisTitle '.pdf'])
 end
-

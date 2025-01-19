@@ -845,7 +845,7 @@ if (data_select%plot_EBMS) &
 &    output_dir//'Lat_Lon_Surv_EBMS_'//domain_name//'.csv',.true.)
 
 if (data_select%plot_FEFF) &
-&    call Write_Column_CSV(num_grids, fishing_effort(1:num_grids), 'Feffort',&
+&    call Write_Column_CSV(num_grids, fishing_effort(1:num_grids), 'FEFF',&
 &    output_dir//'Lat_Lon_Surv_FEFF_'//domain_name//'.csv',.true.)
 
 if (data_select%plot_FMOR) &
@@ -857,7 +857,7 @@ if (data_select%plot_FMOR) &
 ! lpue_accum or lpue
 #ifdef ACCUM_LANDINGS
 if (data_select%plot_LAND) &
-&    call Write_Column_CSV(num_grids, landings_accum(:), 'Landings', & 
+&    call Write_Column_CSV(num_grids, landings_accum(:), 'LAND', & 
 &    output_dir//'Lat_Lon_Surv_LAND_'//domain_name//'.csv',.true.)
 
 if (data_select%plot_LNDW) & 
@@ -869,7 +869,7 @@ if (data_select%plot_LPUE) &
 &    output_dir//'Lat_Lon_Surv_LPUE_'//domain_name//'.csv',.true.)
 #else
 if (data_select%plot_LAND) &
-&    call Write_Column_CSV(num_grids, landings_by_num(:), 'Landings', &
+&    call Write_Column_CSV(num_grids, landings_by_num(:), 'LAND', &
 &    output_dir//'Lat_Lon_Surv_LAND_'//domain_name//'.csv',.true.)
 
 if (data_select%plot_LNDW) & 

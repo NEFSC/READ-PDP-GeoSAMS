@@ -498,34 +498,6 @@ class MainApplication(tk.Tk):
                         return (retDict, procID)
             procID += 1
 
-
-        # 
-        # Process CSV files to combine the years
-        pfix = 'Results/Lat_Lon_Grid_'
-
-        for pStr in self.paramStr:
-            flout = pfix + pStr + self.domainName + '_'  + str(self.yearStart) + '_' + str(self.yearStop) + '.csv'
-            for r in region:
-                for year in years:
-                    # Lat_Lon_Grid_BIOM_AL2026_MA_REGION_KRIGE
-                    flin = pfix + pStr + self.domainName + str(year) + r + '_REGION_KRIGE.csv'
-                    df = pd.read_csv(flin, usecols=['UTM_X', 'UTM_Y', 'LAT','LON', 'ZONE', 'FINALPREDICT'])
-
-                    if year == self.yearStart:
-                        dfFinal = df.reindex(columns=['LAT','LON', 'UTM_X', 'UTM_Y', 'ZONE', 'FINALPREDICT'])
-                        dfFinal.rename(columns={ 'FINALPREDICT':str(year)}, inplace=True)
-                    else:
-                        dfFinal[str(year)] = df['FINALPREDICT']
-
-                if r == region[0]: 
-                    dfFinal.to_csv(flout, index=False)
-                else: # append MA to GB
-                    dfFinal.to_csv(flout, mode='a', index=False,header=False)
-
-        # Lat_Lon_Grid_BIOM_AL2022_2026.csv
-        print('Files concatenated to: ',flout)
-        # end for pStr
-
         end = time.time()
 
         print( 'Interpolation exec time: {}'.format(end-start))
@@ -535,14 +507,11 @@ class MainApplication(tk.Tk):
         #++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++   
         # We have the needed output paramters so lets plot data and save to pdf files
         for pStr in self.paramStr:
-            str1 = resultsDir + '/Lat_Lon_Surv_' + pStr + self.domainName
-            str2 = resultsDir + '/Lat_Lon_Grid_' + pStr + self.domainName + '_' + str(self.yearStart) + '_' + str(self.yearStop)
-
             if self.frame2.usingMatlab.get():
-                matlabStr = 'PlotLatLonGridSurvey(' + "'" + str1 + "','" + str2 + "', " + str(self.yearStart) + ',' +str(self.tsPerYear) + ", '" + self.domainName + "');exit"
+                matlabStr = 'PlotLatLonGrid(' + "'" + pStr + "', " + str(self.yearStart) + "," + str(self.yearStop) +  ", 0);exit"
                 cmd = ['matlab.exe', '-batch', matlabStr]
             else:
-                cmd = ['octave', 'mfiles/PlotLatLonGridSurvey.m', str1, str2, str(self.yearStart), str(self.tsPerYear), self.domainName]
+                cmd = ['octave', 'mfiles/PlotLatLonGrid.m', pStr, str(self.yearStart), str(self.yearStop), '0']
 
             result = subprocess.run(cmd)
             if (result.returncode != 0):
