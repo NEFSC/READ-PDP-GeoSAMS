@@ -100,9 +100,12 @@ for r=1:2
     %        c.Label.String = param;
             % enlarge figure
             if strcmp(domain, 'GB')
-                f.OuterPosition = [1963.4 -221.4 1500 1087.2];
+                % if multiple montitors, otherwise [0 0 ...]
+                %f.OuterPosition = [1963.4 -221.4 1500 1087.2];
+                f.OuterPosition = [0 0 1500 1087.2];
             else
-                f.OuterPosition = [1963.4 -221.4 1000 1087.2];
+%                f.OuterPosition = [1963.4 -221.4 1000 1087.2];
+                f.OuterPosition = [0 0 1000 1087.2];
             end
 
             p = gcf();
