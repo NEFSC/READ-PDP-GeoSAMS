@@ -502,9 +502,9 @@ class MainApplication(tk.Tk):
 
         print( 'Interpolation exec time: {}'.format(end-start))
 
-        #++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++   
+        #++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
         # PLOTTING
-        #++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++   
+        #++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
         # We have the needed output paramters so lets plot data and save to pdf files
         for pStr in self.paramStr:
             if self.frame2.usingMatlab.get():
@@ -519,6 +519,28 @@ class MainApplication(tk.Tk):
                 print(errorStr)
                 procID += 1
                 retDict[procID] = result.returncode
+
+        #++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+        # Combine results by year
+        #  modeling region could change from one year to another so it is difficult to concatenate all 
+        #  files as X-Y positions may differ. 
+        # Thus to aid in post processing combine the MA|GB files into a single file for each year
+        # Lat_Lon_Grid_ABUN_ALyyyy_GB_REGION_KRIGE \  
+        # Lat_Lon_Grid_ABUN_ALyyyy_GB_REGION_KRIGE /  BIOM_yyyy_KRIGE.csv
+        #++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+        pfix = os.join.path('Results', 'Lat_Lon_Grid_')
+        for pStr in self.paramStr:
+            for year in years:
+                flout = os.path.join('Results', pStr + str(year) + '_KRIGE.csv')
+                for r in region:
+                    flin = pfix + pStr + self.domainName + str(year) + r + '_REGION_KRIGE.csv'
+
+                    df = pd.read_csv(flin, usecols=['UTM_X', 'UTM_Y', 'LAT','LON', 'DEPTH', 'STRATUM', 'ZONE', 'FINALPREDICT'])
+
+                    if r == region[0]: 
+                        df.to_csv(flout, index=False)
+                    else:
+                        df.to_csv(flout, mode='a', index=False,header=False)
 
         return (retDict, procID)
 

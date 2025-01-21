@@ -236,28 +236,33 @@ class SortByRegion(ttk.Frame):
         countNonZeroData = [[0.0 for _ in range(cols)] for _ in range(rows)]  # data read in from file
         countData = [[0.0 for _ in range(cols)] for _ in range(rows)]  # data read in from file
         desiredParam = self.comboParameter.get()
-        # typical name: Lat_Lon_Grid_EBMS_MA_2015_2017
-        #               Lat_Lon_Grid_ABUN_AL_2015_2017
-        fileName = os.path.join('Results', 'Lat_Lon_Grid_' + 
-             desiredParam + self.domainName + '_' + str(self.yearStart) + '_' + str(self.yearStop) + '.csv')
-        paramFName = os.path.join(self.root, fileName)
-
         years = range(self.yearStart, self.yearStop + 1) # year_start is initial state
-        if os.path.isfile(paramFName):
-            df = pd.read_csv(paramFName)
-            dfAgg = pd.DataFrame()
-            for year in years:
-                dfAgg[str(year)] = df.groupby('ZONE').agg({str(year):'sum'})
-                    
+        # typical name: BIOM_2022_KRIGE - BIOM_2026_KRIGE          Lat_Lon_Grid_EBMS_MA_2015_2017
+
+        # build list of files to consider
+        fileList = []
+        dfAgg = pd.DataFrame()
+        for year in years:
+            fileName = os.path.join('Results', desiredParam + str(year) + '_KRIGE.csv')
+            fileList.append(fileName)
+            if os.path.isfile(fileName):
+                df = pd.read_csv(fileName)
+                dfAgg[str(year)] = df.groupby('ZONE').agg({'FINALPREDICT':'sum'})
+            else:
+                messagebox.showerror("Reading Parameter File", f'No data for '+fileName+'\nHas Simulation been run?\nAre years correct?')
+                runSortErrors = 1
+
+        if runSortErrors == 0:
             # For each area
             for row in range(self.numAreas):
                 for col in range(self.numYears):
+                    df = pd.read_csv(fileList[col])
                     accumParamData[row][col] = dfAgg[str(col+self.yearStart)][self.zones[row]]
                     countData[row][col] = len(df[df['ZONE']==self.zones[row]])
 
                     # Determine number of non-zero data by first counting the number of data counts
                     # then subracting the number of zero counts
-                    counts =  df[df['ZONE']==self.zones[row]][str(col+self.yearStart)].value_counts()
+                    counts =  df[df['ZONE']==self.zones[row]]['FINALPREDICT'].value_counts()
                     try:
                         countNonZeroData[row][col] = countData[row][col] - counts[0]
                     except:
