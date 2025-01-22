@@ -236,7 +236,7 @@ class SortByArea(ttk.Frame):
         countNonZeroData = [[0.0 for _ in range(cols)] for _ in range(rows)]  # data read in from file
         countData = [[0.0 for _ in range(cols)] for _ in range(rows)]  # also serves to count number of grids in area
         desiredParam = self.comboParameter.get()
-        # typical name: BIOM_2022_KRIGE - BIOM_2026_KRIGE          Lat_Lon_Grid_EBMS_MA_2015_2017
+        # typical name: BIOM_2022_KRIGE - BIOM_2026_KRIGE    was      Lat_Lon_Grid_EBMS_MA_2015_2017
 
         fileName = os.path.join('Results', desiredParam + '*_KRIGE.csv')
         fileList = glob.glob(fileName)
