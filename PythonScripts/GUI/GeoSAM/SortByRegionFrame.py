@@ -363,10 +363,11 @@ class SortByRegion(ttk.Frame):
             filesExist = True
             n = len(self.paramStr)
             for i in range(n):
-                dataFileName = 'Lat_Lon_Grid_' + self.paramStr[i] + self.domainName + '_' + str(self.yearStart) + '_' + str(self.yearStop) + '.csv'
-                if not os.path.isfile(os.path.join('Results', dataFileName)):
-                    filesExist = False
-                    break
+                for y in range(self.numYears):
+                    dataFileName = self.paramStr[i] + str(self.yearStart+y) + '_KRIGE.csv'
+                    if not os.path.isfile(os.path.join('Results', dataFileName)):
+                        filesExist = False
+                        break
 
             if filesExist:
                 for cb in range(n):

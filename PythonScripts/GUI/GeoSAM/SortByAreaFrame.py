@@ -47,6 +47,7 @@
 #
 import os
 import shutil
+import glob
 
 from tkinter import ttk
 from tkinter import messagebox
@@ -228,7 +229,6 @@ class SortByArea(ttk.Frame):
     #
     def RunSort(self):
         runSortErrors = 0
-        paramData = [0.0 for _ in range(self.numYears)] # data read in from file
         rows = self.numAreas
         cols = self.numYears
         accumParamData = [[0.0 for _ in range(cols)] for _ in range(rows)] # accumulated data if in region
@@ -236,11 +236,12 @@ class SortByArea(ttk.Frame):
         countNonZeroData = [[0.0 for _ in range(cols)] for _ in range(rows)]  # data read in from file
         countData = [[0.0 for _ in range(cols)] for _ in range(rows)]  # also serves to count number of grids in area
         desiredParam = self.comboParameter.get()
-        # typical name: Lat_Lon_Grid_EBMS_MA_2015_2017
-        #               Lat_Lon_Grid_ABUN_AL_2015_2017
-        fileName = os.path.join('Results', 'Lat_Lon_Grid_' + 
-             desiredParam + self.domainName + '_' + str(self.yearStart) + '_' + str(self.yearStop) + '_IDW.csv')
-        paramFName = os.path.join(self.root, fileName)
+        # typical name: BIOM_2022_KRIGE - BIOM_2026_KRIGE          Lat_Lon_Grid_EBMS_MA_2015_2017
+
+        fileName = os.path.join('Results', desiredParam + '*_KRIGE.csv')
+        fileList = glob.glob(fileName)
+
+        # Now check each row of each file in fileList to see if that data point is within the area polygons
         
         # The data structure is used with InPolygon algorithm to check 
         # if grid parameter is within area of interest
@@ -251,39 +252,40 @@ class SortByArea(ttk.Frame):
                 self.areaData[i].long[j] = float(self.areas.areaSubFrame[i].corners[j].longitude.myEntry.get())
                 self.areaData[i].lat[j] = float(self.areas.areaSubFrame[i].corners[j].latitude.myEntry.get())
 
-        if os.path.isfile(paramFName):
-            with open(paramFName, 'r') as f:
-                while True:
-                    # Read in a line from paramFName
-                    line = f.readline()
-                    if not line:
-                        f.close()
-                        break
+        if fileList:
+            # Column Headings
+            # UTM_X	UTM_Y	DEPTH	LAT	LON	STRATUM	ZONE	FINALPREDICT
+            for col in range(self.numYears):
+                with open(fileList[col], 'r') as f:
+                    line = f.readline() # read header
+                    while True:
+                        # Read in a line from paramFName
+                        line = f.readline()
+                        if not line:
+                            f.close()
+                            break
 
-                    # parse line
-                    dataArray = [s.strip() for s in line.split(',')]
-                    lat = float(dataArray[0])
-                    lon = float(dataArray[1])
-                    # i is index into file array
-                    for i in range(self.numYears):
-                        paramData[i] = float(dataArray[i+2]) 
+                        # parse line
+                        dataArray = [s.strip() for s in line.split(',')]
+                        lat = float(dataArray[3])
+                        lon = float(dataArray[4])
+                        paramData = float(dataArray[7]) 
                     
-                    # Now check if the data point (lon, lat) is located in one of the desired areas
-                    # tkinter widgets: self.areas.areaSubFrame[row] with given coordinates self.areas.areaSubFrame[row].corners[j]
-                    # or as stored in: self.areaData[row].long[0:j], self.areaData[row].lat[0:j]
-                    # 
-                    # if so, add to accumParamData[row][0:n] += paramData[0:n]
+                        # Now check if the data point (lon, lat) is located in one of the desired areas
+                        # tkinter widgets: self.areas.areaSubFrame[row] with given coordinates self.areas.areaSubFrame[row].corners[j]
+                        # or as stored in: self.areaData[row].long[0:j], self.areaData[row].lat[0:j]
+                        # 
+                        # if so, add to accumParamData[row][col] += paramData
 
-                    # For each area
-                    for row in range(self.numAreas):
-                        # is (lon, lat) in this area
-                        nodes = self.areaData[row].numCorners
-                        if PointInPolygon(self.areaData[row].long, self.areaData[row].lat, lon, lat, nodes):
-                            # if so accumulate parameter data
-                            for col in range(self.numYears):
-                                accumParamData[row][col] += paramData[col]
+                        # For each area
+                        for row in range(self.numAreas):
+                            # is (lon, lat) in this area
+                            nodes = self.areaData[row].numCorners
+                            if PointInPolygon(self.areaData[row].long, self.areaData[row].lat, lon, lat, nodes):
+                                # if so accumulate parameter data
+                                accumParamData[row][col] += paramData
                                 countData[row][col] += 1
-                                if paramData[col] > 0:
+                                if paramData > 0:
                                     countNonZeroData[row][col] += 1
 
             # display results
@@ -291,7 +293,8 @@ class SortByArea(ttk.Frame):
 
             for row in range(self.numAreas):
                 for col in range(self.numYears):
-                    areaKm2 = countData[row][col] * grid_area_sqm / 1.0e6
+                    # base on initial state data
+                    areaKm2 = countData[row][0] * grid_area_sqm / 1.0e6
                     self.areas.areaSubFrame[row].myArea = areaKm2
                     UpdateEntry(self.areas.areaSubFrame[row].compAreaEntry.myEntry, f'{areaKm2:.4f}'+' Km^2')
                     if desiredParam == BIOM:
