@@ -528,7 +528,7 @@ class MainApplication(tk.Tk):
         # Lat_Lon_Grid_ABUN_ALyyyy_GB_REGION_KRIGE \  
         # Lat_Lon_Grid_ABUN_ALyyyy_GB_REGION_KRIGE /  BIOM_yyyy_KRIGE.csv
         #++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-        pfix = os.join.path('Results', 'Lat_Lon_Grid_')
+        pfix = os.path.join('Results', 'Lat_Lon_Grid_')
         for pStr in self.paramStr:
             for year in years:
                 flout = os.path.join('Results', pStr + str(year) + '_KRIGE.csv')
