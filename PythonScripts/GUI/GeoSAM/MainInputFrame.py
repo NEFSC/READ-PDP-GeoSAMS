@@ -351,7 +351,7 @@ class MainInput(ttk.Frame):
     # 
     def OpenPDF(self):
         # Checking to see if processing has been run
-        fName = os.path.join('Results', 'Lat_Lon_Grid_*.pdf')
+        fName = os.path.join('Results', '*.pdf')
         fileList = glob.glob(fName)
         if fileList:
             fName = filedialog.askopenfilename(title="Open PDF File", filetypes=[("PDF files", "*.pdf")],

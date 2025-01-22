@@ -330,31 +330,6 @@ class MainApplication(tk.Tk):
                 messagebox.showerror("GeoSAM Sim", f'Failed\n{result.args}\nReturn Code = {result.returncode}')
     
     ##
-    # Interpolates the survey data onto the regional grids and saves results to CSV files. 
-    # Concatenates CSV files into a single file. Then uses this file to plot the results
-    #
-    # Uses the following member variables
-    #    self.domainName
-    #    self.yearStart
-    #    self.yearStop
-    #    self.simConfigFile ( in call to ReadSimConfigFile)
-    #    self.ukCfgFile
-    #    self.paramStr
-    # 
-    # prefix for the concatenated files,  Output file name is in the form:
-    #      Lat_Lon_Grid_ABUN_AL_2015_2017
-    # Matlab/Octave will also place the it results in a similar file name
-    #      Lat_Lon_Grid_RECR_AL_2017_100_MA_North
-    #                    ^ Output parameter
-    #                        ^ Domain name
-    #                            ^ Year, yearStart to yearStop, e.g. 2014 initial data, 1 less than yearStart
-    #                                                                2015 growth in yearStart
-    #                                                                ...
-    #                                                                2017 growth in yearStop
-    #                                  ^ Multiplier to normalize data
-    #                                     ^ region
-    #                                        ^ MA is divided into North and South to better display the data
-    #
     def InterpAndPlotResults(self):
         rets = 0
         # year_start is initial state, yearStop represents the last year of simulation output
