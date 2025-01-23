@@ -1,15 +1,15 @@
-## @page SortRegion  Sort By Area Frame
-# Assists the user in defining areas of interest to assess accumulated parameters located
-# in these areas of interest.
+## @page SortRegion  Sort By Region Frame
+# Assists the user in viewing accumulated parameters located
+# in zones defined by shapefiles.
 #
-# @section SortRegion p2 Output Parameters
+# @section SortRegionP1 Output Parameters
 #
 # This is a dropbox of the selected output parameters on the main tab. After 
 # a simulation and interpolation have been run, the user would select one of
 # these output, click Run Sort, and the amount of that output in each of the
 # shapefile regions is accumulated by year.
 #
-# @section SortRegion p4 Run Sort
+# @section SortRegionP2 Run Sort
 # This will start the program to check if a region grid value for a given 
 # year is within one of the specified area and if so accumulate the year
 # sum with that value.

@@ -105,12 +105,6 @@
 !> H_{MN18}(x, \sigma, \omega) = \frac{1}{\omega}\bigg(x\Phi_N(x,0,\sigma^2) + \sigma^2\phi_N(x,0,\sigma^2)\bigg)
 !> @f]
 !>
-!> WAS
-!> @f[
-!> H_{MN18}(x, \sigma, \omega) = \frac{1}{\omega}(x*f+\sigma^2 * f)
-!> @f]
-!> where @f$f = \Phi_N@f$ 
-!>
 !> @subsubsection Gssubsubsec2 Normal Cumulative Distribution Function
 !> @f[
 !> \Phi(x,\mu,\sigma) = \frac{1}{2}(1+Erf(\frac{x-\mu}{\sigma\sqrt{2}}))
@@ -121,8 +115,6 @@
 !> \phi(x,\mu,\sigma) = \frac{1}{\sigma\sqrt{2\pi}}e^{-\frac{(x-\mu)^2}{2\sigma^2}}
 !> @f]
 
-
-!>----------------------------------------------------------------------------------------------------------------
 MODULE Growth_Mod
 use globals
 use Grid_Manager_Mod
@@ -599,12 +591,6 @@ end subroutine increment_mean_std
 !> @f[
 !> H_{MN18}(x, \sigma, \omega) = \frac{1}{\omega}[x\Phi_N(x,0,\sigma^2) + \sigma^2\phi_N(x,0,\sigma^2)]
 !> @f]
-!>
-!> WAS
-!> @f[
-!> H_{MN18}(x, \sigma, \omega) = \frac{1}{\omega}(x*f+\sigma^2 * f)
-!> @f]
-!> where @f$f = \Phi_N@f$ 
 !>
 !> @param[in] x - evaluation point
 !> @param[in] sigma - paramaters defined within MN18

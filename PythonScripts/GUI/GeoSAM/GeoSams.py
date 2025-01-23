@@ -4,6 +4,7 @@
 # This is the main program for the GeoSAMS GUI
 # 
 # The GUI has 7 tabs
+# -# <b>Math Setup</b>: This frame allows the user to modify the Matlab/Octave startup files.
 # -# <b>Main</b>: Data concerning simulation duration, configutation files in use, and recruitment period
 # -# <b>Growth</b>: Define parameters to compute fishing mortality
 # -# <b>Special Access</b>: Files used to define special areas for fishing management
@@ -12,18 +13,16 @@
 #    location falls within the defined area given by the area defintions in 
 #    Special Access Frame and assigned the area number.
 # -# <b>Sort By Area</b>: Parameters that are used to sort output data and associate with areas of interest
-# -# <b>UKInterpolation</b>: Parameters that are used to interpolate results from survey grid to regional grid
-# -# <b>Math Setup</b>: This frame allows the user to modify the Matlab/Octave startup files.
+# -# <b>Sort By Region</b>: Parameters that are used to sort output data and associate with zones defined by shapefiles
 #
 # The program is started by entering the following command in the root directory of the workspace
 # $ python .\\PythonScripts\\GUI\\GeoSAM\\GeoSams.py [10 8]
 #
-# Where the last three number are optional and used to set limits on:
+# Where the last two number are optional and used to set limits on:
 # - The maximum number of areas of interest that can be defined.
 # - The maximum number of nodes used to specify each area of interest.
-# - The maximum number of years that the simulation can cover, i.e. Stop Year - Start Year + 1
 #
-# When commanded without these values the GUI defaults to 10, 8, and 5. These values can be viewed by 
+# When commanded without these values the GUI defaults to 50 and 8. These values can be viewed by 
 # clicking the <b>SHOW Args</b> Button
 #
 # @section p1p1 SHOW Args
@@ -71,7 +70,6 @@ from datetime import datetime
 
 from MainInputFrame import *
 from GrowthFrame import *
-from InterpolationFrame import *
 from SortByAreaFrame import *
 from SortByRegionFrame import *
 from SpecialAreaFrame import *

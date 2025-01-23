@@ -1,4 +1,4 @@
-!>---------------------------------------------------------------------------------------------------------------------
+!>
 !> @page page2 Recruit_Mod
 !>
 !> @section Rsec1 Recruitment Class
@@ -8,7 +8,7 @@
 !> - rec_start = a decimal value given as day of the year divided by 365.2425. Typically 0, which would be January 1
 !> - rec_stop = decimal value given as day of the year divided by 365.2425. Typically 100/365.2425, which is April 10th.
 !>
-!>---------------------------------------------------------------------------------------------------------------------
+!>
 module Recruit_Mod
 use globals
 implicit none

@@ -1,4 +1,3 @@
-!>----------------------------------------------------------------------------------------------------------------
 !> @page page3 Mortality_Mod
 !>
 !> The methods in this class are used to determine the selectiviy and discard of the scallops based on shell
