@@ -405,16 +405,17 @@ class SortByArea(ttk.Frame):
                 with open(self.exportFileName, 'w') as f:
                     ##f.write('AREA,YEAR,' + outStr + ' ('+ units + ')\n')
                     # Write Header
-                    f.write('Area #,Comment,Area,Units,Init State')
+                    f.write('Param, Area #,Comment,Area,Units,Init State')
                     for yr in range(1,self.numYears):
                             f.write(',' + str(yr+self.yearStart))
                     f.write('\n')
 
                     for a in range(self.numAreas):
-                        f.write(str(a+1))
+                        f.write(outStr)
+                        f.write(',' + str(a+1))
                         f.write(',' + self.areas.areaSubFrame[a].commentEntry.myEntry.get())
                         f.write(',' + self.areas.areaSubFrame[a].compAreaEntry.myEntry.get())
-                        f.write(',' + outStr + ' ('+ units + ')')
+                        f.write(',' + units)
                         for yr in range(self.numYears):
                              f.write( ',' + self.areas.areaSubFrame[a].results[yr].myEntry.get())
                         f.write('\n')
@@ -434,11 +435,11 @@ class SortByArea(ttk.Frame):
             # Check that data files are present
             filesExist = True
             n = len(self.paramStr)
-            for i in range(n):
-                dataFileName = 'Lat_Lon_Grid_' + self.paramStr[i] + self.domainName + '_' + str(self.yearStart) + '_' + str(self.yearStop) + '.csv'
-                if not os.path.isfile(os.path.join('Results', dataFileName)):
-                    filesExist = False
-                    break
+            # for i in range(n):
+            #     dataFileName = 'Lat_Lon_Grid_' + self.paramStr[i] + self.domainName + '_' + str(self.yearStart) + '_' + str(self.yearStop) + '.csv'
+            #     if not os.path.isfile(os.path.join('Results', dataFileName)):
+            #         filesExist = False
+            #         break
 
             if filesExist:
                 # Create Initial File
@@ -459,7 +460,11 @@ class SortByArea(ttk.Frame):
                         #print('appending '+outStr)
 
                         for a in range(self.numAreas):
-                            f.write(str(a+1)+ ',' + self.areas.areaSubFrame[a].compAreaEntry.myEntry.get()+ ',' + outStr + ' ('+ units + ')')
+                            f.write(outStr)
+                            f.write(',' + str(a+1))
+                            f.write(',' + self.areas.areaSubFrame[a].commentEntry.myEntry.get())
+                            f.write(',' + self.areas.areaSubFrame[a].compAreaEntry.myEntry.get())
+                            f.write(',' + units)
                             for yr in range(self.numYears):
                                 f.write( ',' + self.areas.areaSubFrame[a].results[yr].myEntry.get())
                             f.write('\n')
