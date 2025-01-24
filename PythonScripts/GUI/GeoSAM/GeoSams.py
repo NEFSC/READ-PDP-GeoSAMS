@@ -301,7 +301,7 @@ class MainApplication(tk.Tk):
         ######################################################################################################################################################################            
         # 2) \SRC\ScallopPopDensity.exe Scallop.cfg 2022 2025 AL
         if filesExist:
-            # Continue with starting the GeoSAMS simulation ----------------------------------------------------------------------
+            # Continue with starting the GeoSAMS simulation 
             # 
             # typical command line:
             # > ./SRC/ScallopPopDensity.exe Scallop.cfg StartYear StopYear Domain
@@ -318,7 +318,7 @@ class MainApplication(tk.Tk):
                 if not self.skipStatusMsgs.get(): messagebox.showinfo("GeoSAM Sim", 
                     f'Completed Successfully\n{result.args}\nStarting Interp&Plot\nIf all output selected this will run over an hour.\nPlease be patient.')
 
-                # Then Continue with Interpolation and Plotting Results -----------------------------------------------------------
+                # Then Continue with Interpolation and Plotting Results 
                 (retDict, procID) = self.InterpAndPlotResults()
                 if sum(retDict.values()) == 0:
                     messagebox.showinfo("GeoSAMS/Interp/Plotting", f'ALL DONE\nRan {procID} processes')

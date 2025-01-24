@@ -240,12 +240,12 @@ class SpecialArea(ttk.Frame):
     The number of areas the user wishes to define. This is limited by Max Areas
     of Interest. See SHOW Args button
 
-    The # of Areas is limited by default to 25. See SHOW Args. 
+    The # of Areas is limited by default. See SHOW Args. 
     The user can modify this on the command line:
     > python .\\PythonScripts\\GUI\\GeoSAM\\GeoSams.py #Areas #Nodes
-    Default:
-    > python .\\PythonScripts\\GUI\\GeoSAM\\GeoSams.py 25 8
 
+Grid Mgr Config File
+    Grid Mgr Config File: Hold the configuration data for this tab.
 
 Special Access File
     The name of the file used to hold this information. The user can load the 

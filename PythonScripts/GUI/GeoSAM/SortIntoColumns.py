@@ -1,3 +1,18 @@
+## @page page4 Model Buffer, SortIntoColumns
+# For a given point, check each of the polygons in a given shape file. If in that polygon set BUFFER_<shape> to 1.
+#
+# The region and buffer shapefiles for GB and MA are attached. Column "Region" for all shapefiles is the modeling 
+# region, which makes columns "REGION" and "BUFFER_REGION" in the csvs. 
+#
+# Buffer is larger than the modeling region, so some data outside the modeling region but close to the boundary
+# could be within the buffer and used to construct the models. Some data will be used several times for different
+# models if multiple modeling regions are nearby. For example, within the blue circle in the below MA plot are a
+# few data points outside SAMS but within the buffer, which will be used by two modeling regions. For this reason, 
+# created multiple BUFFER_REGION columns for the survey data X_Y_BIOM_AL2022_XX_BUFFER.csv. The output from the R code,
+#   X_Y_BIOM_AL2022_XX_BUFFER_GAM.csv, has a longer length than the input X_Y_BIOM_AL2022_XX_BUFFER.csv 
+# because some data were used several times, and to make the query in the Python part easier I just duplicated some
+# of the data. Column "BUFFER" in X_Y_BIOM_AL2022_XX_BUFFER_GAM.csv indicates which modeling region's buffer the data
+# and GAM estimates/residuals belong to.   
 import sys
 import os
 import pandas as pd
@@ -23,7 +38,7 @@ class Column:
 inputFile = sys.argv[1]
 # determine region of interest from last two chars of file name
 l = len(inputFile)
-domain = domain = inputFile[l-2:l] 
+domain = inputFile[l-2:l] 
 
 dataFile = os.path.join('Data', inputFile+'.csv')
 outfile = os.path.join('Data', inputFile+'_BUFFER.csv')

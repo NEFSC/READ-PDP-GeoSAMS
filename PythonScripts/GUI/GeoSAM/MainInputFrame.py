@@ -444,16 +444,9 @@ Simulation Configuration Files
     Use the Change/Save buttons to use a different name. This also saves the 
     data under that name.
 
-    Growth Config File: This file holds the data from the Growth Tab.
     Recruit Config File: This file holds the data for recruitment, this Tab.
-    Grid Mgr Config File: This file holds the data from Special Access Tab.
     Sim Config File: This file holds the names of the previous files, the time
         steps per year, and the selected outputs
-
-Interpolation Configuration Files
-    UK Config File: This file holds the data from UKInterpolation Tab.
-        namely the form selected. The remaining data is kept in the 
-        Spatial Fcn Config File
 
 Output Selection
     Selects the desired outputs to be analyzed.
@@ -507,6 +500,13 @@ Survey Data Files
     Extensions are not specified.
 
     Use NONE to skip that survey data
+
+Shape Files
+    This contains two sets of file for both MAB and GB
+    •	Shape files:        used to define SAMS areas
+    •	Shape Buffer files: used to get the modeling region and buffer 
+                            information for columns "REGION" and "BUFFER_REGION"
+                            in the CSVs
 '''
         popup = tk.Toplevel()
         nrows = 35
