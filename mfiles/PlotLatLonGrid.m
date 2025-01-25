@@ -101,21 +101,21 @@ for r=1:2
             % enlarge figure
             if strcmp(domain, 'GB')
                 % if multiple montitors, otherwise [0 0 ...]
-                %f.OuterPosition = [1963.4 -221.4 1500 1087.2];
-                f.OuterPosition = [0 0 1500 1087.2];
+                %f.OuterPosition = [2000 -300 1000 1000];
+                f.OuterPosition = [0 0 750 750];
             else
-%                f.OuterPosition = [1963.4 -221.4 1000 1087.2];
-                f.OuterPosition = [0 0 1000 1087.2];
+                f.OuterPosition = [0 0 900 900];
             end
 
             p = gcf();
-            p.PaperSize = [11 17];
-            p.PaperType  = "tabloid";
+            p.PaperSize = [8.5 11];
+            p.PaperType  = "usletter";
             if strcmp(domain, 'GB')
                 p.PaperOrientation = "landscape";
             else
                 p.PaperOrientation = "portrait";
-                p.PaperPosition = [.1 .1 10 16];
+                %p.PaperPosition = [.1 .1 10 16]; % for [11 17] PaperSize
+                p.PaperPosition = [.1 .1 8.4 10.9];
             end
         end
         hold on
